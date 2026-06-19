@@ -1,0 +1,19 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Generated output (personal, not shared)
+pickit_output/
+output/
+
+# Local config (contains personal paths/settings)
+pickit_gui_config.json
+
+# Backup files
+*_backup_*.ipd
