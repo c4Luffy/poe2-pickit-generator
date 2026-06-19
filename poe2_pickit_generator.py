@@ -50,6 +50,7 @@ EXCHANGE_CATEGORIES = [
     ("uncut_gems",          "UncutGems",          "Uncut Gems",           False),
     ("lineage_support_gems","LineageSupportGems", "Lineage Support Gems", False),
     ("expedition",          "Expedition",         "Expedition",           False),
+    ("waystones",           "Waystones",          "Waystones",            False),
 ]
 
 UNIQUE_CATEGORIES = [
@@ -732,26 +733,9 @@ def build_unique_lines(payload: dict, divine_rate_exalts: float, min_exalt: floa
 
 
 
-def build_waystone_lines(payload: dict, divine_rate_exalts: float, min_exalt: float = None) -> list:
-    """Generate waystone pick rules. Falls back to static tier-based rules if
-    poe.ninja returns no waystone rows for this league."""
-    items_by_id = {i["id"]: i for i in payload.get("items", [])}
-    rate = exalted_rate(payload)
-    rows = []
-    for line in payload.get("lines", []):
-        item = items_by_id.get(line.get("id"))
-        if not item or not item.get("name"):
-            continue
-        name = item["name"]
-        primary_value = float(line.get("primaryValue") or 0.0)
-        exalt_value = primary_value * rate if rate else primary_value
-        divine_value = divine_value_from_exalt(exalt_value, divine_rate_exalts)
-        rows.append((name, exalt_value, divine_value))
-    if rows:
-        rows.sort(key=lambda r: -r[1])
-        return [format_rule(name, ev, dv, min_exalt=min_exalt) for name, ev, dv in rows]
-    # poe.ninja returned nothing — use safe static fallback
-    return ["// poe.ninja returned no waystone rows — using static fallback rules"] + WAYSTONE_FALLBACK_RULES
+def build_waystone_lines(payload: dict, divine_rate_exalts: float, min_exalt: float | None = None) -> list:
+    """Always pick all waystones tier 1-15 regardless of value."""
+    return list(WAYSTONE_FALLBACK_RULES)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

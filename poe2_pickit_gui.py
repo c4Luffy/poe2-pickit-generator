@@ -2493,6 +2493,9 @@ class PickitApp(tk.Tk):
                         lines = gen.build_uncut_gem_lines(payload, divine_rate_exalts, min_exalt=effective_min,
                                                           enabled_names=enabled_names)
                         report_rows.extend(gen.collect_exchange_report_rows(label_text, payload, divine_rate_exalts, min_exalt=effective_min))
+                    elif key == "waystones":
+                        lines = gen.build_waystone_lines(payload, divine_rate_exalts, min_exalt=effective_min)
+                        report_rows.extend(gen.collect_exchange_report_rows(label_text, payload, divine_rate_exalts, min_exalt=effective_min))
                     else:
                         pick_all  = key in gen.PICK_ALL_CATEGORIES
                         tier_sort = (key == "essences")
