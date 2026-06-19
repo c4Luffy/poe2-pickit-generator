@@ -81,6 +81,14 @@ ITEM_NAME_SKIP = {
     "Aldur's Legacy",  # deprecated base type — validator warns; rune no longer exists
 }
 
+# Currency items that must always be picked up even if poe.ninja omits them
+# (Exalted Orb is the PoE2 base pricing currency and won't appear in lines).
+ALWAYS_PICK_CURRENCY = [
+    "Exalted Orb",
+    "Divine Orb",
+    "Mirror of Kalandra",
+]
+
 
 # Fallback waystone rules used when poe.ninja returns no waystone rows.
 WAYSTONE_FALLBACK_RULES = [
@@ -630,6 +638,7 @@ def build_exchange_lines(
     min_exalt: float = None,
     tier_sort: bool = False,
     enabled_names: set = None,
+    always_names: list | None = None,
 ) -> list:
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
@@ -655,12 +664,24 @@ def build_exchange_lines(
         rows.sort(key=lambda r: -r[1])  # default: highest value first
 
     if pick_all:
-        return [
+        result = [
             f'[Type] == "{name}" # [StashItem] == "true" '
             f'// {ev:.6f} exalted | original: {dv:.4g} divine'
             for name, ev, dv in rows
         ]
-    return [format_rule(name, ev, dv, min_exalt=min_exalt) for name, ev, dv in rows]
+    else:
+        result = [format_rule(name, ev, dv, min_exalt=min_exalt) for name, ev, dv in rows]
+
+    # Prepend hardcoded always-pick rules for items poe.ninja omits (e.g. base currency)
+    if always_names:
+        scraped = {name for name, _, _ in rows}
+        prefix = [
+            f'[Type] == "{n}" # [StashItem] == "true"'
+            for n in always_names if n not in scraped
+        ]
+        result = prefix + result
+
+    return result
 
 
 def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: float = None,
@@ -938,7 +959,8 @@ def main():
                 report_rows.extend(collect_exchange_report_rows(label, payload, divine_rate_exalts, min_exalt=min_exalt))
             else:
                 pick_all = key in PICK_ALL_CATEGORIES
-                lines = build_exchange_lines(payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt, tier_sort=(key == "essences"))
+                always   = ALWAYS_PICK_CURRENCY if key == "currency" else None
+                lines = build_exchange_lines(payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt, tier_sort=(key == "essences"), always_names=always)
                 report_rows.extend(collect_exchange_report_rows(label, payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt))
 
             output_lines.append(header_sub(label))
