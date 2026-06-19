@@ -22,7 +22,7 @@ if errorlevel 1 (
 echo.
 echo [2/5] Installing packages...
 python -m pip install --upgrade pip --quiet
-python -m pip install requests pyinstaller
+python -m pip install requests Pillow pyinstaller
 if errorlevel 1 (
     echo.
     echo ERROR: pip install failed. See above.
@@ -63,6 +63,9 @@ python -m PyInstaller ^
     --hidden-import certifi ^
     --hidden-import charset_normalizer ^
     --hidden-import urllib3 ^
+    --hidden-import PIL ^
+    --hidden-import PIL.Image ^
+    --hidden-import PIL.ImageTk ^
     --noconfirm ^
     poe2_pickit_gui.py
 
