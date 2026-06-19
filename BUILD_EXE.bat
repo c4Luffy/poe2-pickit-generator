@@ -7,8 +7,8 @@ echo   PoE2 Pickit Generator - EXE Builder
 echo ================================================
 echo.
 
-:: ── Check Python ──────────────────────────────────────────────────────────────
-echo Checking Python...
+:: ── [1/5] Check Python ─────────────────────────────────────────────────────────
+echo [1/5] Checking Python...
 python --version
 if errorlevel 1 (
     echo.
@@ -18,9 +18,9 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-:: ── Install dependencies ──────────────────────────────────────────────────────
+:: ── [2/5] Install dependencies ─────────────────────────────────────────────────
 echo.
-echo [1/4] Installing packages...
+echo [2/5] Installing packages...
 python -m pip install --upgrade pip --quiet
 python -m pip install requests pyinstaller
 if errorlevel 1 (
@@ -29,12 +29,12 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-:: ── Check required files exist ────────────────────────────────────────────────
+:: ── [3/5] Check required files exist ───────────────────────────────────────────
 echo.
-echo [2/4] Checking files...
+echo [3/5] Checking files...
 if not exist "poe2_pickit_gui.py" (
     echo ERROR: poe2_pickit_gui.py not found in this folder!
-    echo Make sure all 3 files are in the same folder as this .bat
+    echo Make sure all files are in the same folder as this .bat
     pause & exit /b 1
 )
 if not exist "poe2_pickit_generator.py" (
@@ -43,24 +43,26 @@ if not exist "poe2_pickit_generator.py" (
 )
 echo Files OK.
 
-:: ── Clean old build ───────────────────────────────────────────────────────────
+:: ── [4/5] Clean old build ──────────────────────────────────────────────────────
 echo.
-echo [3/4] Cleaning old build...
+echo [4/5] Cleaning old build...
 if exist "dist\PoE2PickitGenerator.exe" del /f "dist\PoE2PickitGenerator.exe"
 if exist "build" rmdir /s /q "build"
 if exist "PoE2PickitGenerator.spec" del /f "PoE2PickitGenerator.spec"
 
-:: ── Build EXE ─────────────────────────────────────────────────────────────────
+:: ── [5/5] Build EXE ────────────────────────────────────────────────────────────
 echo.
-echo [4/4] Building EXE (takes ~60 seconds, please wait)...
+echo [5/5] Building EXE (takes ~60 seconds, please wait)...
 echo.
 
 python -m PyInstaller ^
     --onefile ^
     --windowed ^
     --name "PoE2PickitGenerator" ^
-    --add-data "poe2_pickit_generator.py;." ^
-    --hidden-import "requests" ^
+    --collect-data certifi ^
+    --hidden-import certifi ^
+    --hidden-import charset_normalizer ^
+    --hidden-import urllib3 ^
     --noconfirm ^
     poe2_pickit_gui.py
 
@@ -78,14 +80,14 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-:: ── Verify EXE was created ────────────────────────────────────────────────────
+:: ── Verify EXE was created ─────────────────────────────────────────────────────
 if not exist "dist\PoE2PickitGenerator.exe" (
     echo.
     echo ERROR: Build seemed to succeed but EXE not found at dist\PoE2PickitGenerator.exe
     pause & exit /b 1
 )
 
-:: ── Done ──────────────────────────────────────────────────────────────────────
+:: ── Done ───────────────────────────────────────────────────────────────────────
 echo.
 echo ================================================
 echo   BUILD SUCCESSFUL!
