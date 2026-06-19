@@ -21,6 +21,7 @@ import csv
 from concurrent.futures import ThreadPoolExecutor
 import html as _html
 import io
+import os
 import re
 import sys
 import threading
@@ -392,7 +393,7 @@ def header_sub(title: str) -> str:
 
 def header_minor(title: str) -> str:
     inner = f" ── {title} "
-    dashes = "─" * (_W - len(inner) - 6)
+    dashes = "─" * (_W - len(inner) - 5)
     return f"//{inner}{dashes} //"
 
 
@@ -873,7 +874,7 @@ def main():
     elif args.variant == "exchange":
         categories = EXCHANGE_CATEGORIES
     elif args.variant == "maps":
-        categories = [c for c in EXCHANGE_CATEGORIES if c[0] == "waystones"]
+        categories = [c for c in EXCHANGE_CATEGORIES if c[0] == "fragments"]
     else:
         categories = UNIQUE_CATEGORIES
 
@@ -989,7 +990,6 @@ def main():
         f.write(content)
 
     # ── Also write latest.ipd beside the output file ──────────────────────────
-    import os
     out_dir  = os.path.dirname(os.path.abspath(args.output)) or "."
     latest   = os.path.join(out_dir, "latest.ipd")
     with open(latest, "w", encoding="utf-8") as f:

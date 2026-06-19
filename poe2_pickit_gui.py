@@ -12,6 +12,7 @@ Fixes over v5:
 """
 
 import sys, os, re, json, time, shutil, threading, datetime, traceback, subprocess, importlib, hashlib, base64
+from concurrent.futures import ThreadPoolExecutor as _TPE
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 
@@ -62,7 +63,8 @@ for _d in (OUTPUT_DIR, ICON_DIR, PRESETS_DIR):
 
 DEFAULT_CONFIG = {
     "league": "",
-    "min_exalt": 10.0,
+    "min_exalt": 1.0,
+    "min_exalt_gear": 5.0,
     "output_base": "poe2_pickit",
     "bot_folder": "",
     "auto_copy": False,
@@ -276,7 +278,8 @@ class PickitApp(tk.Tk):
 
     def _init_vars(self):
         self.league_var       = tk.StringVar(value=self.cfg.get("league") or "")
-        self.min_exalt_var    = tk.DoubleVar(value=self.cfg.get("min_exalt", 10.0))
+        self.min_exalt_var      = tk.DoubleVar(value=self.cfg.get("min_exalt", 1.0))
+        self.min_exalt_gear_var = tk.DoubleVar(value=self.cfg.get("min_exalt_gear", 5.0))
         self.output_var       = tk.StringVar(value=self.cfg.get("output_base", "poe2_pickit"))
         self.bot_folder_var   = tk.StringVar(value=self.cfg.get("bot_folder", ""))
         self.auto_copy_var    = tk.BooleanVar(value=self.cfg.get("auto_copy", False))
@@ -547,18 +550,27 @@ class PickitApp(tk.Tk):
         self.league_cb.grid(row=0, column=0, sticky="ew", ipady=4, padx=(0, 6))
         btn(row, "↻  Refresh", self._fetch_leagues_async).grid(row=0, column=1)
 
-        # ── Threshold ────────────────────────────────────────────────────────
-        sec2 = self._section_frame(inner, "Global Threshold (Exalted Orbs)")
+        # ── Thresholds ───────────────────────────────────────────────────────
+        sec2 = self._section_frame(inner, "Thresholds (Exalted Orbs)")
         tr = tk.Frame(sec2, bg=BG2)
         tr.pack(fill="x", padx=10, pady=10)
-        label(tr, "Items below this value are commented out. Per-category overrides on the Categories tab.",
-              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", pady=(0, 6))
-        thresh_row = tk.Frame(tr, bg=BG2)
-        thresh_row.pack(anchor="w")
-        label(thresh_row, "Min value:", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(side="left")
-        entry(thresh_row, self.min_exalt_var, width=8).pack(side="left", padx=(6, 4), ipady=4)
-        label(thresh_row, "ex", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(side="left")
-        self.min_exalt_var.trace_add("write", self._clamp_threshold)
+        label(tr, "Items below their threshold are commented out in the pickit.  "
+                  "Per-category overrides are available on the Categories tab.",
+              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", pady=(0, 8))
+
+        def _thresh_row(parent, lbl_text, var, trace_cmd):
+            row = tk.Frame(parent, bg=BG2)
+            row.pack(anchor="w", pady=2)
+            label(row, f"{lbl_text}:", fg=TEXT_DIM, font=FONT_SM, bg=BG2,
+                  width=22, anchor="w").pack(side="left")
+            entry(row, var, width=7).pack(side="left", padx=(4, 4), ipady=4)
+            label(row, "ex", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(side="left")
+            var.trace_add("write", trace_cmd)
+
+        _thresh_row(tr, "Currency & Exchange items", self.min_exalt_var,
+                    self._clamp_threshold)
+        _thresh_row(tr, "Gear  (Unique weapons / armour)", self.min_exalt_gear_var,
+                    self._clamp_threshold_gear)
 
         # ── Output ───────────────────────────────────────────────────────────
         sec3 = self._section_frame(inner, "Output File")
@@ -639,6 +651,14 @@ class PickitApp(tk.Tk):
                 self.min_exalt_var.set(0.0)
         except (tk.TclError, ValueError):
             pass  # user is mid-typing — leave the field alone
+
+    def _clamp_threshold_gear(self, *_):
+        try:
+            v = self.min_exalt_gear_var.get()
+            if v < 0:
+                self.min_exalt_gear_var.set(0.0)
+        except (tk.TclError, ValueError):
+            pass
 
     # ══════════════════════════════════════════════════════════════════════════
     #  CATEGORIES PAGE
@@ -1097,7 +1117,7 @@ class PickitApp(tk.Tk):
             self._item_states[key] = {}
         self._item_states[key][name] = {"enabled": enabled}
         self._update_cat_count(key)
-        threading.Thread(target=self._save_states_bg, daemon=True).start()
+        self.after(0, self._save_states_now)
 
     def _update_cat_count(self, key):
         cards   = self._cat_cards.get(key, [])
@@ -1234,7 +1254,7 @@ class PickitApp(tk.Tk):
             card._dot_lbl.config(bg=bg, text=dot, fg=dfg)
             self._item_states[key][card._name] = {"enabled": enabled}
         self._update_cat_count(key)
-        threading.Thread(target=self._save_states_bg, daemon=True).start()
+        self.after(0, self._save_states_now)
 
     def _cat_items_reset(self):
         """Reset all item states for the current category to default (all enabled)."""
@@ -1250,7 +1270,7 @@ class PickitApp(tk.Tk):
             card._val_lbl.config(bg=_CON)
             card._dot_lbl.config(bg=_CON, text="●", fg=GOLD)
         self._update_cat_count(key)
-        threading.Thread(target=self._save_states_bg, daemon=True).start()
+        self.after(0, self._save_states_now)
 
     # ── Divine rate helper ────────────────────────────────────────────────────
 
@@ -1381,12 +1401,18 @@ class PickitApp(tk.Tk):
             except Exception:
                 pass
 
-        # Fetch images: wiki URL if resolved, else poe.ninja fallback
-        for name in names:
-            url = self._wiki_icon_cache.get(name) or ninja_by_name.get(name, "")
-            if url:
-                threading.Thread(target=self._fetch_icon,
-                                 args=(cat_key, name, url), daemon=True).start()
+        # Fetch images: wiki URL if resolved, else poe.ninja fallback (bounded pool)
+        to_load = [
+            (name, self._wiki_icon_cache.get(name) or ninja_by_name.get(name, ""))
+            for name in names
+            if self._wiki_icon_cache.get(name) or ninja_by_name.get(name, "")
+        ]
+        if to_load:
+            def _load_all(items=to_load, key=cat_key):
+                with _TPE(max_workers=8) as pool:
+                    for n, u in items:
+                        pool.submit(self._fetch_icon, key, n, u)
+            threading.Thread(target=_load_all, daemon=True).start()
 
     def _fetch_icon(self, key, name, url):
         """Worker thread: download icon → apply to matching card."""
@@ -1428,9 +1454,6 @@ class PickitApp(tk.Tk):
             break
 
     # ── State persistence ─────────────────────────────────────────────────────
-
-    def _save_states_bg(self):
-        self.after(0, self._save_states_now)
 
     def _save_states_now(self):
         self.cfg["item_states"] = self._item_states
@@ -1833,6 +1856,7 @@ class PickitApp(tk.Tk):
         self.cfg["include_bases"]          = self.include_bases_var.get()
         self.cfg["base_quality"]           = self.base_quality_var.get()
         self.cfg["base_min_level"]         = self.base_min_level_var.get()
+        self.cfg["min_exalt_gear"]         = self.min_exalt_gear_var.get()
         save_config(self.cfg)
         self._log("Settings saved.", "ok")
 
@@ -1842,7 +1866,8 @@ class PickitApp(tk.Tk):
             save_config(self.cfg)
             # Re-sync all tk vars so the live UI reflects defaults immediately
             self.league_var.set(self.cfg.get("league", ""))
-            self.min_exalt_var.set(self.cfg.get("min_exalt", 10.0))
+            self.min_exalt_var.set(self.cfg.get("min_exalt", 1.0))
+            self.min_exalt_gear_var.set(self.cfg.get("min_exalt_gear", 5.0))
             self.output_var.set(self.cfg.get("output_base", "poe2_pickit"))
             self.bot_folder_var.set(self.cfg.get("bot_folder", ""))
             self.auto_copy_var.set(self.cfg.get("auto_copy", False))
@@ -2196,7 +2221,7 @@ class PickitApp(tk.Tk):
         if not silent and os.path.isfile(ipd_path):
             age   = time.time() - os.path.getmtime(ipd_path)
             limit = self.cfg.get("confirm_overwrite_secs", 120)
-            if age < limit:
+            if limit == 0 or age < limit:
                 if not messagebox.askyesno("Overwrite?",
                         f"The pickit was generated {int(age)}s ago.\nOverwrite it now?"):
                     return
@@ -2237,9 +2262,15 @@ class PickitApp(tk.Tk):
         try:
             snapshot["min_exalt"] = self.min_exalt_var.get()
         except tk.TclError:
-            snapshot["min_exalt"] = float(self.cfg.get("min_exalt", 10.0))
+            snapshot["min_exalt"] = float(self.cfg.get("min_exalt", 1.0))
             self.min_exalt_var.set(snapshot["min_exalt"])
-            self._log("Threshold field invalid — reset to saved value.", "warn")
+            self._log("Currency threshold invalid — reset to saved value.", "warn")
+        try:
+            snapshot["min_exalt_gear"] = self.min_exalt_gear_var.get()
+        except tk.TclError:
+            snapshot["min_exalt_gear"] = float(self.cfg.get("min_exalt_gear", 5.0))
+            self.min_exalt_gear_var.set(snapshot["min_exalt_gear"])
+            self._log("Gear threshold invalid — reset to saved value.", "warn")
 
         threading.Thread(target=self._generate, args=(snapshot,), daemon=True).start()
 
@@ -2248,19 +2279,25 @@ class PickitApp(tk.Tk):
         try:
             league    = snapshot["league"]
             min_exalt = snapshot["min_exalt"]
+            min_exalt_gear = snapshot.get("min_exalt_gear", 5.0)
 
             try:
                 min_exalt = float(min_exalt)
             except (TypeError, ValueError):
-                min_exalt = float(self.cfg.get("min_exalt", 10.0))
-                self._log("Threshold field invalid — reset to saved value.", "warn")
+                min_exalt = float(self.cfg.get("min_exalt", 1.0))
+                self._log("Currency threshold invalid — reset to saved value.", "warn")
+            try:
+                min_exalt_gear = float(min_exalt_gear)
+            except (TypeError, ValueError):
+                min_exalt_gear = float(self.cfg.get("min_exalt_gear", 5.0))
+                self._log("Gear threshold invalid — reset to saved value.", "warn")
 
             base_path = os.path.join(OUTPUT_DIR,
                                      os.path.basename(os.path.splitext(snapshot["output_var"])[0]))
             ipd_path  = base_path + ".ipd"
 
             self._log(f"League    : {league}")
-            self._log(f"Threshold : {min_exalt:.0f} ex")
+            self._log(f"Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_gear:.0f} ex  (gear)")
             self._log(f"Output    : {os.path.basename(base_path)}.ipd")
             self._log("─" * 55, "dim")
 
@@ -2277,7 +2314,7 @@ class PickitApp(tk.Tk):
                 f"// League    : {league}",
                 f"// Generated : {_gen_ts.strftime('%Y-%m-%d %H:%M:%S')}",
                 f"// Pickit ID : {_gen_id}",
-                f"// Threshold : {min_exalt:.0f} ex",
+                f"// Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_gear:.0f} ex  (gear/uniques)",
                 "/" * gen._W, "",
                 # ── Configuration guide ───────────────────────────────────────
                 "//",
@@ -2415,11 +2452,13 @@ class PickitApp(tk.Tk):
                 self.after(0, lambda s=f"Building {cat_idx}/{total_cats}: {label_text}":
                            self.progress_var.set(s))
 
-                # Per-category threshold from snapshot (already safely extracted on main thread)
+                # Per-category threshold takes priority; fall back to the
+                # appropriate global (gear vs currency) when not set (-1).
                 cat_thresh = snapshot["cat_thresh"].get(key, -1.0)
                 if not isinstance(cat_thresh, (int, float)):
                     cat_thresh = -1.0
-                effective_min = cat_thresh if cat_thresh >= 0 else min_exalt
+                global_min = min_exalt_gear if is_unique else min_exalt
+                effective_min = cat_thresh if cat_thresh >= 0 else global_min
 
                 payload = all_payloads.get(key)
 
@@ -2574,6 +2613,7 @@ class PickitApp(tk.Tk):
             _cfg_updates = {
                 "league":             league,
                 "min_exalt":          min_exalt,
+                "min_exalt_gear":     min_exalt_gear,
                 "output_base":        snapshot["output_var"],
                 "category_enabled":   dict(snapshot["cat_enabled"]),
                 "category_threshold": dict(snapshot["cat_thresh"]),
