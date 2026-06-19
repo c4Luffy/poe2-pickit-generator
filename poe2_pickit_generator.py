@@ -451,6 +451,15 @@ STATIC_TABLET_RULES = """\
 [Type] == "Delirium Tablet" && [Rarity] == "Normal" # [StashItem] == "true"
 [Type] == "Delirium Tablet" && [Rarity] == "Magic" # [StashItem] == "true"
 [Type] == "Delirium Tablet" && [Rarity] == "Rare" # [StashItem] == "true"
+
+/////////////////////////////////////////////////////////////////////////////////////
+//                                                                                 //
+//                                   SPLINTERS                                     //
+//                                                                                 //
+/////////////////////////////////////////////////////////////////////////////////////
+
+[Type] == "Breach Splinter" # [StashItem] == "true"
+[Type] == "Simulacrum Splinter" # [StashItem] == "true"
 """
 
 
@@ -622,12 +631,13 @@ def _essence_tier_key(name: str):
     return (99, name)                               # non-essence items fall to end
 
 
-def format_rule(name: str, exalt_value: float, divine_value: float, header: str = "Type", min_exalt: float = None) -> str:
+def format_rule(name: str, exalt_value: float, _divine_value: float, header: str = "Type",
+                min_exalt: float | None = None, ritual_threshold: float | None = None) -> str:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
-    rule = (
-        f'[{header}] == "{name}" # [StashItem] == "true" '
-        f'// {exalt_value:.6f} exalted | original: {divine_value:.4g} divine'
-    )
+    action = '[StashItem] == "true"'
+    if ritual_threshold is not None and exalt_value < ritual_threshold:
+        action += ' && [IgnoreRitual] == "true"'
+    rule = f'[{header}] == "{name}" # {action} // ExValue = {exalt_value:.2f}'
     return rule if exalt_value >= threshold else f"//{rule}"
 
 
@@ -639,6 +649,7 @@ def build_exchange_lines(
     tier_sort: bool = False,
     enabled_names: set = None,
     always_names: list | None = None,
+    ritual_threshold: float | None = None,
 ) -> list:
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
@@ -665,12 +676,12 @@ def build_exchange_lines(
 
     if pick_all:
         result = [
-            f'[Type] == "{name}" # [StashItem] == "true" '
-            f'// {ev:.6f} exalted | original: {dv:.4g} divine'
-            for name, ev, dv in rows
+            f'[Type] == "{name}" # [StashItem] == "true" // ExValue = {ev:.2f}'
+            for name, ev, _ in rows
         ]
     else:
-        result = [format_rule(name, ev, dv, min_exalt=min_exalt) for name, ev, dv in rows]
+        result = [format_rule(name, ev, dv, min_exalt=min_exalt,
+                              ritual_threshold=ritual_threshold) for name, ev, dv in rows]
 
     # Prepend hardcoded always-pick rules for items poe.ninja omits (e.g. base currency)
     if always_names:
@@ -718,18 +729,15 @@ def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: f
             continue
         output.append(header_minor(f"Uncut {gem_type} Gems"))
         output.append("")
-        for _, level, name, ev, dv in group:
-            rule = (
-                f'[Type] == "{name}" # [StashItem] == "true" '
-                f'// {ev:.6f} exalted | original: {dv:.4g} divine'
-            )
+        for _, level, name, ev, _ in group:
+            rule = f'[Type] == "{name}" # [StashItem] == "true" // ExValue = {ev:.2f}'
             output.append(rule if ev >= threshold else f"//{rule}")
         output.append("")
 
     return output
 
 
-def build_unique_lines(payload: dict, divine_rate_exalts: float, min_exalt: float = None) -> list:
+def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: float | None = None) -> list:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
     rate = exalted_rate(payload)
     rows = []
@@ -742,11 +750,9 @@ def build_unique_lines(payload: dict, divine_rate_exalts: float, min_exalt: floa
         seen.add((name, base_type))
         primary_value = float(line.get("primaryValue") or 0.0)
         exalt_value = primary_value * rate if rate else primary_value
-        divine_value = divine_value_from_exalt(exalt_value, divine_rate_exalts)
         rule = (
             f'[Type] == "{base_type}" && [Rarity] == "Unique" # [UniqueName] == "{name}" '
-            f'&& [StashItem] == "true" '
-            f'// {exalt_value:.6f} exalted | original: {divine_value:.4g} divine'
+            f'&& [StashItem] == "true" // ExValue = {exalt_value:.2f}'
         )
         rows.append((exalt_value, rule if exalt_value >= threshold else f"//{rule}"))
     rows.sort(key=lambda r: -r[0])
@@ -958,8 +964,8 @@ def main():
                 lines = build_waystone_lines(payload, divine_rate_exalts, min_exalt=min_exalt)
                 report_rows.extend(collect_exchange_report_rows(label, payload, divine_rate_exalts, min_exalt=min_exalt))
             else:
-                pick_all = key in PICK_ALL_CATEGORIES
-                always   = ALWAYS_PICK_CURRENCY if key == "currency" else None
+                pick_all  = key in PICK_ALL_CATEGORIES
+                always    = ALWAYS_PICK_CURRENCY if key == "currency" else None
                 lines = build_exchange_lines(payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt, tier_sort=(key == "essences"), always_names=always)
                 report_rows.extend(collect_exchange_report_rows(label, payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt))
 

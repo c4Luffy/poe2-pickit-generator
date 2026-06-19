@@ -2519,13 +2519,15 @@ class PickitApp(tk.Tk):
                     else:
                         pick_all  = key in gen.PICK_ALL_CATEGORIES
                         tier_sort = (key == "essences")
-                        always = gen.ALWAYS_PICK_CURRENCY if key == "currency" else None
+                        always    = gen.ALWAYS_PICK_CURRENCY if key == "currency" else None
+                        ritual_th = min_exalt_gear if key == "omens" else None
                         lines = gen.build_exchange_lines(payload, divine_rate_exalts,
                                                          pick_all=pick_all,
                                                          min_exalt=effective_min,
                                                          tier_sort=tier_sort,
                                                          enabled_names=enabled_names,
-                                                         always_names=always)
+                                                         always_names=always,
+                                                         ritual_threshold=ritual_th)
                         report_rows.extend(gen.collect_exchange_report_rows(
                             label_text, payload, divine_rate_exalts, pick_all=pick_all, min_exalt=effective_min))
 
