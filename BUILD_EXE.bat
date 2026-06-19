@@ -1,9 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
-title PoE2 Pickit - EXE Builder
+title ExileBot 2 Pickit - EXE Builder
 
 echo ================================================
-echo   PoE2 Pickit Generator - EXE Builder
+echo   ExileBot 2 Pickit Generator - EXE Builder
 echo ================================================
 echo.
 
@@ -46,9 +46,9 @@ echo Files OK.
 :: ── [4/5] Clean old build ──────────────────────────────────────────────────────
 echo.
 echo [4/5] Cleaning old build...
-if exist "dist\PoE2PickitGenerator.exe" del /f "dist\PoE2PickitGenerator.exe"
+if exist "dist\ExileBot2PickitGenerator.exe" del /f "dist\ExileBot2PickitGenerator.exe"
 if exist "build" rmdir /s /q "build"
-if exist "PoE2PickitGenerator.spec" del /f "PoE2PickitGenerator.spec"
+if exist "ExileBot2PickitGenerator.spec" del /f "ExileBot2PickitGenerator.spec"
 
 :: ── [5/5] Build EXE ────────────────────────────────────────────────────────────
 echo.
@@ -58,7 +58,7 @@ echo.
 python -m PyInstaller ^
     --onefile ^
     --windowed ^
-    --name "PoE2PickitGenerator" ^
+    --name "ExileBot2PickitGenerator" ^
     --collect-data certifi ^
     --hidden-import certifi ^
     --hidden-import charset_normalizer ^
@@ -81,9 +81,9 @@ if errorlevel 1 (
 )
 
 :: ── Verify EXE was created ─────────────────────────────────────────────────────
-if not exist "dist\PoE2PickitGenerator.exe" (
+if not exist "dist\ExileBot2PickitGenerator.exe" (
     echo.
-    echo ERROR: Build seemed to succeed but EXE not found at dist\PoE2PickitGenerator.exe
+    echo ERROR: Build seemed to succeed but EXE not found at dist\ExileBot2PickitGenerator.exe
     pause & exit /b 1
 )
 
@@ -94,7 +94,7 @@ echo   BUILD SUCCESSFUL!
 echo ================================================
 echo.
 echo Your EXE is at:
-echo   %CD%\dist\PoE2PickitGenerator.exe
+echo   %CD%\dist\ExileBot2PickitGenerator.exe
 echo.
 echo You can copy that EXE anywhere and double-click to run.
 echo Settings are saved next to the EXE automatically.

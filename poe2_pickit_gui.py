@@ -1,5 +1,5 @@
 """
-PoE2 Pickit Generator — GUI v6 (Simple)
+ExileBot 2 Pickit Generator — GUI v6
 Clean, flat dark UI. No animations, no canvas buttons, no particle effects.
 Drop-in replacement for v5.
 
@@ -241,7 +241,7 @@ class PickitApp(tk.Tk):
         self.cfg = load_config()
         setup_styles(self)
 
-        self.title("PoE2 Pickit Generator  v6")
+        self.title("ExileBot 2 Pickit Generator  v6")
         self.configure(bg=BG)
         self.resizable(True, True)
         self.minsize(900, 660)
@@ -322,7 +322,7 @@ class PickitApp(tk.Tk):
         # Top header bar
         hdr = tk.Frame(self, bg=BG3, pady=0)
         hdr.pack(fill="x")
-        label(hdr, "⚔  PoE2 Pickit Generator", fg=GOLD,
+        label(hdr, "⚔  ExileBot 2 Pickit Generator", fg=GOLD,
               font=("Segoe UI", 13, "bold"), bg=BG3, padx=16, pady=8).pack(side="left")
         self.status_lbl = label(hdr, "Ready", fg=TEXT_DIM, font=FONT_SM, bg=BG3, padx=16)
         self.status_lbl.pack(side="right")
@@ -1954,7 +1954,7 @@ class PickitApp(tk.Tk):
     def _diag_worker(self):
         d = self._dlog
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        d(f"═══ PoE2 Pickit Generator — Diagnostics  ·  {now}", "header")
+        d(f"═══ ExileBot 2 Pickit Generator — Diagnostics  ·  {now}", "header")
         d("")
         d("── 1. Python environment", "header")
         d(f"  Python   : {sys.version.split()[0]}", "info")
@@ -2329,7 +2329,7 @@ class PickitApp(tk.Tk):
             _gen_id  = _gen_ts.strftime('%Y%m%d_%H%M%S')
             output_lines = [
                 "/" * gen._W,
-                "//" + f"  POE 2  |  PICKIT  |  ID: {_gen_id}".center(gen._W - 4) + "//",
+                "//" + f"  EXILEBOT 2  |  PICKIT  |  ID: {_gen_id}".center(gen._W - 4) + "//",
                 "/" * gen._W,
                 f"// League    : {league}",
                 f"// Generated : {_gen_ts.strftime('%Y-%m-%d %H:%M:%S')}",

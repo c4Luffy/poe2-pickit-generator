@@ -1,5 +1,5 @@
 """
-PoE2 Pickit Generator (v2)
+ExileBot 2 Pickit Generator
 ---------------------------
 Pulls live currency/item economy data from poe.ninja's real PoE2 API and
 generates Exiled Bot 2 pickit rules:
@@ -836,7 +836,7 @@ def collect_unique_report_rows(label: str, payload: dict, divine_rate_exalts: fl
 
 def main():
     global MIN_EXALT
-    parser = argparse.ArgumentParser(description="Generate PoE2 pickit rules from poe.ninja's real economy API.")
+    parser = argparse.ArgumentParser(description="Generate ExileBot 2 pickit rules from poe.ninja's real economy API.")
     parser.add_argument("--league",          default=None,              help="Exact league name. Omit to auto-detect.")
     parser.add_argument("--min-exalt",       type=float, default=MIN_EXALT, help="Threshold below which items are commented out")
     parser.add_argument("--output",          default="poe2_pickit.txt", help="Output file path")
@@ -886,7 +886,7 @@ def main():
     # ── File header ──────────────────────────────────────────────────────────
     output_lines = [
         "/" * _W,
-        "//" + "  POE 2  |  AUTO-GENERATED PICKIT".center(_W - 4) + "//",
+        "//" + "  EXILEBOT 2  |  AUTO-GENERATED PICKIT".center(_W - 4) + "//",
         "/" * _W,
         f"// League  : {league}",
         f"// Threshold: items below {min_exalt:.0f} Exalted are commented out",
