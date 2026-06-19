@@ -722,6 +722,18 @@ class PickitApp(tk.Tk):
         btn(tbar, "Export",        self._preset_export).pack(side="left", padx=(0, 3))
         btn(tbar, "Import",        self._preset_import).pack(side="left")
 
+        # Per-category threshold (right side of toolbar)
+        tk.Frame(tbar, bg=BORDER, width=1).pack(side="right", padx=10, fill="y")
+        tk.Label(tbar, text="ex  (−1 = global)", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="right")
+        vcmd_tbar = (self.register(lambda v: v == "" or bool(re.fullmatch(r"-?\d*\.?\d*", v))), "%P")
+        self._cat_thresh_entry = tk.Entry(tbar, width=6,
+            bg=BG3, fg=TEXT, insertbackground=GOLD,
+            relief="flat", bd=0, font=FONT,
+            highlightthickness=1, highlightbackground=BORDER,
+            validate="key", validatecommand=vcmd_tbar)
+        self._cat_thresh_entry.pack(side="right", padx=(0, 4), ipady=4)
+        tk.Label(tbar, text="Threshold:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="right", padx=(0, 4))
+
         sep(right).pack(fill="x")
 
         # ── Right: content switcher ───────────────────────────────────────────
@@ -840,6 +852,14 @@ class PickitApp(tk.Tk):
                 c.config(bg=_CSEL)
                 if isinstance(c, tk.Label):
                     c.config(fg=_CSFG)
+
+        # Update per-category threshold entry
+        if hasattr(self, "_cat_thresh_entry"):
+            if key != "_gear" and key in self.cat_thresh:
+                self._cat_thresh_entry.config(
+                    textvariable=self.cat_thresh[key], state="normal")
+            else:
+                self._cat_thresh_entry.config(state="disabled")
 
         if key == "_gear":
             self._cat_grid_outer.pack_forget()
