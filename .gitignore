@@ -17,3 +17,10 @@ pickit_gui_config.json
 
 # Backup files
 *_backup_*.ipd
+
+# Icon cache (downloaded at runtime, not needed in repo)
+icon_cache/
+wiki_icon_cache.json
+
+# Test / scratch files
+test_icon.png

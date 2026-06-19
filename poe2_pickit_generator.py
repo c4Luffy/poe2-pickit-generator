@@ -23,6 +23,7 @@ import html as _html
 import io
 import re
 import sys
+import threading
 import time
 from dataclasses import dataclass
 import requests
@@ -34,20 +35,20 @@ MIN_EXALT = 10.0
 
 
 EXCHANGE_CATEGORIES = [
-    ("currency",          "Currency",          "Currency",           False),
-    ("fragments",         "Fragments",         "Fragments",          False),
-    ("abyssal_bones",     "Abyss",             "Abyssal Bones",      False),
-    ("uncut_gems",        "UncutGems",         "Uncut Gems",         False),
-    ("lineage_support_gems","LineageSupportGems","Lineage Support Gems",False),
-    ("essences",          "Essences",          "Essences",           False),
-    ("soul_cores",        "SoulCores",         "Soul Cores",         False),
-    ("idols",             "Idols",             "Idols",              False),
-    ("runes",             "Runes",             "Runes",              False),
-    ("omens",             "Ritual",            "Omens",              False),
-    ("expedition",        "Expedition",        "Expedition",         False),
-    ("liquid_emotions",   "Delirium",          "Liquid Emotions",    False),
-    ("catalysts",         "Breach",            "Catalysts",          False),
-    ("waystones",         "Waystones",         "Waystones",          False),
+    # Order matches the in-game stash-tab list
+    ("currency",            "Currency",           "Currency",             False),
+    ("essences",            "Essences",           "Essences",             False),
+    ("liquid_emotions",     "Delirium",           "Liquid Emotions",      False),
+    ("catalysts",           "Breach",             "Catalysts",            False),
+    ("abyssal_bones",       "Abyss",              "Abyssal Bones",        False),
+    ("fragments",           "Fragments",          "Fragments",            False),
+    ("runes",               "Runes",              "Runes",                False),
+    ("omens",               "Ritual",             "Omens",                False),
+    ("soul_cores",          "SoulCores",          "Soul Cores",           False),
+    ("idols",               "Idols",              "Idols",                False),
+    ("uncut_gems",          "UncutGems",          "Uncut Gems",           False),
+    ("lineage_support_gems","LineageSupportGems", "Lineage Support Gems", False),
+    ("expedition",          "Expedition",         "Expedition",           False),
 ]
 
 UNIQUE_CATEGORIES = [
@@ -264,7 +265,10 @@ def parse_poe2db_bases(page: str, category: BaseCategory, min_level: int = None)
         name = _clean_html(m.group(1))
         if not name or name in seen:
             continue
-        chunk = page[m.end(): m.end() + 1800]
+        # Use a 3000-char window so items near the end of the page still have
+        # enough context to find their "Requires: Level" value.
+        chunk_end = min(m.end() + 3000, len(page))
+        chunk = page[m.end(): chunk_end]
         level = _poe2db_required_level(chunk)
         if level is not None and level < threshold:
             continue
@@ -322,7 +326,13 @@ def build_base_rules(min_quality: int = 28, min_level: int = 75, progress_callba
         if not names:
             continue
         any_scraped = True
-        scraped_names.update(names)
+        # Normalise curly/typographic quotes to ASCII so the dedup check below
+        # matches static-list names regardless of what poe2db sends.
+        scraped_names.update(
+            n.replace("‘", "'").replace("’", "'")
+             .replace("“", '"').replace("”", '"')
+            for n in names
+        )
         all_lines.append(header_minor(cat.title))
         all_lines.append("")
         cat_rules: set = set()
@@ -470,29 +480,34 @@ def _request_with_retry(url: str, params: dict, *, retries: int = 3, backoff: fl
 # ── In-memory payload cache (per session) ────────────────────────────────────
 
 _PAYLOAD_CACHE: dict = {}
+_CACHE_LOCK = threading.Lock()
 _CACHE_TTL: float = 900.0  # 15 minutes
 
 
 def _cache_get(league: str, key: str):
-    entry = _PAYLOAD_CACHE.get((league, key))
-    if entry and (time.time() - entry[0]) < _CACHE_TTL:
-        return entry[1]
+    with _CACHE_LOCK:
+        entry = _PAYLOAD_CACHE.get((league, key))
+        if entry and (time.time() - entry[0]) < _CACHE_TTL:
+            return entry[1]
     return None
 
 
 def _cache_set(league: str, key: str, payload: dict):
-    _PAYLOAD_CACHE[(league, key)] = (time.time(), payload)
+    with _CACHE_LOCK:
+        _PAYLOAD_CACHE[(league, key)] = (time.time(), payload)
 
 
 def clear_cache():
     """Discard all cached poe.ninja payloads."""
-    _PAYLOAD_CACHE.clear()
+    with _CACHE_LOCK:
+        _PAYLOAD_CACHE.clear()
 
 
 def cache_info() -> dict:
     """Return counts and age info about the current cache."""
     now = time.time()
-    entries = [(k, now - v[0]) for k, v in _PAYLOAD_CACHE.items()]
+    with _CACHE_LOCK:
+        entries = [(k, now - v[0]) for k, v in _PAYLOAD_CACHE.items()]
     return {
         "count": len(entries),
         "oldest_secs": max((a for _, a in entries), default=0),
@@ -579,6 +594,24 @@ def divine_value_from_exalt(exalt_value: float, divine_rate_exalts: float) -> fl
     return exalt_value / divine_rate_exalts if divine_rate_exalts else 0.0
 
 
+_ESSENCE_TIER_ORDER = {"lesser": 0, "": 1, "greater": 2, "perfect": 3}
+_ESSENCE_TIER_LABELS = {0: "Lesser", 1: "", 2: "Greater", 3: "Perfect"}
+
+def _essence_tier_key(name: str):
+    """Sort key: (tier 0-3, base_name) so Lesser < base < Greater < Perfect."""
+    low = name.lower()
+    for prefix in ("lesser essence", "greater essence", "perfect essence"):
+        if low.startswith(prefix):
+            tier_word = prefix.split()[0]          # "lesser" / "greater" / "perfect"
+            base = name[len(prefix):].strip()      # " of X" → "of X"
+            return (_ESSENCE_TIER_ORDER[tier_word], base)
+    # Plain "Essence of X"
+    if low.startswith("essence"):
+        base = name[len("essence"):].strip()
+        return (_ESSENCE_TIER_ORDER[""], base)
+    return (99, name)                               # non-essence items fall to end
+
+
 def format_rule(name: str, exalt_value: float, divine_value: float, header: str = "Type", min_exalt: float = None) -> str:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
     rule = (
@@ -588,7 +621,14 @@ def format_rule(name: str, exalt_value: float, divine_value: float, header: str 
     return rule if exalt_value >= threshold else f"//{rule}"
 
 
-def build_exchange_lines(payload: dict, divine_rate_exalts: float, pick_all: bool = False, min_exalt: float = None) -> list:
+def build_exchange_lines(
+    payload: dict,
+    divine_rate_exalts: float,
+    pick_all: bool = False,
+    min_exalt: float = None,
+    tier_sort: bool = False,
+    enabled_names: set = None,
+) -> list:
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
     rows = []
@@ -596,16 +636,22 @@ def build_exchange_lines(payload: dict, divine_rate_exalts: float, pick_all: boo
         item = items_by_id.get(line.get("id"))
         if not item or not item.get("name"):
             continue
-        # Skip items with no valid in-game base type
         if item["name"] in ITEM_NAME_SKIP:
             continue
-        # Apply name corrections for poe.ninja mismatches
         name = ITEM_NAME_CORRECTIONS.get(item["name"], item["name"])
+        if enabled_names is not None and name not in enabled_names:
+            continue
         primary_value = float(line.get("primaryValue") or 0.0)
         exalt_value = primary_value * rate if rate else primary_value
         divine_value = divine_value_from_exalt(exalt_value, divine_rate_exalts)
         rows.append((name, exalt_value, divine_value))
-    rows.sort(key=lambda r: -r[1])
+
+    if tier_sort:
+        # Sort by essence tier (Lesser → base → Greater → Perfect), then alphabetically
+        rows.sort(key=lambda r: _essence_tier_key(r[0]))
+    else:
+        rows.sort(key=lambda r: -r[1])  # default: highest value first
+
     if pick_all:
         return [
             f'[Type] == "{name}" # [StashItem] == "true" '
@@ -615,7 +661,8 @@ def build_exchange_lines(payload: dict, divine_rate_exalts: float, pick_all: boo
     return [format_rule(name, ev, dv, min_exalt=min_exalt) for name, ev, dv in rows]
 
 
-def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: float = None) -> list:
+def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: float = None,
+                          enabled_names: set = None) -> list:
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
@@ -627,6 +674,8 @@ def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: f
         if not item or not item.get("name"):
             continue
         name = item["name"]
+        if enabled_names is not None and name not in enabled_names:
+            continue
         # Extract gem type and level from name e.g. "Uncut Skill Gem (Level 7)"
         m = re.match(r"Uncut (Skill|Spirit|Support) Gem \(Level (\d+)\)", name)
         if not m:
@@ -904,7 +953,7 @@ def main():
                 report_rows.extend(collect_exchange_report_rows(label, payload, divine_rate_exalts, min_exalt=min_exalt))
             else:
                 pick_all = key in PICK_ALL_CATEGORIES
-                lines = build_exchange_lines(payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt)
+                lines = build_exchange_lines(payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt, tier_sort=(key == "essences"))
                 report_rows.extend(collect_exchange_report_rows(label, payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt))
 
             output_lines.append(header_sub(label))

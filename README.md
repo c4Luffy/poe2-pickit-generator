@@ -1,101 +1,133 @@
 # PoE2 Pickit Generator
 
-Automatically generates `.ipd` pickit rules for **Exiled Bot 2** based on live [poe.ninja](https://poe.ninja) economy data and endgame base types scraped from [poe2db.tw](https://poe2db.tw).
+A dark-themed GUI tool for **Path of Exile 2** that fetches live economy data from [poe.ninja](https://poe.ninja) and generates `.ipd` pickit rules for **Exiled Bot 2** — with per-item on/off toggles, wiki icons, preset saving, and automatic hourly refresh.
+
+---
+
+## Screenshots
+
+> Categories tab — card grid with wiki icons, per-item toggles, global search, and price display
 
 ---
 
 ## Features
 
-- **Live economy data** — fetches current prices from poe.ninja every hour
-- **Endgame base types** — scrapes level 75+ bases across all gear slots from poe2db (weapons, armour, off-hands)
-- **Auto-schedule** — regenerates the pickit every hour automatically, no manual steps
-- **Unique pickit ID** — every generated file includes a timestamp ID so you always know which one is newest
-- **Parallel fetch** — all poe.ninja categories fetched in parallel for fast generation
+### Economy & Rules
+- **Live poe.ninja data** — fetches current prices for all item categories
+- **Per-item toggles** — enable or disable individual items from each category card grid
+- **Value threshold** — only items above your set Exalt floor appear as active rules
+- **Parallel fetch** — all categories fetched simultaneously for fast generation
 - **15-minute cache** — repeated generates within 15 min are instant, no extra API calls
-- **Backup system** — keeps the last N versions of your pickit file automatically
-- **Preview tab** — view the generated rules inside the app before deploying
-- **History tab** — browse previous generate runs
+- **Auto-schedule** — regenerates every hour automatically in the background
+- **Endgame base types** — scrapes level 75+ gear bases from [poe2db.tw](https://poe2db.tw) with a built-in fallback list
+
+### Categories UI
+- **Card grid** — each item shows its wiki icon, name, price (Ex / Chaos / Divine), and ON/OFF dot
+- **Wiki icons** — fetched from [poe2wiki.net](https://www.poe2wiki.net) with poe.ninja fallback; cached locally
+- **Smart icon lookup** — Greater/Perfect currency variants use a two-pass wiki lookup (own icon first, then base item icon); gem levels share one icon per type
+- **Sectioned display** — Uncut Gems grouped as Support → Spirit → Skill sorted by level; Expedition shows Thaumaturgic Flux sorted by level
+- **Global search** — search bar searches across ALL loaded categories at once
+- **Preset system** — Save / Load / Export / Import item selections as JSON presets
+- **Enable All / Disable All / Reset** — bulk-toggle all items in the active category
+
+### Output
+- **Unique pickit ID** — every generated file has a timestamp ID
+- **Preview tab** — read the generated rules inside the app, filter by keyword, copy to clipboard
+- **History tab** — log of every generate run (time, active rules, divine rate, top item, duration)
+- **Backup system** — keeps the last N versions of your `.ipd` file automatically
+- **Auto-copy** — optionally deploys the `.ipd` directly to your bot folder after each generate
+
+---
+
+## Supported Categories
+
+| Category | Source |
+|---|---|
+| Currency | poe.ninja |
+| Essences | poe.ninja (sorted by tier: Lesser → Greater → Perfect) |
+| Delirium (Liquid Emotions) | poe.ninja |
+| Breach (Catalysts) | poe.ninja |
+| Abyss (Abyssal Bones) | poe.ninja |
+| Fragments | poe.ninja |
+| Runes | poe.ninja |
+| Ritual (Omens) | poe.ninja |
+| Soul Cores | poe.ninja |
+| Idols | poe.ninja |
+| Uncut Gems | poe.ninja |
+| Lineage Support Gems | poe.ninja (always picked — no threshold) |
+| Expedition | poe.ninja |
+| Unique Weapons / Armours / Accessories / Flasks / Charms / Jewels / Relics | poe.ninja |
+| Endgame Gear Bases | poe2db.tw (level 75+, quality or socket rules) |
 
 ---
 
 ## Requirements
 
 - Python 3.9+
-- `requests` library (`pip install requests`)
-
-Or just run `BUILD_EXE.bat` to create a standalone `.exe` (no Python needed after that).
+- `requests` — `pip install requests`
+- `Pillow` (optional but recommended for sharp icon scaling) — `pip install Pillow`
 
 ---
 
 ## Quick Start
 
 ```bash
-pip install requests
+pip install requests Pillow
 python poe2_pickit_gui.py
 ```
 
-1. Select your league on the **Generate** tab
-2. Configure which item categories to pick up on the **Categories** tab
-3. Click **Generate** — the `.ipd` file is written to the `output/` folder
-4. Point Exiled Bot 2 to the generated `.ipd` file
+1. Wait for the league list to load, then select your league on the **Generate** tab
+2. Open the **Categories** tab — click a category in the sidebar to load its items
+3. Toggle individual items ON/OFF by clicking their cards
+4. Set your Exalt value floor (items below this threshold are commented out, not deleted)
+5. Click **Generate** — the `.ipd` file is written to the `pickit_output/` folder
+6. Point Exiled Bot 2 at the generated `.ipd` file
 
 ---
 
-## Tabs Overview
+## Tabs
 
 | Tab | What it does |
 |---|---|
-| **Generate** | Select league, set value threshold, run generation |
-| **Categories** | Toggle which item types to include (uniques, currency, bases, etc.) |
-| **Preview** | Read-only view of the last generated pickit |
-| **History** | Log of all past generate runs in this session |
-| **Settings** | Bot folder path, backups, auto-copy, notifications |
-| **Debug** | Test API connectivity and file paths |
-
----
-
-## Base Types
-
-Endgame base types are scraped live from poe2db (level ≥ 75) across all categories:
-
-**Weapons** — One Hand Maces, Spears, Bows, Crossbows, Staves, Quarterstaves, Two Hand Maces  
-**Armour** — Body Armours (STR / DEX / INT / hybrid), Helmets, Gloves, Boots  
-**Off-hand** — Shields, Bucklers, Foci
-
-If poe2db is unreachable, a built-in fallback list of 154 known endgame bases is used automatically.
+| **Generate** | Select league, set threshold, run generation, view log |
+| **Categories** | Per-item card grid for all exchange categories + gear/base controls |
+| **Preview** | Read-only view of the last generated `.ipd` — filterable, copyable |
+| **History** | Log of all past generate runs |
+| **Settings** | Bot folder path, auto-copy, backups, launch minimized, overwrite protection |
+| **Debug** | Connectivity tests, API endpoint checks, config dump |
 
 ---
 
 ## Pickit Rule Reference
 
-The generated `.ipd` file includes a full syntax guide at the top. Key concepts:
+The generated `.ipd` includes a full syntax guide at the top. Quick reference:
 
 ```
-// Basic rule:
+// Basic rule
 [Type] == "Exalted Orb" # [StashItem] == "true"
 
-// Split with # (before = pre-ID, after = post-ID):
+// Before # = checked BEFORE identifying | After # = checked AFTER identifying
 [Rarity] == "Rare" # [TotalResistances] > "50" && [StashItem] == "true"
 
-// Computed values:
-[TotalResistances]       — sum of all resistances
-[ComputedArmour]         — final armour after modifiers
-[ComputedEvasion]        — final evasion after modifiers
-[ComputedEnergyShield]   — final ES after modifiers
+// Computed values
+[TotalResistances]          sum of all resistances
+[ComputedArmour]            final armour after modifiers
+[ComputedEvasion]           final evasion after modifiers
+[ComputedEnergyShield]      final ES after modifiers
 [DPS] / [PhysicalDPS] / [ElementalDPS]
-[TotalSpellElementalDamage] / [TotalFireSpellDamage] / ...
+[TotalFireSpellDamage] / [TotalColdSpellDamage] / [TotalLightningSpellDamage]
 
-// Special flags:
-[StashItem]    == "true"   pick up and stash
-[StashUnid]    == "true"   stash without identifying
-[Salvage]      == "true"   mark for salvage
-[IgnoreRitual] == "true"   skip ritual rewards
+// Special flags
+[StashItem]    == "true"    pick up and stash
+[StashUnid]    == "true"    stash without identifying
+[Salvage]      == "true"    mark for salvaging
+[IgnoreRitual] == "true"    ignore from ritual rewards
+
+// Operators:  == != > >= < <=
+// Combine:    && (AND)  || (OR)  () (group)
 ```
 
-**Operators:** `==`  `!=`  `>`  `>=`  `<`  `<=`  
-**Combine:** `&&` (AND)  `||` (OR)  `()` (group)
-
-### Categories
+### Category values
 
 | Group | Values |
 |---|---|
@@ -106,22 +138,13 @@ The generated `.ipd` file includes a full syntax guide at the top. Key concepts:
 | WeaponCategory (OH) | `Shield` `Buckler` `Focus` |
 | Other | `Flask` `Waystone` `Gem` |
 
-### Rarity
-
-```
-[Rarity] == "Normal"
-[Rarity] == "Magic"
-[Rarity] == "Rare"
-[Rarity] == "Unique"
-```
-
-### Examples
+### Example rules
 
 ```
 // Pick up all Divine Orbs
 [Type] == "Divine Orb" # [StashItem] == "true"
 
-// Stash rare helmets with high total resistances
+// Stash rare helmets with high resistances
 [Category] == "Helmet" && [Rarity] == "Rare" # [TotalResistances] > "100" && [StashItem] == "true"
 
 // Pick up bows with high DPS
@@ -130,10 +153,10 @@ The generated `.ipd` file includes a full syntax guide at the top. Key concepts:
 // Stash level 3 support gems
 [Type] == "Uncut Support Gem" && [GemLevel] == "3" # [StashItem] == "true"
 
-// Pick up waystones tier 10+
+// Pick up high-tier waystones
 [Category] == "Waystone" && [WaystoneTier] >= "10" # [StashItem] == "true"
 
-// Stash any unique by name
+// Pick a specific unique by name
 [Rarity] == "Unique" # [UniqueName] == "Headhunter" && [StashItem] == "true"
 ```
 
@@ -146,18 +169,20 @@ The generated `.ipd` file includes a full syntax guide at the top. Key concepts:
 | `poe2_pickit_gui.py` | Main GUI application |
 | `poe2_pickit_generator.py` | Economy fetching, rule generation logic |
 | `BUILD_EXE.bat` | Builds a standalone Windows `.exe` via PyInstaller |
-| `output/` | Generated `.ipd` files land here |
+| `pickit_output/` | Generated `.ipd` files land here |
+| `icon_cache/` | Downloaded item icons (auto-created, not in repo) |
+| `presets/` | Saved item-selection presets |
 
 ---
 
 ## Building the EXE
 
-Double-click `BUILD_EXE.bat`. Requires Python and an internet connection for the first run (installs PyInstaller). The resulting `dist/PoE2PickitGenerator.exe` is portable — copy it anywhere.
+Double-click `BUILD_EXE.bat`. Requires Python and an internet connection on first run (downloads PyInstaller). The resulting `dist/PoE2PickitGenerator.exe` is portable.
 
-> Windows Defender may flag the EXE as unknown. Click **More info → Run anyway** — it is a false positive common with PyInstaller executables.
+> Windows Defender may show an "unknown publisher" warning for PyInstaller executables. Click **More info → Run anyway** — it is a false positive.
 
 ---
 
 ## License
 
-MIT — do whatever you want with it.
+MIT — free to use, modify, and distribute.

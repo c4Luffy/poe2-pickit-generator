@@ -11,16 +11,17 @@ Fixes over v5:
   - Simplified to ttk.Button throughout for native OS rendering
 """
 
-import sys, os, re, json, time, shutil, threading, datetime, traceback, subprocess, importlib
+import sys, os, re, json, time, shutil, threading, datetime, traceback, subprocess, importlib, hashlib, base64
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, simpledialog
 
 # ── Optional Windows-only imports ─────────────────────────────────────────────
+
 try:
-    from win10toast import ToastNotifier
-    _HAS_TOAST = True
+    from PIL import Image, ImageTk as _ImageTk
+    _HAS_PIL = True
 except ImportError:
-    _HAS_TOAST = False
+    _HAS_PIL = False
 
 # ── PyInstaller bundle path fix ───────────────────────────────────────────────
 if getattr(sys, 'frozen', False):
@@ -51,9 +52,13 @@ if getattr(sys, 'frozen', False):
 else:
     _cfg_dir = os.path.dirname(os.path.abspath(__file__))
 
-CONFIG_PATH = os.path.join(_cfg_dir, "pickit_gui_config.json")
-OUTPUT_DIR  = os.path.join(_cfg_dir, "pickit_output")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+CONFIG_PATH      = os.path.join(_cfg_dir, "pickit_gui_config.json")
+OUTPUT_DIR       = os.path.join(_cfg_dir, "pickit_output")
+ICON_DIR         = os.path.join(_cfg_dir, "icon_cache")
+PRESETS_DIR      = os.path.join(_cfg_dir, "presets")
+WIKI_CACHE_FILE  = os.path.join(_cfg_dir, "wiki_icon_cache.json")
+for _d in (OUTPUT_DIR, ICON_DIR, PRESETS_DIR):
+    os.makedirs(_d, exist_ok=True)
 
 DEFAULT_CONFIG = {
     "league": "",
@@ -66,13 +71,13 @@ DEFAULT_CONFIG = {
     "category_threshold": {},
     "history": [],
 
-    "toast_on_complete": True,
     "start_minimized": False,
     "window_geometry": "",
     "confirm_overwrite_secs": 120,
     "include_bases": True,
     "base_quality": 28,
     "base_min_level": 75,
+    "item_states":  {},
 }
 
 def load_config():
@@ -105,6 +110,20 @@ TEXT_OK   = "#5dbb8a"
 TEXT_ERR  = "#e05555"
 TEXT_WARN = "#d4a84b"
 TEXT_INFO = "#6ab0e8"
+
+# ── Category card UI colours ──────────────────────────────────────────────────
+_CBAR   = "#16141a"   # sidebar bg
+_CBTN   = "#1c1a22"   # sidebar button normal bg
+_CHOV   = "#252230"   # sidebar button hover
+_CSEL   = "#2d1f10"   # sidebar button selected bg
+_CSFG   = "#e8c878"   # selected button text
+_CON    = "#25222e"   # item card enabled bg
+_COFF   = "#1a1820"   # item card disabled bg
+_CONB   = "#5a406a"   # item card enabled border
+_COFB   = "#2e2a38"   # item card disabled border
+_CTXON  = "#ece4d8"   # item card enabled text
+_CTXOF  = "#505060"   # item card disabled text
+_CVAL   = "#c8a050"   # value text
 
 FONT      = ("Segoe UI", 10)
 FONT_BOLD = ("Segoe UI", 10, "bold")
@@ -262,7 +281,6 @@ class PickitApp(tk.Tk):
         self.bot_folder_var   = tk.StringVar(value=self.cfg.get("bot_folder", ""))
         self.auto_copy_var    = tk.BooleanVar(value=self.cfg.get("auto_copy", False))
         self.backup_count_var = tk.IntVar(value=self.cfg.get("backup_count", 5))
-        self.toast_var        = tk.BooleanVar(value=self.cfg.get("toast_on_complete", True))
         self.start_min_var    = tk.BooleanVar(value=self.cfg.get("start_minimized", False))
         self.ovw_var          = tk.IntVar(value=self.cfg.get("confirm_overwrite_secs", 120))
 
@@ -277,6 +295,23 @@ class PickitApp(tk.Tk):
         for key in ALL_CATEGORY_KEYS:
             self.cat_enabled[key] = tk.BooleanVar(value=enabled_cfg.get(key, True))
             self.cat_thresh[key]  = tk.DoubleVar(value=threshold_cfg.get(key, -1.0))
+
+        # Per-item category card state
+        self._item_states  = dict(self.cfg.get("item_states", {}))
+        self._price_unit   = "ex"
+        self._item_prices  = {}   # {cat_key: {name: {ex, chaos, div}}}
+        self._cat_cards    = {}   # {cat_key: [card_frame, ...]}
+        self._active_cat   = None
+        self._price_unit_btns = {}
+
+        # Wiki icon URL cache
+        self._wiki_icon_cache = {}
+        if os.path.exists(WIKI_CACHE_FILE):
+            try:
+                with open(WIKI_CACHE_FILE, encoding="utf-8") as _f:
+                    self._wiki_icon_cache = json.load(_f)
+            except Exception:
+                pass
 
     # ── UI skeleton ───────────────────────────────────────────────────────────
 
@@ -351,22 +386,22 @@ class PickitApp(tk.Tk):
         if isinstance(event.widget, (tk.Text, tk.Listbox, tk.Scale)):
             return
         c = self._active_canvas
-        if c and c.winfo_exists() and c.yview() != (0.0, 1.0):
-            c.yview_scroll(-1 if event.delta > 0 else 1, "units")
+        if c and c.winfo_exists():
+            c.yview_scroll(-3 if event.delta > 0 else 3, "units")
 
     def _on_wheel_up(self, event):
         if isinstance(event.widget, (tk.Text, tk.Listbox, tk.Scale)):
             return
         c = self._active_canvas
-        if c and c.winfo_exists() and c.yview() != (0.0, 1.0):
-            c.yview_scroll(-1, "units")
+        if c and c.winfo_exists():
+            c.yview_scroll(-3, "units")
 
     def _on_wheel_down(self, event):
         if isinstance(event.widget, (tk.Text, tk.Listbox, tk.Scale)):
             return
         c = self._active_canvas
-        if c and c.winfo_exists() and c.yview() != (0.0, 1.0):
-            c.yview_scroll(1, "units")
+        if c and c.winfo_exists():
+            c.yview_scroll(3, "units")
 
     # ── Shared layout helpers ─────────────────────────────────────────────────
 
@@ -610,75 +645,952 @@ class PickitApp(tk.Tk):
     # ══════════════════════════════════════════════════════════════════════════
 
     def _build_categories_page(self, page):
-        self._tab_desc(page,
-            "Choose which item categories are included in your pickit and fine-tune their value thresholds.  "
-            "Tick the checkbox to enable a category.  Set a custom threshold (in ex) to override the global "
-            "minimum for that category only — use −1 to fall back to the global value, or 0 to pick up "
-            "everything in the category regardless of price.  Use the Preset buttons to quickly switch "
-            "between common configurations.")
-        # Presets bar
-        preset_f = tk.Frame(page, bg=BG)
-        preset_f.pack(fill="x", padx=16, pady=10)
-        label(preset_f, "Presets:", fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(0, 8))
-        for lbl_text, fn in [
-            ("All",             self._cat_enable_all),
-            ("None",            self._cat_disable_all),
-            ("Currency only",   self._cat_preset_currency),
-            ("Uniques only",    self._cat_preset_uniques),
-            ("Maps + Currency", self._cat_preset_maps),
-        ]:
-            btn(preset_f, lbl_text, fn).pack(side="left", padx=(0, 4))
+        """Card-based category browser. Sidebar = categories, right = item grid."""
+        # ── Horizontal split: sidebar | content ───────────────────────────────
+        sidebar = tk.Frame(page, bg=_CBAR, width=168)
+        sidebar.pack(side="left", fill="y")
+        sidebar.pack_propagate(False)
 
-        label(page,
-              "Threshold: −1 = use global.  0 = pick all in this category.",
-              fg=TEXT_DIM, font=FONT_SM).pack(anchor="w", padx=16)
+        right = tk.Frame(page, bg=BG)
+        right.pack(side="left", fill="both", expand=True)
 
-        sep(page).pack(fill="x", padx=16, pady=(8, 0))
+        self._build_cat_sidebar(sidebar)
 
-        inner, _ = self._scrollable(page)
+        # ── Right: top toolbar ────────────────────────────────────────────────
+        self._cat_header_var = tk.StringVar(value="")
+        self._cat_count_var  = tk.StringVar(value="")
+        self._cat_search_var = tk.StringVar()
+        self._cat_search_var.trace_add("write", self._cat_filter)
+
+        hdr_bar = tk.Frame(right, bg=BG2)
+        hdr_bar.pack(fill="x")
+        tk.Label(hdr_bar, textvariable=self._cat_header_var,
+                 bg=BG2, fg=GOLD, font=("Segoe UI", 12, "bold"),
+                 padx=16, pady=8).pack(side="left")
+        tk.Label(hdr_bar, textvariable=self._cat_count_var,
+                 bg=BG2, fg=TEXT_DIM, font=FONT_SM, padx=8).pack(side="right", padx=8)
+        sep(right).pack(fill="x")
+
+        tbar = tk.Frame(right, bg=BG)
+        tbar.pack(fill="x", padx=10, pady=(6, 4))
+
+        # Search box
+        tk.Label(tbar, text="Search:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left")
+        entry(tbar, self._cat_search_var, width=18).pack(side="left", padx=(4, 10), ipady=3)
+
+        # Enable/Disable all / Reset
+        btn(tbar, "Enable All",  lambda: self._cat_items_set_all(True)).pack(side="left", padx=(0, 3))
+        btn(tbar, "Disable All", lambda: self._cat_items_set_all(False)).pack(side="left", padx=(0, 3))
+        btn(tbar, "Reset",       self._cat_items_reset).pack(side="left", padx=(0, 12))
+
+        # Price unit selector
+        tk.Label(tbar, text="Value:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(0, 4))
+        for unit_key, unit_label in (("ex", "Exalt"), ("chaos", "Chaos"), ("div", "Divine")):
+            ub = tk.Button(tbar, text=unit_label,
+                           bg=BG3, fg=TEXT_DIM, activebackground=BORDER,
+                           activeforeground=TEXT, relief="flat", bd=1,
+                           font=FONT_SM, padx=7, pady=2,
+                           command=lambda u=unit_key: self._set_price_unit(u))
+            ub.pack(side="left", padx=1)
+            self._price_unit_btns[unit_key] = ub
+        self._update_price_unit_btns()
+
+        # Preset buttons
+        tk.Frame(tbar, bg=BORDER, width=1).pack(side="left", padx=10, fill="y")
+        btn(tbar, "Save Preset",   self._preset_save).pack(side="left", padx=(0, 3))
+        btn(tbar, "Load Preset",   self._preset_load).pack(side="left", padx=(0, 3))
+        btn(tbar, "Export",        self._preset_export).pack(side="left", padx=(0, 3))
+        btn(tbar, "Import",        self._preset_import).pack(side="left")
+
+        sep(right).pack(fill="x")
+
+        # ── Right: content switcher ───────────────────────────────────────────
+        self._cat_right = tk.Frame(right, bg=BG)
+        self._cat_right.pack(fill="both", expand=True)
+
+        # Panel A: item grid (exchange categories)
+        self._cat_grid_outer = tk.Frame(self._cat_right, bg=BG)
+
+        self._cat_loading_lbl = tk.Label(self._cat_grid_outer,
+            text="Select a category", bg=BG, fg=TEXT_DIM,
+            font=("Segoe UI", 11))
+        self._cat_loading_lbl.place(relx=0.5, rely=0.4, anchor="center")
+
+        self._cat_canvas = tk.Canvas(self._cat_grid_outer, bg=BG, highlightthickness=0)
+        _csb = tk.Scrollbar(self._cat_grid_outer, orient="vertical",
+                             command=self._cat_canvas.yview,
+                             bg=BG3, troughcolor=BG, relief="flat", bd=0, width=10)
+        self._cat_canvas.configure(yscrollcommand=_csb.set)
+        _csb.pack(side="right", fill="y")
+        self._cat_canvas.pack(side="left", fill="both", expand=True, padx=(8, 0), pady=8)
+
+        self._cat_grid_frame = tk.Frame(self._cat_canvas, bg=BG)
+        self._cat_grid_win   = self._cat_canvas.create_window(
+            (0, 0), window=self._cat_grid_frame, anchor="nw")
+        self._cat_grid_frame.bind("<Configure>",
+            lambda e: self._cat_canvas.configure(scrollregion=self._cat_canvas.bbox("all")))
+        self._cat_canvas.bind("<Configure>",
+            lambda e: self._cat_canvas.itemconfig(self._cat_grid_win, width=e.width))
+
+        # Scroll wheel bound directly on the canvas and its inner frame
+        for _w in (self._cat_canvas, self._cat_grid_frame):
+            _w.bind("<MouseWheel>",
+                    lambda e: self._cat_canvas.yview_scroll(-3 if e.delta > 0 else 3, "units"))
+            _w.bind("<Button-4>",  lambda e: self._cat_canvas.yview_scroll(-3, "units"))
+            _w.bind("<Button-5>",  lambda e: self._cat_canvas.yview_scroll( 3, "units"))
+
+        # Register canvas for global mousewheel on this tab (index 1)
+        self._tab_canvases[1] = self._cat_canvas
+
+        # Panel B: gear & bases (existing controls)
+        self._cat_gear_outer = tk.Frame(self._cat_right, bg=BG)
+        self._build_cat_gear_panel(self._cat_gear_outer)
+
+        # Show first exchange category
+        self._show_cat(gen.EXCHANGE_CATEGORIES[0][0])
+
+    # ── Category sidebar ──────────────────────────────────────────────────────
+
+    def _build_cat_sidebar(self, sidebar):
+        tk.Label(sidebar, text="CATEGORIES", bg=_CBAR, fg=GOLD,
+                 font=("Segoe UI", 8, "bold"), pady=8).pack(fill="x")
+        tk.Frame(sidebar, bg=BORDER, height=1).pack(fill="x")
+
+        sb_cv = tk.Canvas(sidebar, bg=_CBAR, highlightthickness=0, bd=0)
+        inner = tk.Frame(sb_cv, bg=_CBAR)
+        _win  = sb_cv.create_window((0, 0), window=inner, anchor="nw")
+        inner.bind("<Configure>",
+                   lambda e: sb_cv.configure(scrollregion=sb_cv.bbox("all")))
+        sb_cv.bind("<Configure>", lambda e: sb_cv.itemconfig(_win, width=e.width))
+        sb_cv.pack(fill="both", expand=True)
+
+        self._cat_sidebar_btns = {}
+        for key, _, lbl_text, _ in gen.EXCHANGE_CATEGORIES:
+            self._cat_sidebar_btns[key] = self._make_cat_btn(inner, lbl_text.upper(), key)
+
+        tk.Frame(inner, bg=BORDER, height=1).pack(fill="x", padx=8, pady=4)
+        self._cat_sidebar_btns["_gear"] = self._make_cat_btn(inner, "GEAR & BASES", "_gear")
+
+    def _make_cat_btn(self, parent, text, key):
+        frame = tk.Frame(parent, bg=_CBTN, cursor="hand2")
+        lbl   = tk.Label(frame, text=text, bg=_CBTN, fg=TEXT_DIM,
+                         font=("Segoe UI", 9), anchor="w", padx=12, pady=7)
+        lbl.pack(fill="x")
+
+        def _enter(e=None):
+            if self._active_cat != key:
+                frame.config(bg=_CHOV); lbl.config(bg=_CHOV)
+        def _leave(e=None):
+            if self._active_cat != key:
+                frame.config(bg=_CBTN); lbl.config(bg=_CBTN)
+        def _click(e=None):
+            self._show_cat(key)
+
+        for w in (frame, lbl):
+            w.bind("<Enter>", _enter)
+            w.bind("<Leave>", _leave)
+            w.bind("<Button-1>", _click)
+
+        frame.pack(fill="x", pady=1)
+        return frame
+
+    # ── Category switching ────────────────────────────────────────────────────
+
+    def _show_cat(self, key):
+        # Clear search when switching categories so the new category shows normally
+        self._cat_search_var.set("")
+        self._cat_cards.pop("_search", None)
+
+        # Deselect previous
+        if self._active_cat and self._active_cat in self._cat_sidebar_btns:
+            old = self._cat_sidebar_btns[self._active_cat]
+            old.config(bg=_CBTN)
+            for c in old.winfo_children():
+                c.config(bg=_CBTN)
+                if isinstance(c, tk.Label):
+                    c.config(fg=TEXT_DIM)
+
+        self._active_cat = key
+
+        # Highlight selected button
+        if key in self._cat_sidebar_btns:
+            bf = self._cat_sidebar_btns[key]
+            bf.config(bg=_CSEL)
+            for c in bf.winfo_children():
+                c.config(bg=_CSEL)
+                if isinstance(c, tk.Label):
+                    c.config(fg=_CSFG)
+
+        if key == "_gear":
+            self._cat_grid_outer.pack_forget()
+            self._cat_gear_outer.pack(fill="both", expand=True)
+            self._cat_header_var.set("Gear & Bases")
+            self._cat_count_var.set("")
+        else:
+            self._cat_gear_outer.pack_forget()
+            self._cat_grid_outer.pack(fill="both", expand=True)
+            lbl_text = next((l for k, _, l, _ in gen.EXCHANGE_CATEGORIES if k == key), key)
+            self._cat_header_var.set(lbl_text)
+
+            league  = self._selected_league() or "Mercenaries"
+            payload = gen._cache_get(league, key)
+            if payload and not isinstance(payload, Exception):
+                self._populate_cat_grid(key, payload)
+            else:
+                self._clear_cat_grid()
+                self._cat_loading_lbl.config(text=f"Loading {lbl_text}…")
+                self._cat_loading_lbl.place(relx=0.5, rely=0.4, anchor="center")
+                self._cat_count_var.set("Fetching from poe.ninja…")
+                threading.Thread(target=self._load_cat_async,
+                                 args=(key,), daemon=True).start()
+
+    def _load_cat_async(self, key):
+        entry_ = next((e for e in gen.EXCHANGE_CATEGORIES if e[0] == key), None)
+        if not entry_:
+            return
+        _, ninja_type, _, is_unique = entry_
+        league = self._selected_league() or "Mercenaries"
+        try:
+            payload = gen.fetch_category(league, key, ninja_type, is_unique)
+            gen._cache_set(league, key, payload)
+            self.after(0, lambda: self._populate_cat_grid(key, payload))
+        except Exception as exc:
+            self.after(0, lambda: self._cat_count_var.set(f"Failed: {exc}"))
+
+    # ── Item grid population ──────────────────────────────────────────────────
+
+    def _clear_cat_grid(self):
+        for w in self._cat_grid_frame.winfo_children():
+            w.destroy()
+
+    def _populate_cat_grid(self, key, payload):
+        if self._active_cat != key:
+            return
+        self._cat_loading_lbl.place_forget()
+        self._clear_cat_grid()
+
+        items_by_id = {i["id"]: i for i in payload.get("items", [])}
+        rate        = gen.exalted_rate(payload)
+        league      = self._selected_league() or "Mercenaries"
+        div_rate    = self._get_divine_rate(league)
+
+        rows = []
+        for line in payload.get("lines", []):
+            item = items_by_id.get(line.get("id"))
+            if not item or not item.get("name"):
+                continue
+            raw_name = item["name"]
+            if raw_name in gen.ITEM_NAME_SKIP:
+                continue
+            name = gen.ITEM_NAME_CORRECTIONS.get(raw_name, raw_name)
+            pv   = float(line.get("primaryValue") or 0.0)
+            ex   = pv * rate if rate else pv
+            raw_img = item.get("image") or item.get("icon") or ""
+            rows.append((name, pv, ex, div_rate, self._decode_ninja_image(raw_img)))
+
+        # Sort
+        if key == "essences":
+            rows.sort(key=lambda r: gen._essence_tier_key(r[0]))
+        elif key == "uncut_gems":
+            _GEM_TYPE_ORDER = {"Support": 0, "Spirit": 1, "Skill": 2}
+            def _gem_sort(r):
+                name = r[0]
+                m = re.search(r'\(Level (\d+)\)', name)
+                lvl = int(m.group(1)) if m else 0
+                for t, ti in _GEM_TYPE_ORDER.items():
+                    if f"Uncut {t} Gem" in name:
+                        return (ti, lvl)
+                return (99, lvl)
+            rows.sort(key=_gem_sort)
+        elif key == "expedition":
+            def _exp_sort(r):
+                m = re.search(r'\(Level (\d+)\)', r[0])
+                if "Thaumaturgic Flux" in r[0] and m:
+                    return (1, int(m.group(1)))
+                return (0, -r[2])
+            rows.sort(key=_exp_sort)
+        else:
+            rows.sort(key=lambda r: -r[2])
+
+        # Cache prices
+        self._item_prices[key] = {
+            name: {"ex": ex, "chaos": chaos, "div": (ex / div_rate if div_rate else 0.0)}
+            for name, chaos, ex, div_rate, _ in rows
+        }
+
+        if key not in self._item_states:
+            self._item_states[key] = {}
+        states = self._item_states[key]
+
+        NCOLS = 3
+        self._cat_cards[key] = []
+
+        # For sectioned categories (uncut gems / expedition): insert section headers
+        if key == "uncut_gems":
+            _GEM_LABELS = {"Support": "Uncut Support Gems",
+                           "Spirit":  "Uncut Spirit Gems",
+                           "Skill":   "Uncut Skill Gems"}
+            _GEM_TYPE_ORDER = {"Support": 0, "Spirit": 1, "Skill": 2}
+            grid_row = 0
+            col = 0
+            current_type = None
+            for name, chaos, ex, _div_r, icon_url in rows:
+                gem_type = None
+                for t in _GEM_TYPE_ORDER:
+                    if f"Uncut {t} Gem" in name:
+                        gem_type = t
+                        break
+                if gem_type != current_type:
+                    if col != 0:
+                        grid_row += 1
+                        col = 0
+                    hdr = tk.Frame(self._cat_grid_frame, bg="#16141a")
+                    tk.Label(hdr, text=_GEM_LABELS.get(gem_type, gem_type),
+                             bg="#16141a", fg=GOLD,
+                             font=("Segoe UI", 9, "bold"),
+                             padx=8, pady=5, anchor="w").pack(fill="x")
+                    hdr.grid(in_=self._cat_grid_frame, row=grid_row, column=0,
+                             columnspan=3, padx=3, pady=(10, 2), sticky="ew")
+                    grid_row += 1
+                    current_type = gem_type
+                div_val = ex / _div_r if _div_r else 0.0
+                enabled = states.get(name, {}).get("enabled", True)
+                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled)
+                card.grid(in_=self._cat_grid_frame, row=grid_row, column=col,
+                          padx=3, pady=3, sticky="ew")
+                self._cat_cards[key].append(card)
+                col += 1
+                if col >= NCOLS:
+                    col = 0
+                    grid_row += 1
+        elif key == "expedition":
+            grid_row = 0
+            col = 0
+            shown_flux_hdr = False
+            for name, chaos, ex, _div_r, icon_url in rows:
+                is_flux = "Thaumaturgic Flux" in name
+                if is_flux and not shown_flux_hdr:
+                    if col != 0:
+                        grid_row += 1
+                        col = 0
+                    hdr = tk.Frame(self._cat_grid_frame, bg="#16141a")
+                    tk.Label(hdr, text="Thaumaturgic Flux",
+                             bg="#16141a", fg=GOLD,
+                             font=("Segoe UI", 9, "bold"),
+                             padx=8, pady=5, anchor="w").pack(fill="x")
+                    hdr.grid(in_=self._cat_grid_frame, row=grid_row, column=0,
+                             columnspan=3, padx=3, pady=(10, 2), sticky="ew")
+                    grid_row += 1
+                    shown_flux_hdr = True
+                div_val = ex / _div_r if _div_r else 0.0
+                enabled = states.get(name, {}).get("enabled", True)
+                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled)
+                card.grid(in_=self._cat_grid_frame, row=grid_row, column=col,
+                          padx=3, pady=3, sticky="ew")
+                self._cat_cards[key].append(card)
+                col += 1
+                if col >= NCOLS:
+                    col = 0
+                    grid_row += 1
+        else:
+            for i, (name, chaos, ex, _div_r, icon_url) in enumerate(rows):
+                div_val = ex / _div_r if _div_r else 0.0
+                enabled = states.get(name, {}).get("enabled", True)
+                r_, c_ = divmod(i, NCOLS)
+                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled)
+                card.grid(in_=self._cat_grid_frame, row=r_, column=c_,
+                          padx=3, pady=3, sticky="ew")
+                self._cat_cards[key].append(card)
+
+        for c_ in range(NCOLS):
+            self._cat_grid_frame.columnconfigure(c_, weight=1, uniform="catcol")
+
+        self._update_cat_count(key)
+        self._cat_canvas.configure(scrollregion=self._cat_canvas.bbox("all"))
+        self._cat_canvas.yview_moveto(0)
+
+        # Load icons in background via wiki (with poe.ninja fallback)
+        threading.Thread(target=self._resolve_wiki_icons,
+                         args=(key, rows), daemon=True).start()
+
+    # ── Item card widget ──────────────────────────────────────────────────────
+
+    def _make_item_card(self, cat_key, name, chaos, ex_val, div_val, icon_url, enabled):
+        bg  = _CON  if enabled else _COFF
+        fg  = _CTXON if enabled else _CTXOF
+        bdr = _CONB if enabled else _COFB
+
+        frame = tk.Frame(self._cat_grid_frame, bg=bg, cursor="hand2",
+                         highlightthickness=1, highlightbackground=bdr)
+        frame._cat_key = cat_key
+        frame._name    = name
+        frame._enabled = enabled
+        frame._chaos   = chaos
+        frame._ex      = ex_val
+        frame._div     = div_val
+
+        # Placeholder icon (coloured square)
+        ph = tk.PhotoImage(width=36, height=36)
+        ph.put("#3a3050", to=(0, 0, 36, 36))
+
+        icon_lbl = tk.Label(frame, image=ph, bg=bg,
+                            width=36, height=36, bd=0)
+        icon_lbl.pack(side="left", padx=(6, 3), pady=5)
+        icon_lbl._ph = ph
+        frame._icon_lbl = icon_lbl
+
+        name_lbl = tk.Label(frame, text=name, bg=bg, fg=fg,
+                            font=("Segoe UI", 9), anchor="w")
+        name_lbl.pack(side="left", fill="x", expand=True, padx=(0, 4))
+        frame._name_lbl = name_lbl
+
+        val_str = self._fmt_price(chaos, ex_val, div_val)
+        val_lbl = tk.Label(frame, text=val_str, bg=bg, fg=_CVAL,
+                           font=("Segoe UI", 8), anchor="e", width=11)
+        val_lbl.pack(side="right", padx=(0, 4))
+        frame._val_lbl = val_lbl
+
+        dot_lbl = tk.Label(frame,
+                           text="●" if enabled else "○",
+                           bg=bg,
+                           fg=GOLD if enabled else TEXT_DIM,
+                           font=("Segoe UI", 11))
+        dot_lbl.pack(side="right", padx=(0, 2))
+        frame._dot_lbl = dot_lbl
+
+        def _click(e=None, f=frame):
+            self._toggle_card(f)
+
+        def _scroll(e):
+            self._cat_canvas.yview_scroll(-3 if e.delta > 0 else 3, "units")
+        def _scroll_up(e):
+            self._cat_canvas.yview_scroll(-3, "units")
+        def _scroll_dn(e):
+            self._cat_canvas.yview_scroll( 3, "units")
+
+        for w in (frame, icon_lbl, name_lbl, val_lbl, dot_lbl):
+            w.bind("<Button-1>",    _click)
+            w.bind("<MouseWheel>",  _scroll)
+            w.bind("<Button-4>",    _scroll_up)
+            w.bind("<Button-5>",    _scroll_dn)
+
+        return frame
+
+    def _toggle_card(self, frame):
+        enabled = not frame._enabled
+        frame._enabled = enabled
+        bg  = _CON  if enabled else _COFF
+        fg  = _CTXON if enabled else _CTXOF
+        bdr = _CONB if enabled else _COFB
+
+        frame.config(bg=bg, highlightbackground=bdr)
+        frame._name_lbl.config(bg=bg, fg=fg)
+        frame._icon_lbl.config(bg=bg)
+        frame._val_lbl.config(bg=bg)
+        frame._dot_lbl.config(bg=bg,
+                              text="●" if enabled else "○",
+                              fg=GOLD if enabled else TEXT_DIM)
+
+        key  = frame._cat_key
+        name = frame._name
+        if key not in self._item_states:
+            self._item_states[key] = {}
+        self._item_states[key][name] = {"enabled": enabled}
+        self._update_cat_count(key)
+        threading.Thread(target=self._save_states_bg, daemon=True).start()
+
+    def _update_cat_count(self, key):
+        cards   = self._cat_cards.get(key, [])
+        enabled = sum(1 for c in cards if c._enabled)
+        self._cat_count_var.set(f"{enabled} / {len(cards)} enabled")
+
+    # ── Price unit switching ──────────────────────────────────────────────────
+
+    def _fmt_price(self, chaos, ex, div):
+        unit = self._price_unit
+        if unit == "chaos":
+            return f"{chaos:.0f}c"
+        if unit == "div":
+            return f"{div:.3f} div"
+        return f"{ex:.2f} ex"
+
+    def _set_price_unit(self, unit):
+        self._price_unit = unit
+        self._update_price_unit_btns()
+        key = self._active_cat
+        if not key or key == "_gear":
+            return
+        for card in self._cat_cards.get(key, []) + self._cat_cards.get("_search", []):
+            card._val_lbl.config(text=self._fmt_price(card._chaos, card._ex, card._div))
+
+    def _update_price_unit_btns(self):
+        for unit, b in self._price_unit_btns.items():
+            if unit == self._price_unit:
+                b.config(bg=GOLD, fg="#111")
+            else:
+                b.config(bg=BG3, fg=TEXT_DIM)
+
+    # ── Search / enable-all / disable-all ────────────────────────────────────
+
+    def _cat_filter(self, *_):
+        q   = self._cat_search_var.get().strip().lower()
+        key = self._active_cat
+        if not key or key == "_gear":
+            return
+
+        if not q:
+            # Restore normal active-category view
+            self._cat_cards.pop("_search", None)
+            league  = self._selected_league() or "Mercenaries"
+            payload = gen._cache_get(league, key)
+            if payload and not isinstance(payload, Exception):
+                self._populate_cat_grid(key, payload)
+            return
+
+        # ── Global search across ALL loaded categories ────────────────────
+        self._clear_cat_grid()
+        self._cat_cards["_search"] = []
+
+        NCOLS     = 3
+        grid_row  = 0
+        col       = 0
+        found_any = False
+
+        for cat_key, _, cat_label, _ in gen.EXCHANGE_CATEGORIES:
+            prices = self._item_prices.get(cat_key, {})
+            if not prices:
+                continue
+            matches = sorted(
+                [(n, d) for n, d in prices.items() if q in n.lower()],
+                key=lambda x: -x[1].get("ex", 0)
+            )
+            if not matches:
+                continue
+            found_any = True
+
+            # Section header
+            if col != 0:
+                grid_row += 1
+                col = 0
+            hdr = tk.Frame(self._cat_grid_frame, bg="#16141a")
+            tk.Label(hdr, text=cat_label.upper(), bg="#16141a", fg=GOLD,
+                     font=("Segoe UI", 9, "bold"), padx=8, pady=5, anchor="w").pack(fill="x")
+            hdr.grid(in_=self._cat_grid_frame, row=grid_row, column=0,
+                     columnspan=3, padx=3, pady=(10, 2), sticky="ew")
+            grid_row += 1
+
+            states = self._item_states.get(cat_key, {})
+            for name, data in matches:
+                enabled = states.get(name, {}).get("enabled", True)
+                card = self._make_item_card(
+                    cat_key, name,
+                    data.get("chaos", 0), data.get("ex", 0), data.get("div", 0),
+                    self._wiki_icon_cache.get(name, ""), enabled)
+                card.grid(in_=self._cat_grid_frame, row=grid_row, column=col,
+                          padx=3, pady=3, sticky="ew")
+                self._cat_cards["_search"].append(card)
+                col += 1
+                if col >= NCOLS:
+                    col = 0
+                    grid_row += 1
+
+        if not found_any:
+            tk.Label(self._cat_grid_frame, text="No results",
+                     bg=BG, fg=TEXT_DIM, font=("Segoe UI", 11)
+                     ).grid(row=0, column=0, columnspan=3, pady=30)
+
+        for c_ in range(NCOLS):
+            self._cat_grid_frame.columnconfigure(c_, weight=1, uniform="catcol")
+        self._cat_canvas.configure(scrollregion=self._cat_canvas.bbox("all"))
+        self._cat_canvas.yview_moveto(0)
+
+        # Show cached icons immediately for search results
+        for card in self._cat_cards["_search"]:
+            url = self._wiki_icon_cache.get(card._name, "")
+            if url:
+                threading.Thread(target=self._fetch_icon,
+                                 args=("_search", card._name, url), daemon=True).start()
+
+        count = len(self._cat_cards["_search"])
+        self._cat_count_var.set(f"{count} result{'s' if count != 1 else ''} across all categories")
+
+    def _cat_items_set_all(self, enabled: bool):
+        key = self._active_cat
+        if not key or key == "_gear":
+            return
+        if key not in self._item_states:
+            self._item_states[key] = {}
+        bg  = _CON  if enabled else _COFF
+        fg  = _CTXON if enabled else _CTXOF
+        bdr = _CONB if enabled else _COFB
+        dot = "●" if enabled else "○"
+        dfg = GOLD if enabled else TEXT_DIM
+        for card in self._cat_cards.get(key, []):
+            card._enabled = enabled
+            card.config(bg=bg, highlightbackground=bdr)
+            card._name_lbl.config(bg=bg, fg=fg)
+            card._icon_lbl.config(bg=bg)
+            card._val_lbl.config(bg=bg)
+            card._dot_lbl.config(bg=bg, text=dot, fg=dfg)
+            self._item_states[key][card._name] = {"enabled": enabled}
+        self._update_cat_count(key)
+        threading.Thread(target=self._save_states_bg, daemon=True).start()
+
+    def _cat_items_reset(self):
+        """Reset all item states for the current category to default (all enabled)."""
+        key = self._active_cat
+        if not key or key == "_gear":
+            return
+        self._item_states.pop(key, None)
+        for card in self._cat_cards.get(key, []):
+            card._enabled = True
+            card.config(bg=_CON, highlightbackground=_CONB)
+            card._name_lbl.config(bg=_CON, fg=_CTXON)
+            card._icon_lbl.config(bg=_CON)
+            card._val_lbl.config(bg=_CON)
+            card._dot_lbl.config(bg=_CON, text="●", fg=GOLD)
+        self._update_cat_count(key)
+        threading.Thread(target=self._save_states_bg, daemon=True).start()
+
+    # ── Divine rate helper ────────────────────────────────────────────────────
+
+    def _get_divine_rate(self, league):
+        payload = gen._cache_get(league, "currency")
+        if not payload or isinstance(payload, Exception):
+            return 1.0
+        items_by_id = {i["id"]: i for i in payload.get("items", [])}
+        rate = gen.exalted_rate(payload)
+        for line in payload.get("lines", []):
+            item = items_by_id.get(line.get("id"))
+            if item and item.get("name") == "Divine Orb":
+                pv = float(line.get("primaryValue") or 0.0)
+                return pv * rate if rate else pv
+        return 1.0
+
+    # ── Icon loading ──────────────────────────────────────────────────────────
+
+    _ICON_HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0"
+        ),
+        "Referer":         "https://poe.ninja/",
+        "Accept":          "image/png,image/webp,*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    @staticmethod
+    def _decode_ninja_image(raw: str) -> str:
+        """Convert poe.ninja image field → downloadable URL.
+        poe.ninja stores images as /gen/image/{b64}/{hash}/{file}.png
+        Serve directly from poe.ninja — they host all icons reliably.
+        """
+        if not raw:
+            return ""
+        if raw.startswith("/"):
+            return "https://poe.ninja" + raw
+        if raw.startswith("http"):
+            return raw
+        return ""
+
+    _WIKI_API = "https://www.poe2wiki.net/api.php"
+
+    @staticmethod
+    def _wiki_base_name(name: str) -> str:
+        """Strip '(Level X)' so all gem levels share one wiki file."""
+        return re.sub(r'\s*\(Level \d+\)\s*$', '', name).strip()
+
+    @staticmethod
+    def _wiki_tier_base(name: str) -> str:
+        """Strip 'Greater '/'Perfect ' prefix to get base currency name."""
+        return re.sub(r'^(Greater|Perfect)\s+', '', name, flags=re.IGNORECASE).strip()
+
+    def _batch_wiki_query(self, file_to_items: dict) -> dict:
+        """Query poe2wiki.net for a title→items mapping; return title→url for found pages."""
+        found = {}
+        unique_titles = list(file_to_items.keys())
+        batch_size = 50
+        for i in range(0, len(unique_titles), batch_size):
+            batch = unique_titles[i:i + batch_size]
+            try:
+                r = requests.get(self._WIKI_API, params={
+                    "action": "query",
+                    "titles": "|".join(batch),
+                    "prop":   "imageinfo",
+                    "iiprop": "url",
+                    "format": "json",
+                }, timeout=15, headers={"User-Agent": gen.USER_AGENT})
+                for page in r.json().get("query", {}).get("pages", {}).values():
+                    title = page.get("title", "")
+                    if page.get("pageid", -1) != -1 and "imageinfo" in page:
+                        found[title] = page["imageinfo"][0]["url"]
+            except Exception:
+                pass
+        return found
+
+    def _resolve_wiki_icons(self, cat_key, rows):
+        """Background thread: batch-query poe2wiki.net for icon URLs, then fetch images.
+
+        For currency: two-pass lookup for Greater/Perfect variants —
+          pass 1: try the item's own wiki file (e.g. 'Greater Jeweller's Orb' → has its own icon)
+          pass 2: if not found, try the base name (e.g. 'Greater Chaos Orb' → 'Chaos Orb')
+        For gems: strip '(Level X)' so all levels share one wiki file.
+        """
+        names = [r[0] for r in rows]
+        ninja_by_name = {r[0]: r[4] for r in rows}
+
+        to_fetch = [n for n in names if n not in self._wiki_icon_cache]
+        if to_fetch:
+            # Pass 1: query each item by its own wiki file title (strip level suffix for gems)
+            file_to_items: dict[str, list] = {}
+            for n in to_fetch:
+                base  = self._wiki_base_name(n)
+                title = f"File:{base} inventory icon.png"
+                file_to_items.setdefault(title, []).append(n)
+
+            found = self._batch_wiki_query(file_to_items)
+            for title, url in found.items():
+                for item_name in file_to_items.get(title, []):
+                    self._wiki_icon_cache[item_name] = url
+
+            # Pass 2 (currency only): for Greater/Perfect items still not resolved,
+            # try stripping the tier prefix and reuse the base item's icon
+            if cat_key == "currency":
+                _tier_re = re.compile(r'^(Greater|Perfect)\s+', re.IGNORECASE)
+                still_missing = [n for n in to_fetch
+                                 if n not in self._wiki_icon_cache and _tier_re.match(n)]
+                if still_missing:
+                    fallback_map: dict[str, list] = {}
+                    for n in still_missing:
+                        base  = self._wiki_tier_base(n)
+                        title = f"File:{base} inventory icon.png"
+                        fallback_map.setdefault(title, []).append(n)
+                    found2 = self._batch_wiki_query(fallback_map)
+                    for title, url in found2.items():
+                        for item_name in fallback_map.get(title, []):
+                            self._wiki_icon_cache[item_name] = url
+
+            # Fallback to poe.ninja for anything still not resolved
+            for n in to_fetch:
+                if n not in self._wiki_icon_cache:
+                    self._wiki_icon_cache[n] = ninja_by_name.get(n, "")
+
+            try:
+                with open(WIKI_CACHE_FILE, "w", encoding="utf-8") as f:
+                    json.dump(self._wiki_icon_cache, f, indent=2)
+            except Exception:
+                pass
+
+        # Fetch images: wiki URL if resolved, else poe.ninja fallback
+        for name in names:
+            url = self._wiki_icon_cache.get(name) or ninja_by_name.get(name, "")
+            if url:
+                threading.Thread(target=self._fetch_icon,
+                                 args=(cat_key, name, url), daemon=True).start()
+
+    def _fetch_icon(self, key, name, url):
+        """Worker thread: download icon → apply to matching card."""
+        if not url:
+            return
+        try:
+            slug = hashlib.md5(url.encode()).hexdigest()[:16]
+            path = os.path.join(ICON_DIR, slug + ".png")
+            if not os.path.exists(path):
+                r = requests.get(url, timeout=10, headers=self._ICON_HEADERS)
+                if r.status_code == 200 and r.headers.get("Content-Type", "").startswith("image"):
+                    with open(path, "wb") as f:
+                        f.write(r.content)
+            if os.path.exists(path):
+                self.after(0, lambda p=path: self._apply_icon(key, name, p))
+        except Exception:
+            pass
+
+    def _apply_icon(self, key, name, path):
+        """Main thread: set icon on matching card."""
+        for card in self._cat_cards.get(key, []):
+            if card._name != name:
+                continue
+            try:
+                if _HAS_PIL:
+                    img   = Image.open(path).resize((36, 36), Image.LANCZOS)
+                    photo = _ImageTk.PhotoImage(img)
+                else:
+                    photo = tk.PhotoImage(file=path)
+                    w, h  = photo.width(), photo.height()
+                    factor = max(1, max(w, h) // 36)
+                    if factor > 1:
+                        photo = photo.subsample(factor, factor)
+                card._icon_lbl.config(image=photo,
+                                      width=photo.width(), height=photo.height())
+                card._icon_lbl._ph = photo
+            except Exception:
+                pass
+            break
+
+    # ── State persistence ─────────────────────────────────────────────────────
+
+    def _save_states_bg(self):
+        self.after(0, self._save_states_now)
+
+    def _save_states_now(self):
+        self.cfg["item_states"] = self._item_states
+        save_config(self.cfg)
+
+    # ── Preset system ─────────────────────────────────────────────────────────
+
+    def _preset_save(self):
+        name = simpledialog.askstring("Save Preset", "Preset name:", parent=self)
+        if not name:
+            return
+        data = {
+            "_meta": {
+                "name":    name,
+                "created": datetime.datetime.now().isoformat(),
+                "league":  self._selected_league() or "",
+            },
+            "item_states": self._item_states,
+        }
+        path = os.path.join(PRESETS_DIR, re.sub(r'[^\w\-. ]', '_', name) + ".json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        messagebox.showinfo("Saved", f"Preset '{name}' saved.", parent=self)
+
+    def _preset_load(self):
+        files = [f for f in os.listdir(PRESETS_DIR) if f.endswith(".json")]
+        if not files:
+            messagebox.showinfo("No Presets",
+                "No saved presets found.\nUse 'Save Preset' or 'Import' first.", parent=self)
+            return
+        dlg = tk.Toplevel(self)
+        dlg.title("Load Preset")
+        dlg.configure(bg=BG)
+        dlg.grab_set()
+        dlg.resizable(False, False)
+        tk.Label(dlg, text="Select a preset to load:", bg=BG, fg=TEXT,
+                 font=FONT, padx=16, pady=10).pack(anchor="w")
+        lb = tk.Listbox(dlg, bg=BG3, fg=TEXT, selectbackground=GOLD,
+                        selectforeground="#111", font=FONT, width=36, height=min(len(files), 12))
+        for f in files:
+            lb.insert("end", f[:-5])
+        lb.pack(padx=16, pady=(0, 8))
+        lb.selection_set(0)
+
+        def _apply():
+            sel = lb.curselection()
+            if not sel:
+                return
+            fname = files[sel[0]]
+            try:
+                with open(os.path.join(PRESETS_DIR, fname), encoding="utf-8") as fp:
+                    data = json.load(fp)
+                self._item_states = data.get("item_states", data)
+                self.cfg["item_states"] = self._item_states
+                save_config(self.cfg)
+                dlg.destroy()
+                key = self._active_cat
+                if key and key != "_gear":
+                    league  = self._selected_league() or "Mercenaries"
+                    payload = gen._cache_get(league, key)
+                    if payload:
+                        self._populate_cat_grid(key, payload)
+            except Exception as e:
+                messagebox.showerror("Error", str(e), parent=dlg)
+
+        btn_f = tk.Frame(dlg, bg=BG)
+        btn_f.pack(fill="x", padx=16, pady=(0, 12))
+        btn(btn_f, "Load",   _apply).pack(side="left", padx=(0, 6))
+        btn(btn_f, "Cancel", dlg.destroy).pack(side="left")
+
+    def _preset_export(self):
+        path = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON preset", "*.json"), ("All files", "*.*")],
+            title="Export Preset", parent=self)
+        if not path:
+            return
+        data = {
+            "_meta": {
+                "name":    os.path.splitext(os.path.basename(path))[0],
+                "created": datetime.datetime.now().isoformat(),
+                "league":  self._selected_league() or "",
+            },
+            "item_states": self._item_states,
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        messagebox.showinfo("Exported", f"Preset exported to:\n{path}", parent=self)
+
+    def _preset_import(self):
+        path = filedialog.askopenfilename(
+            filetypes=[("JSON preset", "*.json"), ("All files", "*.*")],
+            title="Import Preset", parent=self)
+        if not path:
+            return
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+            states = data.get("item_states", data)
+            # Copy into presets folder too
+            dest = os.path.join(PRESETS_DIR,
+                                os.path.basename(path))
+            if not os.path.exists(dest):
+                shutil.copy2(path, dest)
+            self._item_states = states
+            self.cfg["item_states"] = states
+            save_config(self.cfg)
+            key = self._active_cat
+            if key and key != "_gear":
+                league  = self._selected_league() or "Mercenaries"
+                payload = gen._cache_get(league, key)
+                if payload:
+                    self._populate_cat_grid(key, payload)
+            messagebox.showinfo("Imported", "Preset imported and applied.", parent=self)
+        except Exception as e:
+            messagebox.showerror("Import Failed", str(e), parent=self)
+
+    # ── Gear & Bases panel (existing controls) ────────────────────────────────
+
+    def _build_cat_gear_panel(self, parent):
+        """The old-style panel for unique categories and base types."""
+        inner, _ = self._scrollable(parent)
 
         vcmd = (self.register(lambda v: v == "" or bool(re.fullmatch(r"-?\d*\.?\d*", v))), "%P")
 
-        def cat_group(group_label, cats, unique=False, desc=""):
+        def cat_group(grp_label, cats, unique=False, desc=""):
             lf = tk.Frame(inner, bg=BG)
             lf.pack(fill="x", pady=(12, 0))
-            label(lf, group_label, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(16, 8))
+            label(lf, grp_label, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(16, 8))
             sep(lf).pack(side="left", fill="x", expand=True, padx=(0, 16), pady=3)
             if desc:
-                label(inner, desc, fg=TEXT_DIM, font=FONT_SM).pack(anchor="w", padx=16, pady=(2, 4))
-
+                label(inner, desc, fg=TEXT_DIM, font=FONT_SM).pack(
+                    anchor="w", padx=16, pady=(2, 4))
             row_bg = "#1e1e2a" if unique else BG2
             for key, _, lbl_text, _ in cats:
                 row = tk.Frame(inner, bg=row_bg,
                                highlightthickness=1, highlightbackground=BORDER)
                 row.pack(fill="x", padx=16, pady=2)
-                row.columnconfigure(1, weight=1)
-
                 cb = tk.Checkbutton(row, text=lbl_text, variable=self.cat_enabled[key],
                     bg=row_bg, fg=TEXT_INFO if unique else TEXT,
                     selectcolor=BG3, activebackground=row_bg,
                     activeforeground=TEXT, font=FONT, anchor="w", padx=10, pady=6)
                 cb.pack(side="left")
-
-                thresh_f = tk.Frame(row, bg=row_bg)
-                thresh_f.pack(side="right", padx=8)
-                label(thresh_f, "ex  (−1 = global)", fg=TEXT_DIM, font=FONT_SM, bg=row_bg).pack(side="right")
-                e = tk.Entry(thresh_f, textvariable=self.cat_thresh[key], width=7,
+                tf = tk.Frame(row, bg=row_bg)
+                tf.pack(side="right", padx=8)
+                label(tf, "ex  (−1 = global)", fg=TEXT_DIM, font=FONT_SM, bg=row_bg).pack(side="right")
+                tk.Entry(tf, textvariable=self.cat_thresh[key], width=7,
                     bg=BG3, fg=TEXT, insertbackground=GOLD,
                     relief="flat", bd=0, font=FONT,
                     highlightthickness=1, highlightbackground=BORDER,
-                    validate="key", validatecommand=vcmd)
-                e.pack(side="right", padx=(0, 4), ipady=4)
-                label(thresh_f, "threshold:", fg=TEXT_DIM, font=FONT_SM, bg=row_bg).pack(side="right", padx=(0, 4))
+                    validate="key", validatecommand=vcmd
+                ).pack(side="right", padx=(0, 4), ipady=4)
+                label(tf, "threshold:", fg=TEXT_DIM, font=FONT_SM, bg=row_bg).pack(
+                    side="right", padx=(0, 4))
 
-        cat_group("Exchange Categories", gen.EXCHANGE_CATEGORIES, unique=False,
-                  desc="Tradeable items fetched live from poe.ninja — currencies, runes, essences, gems and more.  "
-                       "Each item's value is converted to Exalted Orbs and compared against your threshold.")
         cat_group("Unique Categories", gen.UNIQUE_CATEGORIES, unique=True,
-                  desc="Unique items matched by base type and name.  "
-                       "Rules use [UniqueName] so the bot only picks the exact unique, not any rare of the same base.")
+                  desc="Unique items matched by exact name ([UniqueName]).  "
+                       "Threshold and enable/disable apply at the whole-category level.")
 
-        # ── Base Types (Poe2DB) ───────────────────────────────────────────────
+        # Base Types
         lf_b = tk.Frame(inner, bg=BG)
         lf_b.pack(fill="x", pady=(16, 0))
         label(lf_b, "Base Types  (Poe2DB)", fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(16, 8))
@@ -688,21 +1600,23 @@ class PickitApp(tk.Tk):
         sec_b.pack(fill="x", padx=16, pady=(2, 12))
 
         label(sec_b,
-              "Scrapes endgame weapon bases (level 80+) from poe2db.tw and generates Quality / Socket pickup rules.  "
-              "Covers the 11 weapon types you selected.  Adds ~30 s to generate time.",
+              "Scrapes endgame bases (level 75+) from poe2db.tw — weapons, armour, off-hands.  "
+              "Falls back to built-in list if poe2db is unreachable.  Adds ~30 s to generate time.",
               fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 4))
 
-        checkbtn(sec_b, "Include endgame base types in pickit", self.include_bases_var
-                 ).pack(anchor="w", padx=10, pady=(0, 4))
+        checkbtn(sec_b, "Include endgame base types in pickit",
+                 self.include_bases_var).pack(anchor="w", padx=10, pady=(0, 4))
 
         qrow = tk.Frame(sec_b, bg=BG2)
         qrow.pack(anchor="w", padx=10, pady=(0, 10))
         label(qrow, "Min quality:", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(side="left")
         entry(qrow, self.base_quality_var, width=5).pack(side="left", padx=(6, 4), ipady=4)
         label(qrow, "%", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(side="left")
-        label(qrow, "   Min item level:", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(side="left", padx=(16, 0))
+        label(qrow, "   Min item level:", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(
+            side="left", padx=(16, 0))
         entry(qrow, self.base_min_level_var, width=5).pack(side="left", padx=(6, 4), ipady=4)
-        label(qrow, "(80+ = endgame only)", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(side="left", padx=(6, 0))
+        label(qrow, "(75+ = endgame)", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(
+            side="left", padx=(6, 0))
 
     # ══════════════════════════════════════════════════════════════════════════
     #  PREVIEW PAGE
@@ -860,6 +1774,8 @@ class PickitApp(tk.Tk):
         entry(bf, self.bot_folder_var).grid(row=0, column=0, sticky="ew", ipady=4, padx=(0, 6))
         btn(bf, "Browse…", self._browse_bot_folder).grid(row=0, column=1)
         checkbtn(sec, "Auto-copy .ipd to bot folder after generate", self.auto_copy_var
+                 ).pack(anchor="w", padx=10, pady=(0, 4))
+        checkbtn(sec, "Launch minimized (hides to taskbar on startup)", self.start_min_var
                  ).pack(anchor="w", padx=10, pady=(0, 10))
 
         # Schedule
@@ -879,18 +1795,6 @@ class PickitApp(tk.Tk):
         self._make_slider(bf2, self.backup_count_var, from_=0, to=20, resolution=1,
                           fmt="{:.0f} backups", width=220).pack(side="left", padx=(10, 4))
         label(bf2, "(0 = disabled)", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(side="left", padx=(6, 0))
-
-        # Notifications
-        sec4 = self._section_frame(inner, "Notifications")
-        label(sec4, "Toast shows a Windows popup when generation finishes. "
-                    "Launch minimized hides the window to the taskbar on startup so it doesn't cover your game.",
-              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 4))
-        for lbl_text, var in [
-            ("Toast notification (Windows, win10toast required)", self.toast_var),
-            ("Launch minimized", self.start_min_var),
-        ]:
-            checkbtn(sec4, lbl_text, var).pack(anchor="w", padx=10, pady=2)
-        tk.Frame(sec4, bg=BG2, height=6).pack()  # spacing
 
         # Overwrite protection
         sec5 = self._section_frame(inner, "Overwrite Protection")
@@ -924,7 +1828,6 @@ class PickitApp(tk.Tk):
         self.cfg["bot_folder"]             = self.bot_folder_var.get()
         self.cfg["auto_copy"]              = self.auto_copy_var.get()
         self.cfg["backup_count"]           = self.backup_count_var.get()
-        self.cfg["toast_on_complete"]      = self.toast_var.get()
         self.cfg["start_minimized"]        = self.start_min_var.get()
         self.cfg["confirm_overwrite_secs"] = self.ovw_var.get()
         self.cfg["include_bases"]          = self.include_bases_var.get()
@@ -944,7 +1847,6 @@ class PickitApp(tk.Tk):
             self.bot_folder_var.set(self.cfg.get("bot_folder", ""))
             self.auto_copy_var.set(self.cfg.get("auto_copy", False))
             self.backup_count_var.set(self.cfg.get("backup_count", 5))
-            self.toast_var.set(self.cfg.get("toast_on_complete", True))
             self.start_min_var.set(self.cfg.get("start_minimized", False))
             self.ovw_var.set(self.cfg.get("confirm_overwrite_secs", 120))
             self.include_bases_var.set(True)
@@ -1018,7 +1920,7 @@ class PickitApp(tk.Tk):
         d("")
         d("── 2. Module checks", "header")
         for mod, required in [("tkinter", True), ("requests", True),
-                               ("poe2_pickit_generator", True), ("win10toast", False)]:
+                               ("poe2_pickit_generator", True)]:
             try:
                 m = importlib.import_module(mod)
                 ver = getattr(m, "__version__", "n/a")
@@ -1152,12 +2054,6 @@ class PickitApp(tk.Tk):
         self._cat_disable_all()
         for key in [c[0] for c in gen.UNIQUE_CATEGORIES]:
             self.cat_enabled[key].set(True)
-
-    def _cat_preset_maps(self):
-        self._cat_disable_all()
-        self.cat_enabled["currency"].set(True)
-        self.cat_enabled["waystones"].set(True)
-        self.cat_enabled["unique_maps"].set(True)
 
     # ══════════════════════════════════════════════════════════════════════════
     #  File helpers
@@ -1325,13 +2221,13 @@ class PickitApp(tk.Tk):
             "output_var":      self.output_var.get(),
             "auto_copy":       self.auto_copy_var.get(),
             "bot_folder":      self.bot_folder_var.get(),
-            "toast":           self.toast_var.get(),
             "backup_count":    self.backup_count_var.get(),
             "cat_enabled":     {k: v.get() for k, v in self.cat_enabled.items()},
             "cat_thresh":      {},
             "include_bases":   self.include_bases_var.get(),
             "base_quality":    self.base_quality_var.get(),
             "base_min_level":  self.base_min_level_var.get(),
+            "item_states":     dict(self._item_states),
         }
         for k, v in self.cat_thresh.items():
             try:
@@ -1538,18 +2434,34 @@ class PickitApp(tk.Tk):
                     continue
 
                 try:
+                    # Build enabled_names set from per-item states (exchange cats only)
+                    _cat_states = snapshot.get("item_states", {}).get(key, {})
+                    if _cat_states and not is_unique:
+                        _items_in_payload = {
+                            gen.ITEM_NAME_CORRECTIONS.get(i["name"], i["name"])
+                            for i in payload.get("items", []) if i.get("name")
+                        }
+                        _disabled = {n for n, s in _cat_states.items()
+                                     if not s.get("enabled", True)}
+                        enabled_names = _items_in_payload - _disabled
+                    else:
+                        enabled_names = None  # all enabled (default / uniques)
+
                     if is_unique:
                         lines = gen.build_unique_lines(payload, divine_rate_exalts, min_exalt=effective_min)
                         report_rows.extend(gen.collect_unique_report_rows(label_text, payload, divine_rate_exalts, min_exalt=effective_min))
                     elif key == "uncut_gems":
-                        lines = gen.build_uncut_gem_lines(payload, divine_rate_exalts, min_exalt=effective_min)
-                        report_rows.extend(gen.collect_exchange_report_rows(label_text, payload, divine_rate_exalts, min_exalt=effective_min))
-                    elif key == "waystones":
-                        lines = gen.build_waystone_lines(payload, divine_rate_exalts, min_exalt=effective_min)
+                        lines = gen.build_uncut_gem_lines(payload, divine_rate_exalts, min_exalt=effective_min,
+                                                          enabled_names=enabled_names)
                         report_rows.extend(gen.collect_exchange_report_rows(label_text, payload, divine_rate_exalts, min_exalt=effective_min))
                     else:
-                        pick_all = key in gen.PICK_ALL_CATEGORIES
-                        lines = gen.build_exchange_lines(payload, divine_rate_exalts, pick_all=pick_all, min_exalt=effective_min)
+                        pick_all  = key in gen.PICK_ALL_CATEGORIES
+                        tier_sort = (key == "essences")
+                        lines = gen.build_exchange_lines(payload, divine_rate_exalts,
+                                                         pick_all=pick_all,
+                                                         min_exalt=effective_min,
+                                                         tier_sort=tier_sort,
+                                                         enabled_names=enabled_names)
                         report_rows.extend(gen.collect_exchange_report_rows(
                             label_text, payload, divine_rate_exalts, pick_all=pick_all, min_exalt=effective_min))
 
@@ -1658,25 +2570,18 @@ class PickitApp(tk.Tk):
             self._log("─" * 55, "dim")
             self._log(f"Done in {dur_str}  ·  {active} active rules", "ok")
 
-            # Notifications
-            if snapshot["toast"] and _HAS_TOAST:
-                def _toast():
-                    try:
-                        ToastNotifier().show_toast(
-                            "PoE2 Pickit Generator",
-                            f"Done — {active} active rules  ({dur_str})",
-                            duration=4, threaded=True)
-                    except Exception:
-                        pass
-                threading.Thread(target=_toast, daemon=True).start()
-
-            # Save config (safe: we're using already-snapshotted plain Python values)
-            self.cfg["league"]             = league
-            self.cfg["min_exalt"]          = min_exalt
-            self.cfg["output_base"]        = snapshot["output_var"]
-            self.cfg["category_enabled"]   = dict(snapshot["cat_enabled"])
-            self.cfg["category_threshold"] = dict(snapshot["cat_thresh"])
-            save_config(self.cfg)
+            # Update config on the main thread to avoid racing with _save_settings.
+            _cfg_updates = {
+                "league":             league,
+                "min_exalt":          min_exalt,
+                "output_base":        snapshot["output_var"],
+                "category_enabled":   dict(snapshot["cat_enabled"]),
+                "category_threshold": dict(snapshot["cat_thresh"]),
+            }
+            def _apply_cfg(updates=_cfg_updates):
+                self.cfg.update(updates)
+                save_config(self.cfg)
+            self.after(0, _apply_cfg)
 
         except Exception as e:
             self._log(f"Error: {e}", "err")
