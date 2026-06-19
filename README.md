@@ -1,4 +1,4 @@
-# PoE2 Pickit Generator
+# ExileBot 2 Pickit Generator
 
 A dark-themed GUI tool for **Path of Exile 2** that fetches live economy data from [poe.ninja](https://poe.ninja) and generates `.ipd` pickit rules for **Exiled Bot 2** — with per-item on/off toggles, wiki icons, preset saving, and automatic hourly refresh.
 
@@ -15,7 +15,8 @@ A dark-themed GUI tool for **Path of Exile 2** that fetches live economy data fr
 ### Economy & Rules
 - **Live poe.ninja data** — fetches current prices for all item categories
 - **Per-item toggles** — enable or disable individual items from each category card grid
-- **Value threshold** — only items above your set Exalt floor appear as active rules
+- **Dual thresholds** — separate Exalt floors for currency/exchange items and gear/uniques
+- **Per-category threshold** — override the global threshold for any individual category (e.g. Currency = 1 ex, Essences = 5 ex)
 - **Parallel fetch** — all categories fetched simultaneously for fast generation
 - **15-minute cache** — repeated generates within 15 min are instant, no extra API calls
 - **Auto-schedule** — regenerates every hour automatically in the background
@@ -56,6 +57,7 @@ A dark-themed GUI tool for **Path of Exile 2** that fetches live economy data fr
 | Uncut Gems | poe.ninja |
 | Lineage Support Gems | poe.ninja (always picked — no threshold) |
 | Expedition | poe.ninja |
+| Waystones | All tiers 1–15, all rarities (always picked) |
 | Unique Weapons / Armours / Accessories / Flasks / Charms / Jewels / Relics | poe.ninja |
 | Endgame Gear Bases | poe2db.tw (level 75+, quality or socket rules) |
 
@@ -177,7 +179,7 @@ The generated `.ipd` includes a full syntax guide at the top. Quick reference:
 
 ## Building the EXE
 
-Double-click `BUILD_EXE.bat`. Requires Python and an internet connection on first run (downloads PyInstaller). The resulting `dist/PoE2PickitGenerator.exe` is portable.
+Double-click `BUILD_EXE.bat`. Requires Python and an internet connection on first run (downloads PyInstaller). The resulting `dist/ExileBot2PickitGenerator.exe` is portable.
 
 > Windows Defender may show an "unknown publisher" warning for PyInstaller executables. Click **More info → Run anyway** — it is a false positive.
 

@@ -24,3 +24,14 @@ wiki_icon_cache.json
 
 # Test / scratch files
 test_icon.png
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# User presets (personal, not shared)
+presets/
+
+# Stray generated pickit files
+*.ipd
