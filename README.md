@@ -83,7 +83,8 @@ Everything is picked by default. Use the **Items** tab to exclude specific items
 - **Right-click** any item card → copies its pickit rule to clipboard
 - **↻ Refresh** in the Items tab → fetches fresh prices for the current category
 - **Enable All / Disable All** buttons toggle all items in the active category at once
-- **Save Preset** → save your current item selections; **Load Preset** → restore them later
+- **Save Preset** → save your item selections with a name, author and description; **Load Preset** → restore with a metadata preview
+- **Export Preset** → save your selections as a shareable `.json` file; **Import Preset** → load one from someone else (shows a preview before applying)
 - Price arrows **▲▼** appear on cards after a refresh if the price moved more than 3%
 - The app **auto-generates every hour** in the background automatically
 

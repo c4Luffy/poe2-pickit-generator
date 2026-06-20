@@ -14,7 +14,7 @@ Fixes over v5:
 import sys, os, re, json, time, shutil, threading, datetime, traceback, subprocess, importlib, hashlib
 from concurrent.futures import ThreadPoolExecutor as _TPE
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, simpledialog
+from tkinter import ttk, filedialog, messagebox
 
 # ── Optional imports ──────────────────────────────────────────────────────────
 
@@ -309,7 +309,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "1.7.0"
+VERSION       = "1.8.0"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -1879,15 +1879,70 @@ class PickitApp(tk.Tk):
 
     # ── Preset system ─────────────────────────────────────────────────────────
 
+    def _preset_stats(self, states: dict) -> str:
+        total_items = sum(
+            len([n for n, s in v.items() if isinstance(s, dict) and not s.get("enabled", True)])
+            for v in states.values() if isinstance(v, dict)
+        )
+        total_cats = sum(1 for v in states.values() if isinstance(v, dict) and v)
+        if total_items == 0:
+            return "All items enabled"
+        return f"{total_items} item{'s' if total_items != 1 else ''} disabled across {total_cats} categor{'ies' if total_cats != 1 else 'y'}"
+
+    def _preset_meta_dialog(self, title: str, default_name: str = ""):
+        dlg = tk.Toplevel(self)
+        dlg.title(title)
+        dlg.configure(bg=BG)
+        dlg.grab_set()
+        dlg.resizable(False, False)
+        result = [None]
+
+        tk.Label(dlg, text="Preset name *", bg=BG, fg=TEXT, font=FONT).pack(anchor="w", padx=16, pady=(12, 2))
+        name_var = tk.StringVar(value=default_name)
+        name_ent = tk.Entry(dlg, textvariable=name_var, bg=BG3, fg=TEXT, insertbackground=TEXT,
+                            font=FONT, width=38, relief="flat")
+        name_ent.pack(padx=16, pady=(0, 8), fill="x")
+
+        tk.Label(dlg, text="Author (optional)", bg=BG, fg=TEXT, font=FONT).pack(anchor="w", padx=16, pady=(0, 2))
+        author_var = tk.StringVar()
+        tk.Entry(dlg, textvariable=author_var, bg=BG3, fg=TEXT, insertbackground=TEXT,
+                 font=FONT, width=38, relief="flat").pack(padx=16, pady=(0, 8), fill="x")
+
+        tk.Label(dlg, text="Description (optional)", bg=BG, fg=TEXT, font=FONT).pack(anchor="w", padx=16, pady=(0, 2))
+        desc_box = tk.Text(dlg, bg=BG3, fg=TEXT, insertbackground=TEXT, font=FONT,
+                           width=38, height=4, relief="flat", wrap="word")
+        desc_box.pack(padx=16, pady=(0, 12), fill="x")
+
+        def _ok():
+            n = name_var.get().strip()
+            if not n:
+                messagebox.showwarning("Name required", "Please enter a preset name.", parent=dlg)
+                return
+            result[0] = (n, author_var.get().strip(), desc_box.get("1.0", "end").strip())
+            dlg.destroy()
+
+        bf = tk.Frame(dlg, bg=BG)
+        bf.pack(fill="x", padx=16, pady=(0, 12))
+        btn(bf, "OK",     _ok).pack(side="left", padx=(0, 6))
+        btn(bf, "Cancel", dlg.destroy).pack(side="left")
+        name_ent.focus_set()
+        dlg.bind("<Return>", lambda e: _ok())
+        dlg.wait_window()
+        return result[0]
+
     def _preset_save(self):
-        name = simpledialog.askstring("Save Preset", "Preset name:", parent=self)
-        if not name:
+        info = self._preset_meta_dialog("Save Preset")
+        if not info:
             return
+        name, author, desc = info
         data = {
             "_meta": {
-                "name":    name,
-                "created": datetime.datetime.now().isoformat(),
-                "league":  self._selected_league() or "",
+                "name":        name,
+                "author":      author,
+                "description": desc,
+                "created":     datetime.datetime.now().isoformat(),
+                "league":      self._selected_league() or "",
+                "version":     VERSION,
             },
             "item_states": self._item_states,
         }
@@ -1907,53 +1962,108 @@ class PickitApp(tk.Tk):
         dlg.configure(bg=BG)
         dlg.grab_set()
         dlg.resizable(False, False)
-        tk.Label(dlg, text="Select a preset to load:", bg=BG, fg=TEXT,
-                 font=FONT, padx=16, pady=10).pack(anchor="w")
-        lb = tk.Listbox(dlg, bg=BG3, fg=TEXT, selectbackground=GOLD,
-                        selectforeground="#111", font=FONT, width=36, height=min(len(files), 12))
+
+        main_f = tk.Frame(dlg, bg=BG)
+        main_f.pack(fill="both", expand=True, padx=16, pady=12)
+
+        left = tk.Frame(main_f, bg=BG)
+        left.pack(side="left", fill="y")
+        tk.Label(left, text="Presets", bg=BG, fg=GOLD, font=FONT_BOLD).pack(anchor="w", pady=(0, 4))
+        lb = tk.Listbox(left, bg=BG3, fg=TEXT, selectbackground=GOLD, selectforeground="#111",
+                        font=FONT, width=26, height=min(max(len(files), 4), 12), relief="flat", borderwidth=0)
         for f in files:
-            lb.insert("end", f[:-5])
-        lb.pack(padx=16, pady=(0, 8))
+            lb.insert("end", "  " + f[:-5])
+        lb.pack(fill="y")
+
+        right = tk.Frame(main_f, bg=BG2, padx=14, pady=10)
+        right.pack(side="left", fill="both", expand=True, padx=(10, 0))
+
+        lbl_name   = tk.Label(right, text="", bg=BG2, fg=GOLD,  font=FONT_BOLD, anchor="w", wraplength=230)
+        lbl_author = tk.Label(right, text="", bg=BG2, fg=TEXT,  font=FONT,      anchor="w")
+        lbl_league = tk.Label(right, text="", bg=BG2, fg="#aaa", font=FONT,     anchor="w")
+        lbl_date   = tk.Label(right, text="", bg=BG2, fg="#888", font=FONT,     anchor="w")
+        lbl_stats  = tk.Label(right, text="", bg=BG2, fg="#ccc", font=FONT,     anchor="w", wraplength=230)
+        lbl_desc   = tk.Label(right, text="", bg=BG2, fg=TEXT,  font=FONT,      anchor="w",
+                              wraplength=230, justify="left")
+        for w in (lbl_name, lbl_author, lbl_league, lbl_date, lbl_stats, lbl_desc):
+            w.pack(anchor="w", pady=1)
+
+        def _refresh_detail(evt=None):
+            sel = lb.curselection()
+            if not sel:
+                return
+            try:
+                with open(os.path.join(PRESETS_DIR, files[sel[0]]), encoding="utf-8") as fp:
+                    d = json.load(fp)
+                meta = d.get("_meta", {})
+                s    = d.get("item_states", {})
+                lbl_name.config(text=meta.get("name", files[sel[0]][:-5]))
+                lbl_author.config(text=f"by {meta['author']}" if meta.get("author") else "")
+                lbl_league.config(text=f"League: {meta['league']}" if meta.get("league") else "")
+                raw = meta.get("created", "")
+                if raw:
+                    try:
+                        lbl_date.config(text=datetime.datetime.fromisoformat(raw).strftime("%Y-%m-%d %H:%M"))
+                    except Exception:
+                        lbl_date.config(text=raw[:16])
+                else:
+                    lbl_date.config(text="")
+                lbl_stats.config(text=self._preset_stats(s))
+                lbl_desc.config(text=meta.get("description", ""))
+            except Exception:
+                lbl_name.config(text=files[sel[0]][:-5])
+                for w in (lbl_author, lbl_league, lbl_date, lbl_stats, lbl_desc):
+                    w.config(text="")
+
+        lb.bind("<<ListboxSelect>>", _refresh_detail)
         lb.selection_set(0)
+        _refresh_detail()
 
         def _apply():
             sel = lb.curselection()
             if not sel:
                 return
-            fname = files[sel[0]]
             try:
-                with open(os.path.join(PRESETS_DIR, fname), encoding="utf-8") as fp:
-                    data = json.load(fp)
-                self._item_states = data.get("item_states", data)
+                with open(os.path.join(PRESETS_DIR, files[sel[0]]), encoding="utf-8") as fp:
+                    d = json.load(fp)
+                self._item_states = d.get("item_states", d)
                 self.cfg["item_states"] = self._item_states
                 save_config(self.cfg)
                 dlg.destroy()
                 key = self._active_cat
                 if key and key != "_gear":
-                    league  = self._selected_league() or "Mercenaries"
-                    payload = gen._cache_get(league, key)
+                    payload = gen._cache_get(self._selected_league() or "Mercenaries", key)
                     if payload:
                         self._populate_cat_grid(key, payload)
             except Exception as e:
                 messagebox.showerror("Error", str(e), parent=dlg)
 
-        btn_f = tk.Frame(dlg, bg=BG)
-        btn_f.pack(fill="x", padx=16, pady=(0, 12))
-        btn(btn_f, "Load",   _apply).pack(side="left", padx=(0, 6))
-        btn(btn_f, "Cancel", dlg.destroy).pack(side="left")
+        bf = tk.Frame(dlg, bg=BG)
+        bf.pack(fill="x", padx=16, pady=(4, 12))
+        btn(bf, "Load",   _apply).pack(side="left", padx=(0, 6))
+        btn(bf, "Cancel", dlg.destroy).pack(side="left")
 
     def _preset_export(self):
+        info = self._preset_meta_dialog("Export Preset",
+                                        default_name=self._selected_league() or "my_preset")
+        if not info:
+            return
+        name, author, desc = info
         path = filedialog.asksaveasfilename(
             defaultextension=".json",
+            initialfile=re.sub(r'[^\w\-. ]', '_', name) + ".json",
             filetypes=[("JSON preset", "*.json"), ("All files", "*.*")],
             title="Export Preset", parent=self)
         if not path:
             return
         data = {
             "_meta": {
-                "name":    os.path.splitext(os.path.basename(path))[0],
-                "created": datetime.datetime.now().isoformat(),
-                "league":  self._selected_league() or "",
+                "name":        name,
+                "author":      author,
+                "description": desc,
+                "created":     datetime.datetime.now().isoformat(),
+                "league":      self._selected_league() or "",
+                "version":     VERSION,
             },
             "item_states": self._item_states,
         }
@@ -1970,24 +2080,75 @@ class PickitApp(tk.Tk):
         try:
             with open(path, encoding="utf-8") as f:
                 data = json.load(f)
-            states = data.get("item_states", data)
-            # Copy into presets folder too
-            dest = os.path.join(PRESETS_DIR,
-                                os.path.basename(path))
-            if not os.path.exists(dest):
-                shutil.copy2(path, dest)
-            self._item_states = states
-            self.cfg["item_states"] = states
-            save_config(self.cfg)
+        except Exception as e:
+            messagebox.showerror("Import Failed", f"Could not read file:\n{e}", parent=self)
+            return
+
+        meta   = data.get("_meta", {})
+        states = data.get("item_states", data)
+
+        dlg = tk.Toplevel(self)
+        dlg.title("Import Preset")
+        dlg.configure(bg=BG)
+        dlg.grab_set()
+        dlg.resizable(False, False)
+
+        tk.Label(dlg, text="Import this preset?", bg=BG, fg=GOLD,
+                 font=FONT_BOLD, padx=16, pady=10).pack(anchor="w")
+
+        info_f = tk.Frame(dlg, bg=BG2, padx=14, pady=10)
+        info_f.pack(fill="x", padx=16, pady=(0, 10))
+
+        def _row(label, value):
+            if not value:
+                return
+            f = tk.Frame(info_f, bg=BG2)
+            f.pack(fill="x", pady=1)
+            tk.Label(f, text=label, bg=BG2, fg="#888", font=FONT, width=10, anchor="w").pack(side="left")
+            tk.Label(f, text=value, bg=BG2, fg=TEXT, font=FONT, anchor="w",
+                     wraplength=250, justify="left").pack(side="left", fill="x")
+
+        _row("Name:",   meta.get("name", os.path.splitext(os.path.basename(path))[0]))
+        _row("Author:", meta.get("author", ""))
+        _row("League:", meta.get("league", ""))
+        raw = meta.get("created", "")
+        if raw:
+            try:
+                _row("Created:", datetime.datetime.fromisoformat(raw).strftime("%Y-%m-%d %H:%M"))
+            except Exception:
+                _row("Created:", raw[:16])
+        _row("Items:",  self._preset_stats(states))
+        _row("Notes:",  meta.get("description", ""))
+
+        applied = [False]
+
+        def _apply():
+            try:
+                dest = os.path.join(PRESETS_DIR, os.path.basename(path))
+                if not os.path.exists(dest):
+                    shutil.copy2(path, dest)
+                self._item_states = states
+                self.cfg["item_states"] = states
+                save_config(self.cfg)
+                applied[0] = True
+                dlg.destroy()
+            except Exception as e:
+                messagebox.showerror("Import Failed", str(e), parent=dlg)
+
+        bf = tk.Frame(dlg, bg=BG)
+        bf.pack(fill="x", padx=16, pady=(0, 12))
+        btn(bf, "Apply",  _apply).pack(side="left", padx=(0, 6))
+        btn(bf, "Cancel", dlg.destroy).pack(side="left")
+        dlg.wait_window()
+
+        if applied[0]:
             key = self._active_cat
             if key and key != "_gear":
-                league  = self._selected_league() or "Mercenaries"
-                payload = gen._cache_get(league, key)
+                payload = gen._cache_get(self._selected_league() or "Mercenaries", key)
                 if payload:
                     self._populate_cat_grid(key, payload)
-            messagebox.showinfo("Imported", "Preset imported and applied.", parent=self)
-        except Exception as e:
-            messagebox.showerror("Import Failed", str(e), parent=self)
+            messagebox.showinfo("Imported",
+                f"Preset '{meta.get('name', 'preset')}' applied.", parent=self)
 
     # ── Gear & Bases panel (existing controls) ────────────────────────────────
 
