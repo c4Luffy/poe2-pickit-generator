@@ -105,161 +105,325 @@ WAYSTONE_FALLBACK_RULES = [
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Poe2DB base-type scraping
+#  Endgame base types — sourced from game data (baseitemtypes.json)
+#  Format per entry: (item_name, socket_threshold)
+#  socket_threshold=0 means no socket rule is generated for that category.
 # ─────────────────────────────────────────────────────────────────────────────
 
-POE2DB_BASE_URL = "https://poe2db.tw/us"
+_BASE_TYPES_BY_CATEGORY: dict = {
+    "Body Armours": (
+        ("Abyssal Cuirass", 3), ("Arcane Raiment", 3), ("Armoured Vest", 3),
+        ("Assassin Garb", 3), ("Austere Garb", 3), ("Ceremonial Robe", 3),
+        ("Conjurer Mantle", 3), ("Conqueror Plate", 3), ("Corsair Coat", 3),
+        ("Corvus Mantle", 3), ("Dastard Armour", 3), ("Death Mail", 3),
+        ("Death Mantle", 3), ("Devout Garb", 3), ("Dustbloom", 3),
+        ("Enlightened Robe", 3), ("Exquisite Vest", 3), ("Falconer's Jacket", 3),
+        ("Feathered Raiment", 3), ("Flowing Raiment", 3), ("Glorious Plate", 3),
+        ("Golden Mail", 3), ("Grand Regalia", 3), ("Havoc Raiment", 3),
+        ("Hawker's Jacket", 3), ("Heartcarver Mantle", 3), ("Heroic Armour", 3),
+        ("Lizardscale Coat", 3), ("Mail Coat", 3), ("Ornate Plate", 3),
+        ("Rambler Jacket", 3), ("Revered Vestments", 3), ("Sacramental Robe", 3),
+        ("Seastorm Mantle", 3), ("Shrouded Mail", 3), ("Slayer Armour", 3),
+        ("Sleek Jacket", 3), ("Slipstrike Vest", 3), ("Soldier Cuirass", 3),
+        ("Stone Cuirass", 3), ("Swiftstalker Coat", 3), ("Thane Mail", 3),
+        ("Torment Jacket", 3), ("Tournament Mail", 3), ("Utzaal Cuirass", 3),
+        ("Vile Robe", 3), ("Warlord Cuirass", 3), ("Wolfskin Mantle", 3),
+        ("Wyrmscale Coat", 3), ("Zenith Vestments", 3),
+    ),
+    "Helmets": (
+        ("Ancestral Tiara", 2), ("Archon Crown", 2), ("Armoured Cap", 2),
+        ("Brigand Mask", 2), ("Champion Helm", 2), ("Cryptic Crown", 2),
+        ("Cryptic Helm", 2), ("Death Mask", 2), ("Desert Cap", 2),
+        ("Divine Crown", 2), ("Druidic Crown", 2), ("Faridun Mask", 2),
+        ("Freebooter Cap", 2), ("Gallant Helm", 2), ("Gladiatorial Helm", 2),
+        ("Grand Visage", 2), ("Grinning Mask", 2), ("Guardian Greathelm", 2),
+        ("Imperial Greathelm", 2), ("Kamasan Tiara", 2), ("Magus Tiara", 2),
+        ("Masked Greathelm", 2), ("Paragon Greathelm", 2), ("Saintly Crown", 2),
+        ("Skycrown Tiara", 2), ("Soaring Mask", 2), ("Sorcerous Tiara", 2),
+        ("Trapper Hood", 2), ("Warded Helm", 2), ("Warmonger Greathelm", 2),
+        ("Woven Cap", 2),
+    ),
+    "Gloves": (
+        ("Adherent Cuffs", 2), ("Ancient Cuffs", 2), ("Adorned Gloves", 2),
+        ("Barbed Bracers", 2), ("Blacksteel Gauntlets", 2), ("Bound Cuffs", 2),
+        ("Commander Gauntlets", 2), ("Cultist Gauntlets", 2),
+        ("Elegant Wraps", 2), ("Engraved Bracers", 2), ("Gleaming Cuffs", 2),
+        ("Grand Bracers", 2), ("Grand Manchettes", 2), ("Grand Mitts", 2),
+        ("Grim Gloves", 2), ("Knightly Mitts", 2), ("Massive Mitts", 2),
+        ("Opulent Gloves", 2), ("Ornate Gauntlets", 2), ("Ornate Mitts", 2),
+        ("Polished Bracers", 2), ("Secured Wraps", 2), ("Signet Cuffs", 2),
+        ("Sirenscale Gloves", 2), ("Stalking Bracers", 2),
+        ("Steelmail Gauntlets", 2), ("Utility Wraps", 2), ("Vaal Gloves", 2),
+        ("Vaal Mitts", 2), ("Vaal Wraps", 2), ("War Wraps", 2),
+    ),
+    "Boots": (
+        ("Apostle Leggings", 2), ("Blacksteel Sabatons", 2), ("Bladed Shoes", 2),
+        ("Bold Sabatons", 2), ("Bound Sandals", 2), ("Bulwark Greaves", 2),
+        ("Cavalry Boots", 2), ("Charmed Shoes", 2), ("Cinched Boots", 2),
+        ("Cryptic Leggings", 2), ("Daggerfoot Shoes", 2), ("Dragonscale Boots", 2),
+        ("Drakeskin Boots", 2), ("Elaborate Sandals", 2), ("Embroidered Boots", 2),
+        ("Faithful Leggings", 2), ("Fortress Sabatons", 2), ("Grand Cuisses", 2),
+        ("Luxurious Slippers", 2), ("Noble Sabatons", 2), ("Ornate Greaves", 2),
+        ("Pious Leggings", 2), ("Quickslip Shoes", 2), ("Sandsworn Sandals", 2),
+        ("Sekhema Sandals", 2), ("Tasalian Greaves", 2), ("Totemic Greaves", 2),
+        ("Vaal Greaves", 2), ("Veteran Sabatons", 2), ("Wanderer Shoes", 2),
+        ("Warlock Leggings", 2),
+    ),
+    "Shields": (
+        ("Avian Targe", 2), ("Baroque Targe", 2), ("Blacksteel Crest Shield", 2),
+        ("Blacksteel Tower Shield", 2), ("Deified Crest Shield", 2),
+        ("Fortress Tower Shield", 2), ("Glowering Crest Shield", 2),
+        ("Goldworked Tower Shield", 2), ("Golden Targe", 2),
+        ("Grand Targe", 2), ("Intricate Crest Shield", 2),
+        ("Mammoth Targe", 2), ("Royal Tower Shield", 2),
+        ("Sekheman Crest Shield", 2), ("Soaring Targe", 2),
+        ("Tawhoan Tower Shield", 2), ("Vaal Crest Shield", 2),
+        ("Vaal Tower Shield", 2),
+    ),
+    "Bucklers": (
+        ("Aegis Buckler", 2), ("Ancient Buckler", 2), ("Bladeguard Buckler", 2),
+        ("Desert Buckler", 2), ("Gutspike Buckler", 2), ("Ornate Buckler", 2),
+    ),
+    "Foci": (
+        ("Druidic Focus", 2), ("Hallowed Focus", 2), ("Leyline Focus", 2),
+        ("Magus Focus", 2), ("Sacred Focus", 2), ("Tasalian Focus", 2),
+    ),
+    "Quivers": (
+        ("Visceral Quiver", 0), ("Volant Quiver", 0),
+    ),
+    "One Hand Maces": (
+        ("Akoyan Club", 2), ("Crown Mace", 2), ("Flanged Mace", 2),
+        ("Fortified Hammer", 2), ("Marauding Mace", 2), ("Molten Hammer", 2),
+        ("Strife Pick", 2), ("Structured Hammer", 2), ("Torment Club", 2),
+    ),
+    "Spears": (
+        ("Akoyan Spear", 2), ("Flying Spear", 2), ("Grand Spear", 2),
+        ("Helix Spear", 2), ("Massive Spear", 2), ("Orichalcum Spear", 2),
+        ("Pronged Spear", 2), ("Spiked Spear", 2), ("Stalking Spear", 2),
+    ),
+    "Quarterstaves": (
+        ("Aegis Quarterstaff", 3), ("Bolting Quarterstaff", 3),
+        ("Dreaming Quarterstaff", 3), ("Guardian Quarterstaff", 3),
+        ("Lunar Quarterstaff", 3), ("Razor Quarterstaff", 3),
+        ("Sinister Quarterstaff", 3), ("Striking Quarterstaff", 3),
+        ("Wyrm Quarterstaff", 3),
+    ),
+    "Crossbows": (
+        ("Bleak Crossbow", 3), ("Desolate Crossbow", 3), ("Elegant Crossbow", 3),
+        ("Engraved Crossbow", 3), ("Esoteric Crossbow", 3), ("Flexed Crossbow", 3),
+        ("Gemini Crossbow", 3), ("Siege Crossbow", 3), ("Stout Crossbow", 3),
+    ),
+    "Bows": (
+        ("Cavalry Bow", 3), ("Fanatic Bow", 3), ("Gemini Bow", 3),
+        ("Guardian Bow", 3), ("Heavy Bow", 3), ("Ironwood Shortbow", 3),
+        ("Militant Bow", 3), ("Obliterator Bow", 3), ("Warmonger Bow", 3),
+    ),
+    "Two Hand Maces": (
+        ("Anvil Maul", 3), ("Disintegrating Maul", 3), ("Fanatic Greathammer", 3),
+        ("Giant Maul", 3), ("Ironwood Greathammer", 3), ("Massive Greathammer", 3),
+        ("Ruination Maul", 3), ("Sacred Maul", 3), ("Tawhoan Greatclub", 3),
+    ),
+    "Staves": (
+        ("Dark Staff", 3), ("Permafrost Staff", 3), ("Ravenous Staff", 3),
+    ),
+    "Claws":          (("Talon Claw", 2),),
+    "Daggers":        (("Cinquedea", 2),),
+    "Wands":          (("Dueling Wand", 2),),
+    "One Hand Swords":(("Dark Blade", 2),),
+    "One Hand Axes":  (("Dread Hatchet", 2),),
+    "Two Hand Axes":  (("Vile Greataxe", 3),),
+    "Two Hand Swords":(("Ultra Greatsword", 3),),
+    "Sceptres":       (("Hallowed Sceptre", 2),),
+    "Flails":         (("Abyssal Flail", 2),),
+    "Belts":          (("Fine Belt", 0),),
+}
 
-
-@dataclass(frozen=True)
-class BaseCategory:
-    slug: str
-    title: str
-    socket_threshold: int
-    min_level: int = 75
-
-
-POE2DB_BASE_CATEGORIES = (
-    # One-handed weapons
-    BaseCategory("Wands",           "Wands",           2),
-    BaseCategory("One_Hand_Axes",   "One Hand Axes",   2),
-    BaseCategory("One_Hand_Maces",  "One Hand Maces",  2),
-    BaseCategory("Sceptres",        "Sceptres",        2),
-    BaseCategory("Spears",          "Spears",          2),
-    # Two-handed weapons
-    BaseCategory("Bows",            "Bows",            3),
-    BaseCategory("Staves",          "Staves",          3),
-    BaseCategory("Two_Hand_Axes",   "Two Hand Axes",   3),
-    BaseCategory("Two_Hand_Maces",  "Two Hand Maces",  3),
-    BaseCategory("Quarterstaves",   "Quarterstaves",   3),
-    BaseCategory("Crossbows",       "Crossbows",       3),
-    # Armour
-    BaseCategory("Body_Armours",    "Body Armours",    3),
-    BaseCategory("Helmets",         "Helmets",         2),
-    BaseCategory("Gloves",          "Gloves",          2),
-    BaseCategory("Boots",           "Boots",           2),
-    # Off-hand / shields
-    BaseCategory("Shields",         "Shields",         2),
-    BaseCategory("Bucklers",        "Bucklers",        2),
-    BaseCategory("Foci",            "Foci",            2),
-)
-
-# Static list of known endgame base types — used as fallback when poe2db scraping
-# returns nothing (site down, HTML changed, network error, etc.).
+# Runeforged / Runemastered variants not yet in game data files.
 # Format: (item_name, socket_threshold)
-_STATIC_ENDGAME_BASES: tuple = (
-    # ── One-handed weapons ────────────────────────────────────────────────────
-    ("Akoyan Club",                 2), ("Fortified Hammer",             2),
-    ("Marauding Mace",              2), ("Molten Hammer",                2),
-    ("Akoyan Spear",                2), ("Flying Spear",                 2),
-    ("Grand Spear",                 2), ("Guardian Spear",               2),
-    ("Spiked Spear",                2), ("Stalking Spear",               2),
-    ("Strife Pick",                 2),
-    # ── Two-handed weapons ────────────────────────────────────────────────────
-    ("Fanatic Bow",                 3), ("Gemini Bow",                   3),
-    ("Guardian Bow",                3), ("Obliterator Bow",              3),
-    ("Warmonger Bow",               3),
-    ("Desolate Crossbow",           3), ("Elegant Crossbow",             3),
-    ("Flexed Crossbow",             3), ("Gemini Crossbow",              3),
-    ("Siege Crossbow",              3),
-    ("Aegis Quarterstaff",          3), ("Bolting Quarterstaff",         3),
-    ("Dreaming Quarterstaff",       3), ("Razor Quarterstaff",           3),
-    ("Skullcrusher Quarterstaff",   3), ("Striking Quarterstaff",        3),
-    ("Permafrost Staff",            3),
-    ("Fanatic Greathammer",         3), ("Ironwood Greathammer",         3),
-    ("Massive Greathammer",         3), ("Ruination Maul",               3),
-    ("Tawhoan Greatclub",           3),
-    # ── Body Armours ──────────────────────────────────────────────────────────
-    ("Austere Garb",                3), ("Corsair Coat",                 3),
-    ("Death Mail",                  3), ("Death Mantle",                 3),
-    ("Falconer's Jacket",           3), ("Feathered Raiment",            3),
-    ("Sacramental Robe",            3), ("Seastorm Mantle",              3),
-    ("Thane Mail",                  3), ("Utzaal Cuirass",               3),
-    ("Warlord Cuirass",             3), ("Wyrmscale Coat",               3),
-    ("Cryptic Leggings",            3), ("Warlock Leggings",             3),
-    # ── Helmets ───────────────────────────────────────────────────────────────
-    ("Ancestral Tiara",             2), ("Champion Helm",                2),
-    ("Cryptic Crown",               2), ("Divine Crown",                 2),
-    ("Freebooter Cap",              2), ("Gladiatorial Helm",            2),
-    ("Grinning Mask",               2), ("Imperial Greathelm",           2),
-    ("Kamasan Tiara",               2), ("Paragon Greathelm",            2),
-    ("Soaring Mask",                2), ("Trapper Hood",                 2),
-    # ── Gloves ────────────────────────────────────────────────────────────────
-    ("Adherent Cuffs",              2), ("Barbed Bracers",               2),
-    ("Blacksteel Gauntlets",        2), ("Cultist Gauntlets",            2),
-    ("Gleaming Cuffs",              2), ("Massive Mitts",                2),
-    ("Polished Bracers",            2), ("Secured Wraps",                2),
-    ("Sirenscale Gloves",           2), ("Vaal Gloves",                  2),
-    ("Vaal Mitts",                  2), ("Vaal Wraps",                   2),
-    # ── Boots ─────────────────────────────────────────────────────────────────
-    ("Blacksteel Sabatons",         2), ("Daggerfoot Shoes",             2),
-    ("Dragonscale Boots",           2), ("Drakeskin Boots",              2),
-    ("Fortress Sabatons",           2), ("Quickslip Shoes",              2),
-    ("Sandsworn Sandals",           2), ("Sekhema Sandals",              2),
-    ("Tasalian Greaves",            2), ("Vaal Greaves",                 2),
-    # ── Shields ───────────────────────────────────────────────────────────────
-    ("Blacksteel Crest Shield",     2), ("Golden Targe",                 2),
-    ("Soaring Targe",               2), ("Tawhoan Tower Shield",         2),
-    ("Vaal Crest Shield",           2), ("Vaal Tower Shield",            2),
-    # ── Bucklers ──────────────────────────────────────────────────────────────
-    ("Ancient Buckler",             2), ("Desert Buckler",               2),
-    # ── Foci ──────────────────────────────────────────────────────────────────
-    ("Sacred Focus",                2), ("Tasalian Focus",               2),
-    # ── Runeforged variants ───────────────────────────────────────────────────
-    ("Runeforged Adherent Cuffs",       2), ("Runeforged Ancestral Tiara",   2),
-    ("Runeforged Ancient Buckler",      2), ("Runeforged Austere Garb",      3),
+_RUNEFORGED_BASES: tuple = (
+    ("Runeforged Adherent Cuffs",       2), ("Runeforged Ancestral Tiara",      2),
+    ("Runeforged Ancient Buckler",      2), ("Runeforged Austere Garb",         3),
     ("Runeforged Barbed Bracers",       2), ("Runeforged Blacksteel Crest Shield", 2),
-    ("Runeforged Blacksteel Gauntlets", 2), ("Runeforged Blacksteel Sabatons", 2),
-    ("Runeforged Champion Helm",        2), ("Runeforged Corsair Coat",      3),
-    ("Runeforged Cryptic Crown",        2), ("Runeforged Cryptic Leggings",  3),
-    ("Runeforged Cultist Gauntlets",    2), ("Runeforged Daggerfoot Shoes",  2),
-    ("Runeforged Death Mail",           3), ("Runeforged Death Mantle",      3),
-    ("Runeforged Desert Buckler",       2), ("Runeforged Divine Crown",      2),
-    ("Runeforged Dragonscale Boots",    2), ("Runeforged Drakeskin Boots",   2),
-    ("Runeforged Falconer's Jacket",    3), ("Runeforged Feathered Raiment", 3),
-    ("Runeforged Fortress Sabatons",    2), ("Runeforged Freebooter Cap",    2),
-    ("Runeforged Gladiatorial Helm",    2), ("Runeforged Gleaming Cuffs",    2),
-    ("Runeforged Golden Targe",         2), ("Runeforged Grinning Mask",     2),
-    ("Runeforged Imperial Greathelm",   2), ("Runeforged Kamasan Tiara",     2),
-    ("Runeforged Massive Mitts",        2), ("Runeforged Paragon Greathelm", 2),
-    ("Runeforged Polished Bracers",     2), ("Runeforged Quickslip Shoes",   2),
-    ("Runeforged Sacramental Robe",     3), ("Runeforged Sacred Focus",      2),
-    ("Runeforged Sandsworn Sandals",    2), ("Runeforged Seastorm Mantle",   3),
-    ("Runeforged Secured Wraps",        2), ("Runeforged Sekhema Sandals",   2),
-    ("Runeforged Sirenscale Gloves",    2), ("Runeforged Soaring Mask",      2),
-    ("Runeforged Soaring Targe",        2), ("Runeforged Tasalian Focus",    2),
+    ("Runeforged Blacksteel Gauntlets", 2), ("Runeforged Blacksteel Sabatons",  2),
+    ("Runeforged Champion Helm",        2), ("Runeforged Corsair Coat",         3),
+    ("Runeforged Cryptic Crown",        2), ("Runeforged Cryptic Leggings",     3),
+    ("Runeforged Cultist Gauntlets",    2), ("Runeforged Daggerfoot Shoes",     2),
+    ("Runeforged Death Mail",           3), ("Runeforged Death Mantle",         3),
+    ("Runeforged Desert Buckler",       2), ("Runeforged Divine Crown",         2),
+    ("Runeforged Dragonscale Boots",    2), ("Runeforged Drakeskin Boots",      2),
+    ("Runeforged Falconer's Jacket",    3), ("Runeforged Feathered Raiment",    3),
+    ("Runeforged Fortress Sabatons",    2), ("Runeforged Freebooter Cap",       2),
+    ("Runeforged Gladiatorial Helm",    2), ("Runeforged Gleaming Cuffs",       2),
+    ("Runeforged Golden Targe",         2), ("Runeforged Grinning Mask",        2),
+    ("Runeforged Imperial Greathelm",   2), ("Runeforged Kamasan Tiara",        2),
+    ("Runeforged Massive Mitts",        2), ("Runeforged Paragon Greathelm",    2),
+    ("Runeforged Polished Bracers",     2), ("Runeforged Quickslip Shoes",      2),
+    ("Runeforged Sacramental Robe",     3), ("Runeforged Sacred Focus",         2),
+    ("Runeforged Sandsworn Sandals",    2), ("Runeforged Seastorm Mantle",      3),
+    ("Runeforged Secured Wraps",        2), ("Runeforged Sekhema Sandals",      2),
+    ("Runeforged Sirenscale Gloves",    2), ("Runeforged Soaring Mask",         2),
+    ("Runeforged Soaring Targe",        2), ("Runeforged Tasalian Focus",       2),
     ("Runeforged Tasalian Greaves",     2), ("Runeforged Tawhoan Tower Shield", 2),
-    ("Runeforged Thane Mail",           3), ("Runeforged Trapper Hood",      2),
-    ("Runeforged Utzaal Cuirass",       3), ("Runeforged Vaal Crest Shield", 2),
-    ("Runeforged Vaal Gloves",          2), ("Runeforged Vaal Greaves",      2),
-    ("Runeforged Vaal Mitts",           2), ("Runeforged Vaal Tower Shield", 2),
-    ("Runeforged Vaal Wraps",           2), ("Runeforged Warlock Leggings",  2),
-    ("Runeforged Warlord Cuirass",      3), ("Runeforged Wyrmscale Coat",    3),
-    # ── Runemastered variants ─────────────────────────────────────────────────
-    ("Runemastered Armoured Vest",  3), ("Runemastered Enlightened Robe", 3),
-    ("Runemastered Plumed Focus",   2), ("Runemastered Primal Markings",  3),
-    ("Runemastered Vaal Tower Shield", 2),
+    ("Runeforged Thane Mail",           3), ("Runeforged Trapper Hood",         2),
+    ("Runeforged Utzaal Cuirass",       3), ("Runeforged Vaal Crest Shield",    2),
+    ("Runeforged Vaal Gloves",          2), ("Runeforged Vaal Greaves",         2),
+    ("Runeforged Vaal Mitts",           2), ("Runeforged Vaal Tower Shield",    2),
+    ("Runeforged Vaal Wraps",           2), ("Runeforged Warlock Leggings",     2),
+    ("Runeforged Warlord Cuirass",      3), ("Runeforged Wyrmscale Coat",       3),
+    ("Runemastered Armoured Vest",      3), ("Runemastered Enlightened Robe",   3),
+    ("Runemastered Plumed Focus",       2), ("Runemastered Primal Markings",    3),
+    ("Runemastered Vaal Tower Shield",  2),
 )
 
-# Matches <a class="whiteitem ..."> links exactly as poe2db renders them.
-# Requires \s+ after "whiteitem" and a href attribute (same as reference impl).
-_BASE_LINK_PAT = re.compile(
-    r'<a\s+class="whiteitem\s+[^">]*"[^>]*href="[^"]+"[^>]*>(.*?)</a>',
-    re.IGNORECASE | re.DOTALL,
-)
-
-
-def _clean_html(text: str) -> str:
-    text = re.sub(r'<[^>]+>', ' ', text)          # replace tags with space (not empty)
-    text = _html.unescape(text)
-    return re.sub(r'\s+', ' ', text).strip()
-
-
-def _poe2db_required_level(chunk: str):
-    """Return the required level found in the 1800-char chunk after a link, or None."""
-    text = _clean_html(chunk)
-    m = re.search(r'Requires:\s*Level\s+(\d+)', text)
-    return int(m.group(1)) if m else None
+# 392 uniques sourced from game data (data/game/uniques.json).
+# Used to supplement poe.ninja — items here but not in poe.ninja get
+# a commented-out rule so they appear in the output but aren't picked up.
+_GAME_UNIQUES: dict = {
+    "Ab Aeterno": "Boots", "Adonia's Ego": "Wand", "Aerisvane's Wings": "Gloves",
+    "Against the Darkness": "Jewel", "Alkem Eira": "Shield", "Alpha's Howl": "Helmet",
+    "Andvarius": "Ring", "Apep's Supremacy": "Focii", "Apron of Emiran": "Body Armour",
+    "Arakaali's Gift": "Charm", "Arvil's Wheel": "Shield", "Ashrend": "Body Armour",
+    "Asphyxia's Wrath": "Quiver", "Assailum": "Helmet", "Astramentis": "Amulet",
+    "Atsak's Sight": "Helmet", "Atziri's Acuity": "Gloves", "Atziri's Disdain": "Helmet",
+    "Aurseize": "Gloves", "Beacon of Azis": "Amulet", "Beetlebite": "Boots",
+    "Beira's Anguish": "Charm", "Belly of the Beast": "Body Armour", "Beyond Reach": "Quiver",
+    "Bijouborne": "Belt", "Birth of Fury": "Boots", "Birthright Buckle": "Belt",
+    "Bitterbloom": "Body Armour", "Black Sun Crest": "Helmet", "Blackbraid": "Body Armour",
+    "Blackflame": "Ring", "Blackgleam": "Quiver", "Blackheart": "Ring",
+    "Blessed Bonds": "Gloves", "Blistering Bond": "Ring", "Blood Price": "Helmet",
+    "Blood of the Warrior": "Flask", "Bloodbarrier": "Shield", "Blueflame Bracers": "Gloves",
+    "Bones of Ullr": "Boots", "Brain Rattler": "Mace", "Bramblejack": "Body Armour",
+    "Breath of the Mountains": "Charm", "Briarpatch": "Boots", "Briskwrap": "Body Armour",
+    "Bristleboar": "Body Armour", "Bronzebeard": "Helmet", "Brynhand's Mark": "Mace",
+    "Bursting Decay": "Ring", "Bushwhack": "Boots", "Byrnabas": "Belt",
+    "Cadiro's Gambit": "Quiver", "Calgyra's Arc": "Shield", "Call of the Brotherhood": "Ring",
+    "Candlemaker": "Gloves", "Carnage Heart": "Amulet", "Carrion Call": "Focii",
+    "Chainsting": "Spear", "Chernobog's Pillar": "Shield", "Chober Chaber": "Mace",
+    "Choir of the Storm": "Amulet", "Cloak of Defiance": "Body Armour",
+    "Cloak of Flame": "Body Armour", "Coat of Red": "Body Armour",
+    "Collapsing Horizon": "Warstaff", "Constricting Command": "Helmet",
+    "Controlled Metamorphosis": "Jewel", "Cornathaum": "Helmet",
+    "Corona of the Red Sun": "Helmet", "Corpsewade": "Boots", "Cospri's Will": "Body Armour",
+    "Couture of Crimson": "Body Armour", "Coward's Legacy": "Belt", "Cracklecreep": "Ring",
+    "Crest of Ardura": "Shield", "Crown of Eyes": "Helmet", "Crown of Thorns": "Helmet",
+    "Crown of the Pale King": "Helmet", "Crown of the Victor": "Helmet",
+    "Cursecarver": "Wand", "Daevata's Wind": "Spear", "Darkness Enthroned": "Belt",
+    "Darkray Vectors": "Boots", "Death Articulated": "Gloves", "Death Rush": "Ring",
+    "Death's Harp": "Bow", "Deathblow": "Gloves", "Deathrattle": "Focii",
+    "Defiance of Destiny": "Amulet", "Deidbell": "Helmet", "Demon Stitcher": "Gloves",
+    "Dionadair": "Shield", "Doedre's Damning": "Ring", "Doedre's Tenure": "Gloves",
+    "Doomfletch": "Bow", "Doomgate": "Shield", "Doryani's Prototype": "Body Armour",
+    "Double Vision": "Crossbow", "Dreadfist": "Gloves", "Dream Fragments": "Ring",
+    "Dunkelhalt": "Shield", "Dusk Vigil": "Staff", "Dustbloom": "Body Armour",
+    "Earthbound": "Staff", "Edyrn's Tusks": "Body Armour", "Effigy of Cruelty": "Focii",
+    "Elevore": "Helmet", "Empire's Grasp": "Gloves", "Enezun's Charge": "Wand",
+    "Enfolding Dawn": "Body Armour", "Erian's Cobble": "Helmet",
+    "Essentia Sanguis": "Gloves", "Evergrasping Ring": "Ring", "Eye of Chayula": "Amulet",
+    "Ezomyte Peak": "Helmet", "Fairgraves' Curse": "Bow", "Feathered Fortress": "Shield",
+    "Fireflower": "Amulet", "Fixation of Yix": "Amulet", "Font of Power": "Sceptre",
+    "For Utopia": "Charm", "Forbidden Gaze": "Helmet", "Forsaken Bangle": "Charm",
+    "Foxshade": "Body Armour", "From Nothing": "Jewel", "Frostbreath": "Mace",
+    "Gamblesprint": "Boots", "Ghostmarch": "Boots", "Ghostwrithe": "Body Armour",
+    "Gifts from Above": "Ring", "Glimpse of Chaos": "Helmet", "Gloamgown": "Body Armour",
+    "Gloomform": "Body Armour", "Glowswarm": "Ring", "Goldrim": "Helmet",
+    "Goregirdle": "Belt", "Grand Spectrum": "Jewel", "Gravebind": "Gloves",
+    "Greed's Embrace": "Body Armour", "Greymake": "Helmet", "Grip of Kulemak": "Ring",
+    "Grip of Winter": "Gloves", "Guiding Palm": "Sceptre",
+    "Guiding Palm of the Eye": "Sceptre", "Guiding Palm of the Heart": "Sceptre",
+    "Guiding Palm of the Mind": "Sceptre", "Hand of Wisdom and Action": "Gloves",
+    "Hateforge": "Gloves", "Headhunter": "Belt", "Heart of the Well": "Jewel",
+    "Heartbound Loop": "Ring", "Heatshiver": "Helmet", "Heroic Tragedy": "Jewel",
+    "Hinekora's Sight": "Amulet", "Hoghunt": "Mace", "Horns of Bynden": "Helmet",
+    "Hrimnor's Hymn": "Mace", "Husk of Dreams": "Body Armour", "Hyrri's Ire": "Body Armour",
+    "Icefang Orbit": "Ring", "Icetomb": "Body Armour", "Idle Hands": "Gloves",
+    "Idol of Uldurn": "Amulet", "Igniferis": "Amulet", "Indigon": "Helmet",
+    "Infernoclasp": "Belt", "Ingenuity": "Belt", "Innsmouth": "Helmet",
+    "Irongrasp": "Body Armour", "Ironride": "Helmet", "Jarngreipr": "Gloves",
+    "Kalandra's Touch": "Ring", "Kaltenhalt": "Shield", "Kaom's Heart": "Body Armour",
+    "Keelhaul": "Belt", "Keeper of the Arc": "Helmet", "Killjoy": "Gloves",
+    "Kingsguard": "Body Armour", "Kitoko's Current": "Gloves", "Leer Cast": "Helmet",
+    "Legionstride": "Boots", "Leopold's Applause": "Gloves", "Levinstone": "Ring",
+    "Lifesprig": "Wand", "Lightning Coil": "Body Armour", "Ligurium Talisman": "Amulet",
+    "Lioneye's Glare": "Bow", "Lochtonial Caress": "Gloves", "Luminous Pace": "Boots",
+    "Lycosidae": "Shield", "Mahuxotl's Machination": "Shield",
+    "Maligaro's Virtuosity": "Gloves", "Marohi Erqi": "Mace",
+    "Mask of the Sanguimancer": "Helmet", "Mask of the Stitched Demon": "Helmet",
+    "Matsya": "Warstaff", "Megalomaniac": "Jewel", "Meginord's Girdle": "Belt",
+    "Melting Maelstrom": "Flask", "Merit of Service": "Shield", "Midnight Braid": "Belt",
+    "Mind of the Council": "Helmet", "Ming's Heart": "Ring", "Mist Whisper": "Crossbow",
+    "Mjölner": "Mace", "Morior Invictus": "Body Armour", "Murkshaft": "Quiver",
+    "Myris Uxor": "Helmet", "Nascent Hope": "Charm", "Nazir's Judgement": "Warstaff",
+    "Nebuloch": "Mace", "Necromantle": "Body Armour", "Ngamahu's Chosen": "Charm",
+    "Nightscale": "Gloves", "Nocturne": "Shield", "Northpaw": "Gloves",
+    "Oaksworn": "Shield", "Obern's Bastion": "Boots", "Olroth's Resolve": "Flask",
+    "Olrovasara": "Mace", "Original Sin": "Ring", "Painter's Servant": "Gloves",
+    "Palm of the Dreamer": "Sceptre", "Pariah's Embrace": "Body Armour",
+    "Perandus Seal": "Ring", "Perfidy": "Body Armour", "Pillar of the Caged God": "Warstaff",
+    "Plaguefinger": "Gloves", "Polcirkeln": "Ring", "Powertread": "Boots",
+    "Pragmatism": "Body Armour", "Prayers for Rain": "Body Armour",
+    "Prism Guardian": "Shield", "Prism of Belief": "Jewel", "Prized Pain": "Ring",
+    "Quatl's Molt": "Body Armour", "Quecholli": "Mace", "Queen of the Forest": "Body Armour",
+    "Quill Rain": "Bow", "Radiant Grief": "Helmet", "Rampart Raptor": "Crossbow",
+    "Rathpith Globe": "Focii", "Rearguard": "Quiver", "Redblade Banner": "Shield",
+    "Redflare Conduit": "Body Armour", "Revered Resin": "Amulet",
+    "Rise of the Phoenix": "Shield", "Rite of Passage": "Charm", "Rondel de Ezo": "Shield",
+    "Rondel of Fragility": "Amulet", "Ryslatha's Coil": "Belt", "Sacred Flame": "Sceptre",
+    "Sacrosanctum": "Body Armour", "Saffell's Frame": "Shield", "Saitha's Spear": "Spear",
+    "Sands of Silk": "Body Armour", "Sandstorm Visage": "Helmet",
+    "Sanguine Diviner": "Wand", "Sanguis Heroum": "Charm", "Scold's Bridle": "Helmet",
+    "Sculpted Suffering": "Mace", "Seed of Cataclysm": "Ring", "Seeing Stars": "Mace",
+    "Sekhema's Resolve": "Ring", "Serpent's Egg": "Amulet", "Serpent's Lesson": "Focii",
+    "Shackles of the Wretched": "Gloves", "Shankgonne": "Boots",
+    "Shavronne's Satchel": "Belt", "Shyaba": "Mace", "Sierran Inheritance": "Body Armour",
+    "Silks of Veneration": "Body Armour", "Silverthorne": "Shield", "Sine Aequo": "Gloves",
+    "Sire of Shards": "Staff", "Skin of the Loyal": "Body Armour", "Skysliver": "Spear",
+    "Slivertongue": "Bow", "Snakebite": "Gloves", "Snakepit": "Ring",
+    "Solus Ipse": "Helmet", "Soul Mantle": "Body Armour", "Soul Tether": "Belt",
+    "Spire of Ire": "Spear", "Splinter of Lorrata": "Spear", "Splinterheart": "Bow",
+    "Starkonja's Head": "Helmet", "Stone of Lazhwar": "Amulet",
+    "Strugglescream": "Amulet", "Sunsplinter": "Shield", "Surefooted Sigil": "Amulet",
+    "Svalinn": "Shield", "Tabula Rasa": "Body Armour", "Tangletongue": "Spear",
+    "Taryn's Shiver": "Staff", "Temporalis": "Body Armour",
+    "Tetzlapokal's Desire": "Body Armour", "The Adorned": "Jewel", "The Anvil": "Amulet",
+    "The Barrow Dweller": "Body Armour", "The Black Cat": "Charm",
+    "The Black Doubt": "Body Armour", "The Black Insignia": "Helmet",
+    "The Blood Thorn": "Warstaff", "The Brass Dome": "Body Armour",
+    "The Bringer of Rain": "Helmet", "The Burden of Shadows": "Staff",
+    "The Burrower": "Ring", "The Coming Calamity": "Body Armour",
+    "The Covenant": "Body Armour", "The Dancing Mirage": "Body Armour",
+    "The Dark Defiler": "Sceptre", "The Deepest Tower": "Helmet",
+    "The Devouring Diadem": "Helmet", "The Empty Roar": "Mace",
+    "The Eternal Spark": "Focii", "The Everlasting Gaze": "Amulet",
+    "The Fall of the Axe": "Charm", "The Fallen Formation": "Body Armour",
+    "The Gnashing Sash": "Belt", "The Hammer of Faith": "Mace",
+    "The Hollow Mask": "Helmet", "The Infinite Pursuit": "Boots",
+    "The Knight-errant": "Boots", "The Last Lament": "Crossbow",
+    "The Lethal Draw": "Quiver", "The Mutable Star": "Body Armour",
+    "The Pandemonius": "Amulet", "The Prisoner's Manacles": "Gloves",
+    "The Rat Cage": "Body Armour", "The Road Warrior": "Body Armour",
+    "The Searing Touch": "Staff", "The Sentry": "Warstaff",
+    "The Smiling Knight": "Helmet", "The Surrender": "Shield",
+    "The Three Dragons": "Helmet", "The Unborn Lich": "Staff", "The Vertex": "Helmet",
+    "The Vile Knight": "Helmet", "The Wailing Wall": "Shield",
+    "The Whispering Ice": "Staff", "The Wicked Quill": "Wand",
+    "Thief's Torment": "Ring", "Threaded Light": "Focii", "Thrillsteel": "Helmet",
+    "Thunderfist": "Gloves", "Thunderstep": "Boots", "Tidebreaker": "Mace",
+    "Titanrot Cataphract": "Body Armour", "Trampletoe": "Boots",
+    "Treefingers": "Gloves", "Trenchtimbre": "Mace", "Trephina": "Mace",
+    "Tyranny's Grip": "Spear", "Umbilicus Immortalis": "Belt", "Undying Hate": "Jewel",
+    "Ungil's Harmony": "Amulet", "Valako's Roar": "Charm", "Valako's Vice": "Gloves",
+    "Veil of the Night": "Helmet", "Venopuncture": "Ring", "Ventor's Gamble": "Ring",
+    "Vigilant View": "Ring", "Vis Mortis": "Body Armour", "Visage of Ayah": "Helmet",
+    "Voll's Protector": "Body Armour", "Voltaxic Rift": "Bow", "Waistgate": "Belt",
+    "Wake of Destruction": "Boots", "Wandering Reliquary": "Body Armour",
+    "Wanderlust": "Boots", "Waveshaper": "Body Armour",
+    "Whisper of the Brotherhood": "Ring", "Widow's Reign": "Body Armour",
+    "Widowhail": "Bow", "Window to Paradise": "Shield", "Windscream": "Boots",
+    "Wings of Caelyn": "Helmet", "Wondertrap": "Boots", "Wulfsbane": "Shield",
+    "Wylund's Stake": "Mace", "Xoph's Blood": "Amulet", "Yoke of Suffering": "Amulet",
+    "Yriel's Fostering": "Body Armour", "Zerphi's Genesis": "Belt",
+    "Zerphi's Serape": "Body Armour",
+}
 
 
 def _quote_ipd(name: str) -> str:
@@ -267,126 +431,70 @@ def _quote_ipd(name: str) -> str:
     return name.replace('"', '\\"')
 
 
-def fetch_text(url: str) -> str:
-    headers = {"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml"}
-    r = requests.get(url, headers=headers, timeout=30)
-    r.raise_for_status()
-    return r.text
+def build_base_rules(min_quality: int = 28, min_level: int = 60, progress_callback=None) -> list:
+    """Build endgame base-type pickup rules from local game data — no network requests.
 
+    Uses _BASE_TYPES_BY_CATEGORY (sourced from baseitemtypes.json) for all equipment
+    bases with DropLevel >= 60, plus _RUNEFORGED_BASES for Runeforged/Runemastered
+    variants not yet present in the game data files.
 
-def parse_poe2db_bases(page: str, category: BaseCategory, min_level: int = None) -> list:
-    """Return list of endgame base-type names scraped from a poe2db category page."""
-    threshold = min_level if min_level is not None else category.min_level
-    names, seen = [], set()
-    for m in _BASE_LINK_PAT.finditer(page):
-        name = _clean_html(m.group(1))
-        if not name or name in seen:
-            continue
-        # Use a 3000-char window so items near the end of the page still have
-        # enough context to find their "Requires: Level" value.
-        chunk_end = min(m.end() + 3000, len(page))
-        chunk = page[m.end(): chunk_end]
-        level = _poe2db_required_level(chunk)
-        if level is not None and level < threshold:
-            continue
-        if level is None and "Endgame" not in chunk:
-            continue
-        seen.add(name)
-        names.append(name)
-    return names
-
-
-def _build_static_base_rules(min_quality: int = 28) -> list:
-    """Generate base rules from the hardcoded endgame-item list (fallback)."""
-    lines: list = []
-    lines.append(header_minor("Endgame Bases (static list)"))
-    lines.append("")
-    rules: set = set()
-    for name, sock in _STATIC_ENDGAME_BASES:
-        safe = _quote_ipd(name)
-        rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" # [StashItem] == "true"')
-        rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" # [StashItem] == "true"')
-    lines.extend(sorted(rules))
-    lines.append("")
-    return lines
-
-
-def build_base_rules(min_quality: int = 28, min_level: int = 75, progress_callback=None) -> list:
-    """Scrape endgame base types from Poe2DB and return categorised .ipd pickup rules.
-
-    Behaviour:
-    - Scrapes all categories in POE2DB_BASE_CATEGORIES for live data.
-    - Any item from _STATIC_ENDGAME_BASES not already covered by scraping is
-      appended in a supplementary section so weapon bases always appear even when
-      poe2db weapon pages don't return parseable results.
-    - If scraping returns nothing at all, _STATIC_ENDGAME_BASES is used alone.
-
-    Each category gets its own header_minor section, then two rules per base:
-      [Type] == "Name" && [Quality] >= "28" # [StashItem] == "true"
-      [Type] == "Name" && [Sockets] >= "N"  # [StashItem] == "true"
+    Each category gets its own header_minor section, then per base:
+      [Type] == "Name" && [Quality] >= "min_quality" # [StashItem] == "true"
+      [Type] == "Name" && [Sockets] >= "N"           # [StashItem] == "true"  (if sock > 0)
     """
     all_lines: list = []
-    any_scraped = False
-    scraped_names: set = set()
-    total = len(POE2DB_BASE_CATEGORIES)
+    cats = sorted(_BASE_TYPES_BY_CATEGORY.keys())
+    total = len(cats) + 1  # +1 for runeforged section
 
-    for idx, cat in enumerate(POE2DB_BASE_CATEGORIES, 1):
+    for idx, cat in enumerate(cats, 1):
         if progress_callback:
-            progress_callback(idx, total, cat.title)
-        try:
-            page = fetch_text(f"{POE2DB_BASE_URL}/{cat.slug}")
-            time.sleep(0.2)
-            names = parse_poe2db_bases(page, cat, min_level=min_level)
-        except requests.RequestException as e:
-            print(f"Warning: bases for {cat.title}: {e}", file=sys.stderr)
-            names = []
-        if not names:
-            continue
-        any_scraped = True
-        # Normalise curly/typographic quotes to ASCII so the dedup check below
-        # matches static-list names regardless of what poe2db sends.
-        scraped_names.update(
-            n.replace("‘", "'").replace("’", "'")
-             .replace("“", '"').replace("”", '"')
-            for n in names
-        )
-        all_lines.append(header_minor(cat.title))
+            progress_callback(idx, total, cat)
+        entries = _BASE_TYPES_BY_CATEGORY[cat]
+        all_lines.append(header_minor(cat))
         all_lines.append("")
         cat_rules: set = set()
-        for name in names:
+        for name, sock in entries:
             safe = _quote_ipd(name)
             cat_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" # [StashItem] == "true"')
-            cat_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{cat.socket_threshold}" # [StashItem] == "true"')
+            if sock > 0:
+                cat_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" # [StashItem] == "true"')
         all_lines.extend(sorted(cat_rules))
         all_lines.append("")
 
-    if not any_scraped:
-        # Site completely unreachable — use full static list
-        print(
-            "Warning: poe2db scraping returned no results — using built-in static fallback list",
-            file=sys.stderr,
-        )
-        return _build_static_base_rules(min_quality)
-
-    # Supplement with static items not covered by scraping (e.g. weapon pages that
-    # return no parseable results in poe2db's current HTML structure).
-    extra: list = [
-        (name, sock)
-        for name, sock in _STATIC_ENDGAME_BASES
-        if name not in scraped_names
-    ]
-    if extra:
-        all_lines.append(header_minor("Additional Bases (weapons & misc)"))
-        all_lines.append("")
-        extra_rules: set = set()
-        for name, sock in extra:
-            safe = _quote_ipd(name)
-            extra_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" # [StashItem] == "true"')
-            extra_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" # [StashItem] == "true"')
-        all_lines.extend(sorted(extra_rules))
-        all_lines.append("")
+    # Runeforged / Runemastered supplement
+    if progress_callback:
+        progress_callback(total, total, "Runeforged & Runemastered")
+    all_lines.append(header_minor("Runeforged & Runemastered"))
+    all_lines.append("")
+    rf_rules: set = set()
+    for name, sock in _RUNEFORGED_BASES:
+        safe = _quote_ipd(name)
+        rf_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" # [StashItem] == "true"')
+        if sock > 0:
+            rf_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" # [StashItem] == "true"')
+    all_lines.extend(sorted(rf_rules))
+    all_lines.append("")
 
     return all_lines
+
+
+def build_game_unique_supplement(ninja_names: set) -> list:
+    """Return commented-out rules for game uniques not present in poe.ninja data.
+
+    These items exist in the game but aren't traded enough to appear on poe.ninja.
+    They are added as comments so they show up in the file for easy manual enabling.
+    """
+    lines: list = []
+    missing = sorted(n for n in _GAME_UNIQUES if n not in ninja_names)
+    if not missing:
+        return lines
+    lines.append(header_minor("Game Uniques (not on poe.ninja — enable manually)"))
+    lines.append("")
+    for name in missing:
+        safe = _quote_ipd(name)
+        lines.append(f'//[Type] == "..." && [Rarity] == "Unique" # [UniqueName] == "{safe}" && [StashItem] == "true"')
+    lines.append("")
+    return lines
 
 
 # ─────────────────────────────────────────────────────────────────────────────

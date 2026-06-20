@@ -2760,6 +2760,21 @@ class PickitApp(tk.Tk):
                     output_lines += [gen.header_sub(label_text), f"// Processing failed: {e}", ""]
                     self._log(f"  ✗ {label_text}: {e}", "err")
 
+            # ── Game uniques not on poe.ninja ────────────────────────────────
+            ninja_unique_names = set()
+            for key, _, _, is_unique in gen.ALL_CATEGORIES:
+                if not is_unique:
+                    continue
+                p = all_payloads.get(key)
+                if isinstance(p, dict):
+                    for ln in p.get("lines", []):
+                        if ln.get("name"):
+                            ninja_unique_names.add(ln["name"])
+            supp = gen.build_game_unique_supplement(ninja_unique_names)
+            if supp:
+                output_lines += [gen.header_sub("Game Uniques (not on poe.ninja)"), ""] + supp
+                self._log(f"  Game unique supplement: {len([l for l in supp if l.startswith('//')])- 1} items commented", "dim")
+
             # ── Scout (poe2scout.com) unique items ────────────────────────────
             self._log("Fetching Scout prices (poe2scout.com)…", "dim")
             scout_payloads = gen.fetch_all_scout_payloads(league)
@@ -2787,7 +2802,7 @@ class PickitApp(tk.Tk):
             # ── Base types (optional) ─────────────────────────────────────────
             if snapshot.get("include_bases"):
                 min_q = int(snapshot.get("base_quality", 28))
-                self._log("Fetching base types from Poe2DB…", "dim")
+                self._log("Building base type rules from game data…", "dim")
                 def _base_prog(idx, total, title):
                     self.after(0, lambda s=f"Bases {idx}/{total}: {title}":
                                self.progress_var.set(s))
