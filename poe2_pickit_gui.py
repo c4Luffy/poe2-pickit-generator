@@ -2265,7 +2265,7 @@ class PickitApp(tk.Tk):
         d("── API endpoint test ──", "header")
         league = self._selected_league()
         if not league or league.startswith("Loading"):
-            league = "Standard"
+            league = "Mercenaries"
         d(f"League: {league}", "info")
         for key, ninja_type, label_text, is_unique in gen.ALL_CATEGORIES:
             try:

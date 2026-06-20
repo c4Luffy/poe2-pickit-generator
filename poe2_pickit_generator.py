@@ -742,10 +742,10 @@ def detect_current_league() -> str:
             if name.lower() not in ("standard", "hardcore"):
                 return name
         if active:
-            return active[0].get("name", "Standard")
+            return active[0].get("name", "Mercenaries")
     except (requests.RequestException, ValueError, KeyError) as e:
-        print(f"Warning: could not auto-detect league ({e}); falling back to 'Standard'")
-    return "Standard"
+        print(f"Warning: could not auto-detect league ({e}); falling back to 'Mercenaries'")
+    return "Mercenaries"
 
 
 def fetch_category(league: str, key: str, ninja_type: str, is_unique: bool) -> dict:
