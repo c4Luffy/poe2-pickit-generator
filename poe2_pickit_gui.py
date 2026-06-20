@@ -244,7 +244,7 @@ def setup_styles(root):
 
 TABS = ["General", "Categories", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "1.6.2"
+VERSION       = "1.6.3"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -1156,21 +1156,17 @@ class PickitApp(tk.Tk):
     def _card_colors(self, cat_key, ex_val, enabled):
         """Return (bg, fg, bdr, dot_text, dot_fg) for a card given its state.
 
-        Four visual states:
-          enabled + above threshold  → gold/active
-          enabled + below threshold  → dim (will be commented out in pickit)
-          disabled + above threshold → amber warn (user hiding a valuable item)
-          disabled + below threshold → dark/dim
+        Three clear states:
+          enabled              → gold dot ● (item will be picked)
+          disabled + valuable  → amber ✗   (warn: excluding a valuable item)
+          disabled             → red ✗     (item excluded)
         """
-        thresh = self._effective_threshold(cat_key)
         if enabled:
-            if ex_val >= thresh:
-                return _CON, _CTXON, _CONB, "●", GOLD
-            # Below threshold: item follows pricing but won't be active in pickit
-            return _COFF, "#585868", _COFB, "●", "#4a4860"
-        if ex_val >= thresh:
-            return _CWARN, _CTXWRN, _CWARNB, "○", _CWARNB
-        return _COFF, _CTXOF, _COFB, "○", TEXT_DIM
+            return _CON, _CTXON, _CONB, "●", GOLD
+        thresh = self._effective_threshold(cat_key)
+        if thresh > 0 and ex_val >= thresh:
+            return _CWARN, _CTXWRN, _CWARNB, "✗", _CWARNB
+        return _COFF, _CTXOF, _COFB, "✗", TEXT_ERR
 
     def _price_trend(self, key, name, ex_val):
         prev = self._cat_prev_prices.get(key, {}).get(name)
@@ -1433,21 +1429,19 @@ class PickitApp(tk.Tk):
 
         if enabled:
             # "Enable All" = clear all exclusions so every item follows the threshold.
-            # Use per-card colors so items below threshold still appear dim.
             self._item_states.pop(key, None)
+            bg = _CON; fg = _CTXON; bdr = _CONB; dot = "●"; dfg = GOLD
             for card in self._cat_cards.get(key, []):
                 card._enabled = True
-                bg, fg, bdr, dot, dfg = self._card_colors(key, card._ex, True)
                 card.config(bg=bg, highlightbackground=bdr)
                 card._name_lbl.config(bg=bg, fg=fg)
                 card._icon_lbl.config(bg=bg)
                 card._val_lbl.config(bg=bg)
                 card._dot_lbl.config(bg=bg, text=dot, fg=dfg)
         else:
-            # "Disable All" = exclude every item in this category.
             if key not in self._item_states:
                 self._item_states[key] = {}
-            bg = _COFF; fg = _CTXOF; bdr = _COFB; dot = "○"; dfg = TEXT_DIM
+            bg = _COFF; fg = _CTXOF; bdr = _COFB; dot = "✗"; dfg = TEXT_ERR
             for card in self._cat_cards.get(key, []):
                 card._enabled = False
                 card.config(bg=bg, highlightbackground=bdr)
