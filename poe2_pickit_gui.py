@@ -174,7 +174,6 @@ class PickitApp(ctk.CTk):
         self._fetch_leagues_async()
         self._schedule_tick()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-        self.bind_all("<Control-g>", lambda e: self._start_generate())
         self.bind_all("<Control-r>", lambda e: self._fetch_leagues_async())
         self.bind_all("<MouseWheel>", self._on_wheel)
         if self.cfg.get("start_minimized", False):
@@ -270,7 +269,7 @@ class PickitApp(ctk.CTk):
 
         _sep(bar, bg=BORDER).pack(side="left", fill="y", pady=10)
 
-        self.gen_btn = tk.Button(bar, text="  Generate  (Ctrl+G)  ",
+        self.gen_btn = tk.Button(bar, text="   Generate   ",
                                   bg=GOLD, fg="#111", relief="flat", bd=0,
                                   font=("Segoe UI", 11, "bold"), cursor="hand2",
                                   activebackground=GOLD_LT, activeforeground="#111",
@@ -446,7 +445,7 @@ class PickitApp(ctk.CTk):
         of2 = tk.Frame(of, bg=BG)
         of2.pack(fill="x", pady=(4, 0))
         of2.columnconfigure(0, weight=1)
-        _entry(of2, self.output_var, bg=BG3).grid(row=0, column=0, sticky="ew", ipady=4, padx=(0, 6))
+        _entry(of2, self.output_var).grid(row=0, column=0, sticky="ew", ipady=4, padx=(0, 6))
         tk.Button(of2, text="Browse…", bg=BG3, fg=TEXT, relief="flat", bd=1,
                   font=FONT_SM, padx=8, pady=3, cursor="hand2",
                   activebackground=BORDER, activeforeground=TEXT,
