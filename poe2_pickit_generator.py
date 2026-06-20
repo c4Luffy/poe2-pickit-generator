@@ -72,9 +72,7 @@ PICK_ALL_CATEGORIES = {"lineage_support_gems"}
 
 # poe.ninja sometimes returns names that don't match in-game base types.
 # Map the poe.ninja name → correct in-game name here.
-ITEM_NAME_CORRECTIONS = {
-    "Refined Necrotic Catalyst": "Refined Neural Catalyst",
-}
+ITEM_NAME_CORRECTIONS: dict = {}
 
 # Items returned by poe.ninja that have no valid in-game base type and should
 # be skipped entirely rather than written to the pickit.
