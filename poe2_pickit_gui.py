@@ -2581,6 +2581,7 @@ class PickitApp(tk.Tk):
                     self._log(f"  ✗ {label_text}: {e}", "err")
 
             output_lines.extend(gen.STATIC_TABLET_RULES.splitlines())
+            output_lines.extend(gen.STATIC_WOMBGIFT_RULES.splitlines())
 
             # ── Base types (optional) ─────────────────────────────────────────
             if snapshot.get("include_bases"):

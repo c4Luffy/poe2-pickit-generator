@@ -462,6 +462,20 @@ STATIC_TABLET_RULES = """\
 """
 
 
+STATIC_WOMBGIFT_RULES = """\
+/////////////////////////////////////////////////////////////////////////////////////
+//                                                                                 //
+//                             BREACH WOMBGIFTS                                    //
+//                                                                                 //
+/////////////////////////////////////////////////////////////////////////////////////
+
+[Type] == "Growing Wombgift" # [StashItem] == "true"
+[Type] == "Lavish Wombgift" # [StashItem] == "true"
+[Type] == "Banded Wombgift" # [StashItem] == "true"
+[Type] == "Signet Wombgift" # [StashItem] == "true"
+"""
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  API helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -991,6 +1005,9 @@ def main():
 
     # ── Tablets ───────────────────────────────────────────────────────────────
     output_lines.extend(STATIC_TABLET_RULES.splitlines())
+
+    # ── Breach Wombgifts ──────────────────────────────────────────────────────
+    output_lines.extend(STATIC_WOMBGIFT_RULES.splitlines())
 
     # ── Base types (optional) ─────────────────────────────────────────────────
     if args.include_bases:
