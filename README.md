@@ -52,31 +52,43 @@ A dark-themed GUI tool for **Path of Exile 2** that fetches live economy data fr
 
 ---
 
+## Data Sources
+
+**Poe.Ninja** (13 categories): Currency, Fragments, Abyss, Uncut Gems, Lineage Support Gems, Essences, Ultimatum, Talismans, Runes, Ritual, Expedition, Delirium, Breach
+
+**Scout** (6 categories, via [poe2scout.com](https://poe2scout.com)): Accessories, Armour, Jewels, Maps, Weapons, Sanctum — fetched when available, silently skipped if the API is offline for the current league
+
+**Static** (4 categories): Splinters, Waystones, Special Waystones, Tablets — hardcoded always-pick rules, no threshold
+
+---
+
 ## Supported Categories
 
 | Category | Source |
 |---|---|
-| Currency (49 items incl. all Vaal currencies) | poe.ninja |
-| Essences | poe.ninja (sorted by tier: Lesser → Greater → Perfect) |
-| Delirium (Liquid Emotions) | poe.ninja |
-| Breach (Catalysts) | poe.ninja |
-| Abyss (Abyssal Bones) | poe.ninja |
-| Fragments (incl. Simulacrum, all Reliquary Keys) | poe.ninja |
-| Runes (142 items incl. all 5 Aldur runes) | poe.ninja |
-| Ritual (Omens) | poe.ninja |
-| Soul Cores (incl. Emergent Vigour/Possibility/Protection/Instinct) | poe.ninja |
-| Idols | poe.ninja |
-| Uncut Gems | poe.ninja |
-| Lineage Support Gems | poe.ninja (always picked — no threshold) |
-| Expedition (incl. all Sagas and Fluxes) | poe.ninja |
-| Waystones | All tiers 1–15, all rarities (always picked) |
-| Unique Weapons / Armours / Accessories / Flasks / Charms / Jewels / Relics | poe.ninja |
+| Currency (49 items incl. all Vaal currencies) | Poe.Ninja |
+| Essences | Poe.Ninja (sorted by tier: Lesser → Greater → Perfect) |
+| Delirium (Liquid Emotions) | Poe.Ninja |
+| Breach (Catalysts + Wombgifts) | Poe.Ninja + Static |
+| Abyss (Abyssal Bones) | Poe.Ninja |
+| Fragments (incl. Simulacrum, all Reliquary Keys) | Poe.Ninja |
+| Runes (142 items incl. all 5 Aldur runes) | Poe.Ninja |
+| Ritual (Omens) | Poe.Ninja |
+| Ultimatum | Poe.Ninja (active when league data available) |
+| Talismans | Poe.Ninja (active when league data available) |
+| Soul Cores (incl. all Emergent items) | Poe.Ninja |
+| Idols | Poe.Ninja |
+| Uncut Gems | Poe.Ninja |
+| Lineage Support Gems | Poe.Ninja (always picked — no threshold) |
+| Expedition (incl. all Sagas and Fluxes) | Poe.Ninja |
+| Waystones (all tiers 1–15, all rarities) | Static — always picked |
+| Special Waystones (An Audience with the King) | Static — always picked |
+| Unique Tablets (7 named) | Static — always picked |
+| Regular Tablets (all rarities) | Static — always picked |
+| Splinters (Breach + Simulacrum) | Static — always picked |
+| Unique Weapons / Armours / Accessories / Flasks / Charms / Jewels / Relics | Poe.Ninja |
+| Unique Accessories / Armour / Jewels / Weapons / Sanctum / Maps | Scout (poe2scout.com) |
 | Endgame Gear Bases | poe2db.tw (level 75+, quality or socket rules) |
-| Unique Tablets (7 named) | Static rules — always picked |
-| Regular Tablets (all rarities) | Static rules — always picked |
-| Breach Splinter / Simulacrum Splinter | Static rules — always picked |
-| Breach Wombgifts (Growing / Lavish / Banded / Signet) | Static rules — always picked |
-| Emergent Runes (Vigour / Possibility / Protection / Instinct) | Static rules — always picked |
 
 ---
 
@@ -135,17 +147,20 @@ The generated `.ipd` includes a full syntax guide at the top. Quick reference:
 
 ---
 
-## Files
+## Project Structure
 
-| File | Purpose |
-|---|---|
-| `poe2_pickit_gui.py` | Main GUI application |
-| `poe2_pickit_generator.py` | Economy fetching, rule generation logic |
-| `version.txt` | Current version — bumped on every release |
-| `BUILD_EXE.bat` | Builds a standalone Windows `.exe` via PyInstaller |
-| `pickit_output/` | Generated `.ipd` files land here |
-| `icon_cache/` | Downloaded item icons (auto-created) |
-| `presets/` | Saved item-selection presets |
+```
+poe2-pickit-generator/
+├── poe2_pickit_gui.py          # Main GUI — tkinter, 6 tabs (General / Categories /
+│                               #   Preview / History / Settings / Debug)
+├── poe2_pickit_generator.py    # Economy fetching (poe.ninja + poe2scout.com) and
+│                               #   .ipd pickit rule generation
+├── version.txt                 # Release version string — fetched by auto-update checker
+├── BUILD_EXE.bat               # One-click PyInstaller build → dist/ExileBot2PickitGenerator.exe
+├── pickit_output/              # Generated .ipd files land here (auto-created)
+├── icon_cache/                 # Item icons downloaded from poe2wiki.net (auto-created)
+└── presets/                    # Saved item-selection presets as JSON (auto-created)
+```
 
 ---
 

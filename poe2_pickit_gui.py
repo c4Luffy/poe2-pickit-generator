@@ -2165,6 +2165,7 @@ class PickitApp(tk.Tk):
             d(f"  MIN_EXALT       : {gen.MIN_EXALT}", "info")
             d(f"  Exchange cats   : {len(gen.EXCHANGE_CATEGORIES)}", "info")
             d(f"  Unique cats     : {len(gen.UNIQUE_CATEGORIES)}", "info")
+            d(f"  Scout cats      : {len(gen.SCOUT_CATEGORIES)}", "info")
             d("  ✓  Generator module healthy", "ok")
         except Exception as e:
             d(f"  ✗  {e}", "err")
@@ -2758,8 +2759,29 @@ class PickitApp(tk.Tk):
                     output_lines += [gen.header_sub(label_text), f"// Processing failed: {e}", ""]
                     self._log(f"  ✗ {label_text}: {e}", "err")
 
+            # ── Scout (poe2scout.com) unique items ────────────────────────────
+            self._log("Fetching Scout prices (poe2scout.com)…", "dim")
+            scout_payloads = gen.fetch_all_scout_payloads(league)
+            if scout_payloads:
+                output_lines += [gen.header_major("Scout Unique Items"), ""]
+                for key, cat_slug, label_text, _ in gen.SCOUT_CATEGORIES:
+                    payload_items = scout_payloads.get(key)
+                    if not payload_items:
+                        continue
+                    lines = gen.build_scout_lines(
+                        payload_items.get("items", []),
+                        divine_rate_exalts,
+                        min_exalt=min_exalt_gear,
+                    )
+                    active = [l for l in lines if "[StashItem]" in l]
+                    output_lines += [gen.header_sub(label_text), ""] + lines + [""]
+                    self._log(f"  ✓ {label_text}: {len(active)} active", "ok")
+            else:
+                self._log("  Scout API unavailable for this league — skipped", "dim")
+
             output_lines.extend(gen.STATIC_TABLET_RULES.splitlines())
             output_lines.extend(gen.STATIC_WOMBGIFT_RULES.splitlines())
+            output_lines.extend(gen.STATIC_SPECIAL_WAYSTONE_RULES.splitlines())
 
             # ── Base types (optional) ─────────────────────────────────────────
             if snapshot.get("include_bases"):
