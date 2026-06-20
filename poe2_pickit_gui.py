@@ -583,7 +583,6 @@ class PickitApp(tk.Tk):
         btn(row, "↻  Refresh", self._fetch_leagues_async).grid(row=0, column=1)
 
         def _on_league_select(event=None):
-            gen.clear_cache()
             if self._active_cat and self._active_cat != "_gear":
                 self.after(50, lambda: self._show_cat(self._active_cat))
 
