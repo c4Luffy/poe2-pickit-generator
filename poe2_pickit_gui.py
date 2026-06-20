@@ -320,7 +320,7 @@ class PickitApp(tk.Tk):
         self._item_states     = dict(self.cfg.get("item_states", {}))
         self._price_unit      = "ex"
         self._item_prices     = {}   # {cat_key: {name: {ex, chaos, div}}}
-        self._cat_prev_prices = {}   # {cat_key: {name: ex}} — snapshot before last refresh
+        self._cat_prev_prices = dict(self.cfg.get("cat_prev_prices", {}))  # persisted across sessions
         self._cat_cards       = {}   # {cat_key: [card_frame, ...]}
         self._active_cat       = None
         self._cat_last_fetched = {}   # {cat_key: "HH:MM"} shown in count label
@@ -2893,7 +2893,8 @@ class PickitApp(tk.Tk):
             self._tray_icon = None
         if self._schedule_after:
             self.after_cancel(self._schedule_after)
-        self.cfg["window_geometry"] = self.geometry()
+        self.cfg["window_geometry"]  = self.geometry()
+        self.cfg["cat_prev_prices"]  = self._cat_prev_prices
         save_config(self.cfg)
         self.destroy()
 
@@ -2907,23 +2908,23 @@ class PickitApp(tk.Tk):
 
     def _create_tray_icon(self):
         if _HAS_PIL:
-            img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
             from PIL import ImageDraw
+            S = 64
+            img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
             d = ImageDraw.Draw(img)
-            d.ellipse([4, 4, 60, 60], fill="#c8a96e")
-            d.text((18, 18), "⚔", fill="#1a1a22")
+            # Dark circle background
+            d.ellipse([1, 1, S-2, S-2], fill="#1a1a22", outline="#c8a96e", width=2)
+            # Sword blade (vertical, slightly tapered)
+            d.polygon([(30, 8), (34, 8), (33, 46), (32, 50), (31, 46)], fill="#c8a96e")
+            # Crossguard
+            d.rectangle([18, 28, 46, 33], fill="#b87820")
+            d.ellipse([16, 27, 21, 34], fill="#b87820")
+            d.ellipse([43, 27, 48, 34], fill="#b87820")
+            # Pommel
+            d.ellipse([28, 50, 36, 58], fill="#c8a96e")
+            d.ellipse([30, 52, 34, 56], fill="#8a5a10")
         else:
-            import struct, zlib
-            def _png1x1(r, g, b):
-                raw = b'\x00' + bytes([r, g, b, 255])
-                crc = lambda d: struct.pack('>I', zlib.crc32(d) & 0xffffffff)
-                ihdr = b'IHDR' + struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
-                idat_data = zlib.compress(raw)
-                idat = b'IDAT' + struct.pack('>I', len(idat_data)) + idat_data
-                def chunk(c): return struct.pack('>I', len(c)-4) + c + crc(c)
-                return b'\x89PNG\r\n\x1a\n' + chunk(ihdr) + chunk(idat) + chunk(b'IEND')
-            import io
-            img = Image.open(io.BytesIO(_png1x1(200, 169, 110)))
+            img = Image.new("RGBA", (64, 64), (200, 169, 110, 255))
 
         def on_show(icon, item):
             icon.stop()
