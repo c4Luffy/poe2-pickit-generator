@@ -244,7 +244,7 @@ def setup_styles(root):
 
 TABS = ["General", "Categories", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "1.5.0"
+VERSION       = "1.6.0"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -256,7 +256,7 @@ class PickitApp(tk.Tk):
         self.cfg = load_config()
         setup_styles(self)
 
-        self.title("ExileBot 2 Pickit Generator  v6")
+        self.title(f"ExileBot 2 Pickit Generator  v{VERSION}")
         self.configure(bg=BG)
         self.resizable(True, True)
         self.minsize(900, 660)
