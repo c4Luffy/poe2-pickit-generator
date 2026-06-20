@@ -2546,7 +2546,7 @@ class PickitApp(tk.Tk):
                     else:
                         pick_all  = key in gen.PICK_ALL_CATEGORIES
                         tier_sort = (key == "essences")
-                        always    = gen.ALWAYS_PICK_CURRENCY if key == "currency" else None
+                        always    = gen.ALWAYS_PICK_CURRENCY if key == "currency" else (gen.ALWAYS_PICK_RUNES if key == "runes" else None)
                         ritual_th = min_exalt_gear if key == "omens" else None
                         lines = gen.build_exchange_lines(payload, divine_rate_exalts,
                                                          pick_all=pick_all,

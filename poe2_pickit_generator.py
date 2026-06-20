@@ -88,6 +88,14 @@ ALWAYS_PICK_CURRENCY = [
     "Mirror of Kalandra",
 ]
 
+# Runes not tracked by poe.ninja — always pick up regardless of threshold
+ALWAYS_PICK_RUNES = [
+    "Emergent Vigour",
+    "Emergent Possibility",
+    "Emergent Protection",
+    "Emergent Instinct",
+]
+
 
 # Fallback waystone rules used when poe.ninja returns no waystone rows.
 WAYSTONE_FALLBACK_RULES = [
@@ -988,7 +996,7 @@ def main():
                 report_rows.extend(collect_exchange_report_rows(label, payload, divine_rate_exalts, min_exalt=min_exalt))
             else:
                 pick_all  = key in PICK_ALL_CATEGORIES
-                always    = ALWAYS_PICK_CURRENCY if key == "currency" else None
+                always    = ALWAYS_PICK_CURRENCY if key == "currency" else (ALWAYS_PICK_RUNES if key == "runes" else None)
                 lines = build_exchange_lines(payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt, tier_sort=(key == "essences"), always_names=always)
                 report_rows.extend(collect_exchange_report_rows(label, payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt))
 
