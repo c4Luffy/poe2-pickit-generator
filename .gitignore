@@ -22,6 +22,9 @@ pickit_gui_config.json
 icon_cache/
 wiki_icon_cache.json
 
+# Price cache (poe.ninja payloads saved at runtime for offline mode)
+price_cache/
+
 # Test / scratch files
 test_icon.png
 
