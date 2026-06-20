@@ -354,9 +354,10 @@ class PickitApp(tk.Tk):
                                     fg="#f0c060", font=FONT_BOLD, cursor="hand2")
         self._update_lbl.pack(side="left", padx=12)
         self._update_lbl.bind("<Button-1>", lambda e: self._open_releases())
-        tk.Label(self._update_bar, text="✕", bg="#2a1e00", fg="#888", font=FONT_SM,
-                 cursor="hand2").pack(side="right", padx=8).bind(
-            "<Button-1>", lambda e: self._update_bar.pack_forget())
+        _close_btn = tk.Label(self._update_bar, text="✕", bg="#2a1e00", fg="#888",
+                              font=FONT_SM, cursor="hand2")
+        _close_btn.pack(side="right", padx=8)
+        _close_btn.bind("<Button-1>", lambda e: self._update_bar.pack_forget())
 
         sep(self).pack(fill="x")
 
