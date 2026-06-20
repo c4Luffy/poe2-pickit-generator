@@ -309,7 +309,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "1.8.0"
+VERSION       = "1.9.0"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -389,6 +389,9 @@ class PickitApp(tk.Tk):
         self._active_cat       = None
         self._cat_last_fetched = {}   # {cat_key: "HH:MM"} shown in count label
         self._price_unit_btns  = {}
+        self._min_chaos_filter_var = tk.StringVar(value=str(self.cfg.get("min_chaos_filter", 0)))
+        self._last_gen_prices  = dict(self.cfg.get("last_gen_prices", {}))  # {league: {key: {name: ex}}}
+        self._price_alerts: list = []
 
         # Chance Bases tab state
         self._chance_cards     = []
@@ -849,7 +852,15 @@ class PickitApp(tk.Tk):
         # Enable/Disable all / Reset
         btn(tbar, "Enable All",  lambda: self._cat_items_set_all(True)).pack(side="left", padx=(0, 3))
         btn(tbar, "Disable All", lambda: self._cat_items_set_all(False)).pack(side="left", padx=(0, 3))
-        btn(tbar, "Reset",       self._cat_items_reset).pack(side="left", padx=(0, 12))
+        btn(tbar, "Reset",       self._cat_items_reset).pack(side="left", padx=(0, 8))
+
+        # Min price filter
+        tk.Frame(tbar, bg=BORDER, width=1).pack(side="left", padx=6, fill="y")
+        tk.Label(tbar, text="Min:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(0, 3))
+        entry(tbar, self._min_chaos_filter_var, width=5).pack(side="left", ipady=3)
+        tk.Label(tbar, text="c", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(2, 4))
+        btn(tbar, "Apply", self._apply_chaos_filter).pack(side="left", padx=(0, 8))
+        tk.Frame(tbar, bg=BORDER, width=1).pack(side="left", padx=6, fill="y")
 
         # Price unit selector
         tk.Label(tbar, text="Value:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(0, 4))
@@ -1671,6 +1682,93 @@ class PickitApp(tk.Tk):
             if getattr(card, "_spark_cv", None): card._spark_cv.config(bg=_CON)
         self._update_cat_count(key)
         self.after(0, self._save_states_now)
+
+    # ── Min price filter ──────────────────────────────────────────────────────
+
+    def _extract_cat_prices(self, key: str, payload: dict) -> dict:
+        """Return {name: chaos} from a raw poe.ninja payload, using cached rates."""
+        league       = self._selected_league() or "Mercenaries"
+        rate         = gen.exalted_rate(payload)
+        chaos_ex_val = self._get_chaos_ex_value(league)
+        items_by_id  = {i["id"]: i for i in payload.get("items", [])}
+        prices = {}
+        for line in payload.get("lines", []):
+            item = items_by_id.get(line.get("id"))
+            if not item or not item.get("name"):
+                continue
+            raw_name = item["name"]
+            if raw_name in gen.ITEM_NAME_SKIP:
+                continue
+            name  = gen.ITEM_NAME_CORRECTIONS.get(raw_name, raw_name)
+            pv    = float(line.get("primaryValue") or 0.0)
+            ex    = pv * rate if rate else pv
+            chaos = ex / chaos_ex_val if chaos_ex_val else ex
+            prices[name] = chaos
+        return prices
+
+    def _apply_chaos_filter(self):
+        """Disable all items below the min chaos threshold across all loaded categories."""
+        try:
+            threshold = float(self._min_chaos_filter_var.get())
+        except ValueError:
+            return
+        if threshold <= 0:
+            return
+
+        league         = self._selected_league() or "Mercenaries"
+        total_disabled = 0
+        cats_touched   = 0
+
+        for key, _, _, is_unique in gen.ALL_CATEGORIES:
+            if is_unique:
+                continue  # unique items don't have chaos prices in the same way
+
+            # Get prices: prefer already-rendered _item_prices, fall back to raw cache
+            if key in self._item_prices:
+                prices = {n: p["chaos"] for n, p in self._item_prices[key].items()}
+            else:
+                payload = gen._cache_get(league, key)
+                if not payload or isinstance(payload, Exception):
+                    continue
+                prices = self._extract_cat_prices(key, payload)
+
+            if not prices:
+                continue
+
+            if key not in self._item_states:
+                self._item_states[key] = {}
+
+            changed = 0
+            for name, chaos in prices.items():
+                if chaos < threshold:
+                    if self._item_states[key].get(name, {}).get("enabled", True):
+                        self._item_states[key][name] = {"enabled": False}
+                        changed += 1
+
+            if changed:
+                total_disabled += changed
+                cats_touched   += 1
+
+        # Save and refresh
+        self.cfg["item_states"]        = self._item_states
+        self.cfg["min_chaos_filter"]   = threshold
+        save_config(self.cfg)
+
+        # Refresh the active category grid if it was touched
+        key = self._active_cat
+        if key and key != "_gear" and key in self._item_states:
+            payload = gen._cache_get(league, key)
+            if payload and not isinstance(payload, Exception):
+                self._populate_cat_grid(key, payload)
+
+        if total_disabled:
+            self._log_items(f"Min {threshold:.0f}c filter: disabled {total_disabled} items across {cats_touched} categories.", "warn")
+        else:
+            self._log_items(f"Min {threshold:.0f}c filter: nothing to disable (all items are above threshold).", "ok")
+
+    def _log_items(self, msg: str, level: str = ""):
+        """Log to the Items tab status area if available, else pass."""
+        pass  # placeholder — items tab has no log; just skip silently
 
     # ── Divine rate helper ────────────────────────────────────────────────────
 
@@ -3530,6 +3628,59 @@ class PickitApp(tk.Tk):
 
             _fail_note = f"  ·  {_cat_fail} failed" if _cat_fail else ""
             self._log(f"  Categories: {_cat_ok} OK{_fail_note}", "ok" if not _cat_fail else "warn")
+
+            # ── Price alerts ──────────────────────────────────────────────────
+            ALERT_THRESHOLD = 0.20   # 20% move triggers an alert
+            prev_league     = self._last_gen_prices.get(league, {})
+            new_gen_prices: dict = {}
+            chaos_ex_val    = self._get_chaos_ex_value(league)
+            alerts: list[str] = []
+
+            for key, _, label_text, is_unique in categories:
+                payload = all_payloads.get(key)
+                if not payload or isinstance(payload, Exception):
+                    continue
+                rate        = gen.exalted_rate(payload)
+                items_by_id = {i["id"]: i for i in payload.get("items", [])}
+                cur_prices: dict = {}
+                for line in payload.get("lines", []):
+                    item = items_by_id.get(line.get("id"))
+                    if not item or not item.get("name"):
+                        continue
+                    raw_name = item["name"]
+                    if raw_name in gen.ITEM_NAME_SKIP:
+                        continue
+                    name = gen.ITEM_NAME_CORRECTIONS.get(raw_name, raw_name)
+                    pv   = float(line.get("primaryValue") or 0.0)
+                    ex   = pv * (rate or divine_rate_exalts)
+                    cur_prices[name] = ex
+                new_gen_prices[key] = cur_prices
+
+                prev_cat = prev_league.get(key, {})
+                for name, ex_now in cur_prices.items():
+                    ex_prev = prev_cat.get(name)
+                    if ex_prev is None or ex_prev <= 0 or ex_now <= 0:
+                        continue
+                    delta = (ex_now - ex_prev) / ex_prev
+                    if abs(delta) >= ALERT_THRESHOLD:
+                        sign  = "+" if delta > 0 else ""
+                        arrow = "▲" if delta > 0 else "▼"
+                        chaos_now  = ex_now  / chaos_ex_val if chaos_ex_val else ex_now
+                        chaos_prev = ex_prev / chaos_ex_val if chaos_ex_val else ex_prev
+                        alerts.append(
+                            f"{arrow} {name}: {chaos_prev:.0f}c → {chaos_now:.0f}c  ({sign}{delta*100:.0f}%)"
+                        )
+
+            self._last_gen_prices[league] = new_gen_prices
+            self._price_alerts = sorted(alerts, key=lambda s: abs(float(
+                re.search(r'\(([+-]?\d+)', s).group(1))), reverse=True)[:10]
+
+            if self._price_alerts:
+                self._log("── Price moves since last generate ─", "dim")
+                for a in self._price_alerts:
+                    lvl = "ok" if a.startswith("▲") else "err"
+                    self._log(f"  {a}", lvl)
+
             self._log("─" * 55, "dim")
             self._log(f"Done in {dur_str}  ·  {active} active rules", "ok")
 
@@ -3543,6 +3694,7 @@ class PickitApp(tk.Tk):
             }
 
             # Update config on the main thread to avoid racing with _save_settings.
+            _lgp = self._last_gen_prices
             _cfg_updates = {
                 "league":             league,
                 "min_exalt":          min_exalt,
@@ -3550,6 +3702,7 @@ class PickitApp(tk.Tk):
                 "output_base":        snapshot["output_var"],
                 "category_enabled":   dict(snapshot["cat_enabled"]),
                 "category_threshold": dict(snapshot["cat_thresh"]),
+                "last_gen_prices":    _lgp,
             }
             def _apply_cfg(updates=_cfg_updates):
                 self.cfg.update(updates)

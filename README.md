@@ -85,7 +85,9 @@ Everything is picked by default. Use the **Items** tab to exclude specific items
 - **Enable All / Disable All** buttons toggle all items in the active category at once
 - **Save Preset** → save your item selections with a name, author and description; **Load Preset** → restore with a metadata preview
 - **Export Preset** → save your selections as a shareable `.json` file; **Import Preset** → load one from someone else (shows a preview before applying)
+- **Min X c** filter in the Items toolbar → enter a chaos value and click **Apply** to auto-disable all items below that price across every loaded category
 - Price arrows **▲▼** appear on cards after a refresh if the price moved more than 3%
+- **Price alerts** in the generate log — items that moved more than 20% since the last run are flagged with ▲/▼ and the old → new price
 - The app **auto-generates every hour** in the background automatically
 
 ---
