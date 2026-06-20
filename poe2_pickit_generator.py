@@ -78,9 +78,7 @@ ITEM_NAME_CORRECTIONS = {
 
 # Items returned by poe.ninja that have no valid in-game base type and should
 # be skipped entirely rather than written to the pickit.
-ITEM_NAME_SKIP = {
-    "Aldur's Legacy",  # deprecated base type — validator warns; rune no longer exists
-}
+ITEM_NAME_SKIP: set = set()
 
 # Currency items that must always be picked up even if poe.ninja omits them
 # (Exalted Orb is the PoE2 base pricing currency and won't appear in lines).
