@@ -242,9 +242,9 @@ def setup_styles(root):
 #  Main Application
 # ══════════════════════════════════════════════════════════════════════════════
 
-TABS = ["General", "Categories", "Preview", "History", "Settings", "Debug"]
+TABS = ["Generate", "Items", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "1.6.5"
+VERSION       = "1.6.6"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -567,9 +567,9 @@ class PickitApp(tk.Tk):
 
     def _build_generate_page(self, page):
         self._tab_desc(page,
-            "Generate your pickit file.  Select your league, set the minimum item value in Exalted Orbs, "
-            "choose an output filename, then click ⚡ Generate.  The tool fetches live prices from poe.ninja "
-            "and writes a ready-to-use .ipd file.  Stats and a real-time log appear below after each run.")
+            "Select your league, choose an output filename, then click ⚡ Generate.  "
+            "The tool fetches live prices from poe.ninja and picks everything by default.  "
+            "Use the Items tab to exclude specific items you don't want the bot to pick up.")
         inner, _ = self._scrollable(page)
 
         # ── League ───────────────────────────────────────────────────────────
@@ -591,35 +591,6 @@ class PickitApp(tk.Tk):
 
         self.league_cb.bind("<<ComboboxSelected>>", _on_league_select)
         self.league_cb.bind("<Return>", _on_league_select)
-
-        # ── Thresholds ───────────────────────────────────────────────────────
-        sec2 = self._section_frame(inner, "Thresholds (Exalted Orbs)")
-        tr = tk.Frame(sec2, bg=BG2)
-        tr.pack(fill="x", padx=10, pady=10)
-        label(tr, "0 = pick everything.  Items below their threshold are commented out.\n"
-                  "Use the Categories tab to exclude specific items regardless of threshold.",
-              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", pady=(0, 8))
-
-        def _thresh_row(parent, lbl_text, var, trace_cmd):
-            row = tk.Frame(parent, bg=BG2)
-            row.pack(anchor="w", pady=2)
-            label(row, f"{lbl_text}:", fg=TEXT_DIM, font=FONT_SM, bg=BG2,
-                  width=22, anchor="w").pack(side="left")
-            entry(row, var, width=7).pack(side="left", padx=(4, 4), ipady=4)
-            label(row, "ex", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(side="left")
-            var.trace_add("write", trace_cmd)
-
-        _thresh_row(tr, "Currency & Exchange items", self.min_exalt_var,
-                    self._clamp_threshold)
-        _thresh_row(tr, "Gear  (Unique weapons / armour)", self.min_exalt_gear_var,
-                    self._clamp_threshold_gear)
-
-        div_row = tk.Frame(tr, bg=BG2)
-        div_row.pack(anchor="w", pady=(6, 0))
-        label(div_row, "Divine rate:", fg=TEXT_DIM, font=FONT_SM, bg=BG2,
-              width=22, anchor="w").pack(side="left")
-        label(div_row, "", textvariable=self._divine_rate_var,
-              fg=TEXT_OK, font=FONT_SM, bg=BG2).pack(side="left", padx=(4, 0))
 
         # ── Output ───────────────────────────────────────────────────────────
         sec3 = self._section_frame(inner, "Output File")
@@ -778,18 +749,6 @@ class PickitApp(tk.Tk):
         btn(tbar, "Export",        self._preset_export).pack(side="left", padx=(0, 3))
         btn(tbar, "Import",        self._preset_import).pack(side="left")
 
-        # Per-category threshold (right side of toolbar)
-        tk.Frame(tbar, bg=BORDER, width=1).pack(side="right", padx=10, fill="y")
-        tk.Label(tbar, text="ex  (−1 = global)", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="right")
-        vcmd_tbar = (self.register(lambda v: v == "" or bool(re.fullmatch(r"-?\d*\.?\d*", v))), "%P")
-        self._cat_thresh_entry = tk.Entry(tbar, width=6,
-            bg=BG3, fg=TEXT, insertbackground=GOLD,
-            relief="flat", bd=0, font=FONT,
-            highlightthickness=1, highlightbackground=BORDER,
-            validate="key", validatecommand=vcmd_tbar)
-        self._cat_thresh_entry.pack(side="right", padx=(0, 4), ipady=4)
-        tk.Label(tbar, text="Threshold:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="right", padx=(0, 4))
-        tk.Frame(tbar, bg=BORDER, width=1).pack(side="right", padx=6, fill="y")
         self._refresh_btn = btn(tbar, "↻ Refresh", self._refresh_cat_prices)
         self._refresh_btn.pack(side="right", padx=(0, 4))
 
@@ -912,14 +871,6 @@ class PickitApp(tk.Tk):
                 c.config(bg=_CSEL)
                 if isinstance(c, tk.Label):
                     c.config(fg=_CSFG)
-
-        # Update per-category threshold entry
-        if hasattr(self, "_cat_thresh_entry"):
-            if key != "_gear" and key in self.cat_thresh:
-                self._cat_thresh_entry.config(
-                    textvariable=self.cat_thresh[key], state="normal")
-            else:
-                self._cat_thresh_entry.config(state="disabled")
 
         if key == "_gear":
             self._cat_grid_outer.pack_forget()
@@ -2113,16 +2064,8 @@ class PickitApp(tk.Tk):
         self.cfg["include_bases"]          = self.include_bases_var.get()
         self.cfg["base_quality"]           = self.base_quality_var.get()
         self.cfg["base_min_level"]         = self.base_min_level_var.get()
-        self.cfg["min_exalt_gear"]         = self.min_exalt_gear_var.get()
-        self.cfg["min_exalt"]              = self.min_exalt_var.get()
-        # Persist per-category thresholds so they survive without a generate
-        thresh = {}
-        for k, v in self.cat_thresh.items():
-            try:
-                thresh[k] = v.get()
-            except (tk.TclError, ValueError):
-                thresh[k] = -1.0
-        self.cfg["category_threshold"] = thresh
+        self.cfg["min_exalt"]      = 0.0
+        self.cfg["min_exalt_gear"] = 0.0
         save_config(self.cfg)
         self._log("Settings saved.", "ok")
 
@@ -3105,5 +3048,16 @@ class PickitApp(tk.Tk):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # Single-instance guard: if already running, focus existing window and exit
+    import ctypes as _ct
+    _MUTEX_NAME = "POE2PickitGeneratorSingleInstance"
+    _mutex = _ct.windll.kernel32.CreateMutexW(None, False, _MUTEX_NAME)
+    if _ct.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        _hwnd = _ct.windll.user32.FindWindowW(None, f"ExileBot 2 Pickit Generator  v{VERSION}")
+        if _hwnd:
+            _ct.windll.user32.ShowWindow(_hwnd, 9)
+            _ct.windll.user32.SetForegroundWindow(_hwnd)
+        raise SystemExit(0)
+
     app = PickitApp()
     app.mainloop()
