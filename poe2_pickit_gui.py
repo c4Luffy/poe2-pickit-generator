@@ -582,6 +582,14 @@ class PickitApp(tk.Tk):
         self.league_cb.grid(row=0, column=0, sticky="ew", ipady=4, padx=(0, 6))
         btn(row, "↻  Refresh", self._fetch_leagues_async).grid(row=0, column=1)
 
+        def _on_league_select(event=None):
+            gen.clear_cache()
+            if self._active_cat and self._active_cat != "_gear":
+                self.after(50, lambda: self._show_cat(self._active_cat))
+
+        self.league_cb.bind("<<ComboboxSelected>>", _on_league_select)
+        self.league_cb.bind("<Return>", _on_league_select)
+
         # ── Thresholds ───────────────────────────────────────────────────────
         sec2 = self._section_frame(inner, "Thresholds (Exalted Orbs)")
         tr = tk.Frame(sec2, bg=BG2)
@@ -1763,15 +1771,15 @@ class PickitApp(tk.Tk):
         # Base Types
         lf_b = tk.Frame(inner, bg=BG)
         lf_b.pack(fill="x", pady=(16, 0))
-        label(lf_b, "Base Types  (Poe2DB)", fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(16, 8))
+        label(lf_b, "Base Types  (Game Data)", fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(16, 8))
         sep(lf_b).pack(side="left", fill="x", expand=True, padx=(0, 16), pady=3)
 
         sec_b = tk.Frame(inner, bg=BG2, highlightthickness=1, highlightbackground=BORDER)
         sec_b.pack(fill="x", padx=16, pady=(2, 12))
 
         label(sec_b,
-              "Scrapes endgame bases (level 75+) from poe2db.tw — weapons, armour, off-hands.  "
-              "Falls back to built-in list if poe2db is unreachable.  Adds ~30 s to generate time.",
+              "Adds endgame base type rules (245 bases across 25 categories) sourced from game data — "
+              "weapons, armour, off-hands, plus Runeforged/Runemastered variants.  Instant, no network call.",
               fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 4))
 
         checkbtn(sec_b, "Include endgame base types in pickit",
@@ -2818,8 +2826,8 @@ class PickitApp(tk.Tk):
                     output_lines.extend(base_lines)
                     output_lines.append("")
                     rule_count = sum(1 for l in base_lines if l and not l.startswith("//"))
-                    if any("static list" in l or "Additional Bases" in l for l in base_lines):
-                        self._log("  ⚠ Some categories unavailable from poe2db — supplemented with built-in list", "warn")
+                    if any("Runeforged" in l for l in base_lines):
+                        self._log("  ✓ Runeforged/Runemastered supplement included", "dim")
                     self._log(f"  ✓ Base types: {rule_count} rules", "ok")
                 except Exception as e:
                     self._log(f"  ✗ Base types failed: {e}", "err")

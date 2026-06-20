@@ -23,7 +23,7 @@ A dark-themed GUI tool for **Path of Exile 2** that fetches live economy data fr
 - **Parallel fetch** — all categories fetched simultaneously for fast generation
 - **15-minute cache** — repeated generates within 15 min are instant, no extra API calls
 - **Auto-schedule** — regenerates every hour automatically in the background
-- **Endgame base types** — scrapes level 75+ gear bases from [poe2db.tw](https://poe2db.tw) with a built-in fallback list
+- **Endgame base types** — 245 endgame bases across 25 categories sourced from game data; instant, no network call
 
 ### Categories UI
 - **Card grid** — each item shows its wiki icon, name, price (Ex / Chaos / Divine), and ON/OFF dot
@@ -88,7 +88,7 @@ A dark-themed GUI tool for **Path of Exile 2** that fetches live economy data fr
 | Splinters (Breach + Simulacrum) | Static — always picked |
 | Unique Weapons / Armours / Accessories / Flasks / Charms / Jewels / Relics | Poe.Ninja |
 | Unique Accessories / Armour / Jewels / Weapons / Sanctum / Maps | Scout (poe2scout.com) |
-| Endgame Gear Bases | poe2db.tw (level 75+, quality or socket rules) |
+| Endgame Gear Bases | Game data (245 bases across 25 categories, level 75+, offline) |
 
 ---
 

@@ -26,7 +26,6 @@ import re
 import sys
 import threading
 import time
-from dataclasses import dataclass
 from typing import List, Optional, Set
 import requests
 
@@ -1077,7 +1076,7 @@ def main():
     parser.add_argument("--list-leagues",    action="store_true",       help="Print live leagues and exit")
     parser.add_argument("--check-endpoints", action="store_true",       help="Test all poe.ninja category endpoints and print results")
     parser.add_argument("--variant",         choices=("all","currency","exchange","uniques","maps"), default="all")
-    parser.add_argument("--include-bases",   action="store_true",       help="Scrape endgame base types from Poe2DB and append rules")
+    parser.add_argument("--include-bases",   action="store_true",       help="Build endgame base type rules from game data and append to output")
     parser.add_argument("--base-quality",    type=int, default=28,      help="Min quality %% for base-type rules (default 28)")
     parser.add_argument("--base-min-level",  type=int, default=80,      help="Min required level for base-type rules (default 80)")
     args = parser.parse_args()
@@ -1219,7 +1218,7 @@ def main():
 
     # ── Base types (optional) ─────────────────────────────────────────────────
     if args.include_bases:
-        print("Fetching base types from Poe2DB…")
+        print("Building base type rules from game data…")
         def _prog(idx, total, title):
             print(f"  [{idx}/{total}] {title}")
         base_lines = build_base_rules(min_quality=args.base_quality, min_level=args.base_min_level, progress_callback=_prog)
