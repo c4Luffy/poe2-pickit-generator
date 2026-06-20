@@ -69,8 +69,8 @@ for _d in (OUTPUT_DIR, ICON_DIR, PRESETS_DIR):
 
 DEFAULT_CONFIG = {
     "league": "",
-    "min_exalt": 1.0,
-    "min_exalt_gear": 5.0,
+    "min_exalt": 0.0,
+    "min_exalt_gear": 0.0,
     "output_base": "poe2_pickit",
     "bot_folder": "",
     "auto_copy": False,
@@ -244,7 +244,7 @@ def setup_styles(root):
 
 TABS = ["General", "Categories", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "1.6.1"
+VERSION       = "1.6.2"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -295,8 +295,8 @@ class PickitApp(tk.Tk):
 
     def _init_vars(self):
         self.league_var       = tk.StringVar(value=self.cfg.get("league") or "")
-        self.min_exalt_var      = tk.DoubleVar(value=self.cfg.get("min_exalt", 1.0))
-        self.min_exalt_gear_var = tk.DoubleVar(value=self.cfg.get("min_exalt_gear", 5.0))
+        self.min_exalt_var      = tk.DoubleVar(value=self.cfg.get("min_exalt", 0.0))
+        self.min_exalt_gear_var = tk.DoubleVar(value=self.cfg.get("min_exalt_gear", 0.0))
         self.output_var       = tk.StringVar(value=self.cfg.get("output_base", "poe2_pickit"))
         self.bot_folder_var   = tk.StringVar(value=self.cfg.get("bot_folder", ""))
         self.auto_copy_var    = tk.BooleanVar(value=self.cfg.get("auto_copy", False))
@@ -596,8 +596,8 @@ class PickitApp(tk.Tk):
         sec2 = self._section_frame(inner, "Thresholds (Exalted Orbs)")
         tr = tk.Frame(sec2, bg=BG2)
         tr.pack(fill="x", padx=10, pady=10)
-        label(tr, "Items below their threshold are commented out in the pickit.  "
-                  "Per-category overrides are available on the Categories tab.",
+        label(tr, "0 = pick everything.  Items below their threshold are commented out.\n"
+                  "Use the Categories tab to exclude specific items regardless of threshold.",
               fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", pady=(0, 8))
 
         def _thresh_row(parent, lbl_text, var, trace_cmd):
@@ -2138,8 +2138,8 @@ class PickitApp(tk.Tk):
             save_config(self.cfg)
             # Re-sync all tk vars so the live UI reflects defaults immediately
             self.league_var.set(self.cfg.get("league", ""))
-            self.min_exalt_var.set(self.cfg.get("min_exalt", 1.0))
-            self.min_exalt_gear_var.set(self.cfg.get("min_exalt_gear", 5.0))
+            self.min_exalt_var.set(self.cfg.get("min_exalt", 0.0))
+            self.min_exalt_gear_var.set(self.cfg.get("min_exalt_gear", 0.0))
             self.output_var.set(self.cfg.get("output_base", "poe2_pickit"))
             self.bot_folder_var.set(self.cfg.get("bot_folder", ""))
             self.auto_copy_var.set(self.cfg.get("auto_copy", False))
