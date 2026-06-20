@@ -27,6 +27,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
+from typing import List, Optional, Set
 import requests
 
 BASE_URL = "https://poe.ninja/poe2/api/economy"
@@ -632,7 +633,7 @@ def _essence_tier_key(name: str):
 
 
 def format_rule(name: str, exalt_value: float, _divine_value: float, header: str = "Type",
-                min_exalt: float | None = None, ritual_threshold: float | None = None) -> str:
+                min_exalt: Optional[float] = None, ritual_threshold: Optional[float] = None) -> str:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
     action = '[StashItem] == "true"'
     if ritual_threshold is not None and exalt_value < ritual_threshold:
@@ -647,9 +648,9 @@ def build_exchange_lines(
     pick_all: bool = False,
     min_exalt: float = None,
     tier_sort: bool = False,
-    enabled_names: set = None,
-    always_names: list | None = None,
-    ritual_threshold: float | None = None,
+    enabled_names: Optional[Set[str]] = None,
+    always_names: Optional[List[str]] = None,
+    ritual_threshold: Optional[float] = None,
 ) -> list:
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
@@ -737,7 +738,7 @@ def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: f
     return output
 
 
-def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: float | None = None) -> list:
+def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: Optional[float] = None) -> list:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
     rate = exalted_rate(payload)
     rows = []
@@ -760,7 +761,7 @@ def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: flo
 
 
 
-def build_waystone_lines(payload: dict, divine_rate_exalts: float, min_exalt: float | None = None) -> list:
+def build_waystone_lines(payload: dict, divine_rate_exalts: float, min_exalt: Optional[float] = None) -> list:
     """Always pick all waystones tier 1-15 regardless of value."""
     return list(WAYSTONE_FALLBACK_RULES)
 

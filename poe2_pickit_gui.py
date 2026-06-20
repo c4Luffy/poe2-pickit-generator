@@ -11,7 +11,7 @@ Fixes over v5:
   - Simplified to ttk.Button throughout for native OS rendering
 """
 
-import sys, os, re, json, time, shutil, threading, datetime, traceback, subprocess, importlib, hashlib, base64
+import sys, os, re, json, time, shutil, threading, datetime, traceback, subprocess, importlib, hashlib
 from concurrent.futures import ThreadPoolExecutor as _TPE
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
@@ -771,12 +771,13 @@ class PickitApp(tk.Tk):
             _w.bind("<Button-4>",  lambda e: self._cat_canvas.yview_scroll(-3, "units"))
             _w.bind("<Button-5>",  lambda e: self._cat_canvas.yview_scroll( 3, "units"))
 
-        # Register canvas for global mousewheel on this tab (index 1)
-        self._tab_canvases[1] = self._cat_canvas
-
         # Panel B: gear & bases (existing controls)
         self._cat_gear_outer = tk.Frame(self._cat_right, bg=BG)
         self._build_cat_gear_panel(self._cat_gear_outer)
+
+        # Restore cat canvas as the active scroll target for this tab
+        # (_build_cat_gear_panel calls _scrollable which overwrites _tab_canvases[1])
+        self._tab_canvases[1] = self._cat_canvas
 
         # Show first exchange category
         self._show_cat(gen.EXCHANGE_CATEGORIES[0][0])
@@ -866,9 +867,11 @@ class PickitApp(tk.Tk):
             self._cat_gear_outer.pack(fill="both", expand=True)
             self._cat_header_var.set("Gear & Bases")
             self._cat_count_var.set("")
+            self._active_canvas = self._cat_gear_canvas
         else:
             self._cat_gear_outer.pack_forget()
             self._cat_grid_outer.pack(fill="both", expand=True)
+            self._active_canvas = self._cat_canvas
             lbl_text = next((l for k, _, l, _ in gen.EXCHANGE_CATEGORIES if k == key), key)
             self._cat_header_var.set(lbl_text)
 
@@ -1595,7 +1598,8 @@ class PickitApp(tk.Tk):
 
     def _build_cat_gear_panel(self, parent):
         """The old-style panel for unique categories and base types."""
-        inner, _ = self._scrollable(parent)
+        inner, c = self._scrollable(parent)
+        self._cat_gear_canvas = c
 
         vcmd = (self.register(lambda v: v == "" or bool(re.fullmatch(r"-?\d*\.?\d*", v))), "%P")
 
@@ -2080,25 +2084,6 @@ class PickitApp(tk.Tk):
         if "[" in raw and raw.endswith("]"):
             return raw.split("[")[-1].rstrip("]").strip()
         return raw
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  Category presets
-    # ══════════════════════════════════════════════════════════════════════════
-
-    def _cat_enable_all(self):
-        for v in self.cat_enabled.values(): v.set(True)
-
-    def _cat_disable_all(self):
-        for v in self.cat_enabled.values(): v.set(False)
-
-    def _cat_preset_currency(self):
-        self._cat_disable_all()
-        self.cat_enabled["currency"].set(True)
-
-    def _cat_preset_uniques(self):
-        self._cat_disable_all()
-        for key in [c[0] for c in gen.UNIQUE_CATEGORIES]:
-            self.cat_enabled[key].set(True)
 
     # ══════════════════════════════════════════════════════════════════════════
     #  File helpers
