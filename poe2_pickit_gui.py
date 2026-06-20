@@ -1154,10 +1154,21 @@ class PickitApp(tk.Tk):
             return 1.0
 
     def _card_colors(self, cat_key, ex_val, enabled):
-        """Return (bg, fg, bdr, dot_text, dot_fg) for a card given its state."""
+        """Return (bg, fg, bdr, dot_text, dot_fg) for a card given its state.
+
+        Four visual states:
+          enabled + above threshold  → gold/active
+          enabled + below threshold  → dim (will be commented out in pickit)
+          disabled + above threshold → amber warn (user hiding a valuable item)
+          disabled + below threshold → dark/dim
+        """
+        thresh = self._effective_threshold(cat_key)
         if enabled:
-            return _CON, _CTXON, _CONB, "●", GOLD
-        if ex_val >= self._effective_threshold(cat_key):
+            if ex_val >= thresh:
+                return _CON, _CTXON, _CONB, "●", GOLD
+            # Below threshold: item follows pricing but won't be active in pickit
+            return _COFF, "#585868", _COFB, "●", "#4a4860"
+        if ex_val >= thresh:
             return _CWARN, _CTXWRN, _CWARNB, "○", _CWARNB
         return _COFF, _CTXOF, _COFB, "○", TEXT_DIM
 
@@ -1422,11 +1433,11 @@ class PickitApp(tk.Tk):
 
         if enabled:
             # "Enable All" = clear all exclusions so every item follows the threshold.
-            # Do NOT store enabled=True in states — that would bypass the threshold.
+            # Use per-card colors so items below threshold still appear dim.
             self._item_states.pop(key, None)
-            bg = _CON; fg = _CTXON; bdr = _CONB; dot = "●"; dfg = GOLD
             for card in self._cat_cards.get(key, []):
                 card._enabled = True
+                bg, fg, bdr, dot, dfg = self._card_colors(key, card._ex, True)
                 card.config(bg=bg, highlightbackground=bdr)
                 card._name_lbl.config(bg=bg, fg=fg)
                 card._icon_lbl.config(bg=bg)
@@ -2109,6 +2120,15 @@ class PickitApp(tk.Tk):
         self.cfg["base_quality"]           = self.base_quality_var.get()
         self.cfg["base_min_level"]         = self.base_min_level_var.get()
         self.cfg["min_exalt_gear"]         = self.min_exalt_gear_var.get()
+        self.cfg["min_exalt"]              = self.min_exalt_var.get()
+        # Persist per-category thresholds so they survive without a generate
+        thresh = {}
+        for k, v in self.cat_thresh.items():
+            try:
+                thresh[k] = v.get()
+            except (tk.TclError, ValueError):
+                thresh[k] = -1.0
+        self.cfg["category_threshold"] = thresh
         save_config(self.cfg)
         self._log("Settings saved.", "ok")
 
@@ -2788,10 +2808,7 @@ class PickitApp(tk.Tk):
                 try:
                     # Build enabled_names from per-item states.
                     # Disabled items are excluded; everything else follows the threshold.
-                    # There is no "forced" override — the threshold always applies to
-                    # non-disabled items so per-category and global thresholds both work.
                     _cat_states = snapshot.get("item_states", {}).get(key, {})
-                    forced_names = None  # never bypass threshold via per-item state
                     if _cat_states and not is_unique:
                         _items_in_payload = {
                             gen.ITEM_NAME_CORRECTIONS.get(i["name"], i["name"])
@@ -2824,8 +2841,7 @@ class PickitApp(tk.Tk):
                                                          tier_sort=tier_sort,
                                                          enabled_names=enabled_names,
                                                          always_names=always,
-                                                         ritual_threshold=ritual_th,
-                                                         forced_names=forced_names)
+                                                         ritual_threshold=ritual_th)
                         report_rows.extend(gen.collect_exchange_report_rows(
                             label_text, payload, divine_rate_exalts, pick_all=pick_all, min_exalt=effective_min))
 

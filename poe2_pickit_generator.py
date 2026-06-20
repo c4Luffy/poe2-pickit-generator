@@ -707,7 +707,6 @@ def build_scout_lines(
     items: list,
     divine_rate_exalts: float,
     min_exalt: Optional[float] = None,
-    forced_names: Optional[Set[str]] = None,
 ) -> list:
     """Convert poe2scout.com unique items into pickit rules."""
     rows = []
@@ -719,13 +718,7 @@ def build_scout_lines(
             continue
         rows.append((name, ex_value, div_value))
     rows.sort(key=lambda r: -r[1])
-    result = []
-    for name, ev, dv in rows:
-        if forced_names and name in forced_names:
-            result.append(f'[Type] == "{_quote_ipd(name)}" && [Rarity] == "Unique" # [StashItem] == "true" // ExValue = {ev:.2f}')
-        else:
-            result.append(format_rule(name, ev, dv, min_exalt=min_exalt))
-    return result
+    return [format_rule(name, ev, dv, min_exalt=min_exalt) for name, ev, dv in rows]
 
 
 # ── API helpers ───────────────────────────────────────────────────────────────
@@ -866,13 +859,7 @@ def build_exchange_lines(
     enabled_names: Optional[Set[str]] = None,
     always_names: Optional[List[str]] = None,
     ritual_threshold: Optional[float] = None,
-    forced_names: Optional[Set[str]] = None,
 ) -> list:
-    """
-    forced_names: items the user explicitly toggled ON in the Categories tab.
-    These always get active rules regardless of the price threshold, so that
-    manual enables are never silently commented out.
-    """
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
     rows = []
@@ -901,13 +888,10 @@ def build_exchange_lines(
             for name, ev, _ in rows
         ]
     else:
-        result = []
-        for name, ev, dv in rows:
-            if forced_names and name in forced_names:
-                result.append(f'[Type] == "{_quote_ipd(name)}" # [StashItem] == "true" // ExValue = {ev:.2f}')
-            else:
-                result.append(format_rule(name, ev, dv, min_exalt=min_exalt,
-                                          ritual_threshold=ritual_threshold))
+        result = [
+            format_rule(name, ev, dv, min_exalt=min_exalt, ritual_threshold=ritual_threshold)
+            for name, ev, dv in rows
+        ]
 
     # Prepend hardcoded always-pick rules for items poe.ninja omits (e.g. base currency).
     # Respect enabled_names: if the user explicitly disabled one of these items in
@@ -1081,7 +1065,7 @@ def main():
     parser.add_argument("--variant",         choices=("all","currency","exchange","uniques","maps"), default="all")
     parser.add_argument("--include-bases",   action="store_true",       help="Build endgame base type rules from game data and append to output")
     parser.add_argument("--base-quality",    type=int, default=28,      help="Min quality %% for base-type rules (default 28)")
-    parser.add_argument("--base-min-level",  type=int, default=80,      help="Min required level for base-type rules (default 80)")
+    parser.add_argument("--base-min-level",  type=int, default=75,      help="Min required level for base-type rules (default 75)")
     args = parser.parse_args()
     min_exalt = args.min_exalt
 
