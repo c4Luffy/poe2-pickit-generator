@@ -582,9 +582,10 @@ STATIC_WOMBGIFT_RULES = """\
 //                                                                                 //
 /////////////////////////////////////////////////////////////////////////////////////
 
-[Type] == "Growing Wombgift" # [StashItem] == "true"
-[Type] == "Lavish Wombgift" # [StashItem] == "true"
 [Type] == "Banded Wombgift" # [StashItem] == "true"
+[Type] == "Lavish Wombgift" # [StashItem] == "true"
+[Type] == "Ornate Wombgift" # [StashItem] == "true"
+[Type] == "Revelatory Wombgift" # [StashItem] == "true"
 [Type] == "Signet Wombgift" # [StashItem] == "true"
 """
 
@@ -908,12 +909,16 @@ def build_exchange_lines(
                 result.append(format_rule(name, ev, dv, min_exalt=min_exalt,
                                           ritual_threshold=ritual_threshold))
 
-    # Prepend hardcoded always-pick rules for items poe.ninja omits (e.g. base currency)
+    # Prepend hardcoded always-pick rules for items poe.ninja omits (e.g. base currency).
+    # Respect enabled_names: if the user explicitly disabled one of these items in
+    # Categories, don't add it back here.
     if always_names:
         scraped = {name for name, _, _ in rows}
         prefix = [
             f'[Type] == "{n}" # [StashItem] == "true"'
-            for n in always_names if n not in scraped
+            for n in always_names
+            if n not in scraped
+            and (enabled_names is None or n in enabled_names)
         ]
         result = prefix + result
 

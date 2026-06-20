@@ -244,7 +244,7 @@ def setup_styles(root):
 
 TABS = ["General", "Categories", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "1.6.0"
+VERSION       = "1.6.1"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -1269,21 +1269,32 @@ class PickitApp(tk.Tk):
         self.after(350, _restore)
 
     def _toggle_card(self, frame):
-        enabled = not frame._enabled
+        key  = frame._cat_key
+        name = frame._name
+        if key not in self._item_states:
+            self._item_states[key] = {}
+
+        # Two-state toggle: disabled (excluded) ↔ default (follows threshold).
+        # Re-enabling removes the state entry so the item returns to threshold
+        # filtering rather than becoming a "forced" override.
+        currently_disabled = not self._item_states[key].get(name, {}).get("enabled", True)
+        if currently_disabled:
+            # Back to default: remove from states entirely
+            self._item_states[key].pop(name, None)
+            enabled = True
+        else:
+            # Exclude this item regardless of threshold
+            self._item_states[key][name] = {"enabled": False}
+            enabled = False
+
         frame._enabled = enabled
         bg, fg, bdr, dot_txt, dot_fg = self._card_colors(frame._cat_key, frame._ex, enabled)
-
         frame.config(bg=bg, highlightbackground=bdr)
         frame._name_lbl.config(bg=bg, fg=fg)
         frame._icon_lbl.config(bg=bg)
         frame._val_lbl.config(bg=bg)
         frame._dot_lbl.config(bg=bg, text=dot_txt, fg=dot_fg)
 
-        key  = frame._cat_key
-        name = frame._name
-        if key not in self._item_states:
-            self._item_states[key] = {}
-        self._item_states[key][name] = {"enabled": enabled}
         self._update_cat_count(key)
         self.after(0, self._save_states_now)
 
@@ -1408,21 +1419,33 @@ class PickitApp(tk.Tk):
         key = self._active_cat
         if not key or key == "_gear":
             return
-        if key not in self._item_states:
-            self._item_states[key] = {}
-        bg  = _CON  if enabled else _COFF
-        fg  = _CTXON if enabled else _CTXOF
-        bdr = _CONB if enabled else _COFB
-        dot = "●" if enabled else "○"
-        dfg = GOLD if enabled else TEXT_DIM
-        for card in self._cat_cards.get(key, []):
-            card._enabled = enabled
-            card.config(bg=bg, highlightbackground=bdr)
-            card._name_lbl.config(bg=bg, fg=fg)
-            card._icon_lbl.config(bg=bg)
-            card._val_lbl.config(bg=bg)
-            card._dot_lbl.config(bg=bg, text=dot, fg=dfg)
-            self._item_states[key][card._name] = {"enabled": enabled}
+
+        if enabled:
+            # "Enable All" = clear all exclusions so every item follows the threshold.
+            # Do NOT store enabled=True in states — that would bypass the threshold.
+            self._item_states.pop(key, None)
+            bg = _CON; fg = _CTXON; bdr = _CONB; dot = "●"; dfg = GOLD
+            for card in self._cat_cards.get(key, []):
+                card._enabled = True
+                card.config(bg=bg, highlightbackground=bdr)
+                card._name_lbl.config(bg=bg, fg=fg)
+                card._icon_lbl.config(bg=bg)
+                card._val_lbl.config(bg=bg)
+                card._dot_lbl.config(bg=bg, text=dot, fg=dfg)
+        else:
+            # "Disable All" = exclude every item in this category.
+            if key not in self._item_states:
+                self._item_states[key] = {}
+            bg = _COFF; fg = _CTXOF; bdr = _COFB; dot = "○"; dfg = TEXT_DIM
+            for card in self._cat_cards.get(key, []):
+                card._enabled = False
+                card.config(bg=bg, highlightbackground=bdr)
+                card._name_lbl.config(bg=bg, fg=fg)
+                card._icon_lbl.config(bg=bg)
+                card._val_lbl.config(bg=bg)
+                card._dot_lbl.config(bg=bg, text=dot, fg=dfg)
+                self._item_states[key][card._name] = {"enabled": False}
+
         self._update_cat_count(key)
         self.after(0, self._save_states_now)
 
@@ -2763,8 +2786,12 @@ class PickitApp(tk.Tk):
                     continue
 
                 try:
-                    # Build enabled_names and forced_names from per-item states
+                    # Build enabled_names from per-item states.
+                    # Disabled items are excluded; everything else follows the threshold.
+                    # There is no "forced" override — the threshold always applies to
+                    # non-disabled items so per-category and global thresholds both work.
                     _cat_states = snapshot.get("item_states", {}).get(key, {})
+                    forced_names = None  # never bypass threshold via per-item state
                     if _cat_states and not is_unique:
                         _items_in_payload = {
                             gen.ITEM_NAME_CORRECTIONS.get(i["name"], i["name"])
@@ -2772,13 +2799,9 @@ class PickitApp(tk.Tk):
                         }
                         _disabled = {n for n, s in _cat_states.items()
                                      if not s.get("enabled", True)}
-                        # Items explicitly turned ON by user bypass the price threshold
-                        forced_names = {n for n, s in _cat_states.items()
-                                        if s.get("enabled", True)} & _items_in_payload
                         enabled_names = _items_in_payload - _disabled
                     else:
-                        enabled_names = None  # all enabled (default / uniques)
-                        forced_names  = None
+                        enabled_names = None  # all items → use threshold (default)
 
                     if is_unique:
                         lines = gen.build_unique_lines(payload, divine_rate_exalts, min_exalt=effective_min)
