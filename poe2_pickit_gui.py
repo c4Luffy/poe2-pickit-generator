@@ -24,11 +24,6 @@ try:
 except ImportError:
     _HAS_PIL = False
 
-try:
-    import pystray as _pystray
-    _HAS_TRAY = True
-except ImportError:
-    _HAS_TRAY = False
 
 # ── PyInstaller bundle path fix ───────────────────────────────────────────────
 if getattr(sys, 'frozen', False):
@@ -79,8 +74,6 @@ DEFAULT_CONFIG = {
     "category_threshold": {},
     "history": [],
 
-    "start_minimized": False,
-    "tray_on_close": True,
     "window_geometry": "",
     "confirm_overwrite_secs": 120,
     "include_bases": True,
@@ -239,12 +232,84 @@ def setup_styles(root):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  Segmented progress bar widget
+# ══════════════════════════════════════════════════════════════════════════════
+
+class _SegBar(tk.Canvas):
+    """One coloured rectangle per category — fills left-to-right as each one completes."""
+    _CLR = {
+        "pending": "#1e1c28",
+        "active":  "#c8a84b",   # gold — currently processing
+        "ok":      "#4daa6f",   # green — success
+        "err":     "#c04040",   # red — failed
+    }
+    GAP = 2
+
+    def __init__(self, parent, bar_height=10, **kw):
+        super().__init__(parent, bg=BG, bd=0, highlightthickness=0,
+                         height=bar_height, **kw)
+        self._n      = 0
+        self._states: list[str] = []
+        self._rects:  list[int] = []
+        self.bind("<Configure>", self._redraw)
+
+    def init_segments(self, n: int):
+        self._n      = n
+        self._states = ["pending"] * n
+        self._rects  = []
+        self.after(0, self._redraw)
+
+    def set_segment(self, idx: int, state: str):
+        if 0 <= idx < self._n:
+            self._states[idx] = state
+            if idx < len(self._rects):
+                self.itemconfig(self._rects[idx],
+                                fill=self._CLR.get(state, self._CLR["pending"]))
+
+    def _redraw(self, _e=None):
+        self.delete("all")
+        self._rects = []
+        if self._n == 0:
+            return
+        w  = max(self.winfo_width(), 1)
+        h  = max(self.winfo_height(), 1)
+        seg_w = max(4.0, (w - self.GAP * (self._n - 1)) / self._n)
+        for i in range(self._n):
+            x0 = round(i * (seg_w + self.GAP))
+            x1 = round(x0 + seg_w)
+            clr = self._CLR.get(self._states[i] if i < len(self._states) else "pending",
+                                 self._CLR["pending"])
+            rect = self.create_rectangle(x0, 0, x1, h, fill=clr, outline="",
+                                          width=0)
+            self._rects.append(rect)
+
+
+def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
+    """Draw a mini sparkline on *canvas*. Green = rising, red = falling."""
+    vals = [float(v) for v in data if v is not None]
+    if len(vals) < 2:
+        return
+    mn, mx = min(vals), max(vals)
+    if mx == mn:
+        y = h // 2
+        canvas.create_line(0, y, w, y, fill="#5d5d7a", width=1)
+        return
+    def _y(v): return max(0, h - 1 - int((v - mn) / (mx - mn) * (h - 2)))
+    def _x(i): return int(i / (len(vals) - 1) * (w - 1))
+    coords = []
+    for i, v in enumerate(vals):
+        coords += [_x(i), _y(v)]
+    color = "#4daa6f" if vals[-1] >= vals[0] else "#c04040"
+    canvas.create_line(coords, fill=color, width=1, smooth=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  Main Application
 # ══════════════════════════════════════════════════════════════════════════════
 
-TABS = ["Generate", "Items", "Preview", "History", "Settings", "Debug"]
+TABS = ["Generate", "Items", "Chance Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "1.6.6"
+VERSION       = "1.7.0"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -288,8 +353,6 @@ class PickitApp(tk.Tk):
         self.bind_all("<Button-4>",   self._on_wheel_up)
         self.bind_all("<Button-5>",   self._on_wheel_down)
 
-        if self.cfg.get("start_minimized", False):
-            self.after(100, self.iconify)
 
     # ── Variable init ─────────────────────────────────────────────────────────
 
@@ -301,8 +364,6 @@ class PickitApp(tk.Tk):
         self.bot_folder_var   = tk.StringVar(value=self.cfg.get("bot_folder", ""))
         self.auto_copy_var    = tk.BooleanVar(value=self.cfg.get("auto_copy", False))
         self.backup_count_var = tk.IntVar(value=self.cfg.get("backup_count", 5))
-        self.start_min_var    = tk.BooleanVar(value=self.cfg.get("start_minimized", False))
-        self.tray_close_var   = tk.BooleanVar(value=self.cfg.get("tray_on_close", True))
         self.ovw_var          = tk.IntVar(value=self.cfg.get("confirm_overwrite_secs", 120))
 
         self.include_bases_var  = tk.BooleanVar(value=True)
@@ -328,6 +389,23 @@ class PickitApp(tk.Tk):
         self._active_cat       = None
         self._cat_last_fetched = {}   # {cat_key: "HH:MM"} shown in count label
         self._price_unit_btns  = {}
+
+        # Chance Bases tab state
+        self._chance_cards     = []
+        self._chance_count_var = tk.StringVar(value="")
+        self._chance_canvas    = None
+        self._chance_frame     = None
+
+        # Sidebar badge labels {cat_key: tk.Label}
+        self._cat_sidebar_badges: dict = {}
+
+        # Preload state
+        self._preload_league   = ""
+        self._preload_done_count = 0
+        self._preload_total    = 0
+
+        # Last generate summary stats (populated after each run)
+        self._last_gen_stats: dict = {}
 
         # Wiki icon URL cache
         self._wiki_icon_cache = {}
@@ -390,6 +468,7 @@ class PickitApp(tk.Tk):
         for i, builder in enumerate([
             self._build_generate_page,
             self._build_categories_page,
+            self._build_chance_page,
             self._build_preview_page,
             self._build_history_page,
             self._build_settings_page,
@@ -586,8 +665,18 @@ class PickitApp(tk.Tk):
         btn(row, "↻  Refresh", self._fetch_leagues_async).grid(row=0, column=1)
 
         def _on_league_select(event=None):
+            new_league = self._selected_league() or ""
+            # Reset all sidebar badges since we're switching leagues
+            for k in self._cat_sidebar_badges:
+                self._update_sidebar_badge(k)
+            # Clear preload state so the new league gets preloaded fresh
+            self._preload_league = ""
+            self._preload_done_count = 0
+            self._preload_update_hdr()
+            # Refresh active category and start preloading the new league
             if self._active_cat and self._active_cat != "_gear":
                 self.after(50, lambda: self._show_cat(self._active_cat))
+            self.after(100, lambda: self._preload_all_cats_async(new_league))
 
         self.league_cb.bind("<<ComboboxSelected>>", _on_league_select)
         self.league_cb.bind("<Return>", _on_league_select)
@@ -626,9 +715,9 @@ class PickitApp(tk.Tk):
         self.progress_lbl = tk.Label(inner, textvariable=self.progress_var,
                                      bg=BG, fg=TEXT_INFO, font=FONT_SM)
         self.progress_lbl.pack(anchor="w", padx=10, pady=(6, 0))
-        self.progress_bar = ttk.Progressbar(inner, mode="indeterminate", length=400)
-        self.progress_bar.pack(anchor="w", padx=10, pady=(3, 0))
-        self.progress_bar.pack_forget()   # hidden until generate starts
+        self._seg_bar = _SegBar(inner, bar_height=10)
+        self._seg_bar.pack(fill="x", padx=10, pady=(4, 0))
+        self._seg_bar.pack_forget()   # hidden until generate starts
 
         # ── Stats row ─────────────────────────────────────────────────────────
         sep(inner).pack(fill="x", padx=10, pady=(14, 0))
@@ -655,8 +744,40 @@ class PickitApp(tk.Tk):
                   bg=BG2, wraplength=155, justify="left").pack(anchor="w", padx=10, pady=(0, 8))
             self._stat_vars[key] = v
 
+        # ── Post-generate summary card ────────────────────────────────────────
+        self._gen_summary = tk.Frame(inner, bg=BG2, highlightthickness=1,
+                                     highlightbackground=GOLD)
+        # row 1: main stat line
+        r1 = tk.Frame(self._gen_summary, bg=BG2)
+        r1.pack(fill="x", padx=12, pady=(8, 2))
+        self._sum_vars = {}
+        for key, default in (
+            ("check",    "✓"),
+            ("duration", ""),
+            ("dot1",     "  ·  "),
+            ("rules",    ""),
+            ("dot2",     "  ·  "),
+            ("fsize",    ""),
+        ):
+            fg = TEXT_OK if key == "check" else (TEXT_DIM if key.startswith("dot") else TEXT)
+            lbl = tk.Label(r1, text=default, bg=BG2, fg=fg,
+                           font=FONT_BOLD if key == "check" else FONT_SM)
+            lbl.pack(side="left")
+            self._sum_vars[key] = lbl
+        # row 2: top item line
+        r2 = tk.Frame(self._gen_summary, bg=BG2)
+        r2.pack(fill="x", padx=12, pady=(0, 6))
+        tk.Label(r2, text="⚡", bg=BG2, fg=GOLD, font=FONT_SM).pack(side="left")
+        self._sum_top_lbl = tk.Label(r2, text="", bg=BG2, fg=GOLD, font=FONT_SM)
+        self._sum_top_lbl.pack(side="left", padx=(4, 0))
+        tk.Label(r2, text="  ·  ", bg=BG2, fg=TEXT_DIM, font=FONT_SM).pack(side="left")
+        self._sum_cats_lbl = tk.Label(r2, text="", bg=BG2, fg=TEXT_DIM, font=FONT_SM)
+        self._sum_cats_lbl.pack(side="left")
+        self._gen_summary.pack_forget()  # hidden until first generate
+
         # ── Log ───────────────────────────────────────────────────────────────
-        sep(inner).pack(fill="x", padx=10, pady=(4, 0))
+        self._log_sep = sep(inner)
+        self._log_sep.pack(fill="x", padx=10, pady=(4, 0))
         log_hdr = tk.Frame(inner, bg=BG)
         log_hdr.pack(fill="x", padx=10, pady=(8, 4))
         label(log_hdr, "Log", fg=TEXT_DIM, font=FONT_SM).pack(side="left")
@@ -803,8 +924,9 @@ class PickitApp(tk.Tk):
     # ── Category sidebar ──────────────────────────────────────────────────────
 
     def _build_cat_sidebar(self, sidebar):
-        tk.Label(sidebar, text="CATEGORIES", bg=_CBAR, fg=GOLD,
-                 font=("Segoe UI", 8, "bold"), pady=8).pack(fill="x")
+        self._cat_sidebar_hdr = tk.Label(sidebar, text="CATEGORIES",
+                 bg=_CBAR, fg=GOLD, font=("Segoe UI", 8, "bold"), pady=8)
+        self._cat_sidebar_hdr.pack(fill="x")
         tk.Frame(sidebar, bg=BORDER, height=1).pack(fill="x")
 
         sb_cv = tk.Canvas(sidebar, bg=_CBAR, highlightthickness=0, bd=0)
@@ -824,20 +946,28 @@ class PickitApp(tk.Tk):
 
     def _make_cat_btn(self, parent, text, key):
         frame = tk.Frame(parent, bg=_CBTN, cursor="hand2")
-        lbl   = tk.Label(frame, text=text, bg=_CBTN, fg=TEXT_DIM,
-                         font=("Segoe UI", 9), anchor="w", padx=12, pady=7)
-        lbl.pack(fill="x")
+
+        lbl = tk.Label(frame, text=text, bg=_CBTN, fg=TEXT_DIM,
+                       font=("Segoe UI", 9), anchor="w", padx=12, pady=7)
+        lbl.pack(side="left", fill="x", expand=True)
+
+        badge = tk.Label(frame, text="", bg=_CBTN, fg="#555568",
+                         font=("Segoe UI", 7), padx=6, pady=7, anchor="e")
+        badge.pack(side="right")
+        self._cat_sidebar_badges[key] = badge
 
         def _enter(e=None):
             if self._active_cat != key:
-                frame.config(bg=_CHOV); lbl.config(bg=_CHOV)
+                bg = _CHOV
+                frame.config(bg=bg); lbl.config(bg=bg); badge.config(bg=bg)
         def _leave(e=None):
             if self._active_cat != key:
-                frame.config(bg=_CBTN); lbl.config(bg=_CBTN)
+                bg = _CBTN
+                frame.config(bg=bg); lbl.config(bg=bg); badge.config(bg=bg)
         def _click(e=None):
             self._show_cat(key)
 
-        for w in (frame, lbl):
+        for w in (frame, lbl, badge):
             w.bind("<Enter>", _enter)
             w.bind("<Leave>", _leave)
             w.bind("<Button-1>", _click)
@@ -922,8 +1052,80 @@ class PickitApp(tk.Tk):
             gen._cache_set(league, key, payload)
             self.after(0, lambda: self._populate_cat_grid(key, payload))
         except Exception as exc:
-            self.after(0, lambda: self._cat_count_var.set(f"Failed: {exc}"))
+            self.after(0, lambda msg=str(exc): self._cat_count_var.set(f"Failed: {msg}"))
             self.after(0, self._refresh_btn_ready)
+
+    # ── Background preloader ──────────────────────────────────────────────────
+
+    def _preload_all_cats_async(self, league: str):
+        """Warm the poe.ninja cache for every exchange category in the background.
+
+        Called after league is determined so clicking any sidebar tab is instant.
+        A second call for the same league is a no-op (already cached / in flight).
+        """
+        if not league or league.startswith("Loading"):
+            return
+        if league == self._preload_league:
+            return   # already fetched or in-flight for this league
+        self._preload_league    = league
+        self._preload_done_count = 0
+        self._preload_total     = len(gen.ALL_CATEGORIES)
+        self.after(0, self._preload_update_hdr)
+        threading.Thread(target=self._preload_worker, args=(league,), daemon=True).start()
+
+    def _preload_worker(self, league: str):
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        cats = gen.ALL_CATEGORIES
+
+        def _fetch_one(item):
+            k, ninja_type, _, is_unique = item
+            p = gen.fetch_category(league, k, ninja_type, is_unique)
+            gen._cache_set(league, k, p)
+            return k
+
+        with ThreadPoolExecutor(max_workers=6) as ex:
+            futures = {ex.submit(_fetch_one, c): c[0] for c in cats}
+            for fut in as_completed(futures):
+                key = futures[fut]
+                try:
+                    fut.result()
+                except Exception:
+                    pass
+                self._preload_done_count += 1
+                # Update badge and header on the main thread
+                self.after(0, lambda k=key: self._on_preload_cat_ready(k))
+
+        # All done
+        self.after(0, self._on_preload_complete)
+
+    def _on_preload_cat_ready(self, key: str):
+        """Called on main thread when one category's data arrives."""
+        self._update_sidebar_badge(key)
+        self._preload_update_hdr()
+        # If this is the tab the user is already looking at (still showing spinner),
+        # render it immediately now that we have the data
+        if self._active_cat == key and not self._cat_cards.get(key):
+            league  = self._selected_league() or "Mercenaries"
+            payload = gen._cache_get(league, key)
+            if payload and not isinstance(payload, Exception):
+                self._populate_cat_grid(key, payload)
+
+    def _on_preload_complete(self):
+        self._preload_update_hdr()
+
+    def _preload_update_hdr(self):
+        done  = self._preload_done_count
+        total = self._preload_total
+        if not hasattr(self, "_cat_sidebar_hdr"):
+            return
+        if done >= total and total > 0:
+            self._cat_sidebar_hdr.config(text="CATEGORIES  ✓", fg=TEXT_OK)
+        elif total > 0:
+            self._cat_sidebar_hdr.config(
+                text=f"CATEGORIES  {done}/{total}", fg=TEXT_WARN)
+        else:
+            self._cat_sidebar_hdr.config(text="CATEGORIES", fg=GOLD)
 
     # ── Item grid population ──────────────────────────────────────────────────
 
@@ -937,10 +1139,11 @@ class PickitApp(tk.Tk):
         self._cat_loading_lbl.place_forget()
         self._clear_cat_grid()
 
-        items_by_id = {i["id"]: i for i in payload.get("items", [])}
-        rate        = gen.exalted_rate(payload)
-        league      = self._selected_league() or "Mercenaries"
-        div_rate    = self._get_divine_rate(league)
+        items_by_id   = {i["id"]: i for i in payload.get("items", [])}
+        rate          = gen.exalted_rate(payload)
+        league        = self._selected_league() or "Mercenaries"
+        div_rate      = self._get_divine_rate(league)
+        chaos_ex_val  = self._get_chaos_ex_value(league)  # ex value of 1 chaos
 
         rows = []
         for line in payload.get("lines", []):
@@ -953,8 +1156,13 @@ class PickitApp(tk.Tk):
             name = gen.ITEM_NAME_CORRECTIONS.get(raw_name, raw_name)
             pv   = float(line.get("primaryValue") or 0.0)
             ex   = pv * rate if rate else pv
+            # Convert ex → chaos: how many chaos does this item cost?
+            # (primaryValue is in Divine units in POE2 API, not chaos)
+            chaos = ex / chaos_ex_val if chaos_ex_val else ex
             raw_img = item.get("image") or item.get("icon") or ""
-            rows.append((name, pv, ex, div_rate, self._decode_ninja_image(raw_img)))
+            spark_raw = line.get("sparkline") or {}
+            sparkline = [float(v) for v in (spark_raw.get("data") or []) if v is not None]
+            rows.append((name, chaos, ex, div_rate, self._decode_ninja_image(raw_img), sparkline))
 
         # Sort
         if key == "essences":
@@ -986,7 +1194,7 @@ class PickitApp(tk.Tk):
         }
         self._item_prices[key] = {
             name: {"ex": ex, "chaos": chaos, "div": (ex / div_rate if div_rate else 0.0)}
-            for name, chaos, ex, div_rate, _ in rows
+            for name, chaos, ex, div_rate, _, _sp in rows
         }
 
         if key not in self._item_states:
@@ -1005,7 +1213,7 @@ class PickitApp(tk.Tk):
             grid_row = 0
             col = 0
             current_type = None
-            for name, chaos, ex, _div_r, icon_url in rows:
+            for name, chaos, ex, _div_r, icon_url, sparkline in rows:
                 gem_type = None
                 for t in _GEM_TYPE_ORDER:
                     if f"Uncut {t} Gem" in name:
@@ -1027,7 +1235,7 @@ class PickitApp(tk.Tk):
                 div_val = ex / _div_r if _div_r else 0.0
                 enabled = states.get(name, {}).get("enabled", True)
                 trend   = self._price_trend(key, name, ex)
-                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend)
+                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend, sparkline)
                 card.grid(in_=self._cat_grid_frame, row=grid_row, column=col,
                           padx=3, pady=3, sticky="ew")
                 self._cat_cards[key].append(card)
@@ -1039,7 +1247,7 @@ class PickitApp(tk.Tk):
             grid_row = 0
             col = 0
             shown_flux_hdr = False
-            for name, chaos, ex, _div_r, icon_url in rows:
+            for name, chaos, ex, _div_r, icon_url, sparkline in rows:
                 is_flux = "Thaumaturgic Flux" in name
                 if is_flux and not shown_flux_hdr:
                     if col != 0:
@@ -1057,7 +1265,7 @@ class PickitApp(tk.Tk):
                 div_val = ex / _div_r if _div_r else 0.0
                 enabled = states.get(name, {}).get("enabled", True)
                 trend   = self._price_trend(key, name, ex)
-                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend)
+                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend, sparkline)
                 card.grid(in_=self._cat_grid_frame, row=grid_row, column=col,
                           padx=3, pady=3, sticky="ew")
                 self._cat_cards[key].append(card)
@@ -1066,12 +1274,12 @@ class PickitApp(tk.Tk):
                     col = 0
                     grid_row += 1
         else:
-            for i, (name, chaos, ex, _div_r, icon_url) in enumerate(rows):
+            for i, (name, chaos, ex, _div_r, icon_url, sparkline) in enumerate(rows):
                 div_val = ex / _div_r if _div_r else 0.0
                 enabled = states.get(name, {}).get("enabled", True)
                 r_, c_ = divmod(i, NCOLS)
                 trend   = self._price_trend(key, name, ex)
-                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend)
+                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend, sparkline)
                 card.grid(in_=self._cat_grid_frame, row=r_, column=c_,
                           padx=3, pady=3, sticky="ew")
                 self._cat_cards[key].append(card)
@@ -1130,7 +1338,7 @@ class PickitApp(tk.Tk):
             return "down"
         return ""
 
-    def _make_item_card(self, cat_key, name, chaos, ex_val, div_val, icon_url, enabled, trend=""):
+    def _make_item_card(self, cat_key, name, chaos, ex_val, div_val, icon_url, enabled, trend="", sparkline=None):
         bg, fg, bdr, dot_txt, dot_fg = self._card_colors(cat_key, ex_val, enabled)
 
         frame = tk.Frame(self._cat_grid_frame, bg=bg, cursor="hand2",
@@ -1166,6 +1374,16 @@ class PickitApp(tk.Tk):
             arrow_lbl.pack(side="right", padx=(0, 1))
         else:
             arrow_lbl = None
+
+        # Sparkline (7-day price chart)
+        if sparkline and len(sparkline) >= 2:
+            spark_cv = tk.Canvas(frame, width=52, height=18,
+                                 bg=bg, bd=0, highlightthickness=0)
+            spark_cv.pack(side="right", padx=(0, 4))
+            spark_cv.after(20, lambda cv=spark_cv, d=sparkline: _draw_sparkline(cv, d, 52, 18))
+            frame._spark_cv = spark_cv
+        else:
+            frame._spark_cv = None
 
         val_str = self._fmt_price(chaos, ex_val, div_val)
         val_lbl = tk.Label(frame, text=val_str, bg=bg, fg=_CVAL,
@@ -1252,6 +1470,8 @@ class PickitApp(tk.Tk):
         frame._icon_lbl.config(bg=bg)
         frame._val_lbl.config(bg=bg)
         frame._dot_lbl.config(bg=bg, text=dot_txt, fg=dot_fg)
+        if getattr(frame, "_spark_cv", None):
+            frame._spark_cv.config(bg=bg)
 
         self._update_cat_count(key)
         self.after(0, self._save_states_now)
@@ -1262,14 +1482,42 @@ class PickitApp(tk.Tk):
         ts      = self._cat_last_fetched.get(key, "")
         suffix  = f"  ·  updated {ts}" if ts else ""
         self._cat_count_var.set(f"{enabled} / {len(cards)} enabled{suffix}")
+        self._update_sidebar_badge(key)
+
+    def _update_sidebar_badge(self, key):
+        badge = self._cat_sidebar_badges.get(key)
+        if not badge:
+            return
+        cards = self._cat_cards.get(key, [])
+        if cards:
+            # Rendered: show actual enabled/total count
+            enabled = sum(1 for c in cards if c._enabled)
+            total   = len(cards)
+            color   = TEXT_OK if enabled == total else (TEXT_WARN if enabled > 0 else TEXT_ERR)
+            badge.config(text=f"{enabled}/{total}", fg=color)
+        else:
+            # Not rendered yet — check if data is cached and ready to go
+            league = self._selected_league() or "Mercenaries"
+            if gen._cache_get(league, key) is not None:
+                badge.config(text="●", fg=GOLD)   # cached, click to render
+            else:
+                badge.config(text="", fg="#555568")  # not fetched yet
 
     # ── Price unit switching ──────────────────────────────────────────────────
 
     def _fmt_price(self, chaos, ex, div):
         unit = self._price_unit
         if unit == "chaos":
-            return f"{chaos:.0f}c"
+            if chaos >= 10:
+                return f"{chaos:.0f}c"
+            if chaos >= 0.1:
+                return f"{chaos:.1f}c"
+            return f"{chaos:.2f}c"
         if unit == "div":
+            if div >= 10:
+                return f"{div:.1f} div"
+            if div >= 1:
+                return f"{div:.2f} div"
             return f"{div:.3f} div"
         return f"{ex:.2f} ex"
 
@@ -1389,6 +1637,7 @@ class PickitApp(tk.Tk):
                 card._icon_lbl.config(bg=bg)
                 card._val_lbl.config(bg=bg)
                 card._dot_lbl.config(bg=bg, text=dot, fg=dfg)
+                if getattr(card, "_spark_cv", None): card._spark_cv.config(bg=bg)
         else:
             if key not in self._item_states:
                 self._item_states[key] = {}
@@ -1400,6 +1649,7 @@ class PickitApp(tk.Tk):
                 card._icon_lbl.config(bg=bg)
                 card._val_lbl.config(bg=bg)
                 card._dot_lbl.config(bg=bg, text=dot, fg=dfg)
+                if getattr(card, "_spark_cv", None): card._spark_cv.config(bg=bg)
                 self._item_states[key][card._name] = {"enabled": False}
 
         self._update_cat_count(key)
@@ -1418,12 +1668,14 @@ class PickitApp(tk.Tk):
             card._icon_lbl.config(bg=_CON)
             card._val_lbl.config(bg=_CON)
             card._dot_lbl.config(bg=_CON, text="", fg=GOLD)
+            if getattr(card, "_spark_cv", None): card._spark_cv.config(bg=_CON)
         self._update_cat_count(key)
         self.after(0, self._save_states_now)
 
     # ── Divine rate helper ────────────────────────────────────────────────────
 
     def _get_divine_rate(self, league):
+        """Return the ex value of 1 Divine Orb (e.g. 248 ex)."""
         payload = gen._cache_get(league, "currency")
         if not payload or isinstance(payload, Exception):
             return 1.0
@@ -1435,6 +1687,23 @@ class PickitApp(tk.Tk):
                 pv = float(line.get("primaryValue") or 0.0)
                 return pv * rate if rate else pv
         return 1.0
+
+    def _get_chaos_ex_value(self, league):
+        """Return the ex value of 1 Chaos Orb (e.g. 24.4 ex).
+        Used to convert item ex values → chaos: chaos = ex / chaos_ex_value.
+        primaryValue in the POE2 exchange API is in Divine units, so we must
+        convert through the exalted rate rather than treating pv as chaos."""
+        payload = gen._cache_get(league, "currency")
+        if not payload or isinstance(payload, Exception):
+            return 0.0
+        items_by_id = {i["id"]: i for i in payload.get("items", [])}
+        rate = gen.exalted_rate(payload)
+        for line in payload.get("lines", []):
+            item = items_by_id.get(line.get("id"))
+            if item and item.get("name") == "Chaos Orb":
+                pv = float(line.get("primaryValue") or 0.0)
+                return pv * rate if rate else pv
+        return 0.0
 
     # ── Icon loading ──────────────────────────────────────────────────────────
 
@@ -1792,6 +2061,165 @@ class PickitApp(tk.Tk):
             side="left", padx=(6, 0))
 
     # ══════════════════════════════════════════════════════════════════════════
+    #  CHANCE BASES PAGE
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _build_chance_page(self, page):
+        """Cards for each chance-orb base — click to enable/disable picking it up."""
+        tab_idx = self._building_tab_idx
+
+        hdr_bar = tk.Frame(page, bg=BG2)
+        hdr_bar.pack(fill="x")
+        tk.Label(hdr_bar, text="Chance Bases",
+                 bg=BG2, fg=GOLD, font=("Segoe UI", 12, "bold"),
+                 padx=16, pady=8).pack(side="left")
+        tk.Label(hdr_bar,
+                 text="Pick up Normal-rarity bases to Orb of Chance into target uniques.",
+                 bg=BG2, fg=TEXT_DIM, font=FONT_SM, padx=4).pack(side="left")
+        tk.Label(hdr_bar, textvariable=self._chance_count_var,
+                 bg=BG2, fg=TEXT_DIM, font=FONT_SM, padx=8).pack(side="right", padx=8)
+        sep(page).pack(fill="x")
+
+        tbar = tk.Frame(page, bg=BG)
+        tbar.pack(fill="x", padx=10, pady=(6, 4))
+        btn(tbar, "Enable All",  lambda: self._chance_set_all(True)).pack(side="left", padx=(0, 4))
+        btn(tbar, "Disable All", lambda: self._chance_set_all(False)).pack(side="left")
+        sep(page).pack(fill="x")
+
+        canvas = tk.Canvas(page, bg=BG, highlightthickness=0)
+        vsb    = tk.Scrollbar(page, orient="vertical", command=canvas.yview,
+                              bg=BG3, troughcolor=BG, relief="flat", bd=0, width=10)
+        canvas.configure(yscrollcommand=vsb.set)
+        vsb.pack(side="right", fill="y")
+        canvas.pack(fill="both", expand=True, padx=0, pady=0)
+
+        inner = tk.Frame(canvas, bg=BG)
+        win   = canvas.create_window((0, 0), window=inner, anchor="nw")
+        inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>", lambda e: canvas.itemconfig(win, width=e.width))
+        for w in (canvas, inner):
+            w.bind("<MouseWheel>", lambda e, c=canvas: c.yview_scroll(-3 if e.delta > 0 else 3, "units"))
+            w.bind("<Button-4>",   lambda e, c=canvas: c.yview_scroll(-3, "units"))
+            w.bind("<Button-5>",   lambda e, c=canvas: c.yview_scroll( 3, "units"))
+
+        self._chance_canvas = canvas
+        self._chance_frame  = inner
+        self._tab_canvases[tab_idx] = canvas
+
+        self._populate_chance_grid()
+
+    def _populate_chance_grid(self):
+        if self._chance_frame is None:
+            return
+        for w in self._chance_frame.winfo_children():
+            w.destroy()
+        self._chance_cards = []
+        states = self._item_states.get("_chance", {})
+        cur_cat = None
+
+        for cat, base_type, target in gen.CHANCE_BASES:
+            enabled = states.get(base_type, {}).get("enabled", True) if base_type in states else True
+
+            if cat != cur_cat:
+                cur_cat = cat
+                hdr_f = tk.Frame(self._chance_frame, bg=BG)
+                hdr_f.pack(fill="x", padx=14, pady=(14 if self._chance_cards else 6, 2))
+                tk.Label(hdr_f, text=cat.upper(), bg=BG, fg=GOLD,
+                         font=("Segoe UI", 8, "bold")).pack(side="left")
+                tk.Frame(hdr_f, bg=BORDER, height=1).pack(
+                    side="left", fill="x", expand=True, padx=(8, 0), pady=5)
+                for w in [hdr_f] + list(hdr_f.winfo_children()):
+                    w.bind("<MouseWheel>",
+                           lambda e, c=self._chance_canvas: c.yview_scroll(-3 if e.delta > 0 else 3, "units"))
+
+            card = self._make_chance_card(base_type, target, enabled)
+            card.pack(fill="x", padx=12, pady=2)
+            self._chance_cards.append(card)
+
+        self._update_chance_count()
+
+    def _make_chance_card(self, base_type, target, enabled):
+        bg  = _CON  if enabled else _COFF
+        fg  = _CTXON if enabled else _CTXOF
+        bdr = _CONB if enabled else _COFB
+        dot = ""    if enabled else "✗"
+
+        frame = tk.Frame(self._chance_frame, bg=bg, cursor="hand2",
+                         highlightthickness=1, highlightbackground=bdr)
+        frame._base_type = base_type
+        frame._target    = target
+        frame._enabled   = enabled
+
+        name_lbl = tk.Label(frame, text=base_type, bg=bg, fg=fg,
+                            font=("Segoe UI", 10, "bold"), anchor="w", padx=12, pady=7)
+        name_lbl.pack(side="left", fill="x", expand=True)
+        frame._name_lbl = name_lbl
+
+        arrow_lbl = tk.Label(frame, text=f"→  {target}", bg=bg,
+                             fg=TEXT_DIM if enabled else _CTXOF,
+                             font=("Segoe UI", 9), padx=10)
+        arrow_lbl.pack(side="right")
+        frame._arrow_lbl = arrow_lbl
+
+        dot_lbl = tk.Label(frame, text=dot, bg=bg,
+                           fg=_CTXOF, font=("Segoe UI", 11), padx=4)
+        dot_lbl.pack(side="right")
+        frame._dot_lbl = dot_lbl
+
+        def _click(e=None, f=frame):
+            self._toggle_chance_card(f)
+        def _scroll(e, c=self._chance_canvas):
+            c.yview_scroll(-3 if e.delta > 0 else 3, "units")
+
+        for w in (frame, name_lbl, arrow_lbl, dot_lbl):
+            w.bind("<Button-1>",   _click)
+            w.bind("<MouseWheel>", _scroll)
+            w.bind("<Button-4>",   lambda e, c=self._chance_canvas: c.yview_scroll(-3, "units"))
+            w.bind("<Button-5>",   lambda e, c=self._chance_canvas: c.yview_scroll( 3, "units"))
+
+        return frame
+
+    def _toggle_chance_card(self, frame):
+        base_type = frame._base_type
+        if "_chance" not in self._item_states:
+            self._item_states["_chance"] = {}
+        currently_disabled = not self._item_states["_chance"].get(base_type, {}).get("enabled", True)
+        if currently_disabled:
+            self._item_states["_chance"].pop(base_type, None)
+            enabled = True
+        else:
+            self._item_states["_chance"][base_type] = {"enabled": False}
+            enabled = False
+
+        frame._enabled = enabled
+        bg  = _CON  if enabled else _COFF
+        fg  = _CTXON if enabled else _CTXOF
+        bdr = _CONB if enabled else _COFB
+        frame.config(bg=bg, highlightbackground=bdr)
+        frame._name_lbl.config(bg=bg, fg=fg)
+        frame._arrow_lbl.config(bg=bg, fg=TEXT_DIM if enabled else _CTXOF)
+        frame._dot_lbl.config(bg=bg, text="" if enabled else "✗")
+
+        self._update_chance_count()
+        self.after(0, self._save_states_now)
+
+    def _chance_set_all(self, enabled_val):
+        if "_chance" not in self._item_states:
+            self._item_states["_chance"] = {}
+        if enabled_val:
+            self._item_states["_chance"].clear()
+        else:
+            for _, base_type, _ in gen.CHANCE_BASES:
+                self._item_states["_chance"][base_type] = {"enabled": False}
+        self._populate_chance_grid()
+        self.after(0, self._save_states_now)
+
+    def _update_chance_count(self):
+        enabled = sum(1 for c in self._chance_cards if c._enabled)
+        total   = len(self._chance_cards)
+        self._chance_count_var.set(f"{enabled} / {total} enabled")
+
+    # ══════════════════════════════════════════════════════════════════════════
     #  PREVIEW PAGE
     # ══════════════════════════════════════════════════════════════════════════
 
@@ -2000,13 +2428,6 @@ class PickitApp(tk.Tk):
         btn(bf, "Browse…", self._browse_bot_folder).grid(row=0, column=1)
         checkbtn(sec, "Auto-copy .ipd to bot folder after generate", self.auto_copy_var
                  ).pack(anchor="w", padx=10, pady=(0, 4))
-        checkbtn(sec, "Launch minimized (hides to taskbar on startup)", self.start_min_var
-                 ).pack(anchor="w", padx=10, pady=(0, 4))
-        tray_row = checkbtn(sec, "Minimize to system tray when closing (keeps running in background)", self.tray_close_var)
-        tray_row.pack(anchor="w", padx=10, pady=(0, 10))
-        if not _HAS_TRAY:
-            label(sec, "  ⚠  pystray not installed — run:  pip install pystray  to enable this option",
-                  fg=TEXT_WARN, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(0, 8))
 
         # Schedule
         sec2 = self._section_frame(inner, "Auto-Schedule")
@@ -2058,8 +2479,6 @@ class PickitApp(tk.Tk):
         self.cfg["bot_folder"]             = self.bot_folder_var.get()
         self.cfg["auto_copy"]              = self.auto_copy_var.get()
         self.cfg["backup_count"]           = self.backup_count_var.get()
-        self.cfg["start_minimized"]        = self.start_min_var.get()
-        self.cfg["tray_on_close"]          = self.tray_close_var.get()
         self.cfg["confirm_overwrite_secs"] = self.ovw_var.get()
         self.cfg["include_bases"]          = self.include_bases_var.get()
         self.cfg["base_quality"]           = self.base_quality_var.get()
@@ -2081,7 +2500,6 @@ class PickitApp(tk.Tk):
             self.bot_folder_var.set(self.cfg.get("bot_folder", ""))
             self.auto_copy_var.set(self.cfg.get("auto_copy", False))
             self.backup_count_var.set(self.cfg.get("backup_count", 5))
-            self.start_min_var.set(self.cfg.get("start_minimized", False))
             self.ovw_var.set(self.cfg.get("confirm_overwrite_secs", 120))
             self.include_bases_var.set(True)
             self.base_quality_var.set(self.cfg.get("base_quality", 28))
@@ -2277,7 +2695,7 @@ class PickitApp(tk.Tk):
             names = [f"{d}  [{n}]" for n, _, d in leagues]
             self.after(0, lambda: self._populate_leagues(names))
         except Exception as e:
-            self.after(0, lambda: self._log(f"Could not fetch leagues: {e}", "err"))
+            self.after(0, lambda msg=str(e): self._log(f"Could not fetch leagues: {msg}", "err"))
             self.after(0, lambda: self.league_var.set(self.cfg.get("league") or ""))
             self.after(0, lambda: self.league_cb.config(state="normal"))
 
@@ -2295,6 +2713,8 @@ class PickitApp(tk.Tk):
         if not matched and names:
             self.league_cb.current(0)
         self._log(f"Loaded {len(names)} leagues.", "ok")
+        # Warm the cache for the selected league immediately
+        self.after(200, lambda: self._preload_all_cats_async(self._selected_league() or ""))
 
     def _selected_league(self):
         raw = self.league_var.get().strip()
@@ -2496,8 +2916,6 @@ class PickitApp(tk.Tk):
         self.open_ipd_btn.state(["disabled"])
         self.status_lbl.config(text="Generating…", fg=TEXT_WARN)
         self.progress_var.set("Starting…")
-        self.progress_bar.pack(anchor="w", padx=10, pady=(3, 0))
-        self.progress_bar.start(12)
 
         # Snapshot all Tk variables here on the main thread so the worker never
         # touches Tcl/Tk state from a background thread (avoids intermittent
@@ -2537,6 +2955,14 @@ class PickitApp(tk.Tk):
             snapshot["min_exalt_gear"] = float(self.cfg.get("min_exalt_gear", 5.0))
             self.min_exalt_gear_var.set(snapshot["min_exalt_gear"])
             self._log("Gear threshold invalid — reset to saved value.", "warn")
+
+        # Init segmented bar — one segment per category + scout + maybe bases
+        _n_main = sum(1 for c in gen.ALL_CATEGORIES
+                      if snapshot["cat_enabled"].get(c[0], True))
+        _n_segs = _n_main + 1 + (1 if snapshot.get("include_bases") else 0)
+        self._seg_bar.init_segments(_n_segs)
+        self._seg_bar.pack(fill="x", padx=10, pady=(4, 0))
+        self._last_gen_stats = {}
 
         threading.Thread(target=self._generate, args=(snapshot,), daemon=True).start()
 
@@ -2703,7 +3129,7 @@ class PickitApp(tk.Tk):
             output_lines += [f"// Conversion: 1 Divine = {divine_rate_exalts:.6f} Exalted", "",
                               gen.header_major("Economy Items"), ""]
 
-            top_item    = ("", 0.0)
+            top_items: list[tuple[str, float]] = []   # (name, ex_val), sorted desc
             report_rows = []
             _cat_ok = 0
             _cat_fail = 0
@@ -2717,8 +3143,10 @@ class PickitApp(tk.Tk):
             all_payloads["currency"] = currency_payload
 
             for cat_idx, (key, ninja_type, label_text, is_unique) in enumerate(categories, 1):
+                _seg_i = cat_idx - 1
                 self.after(0, lambda s=f"Building {cat_idx}/{total_cats}: {label_text}":
                            self.progress_var.set(s))
+                self.after(0, lambda i=_seg_i: self._seg_bar.set_segment(i, "active"))
 
                 # Per-category threshold takes priority; fall back to the
                 # appropriate global (gear vs currency) when not set (-1).
@@ -2734,11 +3162,13 @@ class PickitApp(tk.Tk):
                     e = payload
                     output_lines += [gen.header_sub(label_text), f"// Failed: {e}", ""]
                     self._log(f"  ✗ {label_text}: {type(e).__name__}", "err")
+                    self.after(0, lambda i=_seg_i: self._seg_bar.set_segment(i, "err"))
                     _cat_fail += 1
                     continue
                 if payload is None:
-                    output_lines += [gen.header_sub(label_text), f"// No data returned", ""]
+                    output_lines += [gen.header_sub(label_text), "// No data returned", ""]
                     self._log(f"  ? {label_text}: no data", "warn")
+                    self.after(0, lambda i=_seg_i: self._seg_bar.set_segment(i, "err"))
                     _cat_fail += 1
                     continue
 
@@ -2788,6 +3218,7 @@ class PickitApp(tk.Tk):
 
                     active_in_cat = sum(1 for l in lines if l and not l.startswith("//"))
                     self._log(f"  ✓ {label_text}: {active_in_cat} active", "ok")
+                    self.after(0, lambda i=_seg_i: self._seg_bar.set_segment(i, "ok"))
                     _cat_ok += 1
 
                     for l in lines:
@@ -2797,31 +3228,24 @@ class PickitApp(tk.Tk):
                         vm   = re.search(r'([\d.]+) exalted', l)
                         if name and vm:
                             v = float(vm.group(1))
-                            if v > top_item[1]:
-                                top_item = (name, v)
+                            top_items.append((name, v))
 
                 except Exception as e:
                     output_lines += [gen.header_sub(label_text), f"// Processing failed: {e}", ""]
                     self._log(f"  ✗ {label_text}: {e}", "err")
+                    self.after(0, lambda i=_seg_i: self._seg_bar.set_segment(i, "err"))
                     _cat_fail += 1
 
-            # ── Game uniques not on poe.ninja ────────────────────────────────
-            ninja_unique_names = set()
-            for key, _, _, is_unique in gen.ALL_CATEGORIES:
-                if not is_unique:
-                    continue
-                p = all_payloads.get(key)
-                if isinstance(p, dict):
-                    for ln in p.get("lines", []):
-                        if ln.get("name"):
-                            ninja_unique_names.add(ln["name"])
-            supp = gen.build_game_unique_supplement(ninja_unique_names)
-            if supp:
-                output_lines += [gen.header_sub("Game Uniques (not on poe.ninja)"), ""] + supp
-                self._log(f"  Game unique supplement: {len([l for l in supp if l.startswith('//')])- 1} items commented", "dim")
+            top_items.sort(key=lambda x: -x[1])
+            top_items = top_items[:3]
+            top_item  = top_items[0] if top_items else ("", 0.0)
+
 
             # ── Scout (poe2scout.com) unique items ────────────────────────────
             self._log("Fetching Scout prices (poe2scout.com)…", "dim")
+            _scout_seg = total_cats   # segment index for scout batch
+            self.after(0, lambda i=_scout_seg: self._seg_bar.set_segment(i, "active"))
+            self.after(0, lambda: self.progress_var.set("Fetching Scout prices…"))
             scout_payloads = gen.fetch_all_scout_payloads(league)
             if scout_payloads:
                 output_lines += [gen.header_major("Scout Unique Items"), ""]
@@ -2837,16 +3261,26 @@ class PickitApp(tk.Tk):
                     active = [l for l in lines if "[StashItem]" in l]
                     output_lines += [gen.header_sub(label_text), ""] + lines + [""]
                     self._log(f"  ✓ {label_text}: {len(active)} active", "ok")
+                self.after(0, lambda i=_scout_seg: self._seg_bar.set_segment(i, "ok"))
             else:
                 self._log("  Scout API unavailable for this league — skipped", "dim")
+                self.after(0, lambda i=_scout_seg: self._seg_bar.set_segment(i, "err"))
 
             output_lines.extend(gen.STATIC_TABLET_RULES.splitlines())
             output_lines.extend(gen.STATIC_WOMBGIFT_RULES.splitlines())
             output_lines.extend(gen.STATIC_SPECIAL_WAYSTONE_RULES.splitlines())
 
+            _chance_disabled = {
+                base for base, st in snapshot.get("item_states", {}).get("_chance", {}).items()
+                if not st.get("enabled", True)
+            }
+            output_lines.extend(gen.build_chance_base_rules(_chance_disabled))
+
             # ── Base types (optional) ─────────────────────────────────────────
             if snapshot.get("include_bases"):
                 min_q = int(snapshot.get("base_quality", 28))
+                _base_seg = total_cats + 1
+                self.after(0, lambda i=_base_seg: self._seg_bar.set_segment(i, "active"))
                 self._log("Building base type rules from game data…", "dim")
                 def _base_prog(idx, total, title):
                     self.after(0, lambda s=f"Bases {idx}/{total}: {title}":
@@ -2866,8 +3300,10 @@ class PickitApp(tk.Tk):
                     if any("Runeforged" in l for l in base_lines):
                         self._log("  ✓ Runeforged/Runemastered supplement included", "dim")
                     self._log(f"  ✓ Base types: {rule_count} rules", "ok")
+                    self.after(0, lambda i=_base_seg: self._seg_bar.set_segment(i, "ok"))
                 except Exception as e:
                     self._log(f"  ✗ Base types failed: {e}", "err")
+                    self.after(0, lambda i=_base_seg: self._seg_bar.set_segment(i, "err"))
 
             self._last_output = list(output_lines)
 
@@ -2936,6 +3372,15 @@ class PickitApp(tk.Tk):
             self._log("─" * 55, "dim")
             self._log(f"Done in {dur_str}  ·  {active} active rules", "ok")
 
+            self._last_gen_stats = {
+                "active":    active,
+                "duration":  dur_str,
+                "fsize_kb":  _fsize_kb,
+                "top_items": top_items,
+                "cat_ok":    _cat_ok,
+                "cat_fail":  _cat_fail,
+            }
+
             # Update config on the main thread to avoid racing with _save_settings.
             _cfg_updates = {
                 "league":             league,
@@ -2959,90 +3404,62 @@ class PickitApp(tk.Tk):
 
     def _generate_done(self, success: bool = False):
         self._running = False
-        self.progress_bar.stop()
-        self.progress_bar.pack_forget()
+        self._seg_bar.pack_forget()
         self.progress_var.set("")
         self.gen_btn.state(["!disabled"])
         self.force_btn.state(["!disabled"])
         if success:
             self.open_ipd_btn.state(["!disabled"])
+            self._show_gen_summary()
         self.status_lbl.config(
             text=f"Last run: {datetime.datetime.now().strftime('%H:%M:%S')}",
             fg=TEXT_OK if success else TEXT_ERR)
-        self.progress_var.set("")
+
+    def _show_gen_summary(self):
+        s = self._last_gen_stats
+        if not s:
+            return
+        top = s.get("top_items", [])
+        active   = s.get("active", 0)
+        dur      = s.get("duration", "")
+        fsize    = s.get("fsize_kb", 0)
+        cat_ok   = s.get("cat_ok", 0)
+        cat_fail = s.get("cat_fail", 0)
+
+        self._sum_vars["duration"].config(text=f"Generated in {dur}")
+        self._sum_vars["rules"].config(text=f"{active:,} active rules")
+        self._sum_vars["fsize"].config(text=f"{fsize} KB")
+
+        if top:
+            top_parts = []
+            for name, ex_val in top[:3]:
+                top_parts.append(f"{name}  {ex_val:,.0f}ex")
+            self._sum_top_lbl.config(text="  ·  ".join(top_parts))
+        else:
+            self._sum_top_lbl.config(text="No items above threshold")
+
+        cat_note = f"{cat_ok} categories"
+        if cat_fail:
+            cat_note += f"  ·  {cat_fail} failed"
+        self._sum_cats_lbl.config(text=cat_note)
+
+        self._gen_summary.pack(fill="x", padx=10, pady=(8, 0),
+                               before=self._log_sep)
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  Close / System tray
+    #  Close
     # ══════════════════════════════════════════════════════════════════════════
 
     def _on_close(self):
-        if _HAS_TRAY and self.cfg.get("tray_on_close", True):
-            self._hide_to_tray()
-        else:
-            self._quit_app()
+        self._quit_app()
 
     def _quit_app(self):
-        if hasattr(self, "_tray_icon") and self._tray_icon:
-            try:
-                self._tray_icon.stop()
-            except Exception:
-                pass
-            self._tray_icon = None
         if self._schedule_after:
             self.after_cancel(self._schedule_after)
         self.cfg["window_geometry"]  = self.geometry()
         self.cfg["cat_prev_prices"]  = self._cat_prev_prices
         save_config(self.cfg)
         self.destroy()
-
-    def _hide_to_tray(self):
-        self.cfg["window_geometry"] = self.geometry()
-        save_config(self.cfg)
-        self.withdraw()
-        if not getattr(self, "_tray_icon", None):
-            self._tray_icon = self._create_tray_icon()
-            threading.Thread(target=self._tray_icon.run, daemon=True).start()
-
-    def _create_tray_icon(self):
-        if _HAS_PIL:
-            from PIL import ImageDraw
-            S = 64
-            img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-            d = ImageDraw.Draw(img)
-            # Dark circle background
-            d.ellipse([1, 1, S-2, S-2], fill="#1a1a22", outline="#c8a96e", width=2)
-            # Sword blade (vertical, slightly tapered)
-            d.polygon([(30, 8), (34, 8), (33, 46), (32, 50), (31, 46)], fill="#c8a96e")
-            # Crossguard
-            d.rectangle([18, 28, 46, 33], fill="#b87820")
-            d.ellipse([16, 27, 21, 34], fill="#b87820")
-            d.ellipse([43, 27, 48, 34], fill="#b87820")
-            # Pommel
-            d.ellipse([28, 50, 36, 58], fill="#c8a96e")
-            d.ellipse([30, 52, 34, 56], fill="#8a5a10")
-        else:
-            img = Image.new("RGBA", (64, 64), (200, 169, 110, 255))
-
-        def on_show(icon, item):
-            icon.stop()
-            self._tray_icon = None
-            self.after(0, self._restore_from_tray)
-
-        def on_quit(icon, item):
-            icon.stop()
-            self._tray_icon = None
-            self.after(0, self._quit_app)
-
-        menu = _pystray.Menu(
-            _pystray.MenuItem("Show ExileBot 2 Pickit", on_show, default=True),
-            _pystray.MenuItem("Quit", on_quit),
-        )
-        return _pystray.Icon("poe2pickit", img, "ExileBot 2 Pickit Generator", menu)
-
-    def _restore_from_tray(self):
-        self.deiconify()
-        self.lift()
-        self.focus_force()
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

@@ -34,7 +34,7 @@ Generate `.ipd` pickit rules for **Exiled Bot 2** using live **Path of Exile 2**
 ## Running from Source
 
 ```bash
-pip install requests Pillow pystray
+pip install requests Pillow
 python poe2_pickit_gui.py
 ```
 
@@ -48,7 +48,7 @@ python poe2_pickit_gui.py
 | **Items** | Turn individual items ON/OFF — click a card to exclude it, click again to re-enable |
 | **Preview** | Syntax-highlighted view of the generated `.ipd` file |
 | **History** | Log of all past generate runs |
-| **Settings** | Bot folder, auto-copy, backups, system tray |
+| **Settings** | Bot folder, auto-copy, backups |
 | **Debug** | API connectivity tests and config dump |
 
 ---
@@ -85,7 +85,7 @@ Everything is picked by default. Use the **Items** tab to exclude specific items
 - **Enable All / Disable All** buttons toggle all items in the active category at once
 - **Save Preset** → save your current item selections; **Load Preset** → restore them later
 - Price arrows **▲▼** appear on cards after a refresh if the price moved more than 3%
-- The app **auto-generates every hour** in the background and minimizes to the system tray
+- The app **auto-generates every hour** in the background automatically
 
 ---
 

@@ -19,7 +19,6 @@ Usage:
 import argparse
 import csv
 from concurrent.futures import ThreadPoolExecutor
-import html as _html
 import io
 import os
 import re
@@ -272,156 +271,6 @@ _RUNEFORGED_BASES: tuple = (
     ("Runemastered Vaal Tower Shield",  2),
 )
 
-# 392 uniques sourced from game data (data/game/uniques.json).
-# Used to supplement poe.ninja — items here but not in poe.ninja get
-# a commented-out rule so they appear in the output but aren't picked up.
-_GAME_UNIQUES: dict = {
-    "Ab Aeterno": "Boots", "Adonia's Ego": "Wand", "Aerisvane's Wings": "Gloves",
-    "Against the Darkness": "Jewel", "Alkem Eira": "Shield", "Alpha's Howl": "Helmet",
-    "Andvarius": "Ring", "Apep's Supremacy": "Focii", "Apron of Emiran": "Body Armour",
-    "Arakaali's Gift": "Charm", "Arvil's Wheel": "Shield", "Ashrend": "Body Armour",
-    "Asphyxia's Wrath": "Quiver", "Assailum": "Helmet", "Astramentis": "Amulet",
-    "Atsak's Sight": "Helmet", "Atziri's Acuity": "Gloves", "Atziri's Disdain": "Helmet",
-    "Aurseize": "Gloves", "Beacon of Azis": "Amulet", "Beetlebite": "Boots",
-    "Beira's Anguish": "Charm", "Belly of the Beast": "Body Armour", "Beyond Reach": "Quiver",
-    "Bijouborne": "Belt", "Birth of Fury": "Boots", "Birthright Buckle": "Belt",
-    "Bitterbloom": "Body Armour", "Black Sun Crest": "Helmet", "Blackbraid": "Body Armour",
-    "Blackflame": "Ring", "Blackgleam": "Quiver", "Blackheart": "Ring",
-    "Blessed Bonds": "Gloves", "Blistering Bond": "Ring", "Blood Price": "Helmet",
-    "Blood of the Warrior": "Flask", "Bloodbarrier": "Shield", "Blueflame Bracers": "Gloves",
-    "Bones of Ullr": "Boots", "Brain Rattler": "Mace", "Bramblejack": "Body Armour",
-    "Breath of the Mountains": "Charm", "Briarpatch": "Boots", "Briskwrap": "Body Armour",
-    "Bristleboar": "Body Armour", "Bronzebeard": "Helmet", "Brynhand's Mark": "Mace",
-    "Bursting Decay": "Ring", "Bushwhack": "Boots", "Byrnabas": "Belt",
-    "Cadiro's Gambit": "Quiver", "Calgyra's Arc": "Shield", "Call of the Brotherhood": "Ring",
-    "Candlemaker": "Gloves", "Carnage Heart": "Amulet", "Carrion Call": "Focii",
-    "Chainsting": "Spear", "Chernobog's Pillar": "Shield", "Chober Chaber": "Mace",
-    "Choir of the Storm": "Amulet", "Cloak of Defiance": "Body Armour",
-    "Cloak of Flame": "Body Armour", "Coat of Red": "Body Armour",
-    "Collapsing Horizon": "Warstaff", "Constricting Command": "Helmet",
-    "Controlled Metamorphosis": "Jewel", "Cornathaum": "Helmet",
-    "Corona of the Red Sun": "Helmet", "Corpsewade": "Boots", "Cospri's Will": "Body Armour",
-    "Couture of Crimson": "Body Armour", "Coward's Legacy": "Belt", "Cracklecreep": "Ring",
-    "Crest of Ardura": "Shield", "Crown of Eyes": "Helmet", "Crown of Thorns": "Helmet",
-    "Crown of the Pale King": "Helmet", "Crown of the Victor": "Helmet",
-    "Cursecarver": "Wand", "Daevata's Wind": "Spear", "Darkness Enthroned": "Belt",
-    "Darkray Vectors": "Boots", "Death Articulated": "Gloves", "Death Rush": "Ring",
-    "Death's Harp": "Bow", "Deathblow": "Gloves", "Deathrattle": "Focii",
-    "Defiance of Destiny": "Amulet", "Deidbell": "Helmet", "Demon Stitcher": "Gloves",
-    "Dionadair": "Shield", "Doedre's Damning": "Ring", "Doedre's Tenure": "Gloves",
-    "Doomfletch": "Bow", "Doomgate": "Shield", "Doryani's Prototype": "Body Armour",
-    "Double Vision": "Crossbow", "Dreadfist": "Gloves", "Dream Fragments": "Ring",
-    "Dunkelhalt": "Shield", "Dusk Vigil": "Staff", "Dustbloom": "Body Armour",
-    "Earthbound": "Staff", "Edyrn's Tusks": "Body Armour", "Effigy of Cruelty": "Focii",
-    "Elevore": "Helmet", "Empire's Grasp": "Gloves", "Enezun's Charge": "Wand",
-    "Enfolding Dawn": "Body Armour", "Erian's Cobble": "Helmet",
-    "Essentia Sanguis": "Gloves", "Evergrasping Ring": "Ring", "Eye of Chayula": "Amulet",
-    "Ezomyte Peak": "Helmet", "Fairgraves' Curse": "Bow", "Feathered Fortress": "Shield",
-    "Fireflower": "Amulet", "Fixation of Yix": "Amulet", "Font of Power": "Sceptre",
-    "For Utopia": "Charm", "Forbidden Gaze": "Helmet", "Forsaken Bangle": "Charm",
-    "Foxshade": "Body Armour", "From Nothing": "Jewel", "Frostbreath": "Mace",
-    "Gamblesprint": "Boots", "Ghostmarch": "Boots", "Ghostwrithe": "Body Armour",
-    "Gifts from Above": "Ring", "Glimpse of Chaos": "Helmet", "Gloamgown": "Body Armour",
-    "Gloomform": "Body Armour", "Glowswarm": "Ring", "Goldrim": "Helmet",
-    "Goregirdle": "Belt", "Grand Spectrum": "Jewel", "Gravebind": "Gloves",
-    "Greed's Embrace": "Body Armour", "Greymake": "Helmet", "Grip of Kulemak": "Ring",
-    "Grip of Winter": "Gloves", "Guiding Palm": "Sceptre",
-    "Guiding Palm of the Eye": "Sceptre", "Guiding Palm of the Heart": "Sceptre",
-    "Guiding Palm of the Mind": "Sceptre", "Hand of Wisdom and Action": "Gloves",
-    "Hateforge": "Gloves", "Headhunter": "Belt", "Heart of the Well": "Jewel",
-    "Heartbound Loop": "Ring", "Heatshiver": "Helmet", "Heroic Tragedy": "Jewel",
-    "Hinekora's Sight": "Amulet", "Hoghunt": "Mace", "Horns of Bynden": "Helmet",
-    "Hrimnor's Hymn": "Mace", "Husk of Dreams": "Body Armour", "Hyrri's Ire": "Body Armour",
-    "Icefang Orbit": "Ring", "Icetomb": "Body Armour", "Idle Hands": "Gloves",
-    "Idol of Uldurn": "Amulet", "Igniferis": "Amulet", "Indigon": "Helmet",
-    "Infernoclasp": "Belt", "Ingenuity": "Belt", "Innsmouth": "Helmet",
-    "Irongrasp": "Body Armour", "Ironride": "Helmet", "Jarngreipr": "Gloves",
-    "Kalandra's Touch": "Ring", "Kaltenhalt": "Shield", "Kaom's Heart": "Body Armour",
-    "Keelhaul": "Belt", "Keeper of the Arc": "Helmet", "Killjoy": "Gloves",
-    "Kingsguard": "Body Armour", "Kitoko's Current": "Gloves", "Leer Cast": "Helmet",
-    "Legionstride": "Boots", "Leopold's Applause": "Gloves", "Levinstone": "Ring",
-    "Lifesprig": "Wand", "Lightning Coil": "Body Armour", "Ligurium Talisman": "Amulet",
-    "Lioneye's Glare": "Bow", "Lochtonial Caress": "Gloves", "Luminous Pace": "Boots",
-    "Lycosidae": "Shield", "Mahuxotl's Machination": "Shield",
-    "Maligaro's Virtuosity": "Gloves", "Marohi Erqi": "Mace",
-    "Mask of the Sanguimancer": "Helmet", "Mask of the Stitched Demon": "Helmet",
-    "Matsya": "Warstaff", "Megalomaniac": "Jewel", "Meginord's Girdle": "Belt",
-    "Melting Maelstrom": "Flask", "Merit of Service": "Shield", "Midnight Braid": "Belt",
-    "Mind of the Council": "Helmet", "Ming's Heart": "Ring", "Mist Whisper": "Crossbow",
-    "Mjölner": "Mace", "Morior Invictus": "Body Armour", "Murkshaft": "Quiver",
-    "Myris Uxor": "Helmet", "Nascent Hope": "Charm", "Nazir's Judgement": "Warstaff",
-    "Nebuloch": "Mace", "Necromantle": "Body Armour", "Ngamahu's Chosen": "Charm",
-    "Nightscale": "Gloves", "Nocturne": "Shield", "Northpaw": "Gloves",
-    "Oaksworn": "Shield", "Obern's Bastion": "Boots", "Olroth's Resolve": "Flask",
-    "Olrovasara": "Mace", "Original Sin": "Ring", "Painter's Servant": "Gloves",
-    "Palm of the Dreamer": "Sceptre", "Pariah's Embrace": "Body Armour",
-    "Perandus Seal": "Ring", "Perfidy": "Body Armour", "Pillar of the Caged God": "Warstaff",
-    "Plaguefinger": "Gloves", "Polcirkeln": "Ring", "Powertread": "Boots",
-    "Pragmatism": "Body Armour", "Prayers for Rain": "Body Armour",
-    "Prism Guardian": "Shield", "Prism of Belief": "Jewel", "Prized Pain": "Ring",
-    "Quatl's Molt": "Body Armour", "Quecholli": "Mace", "Queen of the Forest": "Body Armour",
-    "Quill Rain": "Bow", "Radiant Grief": "Helmet", "Rampart Raptor": "Crossbow",
-    "Rathpith Globe": "Focii", "Rearguard": "Quiver", "Redblade Banner": "Shield",
-    "Redflare Conduit": "Body Armour", "Revered Resin": "Amulet",
-    "Rise of the Phoenix": "Shield", "Rite of Passage": "Charm", "Rondel de Ezo": "Shield",
-    "Rondel of Fragility": "Amulet", "Ryslatha's Coil": "Belt", "Sacred Flame": "Sceptre",
-    "Sacrosanctum": "Body Armour", "Saffell's Frame": "Shield", "Saitha's Spear": "Spear",
-    "Sands of Silk": "Body Armour", "Sandstorm Visage": "Helmet",
-    "Sanguine Diviner": "Wand", "Sanguis Heroum": "Charm", "Scold's Bridle": "Helmet",
-    "Sculpted Suffering": "Mace", "Seed of Cataclysm": "Ring", "Seeing Stars": "Mace",
-    "Sekhema's Resolve": "Ring", "Serpent's Egg": "Amulet", "Serpent's Lesson": "Focii",
-    "Shackles of the Wretched": "Gloves", "Shankgonne": "Boots",
-    "Shavronne's Satchel": "Belt", "Shyaba": "Mace", "Sierran Inheritance": "Body Armour",
-    "Silks of Veneration": "Body Armour", "Silverthorne": "Shield", "Sine Aequo": "Gloves",
-    "Sire of Shards": "Staff", "Skin of the Loyal": "Body Armour", "Skysliver": "Spear",
-    "Slivertongue": "Bow", "Snakebite": "Gloves", "Snakepit": "Ring",
-    "Solus Ipse": "Helmet", "Soul Mantle": "Body Armour", "Soul Tether": "Belt",
-    "Spire of Ire": "Spear", "Splinter of Lorrata": "Spear", "Splinterheart": "Bow",
-    "Starkonja's Head": "Helmet", "Stone of Lazhwar": "Amulet",
-    "Strugglescream": "Amulet", "Sunsplinter": "Shield", "Surefooted Sigil": "Amulet",
-    "Svalinn": "Shield", "Tabula Rasa": "Body Armour", "Tangletongue": "Spear",
-    "Taryn's Shiver": "Staff", "Temporalis": "Body Armour",
-    "Tetzlapokal's Desire": "Body Armour", "The Adorned": "Jewel", "The Anvil": "Amulet",
-    "The Barrow Dweller": "Body Armour", "The Black Cat": "Charm",
-    "The Black Doubt": "Body Armour", "The Black Insignia": "Helmet",
-    "The Blood Thorn": "Warstaff", "The Brass Dome": "Body Armour",
-    "The Bringer of Rain": "Helmet", "The Burden of Shadows": "Staff",
-    "The Burrower": "Ring", "The Coming Calamity": "Body Armour",
-    "The Covenant": "Body Armour", "The Dancing Mirage": "Body Armour",
-    "The Dark Defiler": "Sceptre", "The Deepest Tower": "Helmet",
-    "The Devouring Diadem": "Helmet", "The Empty Roar": "Mace",
-    "The Eternal Spark": "Focii", "The Everlasting Gaze": "Amulet",
-    "The Fall of the Axe": "Charm", "The Fallen Formation": "Body Armour",
-    "The Gnashing Sash": "Belt", "The Hammer of Faith": "Mace",
-    "The Hollow Mask": "Helmet", "The Infinite Pursuit": "Boots",
-    "The Knight-errant": "Boots", "The Last Lament": "Crossbow",
-    "The Lethal Draw": "Quiver", "The Mutable Star": "Body Armour",
-    "The Pandemonius": "Amulet", "The Prisoner's Manacles": "Gloves",
-    "The Rat Cage": "Body Armour", "The Road Warrior": "Body Armour",
-    "The Searing Touch": "Staff", "The Sentry": "Warstaff",
-    "The Smiling Knight": "Helmet", "The Surrender": "Shield",
-    "The Three Dragons": "Helmet", "The Unborn Lich": "Staff", "The Vertex": "Helmet",
-    "The Vile Knight": "Helmet", "The Wailing Wall": "Shield",
-    "The Whispering Ice": "Staff", "The Wicked Quill": "Wand",
-    "Thief's Torment": "Ring", "Threaded Light": "Focii", "Thrillsteel": "Helmet",
-    "Thunderfist": "Gloves", "Thunderstep": "Boots", "Tidebreaker": "Mace",
-    "Titanrot Cataphract": "Body Armour", "Trampletoe": "Boots",
-    "Treefingers": "Gloves", "Trenchtimbre": "Mace", "Trephina": "Mace",
-    "Tyranny's Grip": "Spear", "Umbilicus Immortalis": "Belt", "Undying Hate": "Jewel",
-    "Ungil's Harmony": "Amulet", "Valako's Roar": "Charm", "Valako's Vice": "Gloves",
-    "Veil of the Night": "Helmet", "Venopuncture": "Ring", "Ventor's Gamble": "Ring",
-    "Vigilant View": "Ring", "Vis Mortis": "Body Armour", "Visage of Ayah": "Helmet",
-    "Voll's Protector": "Body Armour", "Voltaxic Rift": "Bow", "Waistgate": "Belt",
-    "Wake of Destruction": "Boots", "Wandering Reliquary": "Body Armour",
-    "Wanderlust": "Boots", "Waveshaper": "Body Armour",
-    "Whisper of the Brotherhood": "Ring", "Widow's Reign": "Body Armour",
-    "Widowhail": "Bow", "Window to Paradise": "Shield", "Windscream": "Boots",
-    "Wings of Caelyn": "Helmet", "Wondertrap": "Boots", "Wulfsbane": "Shield",
-    "Wylund's Stake": "Mace", "Xoph's Blood": "Amulet", "Yoke of Suffering": "Amulet",
-    "Yriel's Fostering": "Body Armour", "Zerphi's Genesis": "Belt",
-    "Zerphi's Serape": "Body Armour",
-}
-
 
 def _quote_ipd(name: str) -> str:
     """Escape double quotes inside an item name for the IPD rule format."""
@@ -474,24 +323,6 @@ def build_base_rules(min_quality: int = 28, min_level: int = 60, progress_callba
 
     return all_lines
 
-
-def build_game_unique_supplement(ninja_names: set) -> list:
-    """Return commented-out rules for game uniques not present in poe.ninja data.
-
-    These items exist in the game but aren't traded enough to appear on poe.ninja.
-    They are added as comments so they show up in the file for easy manual enabling.
-    """
-    lines: list = []
-    missing = sorted(n for n in _GAME_UNIQUES if n not in ninja_names)
-    if not missing:
-        return lines
-    lines.append(header_minor("Game Uniques (not on poe.ninja — enable manually)"))
-    lines.append("")
-    for name in missing:
-        safe = _quote_ipd(name)
-        lines.append(f'//[Type] == "..." && [Rarity] == "Unique" # [UniqueName] == "{safe}" && [StashItem] == "true"')
-    lines.append("")
-    return lines
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -598,6 +429,55 @@ STATIC_SPECIAL_WAYSTONE_RULES = """\
 
 [Type] == "An Audience with the King" # [StashItem] == "true"
 """
+
+# Structured list of chance orb bases — used by the GUI tab and build_chance_base_rules().
+# Each entry: (category_label, base_type, target_unique)
+CHANCE_BASES: list = [
+    ("Belts",        "Heavy Belt",        "Headhunter"),
+    ("Belts",        "Utility Belt",      "Mageblood"),
+    ("Belts",        "Fine Belt",         "Ingenuity / Darkness Enthroned"),
+    ("Body Armours", "Glorious Plate",    "Kaom's Heart"),
+    ("Body Armours", "Warlord Cuirass",   "Morior Invictus"),
+    ("Body Armours", "Assassin Garb",     "Hyrri's Ire"),
+    ("Body Armours", "Flowing Raiment",   "Ghostwrithe"),
+    ("Body Armours", "Sacramental Robe",  "Soul Mantle"),
+    ("Helmets",      "Archon Crown",      "Indigon"),
+    ("Helmets",      "Grand Visage",      "Crown of the Pale King"),
+    ("Gloves",       "Vaal Gloves",       "Hateforge"),
+    ("Gloves",       "Elegant Wraps",     "Maligaro's Virtuosity"),
+    ("Gloves",       "Ornate Gauntlets",  "Hand of Wisdom and Action"),
+    ("Boots",        "Dragonscale Boots", "Darkray Vectors"),
+    ("Boots",        "Embroidered Boots", "Shadows and Dust"),
+    ("Weapons",      "Heavy Bow",         "Quill Rain"),
+    ("Weapons",      "Fanatic Bow",       "Lioneye's Glare"),
+    ("Weapons",      "Hallowed Sceptre",  "Font of Power"),
+]
+
+
+def build_chance_base_rules(disabled_bases=None) -> list:
+    """Return pickit lines for chance orb bases, skipping any in disabled_bases."""
+    disabled = set(disabled_bases) if disabled_bases else set()
+    active   = [(cat, base, tgt) for cat, base, tgt in CHANCE_BASES if base not in disabled]
+    if not active:
+        return []
+    out = [
+        "/////////////////////////////////////////////////////////////////////////////////////",
+        "//                                                                                 //",
+        "//                           CHANCE ORB BASES                                      //",
+        "//  Normal bases worth using Orb of Chance on to target specific uniques.          //",
+        "//  Manage individual bases in the Chance Bases tab.                               //",
+        "//                                                                                 //",
+        "/////////////////////////////////////////////////////////////////////////////////////",
+        "",
+    ]
+    cur_cat = None
+    for cat, base_type, target in active:
+        if cat != cur_cat:
+            cur_cat = cat
+            out.append(f"// -- {cat} " + "-" * (73 - len(cat)))
+        out.append(f'[Type] == "{base_type}" && [Rarity] == "Normal" # [StashItem] == "true" // {target}')
+    out.append("")
+    return out
 
 # Scout (poe2scout.com) — unique item categories supplementing poe.ninja.
 # Fetched at generate time; silently skipped if the API is unavailable.
@@ -1055,7 +935,6 @@ def collect_unique_report_rows(label: str, payload: dict, divine_rate_exalts: fl
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main():
-    global MIN_EXALT
     parser = argparse.ArgumentParser(description="Generate ExileBot 2 pickit rules from poe.ninja's real economy API.")
     parser.add_argument("--league",          default=None,              help="Exact league name. Omit to auto-detect.")
     parser.add_argument("--min-exalt",       type=float, default=MIN_EXALT, help="Threshold below which items are commented out")
@@ -1110,7 +989,7 @@ def main():
         "/" * _W,
         f"// League  : {league}",
         f"// Threshold: items below {min_exalt:.0f} Exalted are commented out",
-        f"// Source  : poe.ninja PoE2 economy API",
+        "// Source  : poe.ninja PoE2 economy API",
         "/" * _W,
         "",
     ]
@@ -1202,6 +1081,9 @@ def main():
 
     # ── Special Waystones ─────────────────────────────────────────────────────
     output_lines.extend(STATIC_SPECIAL_WAYSTONE_RULES.splitlines())
+
+    # ── Chance Orb Bases ──────────────────────────────────────────────────────
+    output_lines.extend(build_chance_base_rules())
 
     # ── Base types (optional) ─────────────────────────────────────────────────
     if args.include_bases:
