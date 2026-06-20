@@ -35,3 +35,18 @@ presets/
 
 # Stray generated pickit files
 *.ipd
+
+# Windows artifacts
+nul
+Thumbs.db
+desktop.ini
+
+# IDE / editor
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Logs and temp
+*.log
+*.tmp
