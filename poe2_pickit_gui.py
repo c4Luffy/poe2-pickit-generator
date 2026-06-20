@@ -16,13 +16,19 @@ from concurrent.futures import ThreadPoolExecutor as _TPE
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 
-# ── Optional Windows-only imports ─────────────────────────────────────────────
+# ── Optional imports ──────────────────────────────────────────────────────────
 
 try:
     from PIL import Image, ImageTk as _ImageTk
     _HAS_PIL = True
 except ImportError:
     _HAS_PIL = False
+
+try:
+    import pystray as _pystray
+    _HAS_TRAY = True
+except ImportError:
+    _HAS_TRAY = False
 
 # ── PyInstaller bundle path fix ───────────────────────────────────────────────
 if getattr(sys, 'frozen', False):
@@ -74,6 +80,7 @@ DEFAULT_CONFIG = {
     "history": [],
 
     "start_minimized": False,
+    "tray_on_close": True,
     "window_geometry": "",
     "confirm_overwrite_secs": 120,
     "include_bases": True,
@@ -294,6 +301,7 @@ class PickitApp(tk.Tk):
         self.auto_copy_var    = tk.BooleanVar(value=self.cfg.get("auto_copy", False))
         self.backup_count_var = tk.IntVar(value=self.cfg.get("backup_count", 5))
         self.start_min_var    = tk.BooleanVar(value=self.cfg.get("start_minimized", False))
+        self.tray_close_var   = tk.BooleanVar(value=self.cfg.get("tray_on_close", True))
         self.ovw_var          = tk.IntVar(value=self.cfg.get("confirm_overwrite_secs", 120))
 
         self.include_bases_var  = tk.BooleanVar(value=True)
@@ -1879,7 +1887,12 @@ class PickitApp(tk.Tk):
         checkbtn(sec, "Auto-copy .ipd to bot folder after generate", self.auto_copy_var
                  ).pack(anchor="w", padx=10, pady=(0, 4))
         checkbtn(sec, "Launch minimized (hides to taskbar on startup)", self.start_min_var
-                 ).pack(anchor="w", padx=10, pady=(0, 10))
+                 ).pack(anchor="w", padx=10, pady=(0, 4))
+        tray_row = checkbtn(sec, "Minimize to system tray when closing (keeps running in background)", self.tray_close_var)
+        tray_row.pack(anchor="w", padx=10, pady=(0, 10))
+        if not _HAS_TRAY:
+            label(sec, "  ⚠  pystray not installed — run:  pip install pystray  to enable this option",
+                  fg=TEXT_WARN, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(0, 8))
 
         # Schedule
         sec2 = self._section_frame(inner, "Auto-Schedule")
@@ -1932,6 +1945,7 @@ class PickitApp(tk.Tk):
         self.cfg["auto_copy"]              = self.auto_copy_var.get()
         self.cfg["backup_count"]           = self.backup_count_var.get()
         self.cfg["start_minimized"]        = self.start_min_var.get()
+        self.cfg["tray_on_close"]          = self.tray_close_var.get()
         self.cfg["confirm_overwrite_secs"] = self.ovw_var.get()
         self.cfg["include_bases"]          = self.include_bases_var.get()
         self.cfg["base_quality"]           = self.base_quality_var.get()
@@ -2751,15 +2765,76 @@ class PickitApp(tk.Tk):
         self.progress_var.set("")
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  Close
+    #  Close / System tray
     # ══════════════════════════════════════════════════════════════════════════
 
     def _on_close(self):
+        if _HAS_TRAY and self.cfg.get("tray_on_close", True):
+            self._hide_to_tray()
+        else:
+            self._quit_app()
+
+    def _quit_app(self):
+        if hasattr(self, "_tray_icon") and self._tray_icon:
+            try:
+                self._tray_icon.stop()
+            except Exception:
+                pass
+            self._tray_icon = None
         if self._schedule_after:
             self.after_cancel(self._schedule_after)
         self.cfg["window_geometry"] = self.geometry()
         save_config(self.cfg)
         self.destroy()
+
+    def _hide_to_tray(self):
+        self.cfg["window_geometry"] = self.geometry()
+        save_config(self.cfg)
+        self.withdraw()
+        if not getattr(self, "_tray_icon", None):
+            self._tray_icon = self._create_tray_icon()
+            threading.Thread(target=self._tray_icon.run, daemon=True).start()
+
+    def _create_tray_icon(self):
+        if _HAS_PIL:
+            img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+            from PIL import ImageDraw
+            d = ImageDraw.Draw(img)
+            d.ellipse([4, 4, 60, 60], fill="#c8a96e")
+            d.text((18, 18), "⚔", fill="#1a1a22")
+        else:
+            import struct, zlib
+            def _png1x1(r, g, b):
+                raw = b'\x00' + bytes([r, g, b, 255])
+                crc = lambda d: struct.pack('>I', zlib.crc32(d) & 0xffffffff)
+                ihdr = b'IHDR' + struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
+                idat_data = zlib.compress(raw)
+                idat = b'IDAT' + struct.pack('>I', len(idat_data)) + idat_data
+                def chunk(c): return struct.pack('>I', len(c)-4) + c + crc(c)
+                return b'\x89PNG\r\n\x1a\n' + chunk(ihdr) + chunk(idat) + chunk(b'IEND')
+            import io
+            img = Image.open(io.BytesIO(_png1x1(200, 169, 110)))
+
+        def on_show(icon, item):
+            icon.stop()
+            self._tray_icon = None
+            self.after(0, self._restore_from_tray)
+
+        def on_quit(icon, item):
+            icon.stop()
+            self._tray_icon = None
+            self.after(0, self._quit_app)
+
+        menu = _pystray.Menu(
+            _pystray.MenuItem("Show ExileBot 2 Pickit", on_show, default=True),
+            _pystray.MenuItem("Quit", on_quit),
+        )
+        return _pystray.Icon("poe2pickit", img, "ExileBot 2 Pickit Generator", menu)
+
+    def _restore_from_tray(self):
+        self.deiconify()
+        self.lift()
+        self.focus_force()
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
