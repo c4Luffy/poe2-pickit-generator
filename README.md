@@ -54,7 +54,7 @@ A dark-themed GUI tool for **Path of Exile 2** that fetches live economy data fr
 
 ## Data Sources
 
-**Poe.Ninja** (13 categories): Currency, Fragments, Abyss, Uncut Gems, Lineage Support Gems, Essences, Ultimatum, Talismans, Runes, Ritual, Expedition, Delirium, Breach
+**Poe.Ninja** (11 categories): Currency, Fragments, Abyss, Uncut Gems, Lineage Support Gems, Essences, Runes, Ritual, Expedition, Delirium, Breach
 
 **Scout** (6 categories, via [poe2scout.com](https://poe2scout.com)): Accessories, Armour, Jewels, Maps, Weapons, Sanctum — fetched when available, silently skipped if the API is offline for the current league
 
@@ -74,8 +74,6 @@ A dark-themed GUI tool for **Path of Exile 2** that fetches live economy data fr
 | Fragments (incl. Simulacrum, all Reliquary Keys) | Poe.Ninja |
 | Runes (142 items incl. all 5 Aldur runes) | Poe.Ninja |
 | Ritual (Omens) | Poe.Ninja |
-| Ultimatum | Poe.Ninja (active when league data available) |
-| Talismans | Poe.Ninja (active when league data available) |
 | Soul Cores (incl. all Emergent items) | Poe.Ninja |
 | Idols | Poe.Ninja |
 | Uncut Gems | Poe.Ninja |

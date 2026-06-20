@@ -45,8 +45,6 @@ EXCHANGE_CATEGORIES = [
     ("fragments",           "Fragments",          "Fragments",            False),
     ("runes",               "Runes",              "Runes",                False),
     ("omens",               "Ritual",             "Omens",                False),
-    ("ultimatum",           "Ultimatum",          "Ultimatum",            False),
-    ("talismans",           "Talismans",          "Talismans",            False),
     ("soul_cores",          "SoulCores",          "Soul Cores",           False),
     ("idols",               "Idols",              "Idols",                False),
     ("uncut_gems",          "UncutGems",          "Uncut Gems",           False),

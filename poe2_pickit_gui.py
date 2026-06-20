@@ -2471,9 +2471,14 @@ class PickitApp(tk.Tk):
         # Snapshot all Tk variables here on the main thread so the worker never
         # touches Tcl/Tk state from a background thread (avoids intermittent
         # freezes on non-Windows platforms where Tk is not thread-safe).
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+        out_name = self.output_var.get()
+        if silent:
+            out_name = f"{out_name}_{ts}"
+
         snapshot = {
             "league":          league,
-            "output_var":      self.output_var.get(),
+            "output_var":      out_name,
             "auto_copy":       self.auto_copy_var.get(),
             "bot_folder":      self.bot_folder_var.get(),
             "backup_count":    self.backup_count_var.get(),
