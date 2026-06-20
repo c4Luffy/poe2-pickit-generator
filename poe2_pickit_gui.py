@@ -135,6 +135,14 @@ def _cbtn(parent, text, var, bg=None):
 
 def setup_ttk_styles(root):
     s = ttk.Style(root); s.theme_use("clam")
+    s.configure("TCombobox", fieldbackground=BG3, background=BG3, foreground=TEXT,
+                selectbackground=BG3, selectforeground=TEXT, arrowcolor=GOLD,
+                bordercolor=BORDER, padding=4)
+    s.map("TCombobox", fieldbackground=[("readonly", BG3)], foreground=[("readonly", TEXT)])
+    root.option_add("*TCombobox*Listbox.background", BG3)
+    root.option_add("*TCombobox*Listbox.foreground", TEXT)
+    root.option_add("*TCombobox*Listbox.selectBackground", GOLD)
+    root.option_add("*TCombobox*Listbox.selectForeground", "#111")
     s.configure("Treeview", background=BG2, foreground=TEXT,
                 fieldbackground=BG2, rowheight=22, font=FONT)
     s.configure("Treeview.Heading", background=BG3, foreground=GOLD,
@@ -244,16 +252,6 @@ class PickitApp(ctk.CTk):
         self.league_cb = ttk.Combobox(bar, textvariable=self.league_var,
                                        state="normal", font=FONT, width=20)
         self.league_cb.pack(side="left", ipady=3)
-        s = ttk.Style(); s.theme_use("clam")
-        s.configure("TCombobox", fieldbackground=BG3, background=BG3, foreground=TEXT,
-                    selectbackground=BG3, selectforeground=TEXT, arrowcolor=GOLD,
-                    bordercolor=BORDER, padding=4)
-        s.map("TCombobox", fieldbackground=[("readonly", BG3)], foreground=[("readonly", TEXT)])
-        self.tk_setPalette(background=BG3)
-        self.option_add("*TCombobox*Listbox.background", BG3)
-        self.option_add("*TCombobox*Listbox.foreground", TEXT)
-        self.option_add("*TCombobox*Listbox.selectBackground", GOLD)
-        self.option_add("*TCombobox*Listbox.selectForeground", "#111")
 
         tk.Button(bar, text="↻", bg=BG2, fg=TEXT, relief="flat", bd=1,
                   font=FONT_SM, padx=6, pady=2, cursor="hand2",
