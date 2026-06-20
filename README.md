@@ -30,6 +30,8 @@ A dark-themed GUI tool for **Path of Exile 2** that fetches live economy data fr
 - **Global search** — search bar searches across ALL loaded categories at once
 - **Preset system** — Save / Load / Export / Import item selections as JSON presets
 - **Enable All / Disable All / Reset** — bulk-toggle all items in the active category
+- **↻ Refresh per category** — re-fetch live prices from poe.ninja for just the active category without re-generating the full pickit; button shows "Refreshing…" while in-flight; count label shows "updated HH:MM" after each fetch
+- **Disabled-but-valuable highlight** — item cards that are manually turned OFF but priced at or above the active threshold glow **amber** (dark amber background + amber border + amber dot), so you can immediately spot items you may have accidentally left off
 
 ### Output
 - **Unique pickit ID** — every generated file has a timestamp ID
