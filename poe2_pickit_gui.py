@@ -237,6 +237,11 @@ def setup_styles(root):
 
 TABS = ["General", "Categories", "Preview", "History", "Settings", "Debug"]
 
+VERSION       = "1.5.0"
+GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
+VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
+RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
+
 
 class PickitApp(tk.Tk):
     def __init__(self):
@@ -266,6 +271,7 @@ class PickitApp(tk.Tk):
         self._init_vars()
         self._build_ui()
         self._fetch_leagues_async()
+        self._check_update_async()
         self._schedule_tick()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.bind_all("<Control-g>", lambda e: self._start_generate())
@@ -326,14 +332,26 @@ class PickitApp(tk.Tk):
         # Top header bar
         hdr = tk.Frame(self, bg=BG3, pady=0)
         hdr.pack(fill="x")
-        label(hdr, "⚔  ExileBot 2 Pickit Generator", fg=GOLD,
+        label(hdr, f"⚔  ExileBot 2 Pickit Generator  v{VERSION}", fg=GOLD,
               font=("Segoe UI", 13, "bold"), bg=BG3, padx=16, pady=8).pack(side="left")
         self.status_lbl = label(hdr, "Ready", fg=TEXT_DIM, font=FONT_SM, bg=BG3, padx=16)
         self.status_lbl.pack(side="right")
         self.schedule_lbl = label(hdr, "", fg=TEXT_INFO, font=FONT_SM, bg=BG3, padx=8)
         self.schedule_lbl.pack(side="right")
 
+        # Update banner (hidden until a newer version is found)
+        self._update_bar = tk.Frame(self, bg="#2a1e00", pady=4)
+        self._update_lbl = tk.Label(self._update_bar, text="", bg="#2a1e00",
+                                    fg="#f0c060", font=FONT_BOLD, cursor="hand2")
+        self._update_lbl.pack(side="left", padx=12)
+        self._update_lbl.bind("<Button-1>", lambda e: self._open_releases())
+        tk.Label(self._update_bar, text="✕", bg="#2a1e00", fg="#888", font=FONT_SM,
+                 cursor="hand2").pack(side="right", padx=8).bind(
+            "<Button-1>", lambda e: self._update_bar.pack_forget())
+
         sep(self).pack(fill="x")
+
+        # Update bar lives here (hidden by default — shown by _check_update_async)
 
         # Tab bar
         tab_bar = tk.Frame(self, bg=BG2)
@@ -2076,6 +2094,42 @@ class PickitApp(tk.Tk):
         for k, v in cfg_copy.items():
             self._dlog(f"  {k:<28}: {json.dumps(v)}", "info")
         self._dlog(f"  {'history entries':<28}: {len(self.cfg.get('history', []))}", "dim")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Auto-update checker
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _check_update_async(self):
+        threading.Thread(target=self._check_update, daemon=True).start()
+
+    def _check_update(self):
+        try:
+            r = requests.get(VERSION_URL, timeout=8,
+                             headers={"User-Agent": f"poe2-pickit/{VERSION}"})
+            if r.status_code != 200:
+                return
+            remote = r.text.strip()
+            if self._ver_tuple(remote) > self._ver_tuple(VERSION):
+                self.after(0, lambda: self._show_update_banner(remote))
+        except Exception:
+            pass
+
+    @staticmethod
+    def _ver_tuple(v: str):
+        try:
+            return tuple(int(x) for x in v.lstrip("v").split("."))
+        except Exception:
+            return (0,)
+
+    def _show_update_banner(self, remote: str):
+        self._update_lbl.config(
+            text=f"⬆  Update available: v{remote}  —  click here to download  (you have v{VERSION})"
+        )
+        self._update_bar.pack(fill="x", after=self.winfo_children()[1])
+
+    def _open_releases(self):
+        import webbrowser
+        webbrowser.open(RELEASES_URL)
 
     # ══════════════════════════════════════════════════════════════════════════
     #  League helpers
