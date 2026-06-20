@@ -127,11 +127,11 @@ _CHOV   = "#252230"   # sidebar button hover
 _CSEL   = "#2d1f10"   # sidebar button selected bg
 _CSFG   = "#e8c878"   # selected button text
 _CON    = "#25222e"   # item card enabled bg
-_COFF   = "#1a1820"   # item card disabled bg
+_COFF   = "#202028"   # item card disabled bg  (mid-gray, clearly different)
 _CONB   = "#5a406a"   # item card enabled border
-_COFB   = "#2e2a38"   # item card disabled border
+_COFB   = "#3a3a3a"   # item card disabled border (gray)
 _CTXON  = "#ece4d8"   # item card enabled text
-_CTXOF  = "#505060"   # item card disabled text
+_CTXOF  = "#606060"   # item card disabled text (gray)
 _CWARN  = "#221a06"   # disabled-but-valuable bg
 _CWARNB = "#b87820"   # disabled-but-valuable border (amber)
 _CTXWRN = "#7a6840"   # disabled-but-valuable text
@@ -244,7 +244,7 @@ def setup_styles(root):
 
 TABS = ["General", "Categories", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "1.6.3"
+VERSION       = "1.6.4"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -1156,17 +1156,17 @@ class PickitApp(tk.Tk):
     def _card_colors(self, cat_key, ex_val, enabled):
         """Return (bg, fg, bdr, dot_text, dot_fg) for a card given its state.
 
-        Three clear states:
-          enabled              → gold dot ● (item will be picked)
-          disabled + valuable  → amber ✗   (warn: excluding a valuable item)
-          disabled             → red ✗     (item excluded)
+        Two clear states:
+          enabled  → bright card, gold ●  (item WILL be picked)
+          disabled → gray card,   gray ✗  (item excluded — bot ignores it)
+        Bonus: disabled + still above threshold → amber ✗ warning.
         """
         if enabled:
             return _CON, _CTXON, _CONB, "●", GOLD
         thresh = self._effective_threshold(cat_key)
         if thresh > 0 and ex_val >= thresh:
             return _CWARN, _CTXWRN, _CWARNB, "✗", _CWARNB
-        return _COFF, _CTXOF, _COFB, "✗", TEXT_ERR
+        return _COFF, _CTXOF, _COFB, "✗", _CTXOF
 
     def _price_trend(self, key, name, ex_val):
         prev = self._cat_prev_prices.get(key, {}).get(name)
@@ -1441,7 +1441,7 @@ class PickitApp(tk.Tk):
         else:
             if key not in self._item_states:
                 self._item_states[key] = {}
-            bg = _COFF; fg = _CTXOF; bdr = _COFB; dot = "✗"; dfg = TEXT_ERR
+            bg = _COFF; fg = _CTXOF; bdr = _COFB; dot = "✗"; dfg = _CTXOF
             for card in self._cat_cards.get(key, []):
                 card._enabled = False
                 card.config(bg=bg, highlightbackground=bdr)
