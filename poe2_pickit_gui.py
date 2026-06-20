@@ -11,10 +11,10 @@ Fixes over v5:
   - Simplified to ttk.Button throughout for native OS rendering
 """
 
-import sys, os, re, json, time, shutil, threading, datetime, traceback, subprocess, importlib, hashlib
+import sys, os, re, json, time, shutil, threading, datetime, traceback, subprocess, importlib, hashlib, copy
 from concurrent.futures import ThreadPoolExecutor as _TPE
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, simpledialog
 
 # ── Optional imports ──────────────────────────────────────────────────────────
 
@@ -58,9 +58,14 @@ CONFIG_PATH      = os.path.join(_cfg_dir, "pickit_gui_config.json")
 OUTPUT_DIR       = os.path.join(_cfg_dir, "pickit_output")
 ICON_DIR         = os.path.join(_cfg_dir, "icon_cache")
 PRESETS_DIR      = os.path.join(_cfg_dir, "presets")
+PRICE_CACHE_DIR  = os.path.join(_cfg_dir, "price_cache")
 WIKI_CACHE_FILE  = os.path.join(_cfg_dir, "wiki_icon_cache.json")
 for _d in (OUTPUT_DIR, ICON_DIR, PRESETS_DIR):
     os.makedirs(_d, exist_ok=True)
+
+# Point the generator's offline cache at a local folder so prices survive
+# restarts and can be reused when poe.ninja is unreachable.
+gen.set_disk_cache_dir(PRICE_CACHE_DIR)
 
 DEFAULT_CONFIG = {
     "league": "",
@@ -80,6 +85,11 @@ DEFAULT_CONFIG = {
     "base_quality": 28,
     "base_min_level": 75,
     "item_states":  {},
+    "cat_prev_prices": {},
+    "min_chaos_filter": 0,
+    "last_gen_prices": {},
+    "profiles": {},
+    "active_profile": "",
 }
 
 def load_config():
@@ -309,7 +319,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "1.9.0"
+VERSION       = "2.0.0"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -324,10 +334,32 @@ class PickitApp(tk.Tk):
         self.title(f"ExileBot 2 Pickit Generator  v{VERSION}")
         self.configure(bg=BG)
         self.resizable(True, True)
-        self.minsize(900, 660)
+
+        # ── DPI-aware window sizing ───────────────────────────────────────────
+        # The process is DPI-aware (see _enable_dpi_awareness), so Tk renders at
+        # native resolution and auto-scales point-based fonts. The window geometry
+        # is in raw pixels, so scale it by the monitor's DPI factor to match.
+        try:
+            scale = self.winfo_fpixels("1i") / 96.0   # 1.0 @100%, 1.5 @150%
+        except Exception:
+            scale = 1.0
+        scale = max(1.0, min(scale, 3.0))
+        self._ui_scale = scale
+
+        base_w, base_h = 1020, 780
+        self.minsize(int(900 * scale), int(640 * scale))
+
+        # Clamp the default size to the usable screen so it never opens off-screen.
+        scr_w = self.winfo_screenwidth()
+        scr_h = self.winfo_screenheight()
+        win_w = min(int(base_w * scale), scr_w - 40)
+        win_h = min(int(base_h * scale), scr_h - 80)
 
         saved_geo = self.cfg.get("window_geometry", "")
-        self.geometry(saved_geo if saved_geo else "1020x760")
+        if saved_geo and self._geo_fits(saved_geo, scr_w, scr_h):
+            self.geometry(saved_geo)
+        else:
+            self.geometry(f"{win_w}x{win_h}")
 
         # Runtime state
         self._leagues         = []
@@ -392,6 +424,10 @@ class PickitApp(tk.Tk):
         self._min_chaos_filter_var = tk.StringVar(value=str(self.cfg.get("min_chaos_filter", 0)))
         self._last_gen_prices  = dict(self.cfg.get("last_gen_prices", {}))  # {league: {key: {name: ex}}}
         self._price_alerts: list = []
+
+        # Output profiles — named bundles of {item_states, thresholds, output name}
+        self._profiles = dict(self.cfg.get("profiles", {}))
+        self._profile_var = tk.StringVar(value=self.cfg.get("active_profile", ""))
 
         # Chance Bases tab state
         self._chance_cards     = []
@@ -684,6 +720,22 @@ class PickitApp(tk.Tk):
         self.league_cb.bind("<<ComboboxSelected>>", _on_league_select)
         self.league_cb.bind("<Return>", _on_league_select)
 
+        # ── Profiles ─────────────────────────────────────────────────────────
+        secp = self._section_frame(inner, "Profile")
+        label(secp, "Switch between saved setups — e.g. a \"Farmer\" profile and a \"Boss runner\" "
+                    "profile, each with its own item selections, price floors and output file.",
+              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 2))
+        prow = tk.Frame(secp, bg=BG2)
+        prow.pack(fill="x", padx=10, pady=(4, 10))
+        prow.columnconfigure(0, weight=1)
+        self.profile_cb = ttk.Combobox(prow, textvariable=self._profile_var,
+                                       state="readonly", font=FONT, values=[])
+        self.profile_cb.grid(row=0, column=0, sticky="ew", ipady=4, padx=(0, 6))
+        self.profile_cb.bind("<<ComboboxSelected>>", lambda e: self._profile_switch())
+        btn(prow, "Save",   self._profile_save_current).grid(row=0, column=1, padx=(0, 4))
+        btn(prow, "Delete", self._profile_delete).grid(row=0, column=2)
+        self._refresh_profile_dropdown()
+
         # ── Output ───────────────────────────────────────────────────────────
         sec3 = self._section_frame(inner, "Output File")
         or_ = tk.Frame(sec3, bg=BG2)
@@ -712,6 +764,12 @@ class PickitApp(tk.Tk):
         self.open_ipd_btn.state(["disabled"])
 
         btn(btn_f, "Open output folder", self._open_output_folder).pack(side="left", padx=(6, 0))
+
+        # ── API status banner (hidden unless poe.ninja was unreachable) ───────
+        self.api_banner = tk.Label(
+            inner, text="", bg="#3a2a1a", fg="#e8b84b", font=FONT_SM,
+            anchor="w", padx=12, pady=6, justify="left")
+        # not packed yet — shown only when offline_mode is set
 
         # ── Progress ─────────────────────────────────────────────────────────
         self.progress_var = tk.StringVar(value="")
@@ -776,6 +834,8 @@ class PickitApp(tk.Tk):
         tk.Label(r2, text="  ·  ", bg=BG2, fg=TEXT_DIM, font=FONT_SM).pack(side="left")
         self._sum_cats_lbl = tk.Label(r2, text="", bg=BG2, fg=TEXT_DIM, font=FONT_SM)
         self._sum_cats_lbl.pack(side="left")
+        # row 3: biggest price movers (populated dynamically, hidden if none)
+        self._sum_alerts_frame = tk.Frame(self._gen_summary, bg=BG2)
         self._gen_summary.pack_forget()  # hidden until first generate
 
         # ── Log ───────────────────────────────────────────────────────────────
@@ -1516,6 +1576,50 @@ class PickitApp(tk.Tk):
 
     # ── Price unit switching ──────────────────────────────────────────────────
 
+    def _set_api_banner(self, offline: bool):
+        """Show or hide the 'poe.ninja unreachable' banner on the Generate tab."""
+        banner = getattr(self, "api_banner", None)
+        if banner is None:
+            return
+        if offline:
+            banner.config(text="⚠  poe.ninja was unreachable — this pickit used cached prices. "
+                               "They may be out of date. Try Force Refresh when the site is back up.")
+            banner.pack(fill="x", padx=10, pady=(10, 0), before=self.progress_lbl)
+        else:
+            banner.pack_forget()
+
+    @staticmethod
+    def _geo_fits(geo: str, scr_w: int, scr_h: int) -> bool:
+        """True if a saved 'WxH+X+Y' geometry sits within the current screen.
+        Guards against a geometry saved on a larger/other-DPI monitor opening
+        off-screen or oversized after a resolution or scaling change."""
+        m = re.match(r"(\d+)x(\d+)(?:([+-]\d+)([+-]\d+))?", geo or "")
+        if not m:
+            return False
+        w, h = int(m.group(1)), int(m.group(2))
+        if w > scr_w or h > scr_h or w < 400 or h < 300:
+            return False
+        if m.group(3) is not None:
+            x, y = int(m.group(3)), int(m.group(4))
+            if x < -50 or y < -50 or x > scr_w - 100 or y > scr_h - 100:
+                return False
+        return True
+
+    @staticmethod
+    def _fmt_age(secs) -> str:
+        """Human-readable age, e.g. '3m', '2h', '5d'."""
+        try:
+            secs = float(secs or 0)
+        except (TypeError, ValueError):
+            return "?"
+        if secs < 90:
+            return f"{int(secs)}s"
+        if secs < 5400:
+            return f"{int(secs / 60)}m"
+        if secs < 172800:
+            return f"{int(secs / 3600)}h"
+        return f"{int(secs / 86400)}d"
+
     def _fmt_price(self, chaos, ex, div):
         unit = self._price_unit
         if unit == "chaos":
@@ -1769,6 +1873,88 @@ class PickitApp(tk.Tk):
     def _log_items(self, msg: str, level: str = ""):
         """Log to the Items tab status area if available, else pass."""
         pass  # placeholder — items tab has no log; just skip silently
+
+    # ── Output profiles ───────────────────────────────────────────────────────
+
+    def _refresh_profile_dropdown(self):
+        names = sorted(self._profiles.keys())
+        self.profile_cb["values"] = names
+        if self._profile_var.get() not in names:
+            self._profile_var.set(names[0] if names else "")
+
+    def _profile_snapshot(self) -> dict:
+        """Capture the current setup as a profile bundle."""
+        try:
+            min_ex = float(self.min_exalt_var.get())
+        except (tk.TclError, ValueError):
+            min_ex = 0.0
+        try:
+            min_gear = float(self.min_exalt_gear_var.get())
+        except (tk.TclError, ValueError):
+            min_gear = 0.0
+        return {
+            "item_states":     copy.deepcopy(self._item_states),
+            "min_exalt":       min_ex,
+            "min_exalt_gear":  min_gear,
+            "output_base":     self.output_var.get(),
+            "min_chaos_filter": self._min_chaos_filter_var.get(),
+        }
+
+    def _profile_save_current(self):
+        name = simpledialog.askstring(
+            "Save Profile",
+            "Profile name:\n(reusing an existing name overwrites it)",
+            parent=self, initialvalue=self._profile_var.get())
+        if not name:
+            return
+        name = name.strip()
+        if not name:
+            return
+        self._profiles[name] = self._profile_snapshot()
+        self._profile_var.set(name)
+        self.cfg["profiles"]       = self._profiles
+        self.cfg["active_profile"] = name
+        save_config(self.cfg)
+        self._refresh_profile_dropdown()
+        messagebox.showinfo("Profile saved", f"Profile '{name}' saved.", parent=self)
+
+    def _profile_switch(self):
+        name = self._profile_var.get()
+        prof = self._profiles.get(name)
+        if not prof:
+            return
+        self._item_states = copy.deepcopy(prof.get("item_states", {}))
+        self.min_exalt_var.set(prof.get("min_exalt", 0.0))
+        self.min_exalt_gear_var.set(prof.get("min_exalt_gear", 0.0))
+        self.output_var.set(prof.get("output_base", "poe2_pickit"))
+        self._min_chaos_filter_var.set(str(prof.get("min_chaos_filter", 0)))
+
+        self.cfg["item_states"]    = self._item_states
+        self.cfg["active_profile"] = name
+        save_config(self.cfg)
+
+        # Refresh the open category grid so the new selections show immediately
+        key = self._active_cat
+        if key and key != "_gear":
+            payload = gen._cache_get(self._selected_league() or "Mercenaries", key)
+            if payload and not isinstance(payload, Exception):
+                self._populate_cat_grid(key, payload)
+        for k in self._cat_sidebar_badges:
+            self._update_sidebar_badge(k)
+
+    def _profile_delete(self):
+        name = self._profile_var.get()
+        if not name or name not in self._profiles:
+            return
+        if not messagebox.askyesno("Delete profile",
+                                   f"Delete profile '{name}'?", parent=self):
+            return
+        self._profiles.pop(name, None)
+        self.cfg["profiles"] = self._profiles
+        if self.cfg.get("active_profile") == name:
+            self.cfg["active_profile"] = ""
+        save_config(self.cfg)
+        self._refresh_profile_dropdown()
 
     # ── Divine rate helper ────────────────────────────────────────────────────
 
@@ -3365,8 +3551,21 @@ class PickitApp(tk.Tk):
             self._log(f"Pickit ID : {_gen_id}", "info")
 
             self._log("Fetching currency rates…", "dim")
-            currency_payload = gen.fetch_category(league, "currency", "Currency", False)
-            gen._cache_set(league, "currency", currency_payload)
+            stale_keys: set = set()      # categories served from the offline cache
+            offline_mode    = False
+            try:
+                currency_payload = gen.fetch_category(league, "currency", "Currency", False)
+                gen._cache_set(league, "currency", currency_payload)
+            except Exception:
+                disk, age = gen.load_payload_from_disk(league, "currency")
+                if disk is not None:
+                    currency_payload = disk
+                    stale_keys.add("currency")
+                    offline_mode = True
+                    self._log(f"  ⚠ poe.ninja unreachable — using cached prices "
+                              f"({self._fmt_age(age)} old)", "warn")
+                else:
+                    raise   # no network and no cache → nothing we can do
             items_by_id      = {i["id"]: i for i in currency_payload.get("items", [])}
             rate             = gen.exalted_rate(currency_payload)
             divine_rate_exalts = 1.0
@@ -3398,8 +3597,10 @@ class PickitApp(tk.Tk):
             self._log(f"Fetching {len(non_currency_cats)} categories in parallel…", "dim")
             self.after(0, lambda n=len(non_currency_cats):
                        self.progress_var.set(f"Fetching {n} categories in parallel…"))
-            all_payloads = gen.fetch_all_payloads(league, non_currency_cats)
+            all_payloads = gen.fetch_all_payloads(league, non_currency_cats, stale_out=stale_keys)
             all_payloads["currency"] = currency_payload
+            if stale_keys:
+                offline_mode = True
 
             for cat_idx, (key, ninja_type, label_text, is_unique) in enumerate(categories, 1):
                 _seg_i = cat_idx - 1
@@ -3629,14 +3830,20 @@ class PickitApp(tk.Tk):
             _fail_note = f"  ·  {_cat_fail} failed" if _cat_fail else ""
             self._log(f"  Categories: {_cat_ok} OK{_fail_note}", "ok" if not _cat_fail else "warn")
 
+            if stale_keys:
+                self._log(f"  ⚠ Offline: {len(stale_keys)} categor"
+                          f"{'ies' if len(stale_keys) != 1 else 'y'} used cached prices "
+                          f"(poe.ninja was unreachable)", "warn")
+            self.after(0, lambda om=offline_mode: self._set_api_banner(om))
+
             # ── Price alerts ──────────────────────────────────────────────────
             ALERT_THRESHOLD = 0.20   # 20% move triggers an alert
             prev_league     = self._last_gen_prices.get(league, {})
             new_gen_prices: dict = {}
             chaos_ex_val    = self._get_chaos_ex_value(league)
-            alerts: list[str] = []
+            alerts: list[tuple[float, str]] = []   # (abs_delta, display_string)
 
-            for key, _, label_text, is_unique in categories:
+            for key, _, _label_text, _is_unique in categories:
                 payload = all_payloads.get(key)
                 if not payload or isinstance(payload, Exception):
                     continue
@@ -3667,13 +3874,12 @@ class PickitApp(tk.Tk):
                         arrow = "▲" if delta > 0 else "▼"
                         chaos_now  = ex_now  / chaos_ex_val if chaos_ex_val else ex_now
                         chaos_prev = ex_prev / chaos_ex_val if chaos_ex_val else ex_prev
-                        alerts.append(
-                            f"{arrow} {name}: {chaos_prev:.0f}c → {chaos_now:.0f}c  ({sign}{delta*100:.0f}%)"
-                        )
+                        text = f"{arrow} {name}: {chaos_prev:.0f}c → {chaos_now:.0f}c  ({sign}{delta*100:.0f}%)"
+                        alerts.append((abs(delta), text))
 
             self._last_gen_prices[league] = new_gen_prices
-            self._price_alerts = sorted(alerts, key=lambda s: abs(float(
-                re.search(r'\(([+-]?\d+)', s).group(1))), reverse=True)[:10]
+            alerts.sort(key=lambda t: t[0], reverse=True)
+            self._price_alerts = [text for _, text in alerts[:10]]
 
             if self._price_alerts:
                 self._log("── Price moves since last generate ─", "dim")
@@ -3757,6 +3963,21 @@ class PickitApp(tk.Tk):
             cat_note += f"  ·  {cat_fail} failed"
         self._sum_cats_lbl.config(text=cat_note)
 
+        # row 3: biggest price movers since last generate
+        for w in self._sum_alerts_frame.winfo_children():
+            w.destroy()
+        alerts = getattr(self, "_price_alerts", [])
+        if alerts:
+            self._sum_alerts_frame.pack(fill="x", padx=12, pady=(0, 8))
+            tk.Label(self._sum_alerts_frame, text="Price moves:", bg=BG2,
+                     fg=TEXT_DIM, font=FONT_SM).pack(anchor="w")
+            for a in alerts[:5]:
+                clr = TEXT_OK if a.startswith("▲") else TEXT_ERR
+                tk.Label(self._sum_alerts_frame, text=a, bg=BG2, fg=clr,
+                         font=FONT_SM, anchor="w").pack(anchor="w", padx=(8, 0))
+        else:
+            self._sum_alerts_frame.pack_forget()
+
         self._gen_summary.pack(fill="x", padx=10, pady=(8, 0),
                                before=self._log_sep)
 
@@ -3778,7 +3999,27 @@ class PickitApp(tk.Tk):
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
+def _enable_dpi_awareness():
+    """Tell Windows this process scales itself, so the UI isn't bitmap-stretched
+    (blurry) on displays set to 125% / 150% / 175%. Must run before the Tk root
+    is created. No-op / harmless on non-Windows or older Windows."""
+    try:
+        import ctypes
+        try:
+            # Per-Monitor-v2 (Win 10 1703+) — best: crisp on every monitor
+            ctypes.windll.user32.SetProcessDpiAwarenessContext(-4)
+        except Exception:
+            try:
+                ctypes.windll.shcore.SetProcessDpiAwareness(1)  # System DPI aware
+            except Exception:
+                ctypes.windll.user32.SetProcessDPIAware()       # Vista+ fallback
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
+    _enable_dpi_awareness()
+
     # Single-instance guard: if already running, focus existing window and exit
     import ctypes as _ct
     _MUTEX_NAME = "POE2PickitGeneratorSingleInstance"

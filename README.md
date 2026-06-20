@@ -14,6 +14,7 @@ Generate `.ipd` pickit rules for **Exiled Bot 2** using live **Path of Exile 2**
 
 **2. Select your league**
 - On the **Generate** tab, pick your current league from the dropdown
+- Optionally pick a **Profile** (e.g. "Farmer" vs "Boss runner") to load a saved setup
 
 **3. Choose what NOT to pick (optional)**
 - Open the **Items** tab
@@ -44,8 +45,8 @@ python poe2_pickit_gui.py
 
 | Tab | What it does |
 |---|---|
-| **Generate** | Select league, run generation, view stats and log |
-| **Items** | Turn individual items ON/OFF — click a card to exclude it, click again to re-enable |
+| **Generate** | Select league, pick a profile, run generation, view stats, price moves and log |
+| **Items** | Turn individual items ON/OFF — click a card to exclude it; use **Min c** to bulk-disable cheap items |
 | **Preview** | Syntax-highlighted view of the generated `.ipd` file |
 | **History** | Log of all past generate runs |
 | **Settings** | Bot folder, auto-copy, backups |

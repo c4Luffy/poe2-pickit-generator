@@ -20,6 +20,7 @@ import argparse
 import csv
 from concurrent.futures import ThreadPoolExecutor
 import io
+import json
 import os
 import re
 import sys
@@ -543,12 +544,60 @@ def _cache_get(league: str, key: str):
 def _cache_set(league: str, key: str, payload: dict):
     with _CACHE_LOCK:
         _PAYLOAD_CACHE[(league, key)] = (time.time(), payload)
+    save_payload_to_disk(league, key, payload)
 
 
 def clear_cache():
     """Discard all cached poe.ninja payloads."""
     with _CACHE_LOCK:
         _PAYLOAD_CACHE.clear()
+
+
+# ── Disk cache (survives restarts → powers offline mode) ─────────────────────
+
+_DISK_CACHE_DIR: str = ""
+
+
+def set_disk_cache_dir(path: str):
+    """Point the offline cache at a directory. Called once by the GUI on startup."""
+    global _DISK_CACHE_DIR
+    _DISK_CACHE_DIR = path
+    if path:
+        try:
+            os.makedirs(path, exist_ok=True)
+        except OSError:
+            pass
+
+
+def _disk_cache_file(league: str, key: str) -> str:
+    safe = re.sub(r'[^\w\-]', '_', f"{league}__{key}")
+    return os.path.join(_DISK_CACHE_DIR, safe + ".json")
+
+
+def save_payload_to_disk(league: str, key: str, payload: dict):
+    """Persist one payload so it can be reused when poe.ninja is unreachable."""
+    if not _DISK_CACHE_DIR or not isinstance(payload, dict):
+        return
+    try:
+        fname = _disk_cache_file(league, key)
+        tmp   = fname + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump({"ts": time.time(), "payload": payload}, f)
+        os.replace(tmp, fname)   # atomic on Windows + POSIX
+    except (OSError, TypeError, ValueError):
+        pass
+
+
+def load_payload_from_disk(league: str, key: str):
+    """Return a previously saved payload (and its age in seconds), or (None, None)."""
+    if not _DISK_CACHE_DIR:
+        return None, None
+    try:
+        with open(_disk_cache_file(league, key), encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("payload"), time.time() - float(data.get("ts", 0))
+    except (OSError, ValueError):
+        return None, None
 
 
 def cache_info() -> dict:
@@ -634,11 +683,16 @@ def fetch_category(league: str, key: str, ninja_type: str, is_unique: bool) -> d
 
 
 def fetch_all_payloads(league: str, categories: list, *, max_workers: int = 5,
-                       use_cache: bool = True) -> dict:
+                       use_cache: bool = True, offline_fallback: bool = True,
+                       stale_out: Optional[set] = None) -> dict:
     """Fetch all category payloads in parallel.
 
     Returns {key: payload} for successes and {key: Exception} for failures.
     Results are returned in the same order as `categories`.
+
+    If a live fetch fails and `offline_fallback` is on, the last payload saved to
+    disk is used instead and its key is added to `stale_out` (so callers can warn
+    the user that prices may be out of date).
     """
     results: dict = {}
     to_fetch = []
@@ -667,7 +721,13 @@ def fetch_all_payloads(league: str, categories: list, *, max_workers: int = 5,
                     _cache_set(league, key, payload)
                 results[key] = payload
             except Exception as e:
-                results[key] = e
+                disk, _age = load_payload_from_disk(league, key) if offline_fallback else (None, None)
+                if disk is not None:
+                    results[key] = disk
+                    if stale_out is not None:
+                        stale_out.add(key)
+                else:
+                    results[key] = e
 
     return results
 
@@ -734,7 +794,7 @@ def build_exchange_lines(
     payload: dict,
     divine_rate_exalts: float,
     pick_all: bool = False,
-    min_exalt: float = None,
+    min_exalt: Optional[float] = None,
     tier_sort: bool = False,
     enabled_names: Optional[Set[str]] = None,
     always_names: Optional[List[str]] = None,
@@ -789,8 +849,8 @@ def build_exchange_lines(
     return result
 
 
-def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: float = None,
-                          enabled_names: set = None) -> list:
+def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: Optional[float] = None,
+                          enabled_names: Optional[set] = None) -> list:
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
@@ -823,7 +883,7 @@ def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: f
             continue
         output.append(header_minor(f"Uncut {gem_type} Gems"))
         output.append("")
-        for _, level, name, ev, _ in group:
+        for _, _level, name, ev, _ in group:
             rule = f'[Type] == "{name}" # [StashItem] == "true" // ExValue = {ev:.2f}'
             output.append(rule if ev >= threshold else f"//{rule}")
         output.append("")
@@ -890,7 +950,7 @@ def make_report_row(category_label: str, name: str, base_type: str,
 
 
 def collect_exchange_report_rows(label: str, payload: dict, divine_rate_exalts: float,
-                                  pick_all: bool = False, min_exalt: float = None) -> list:
+                                  pick_all: bool = False, min_exalt: Optional[float] = None) -> list:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
@@ -909,7 +969,7 @@ def collect_exchange_report_rows(label: str, payload: dict, divine_rate_exalts: 
     return rows
 
 
-def collect_unique_report_rows(label: str, payload: dict, divine_rate_exalts: float, min_exalt: float = None) -> list:
+def collect_unique_report_rows(label: str, payload: dict, divine_rate_exalts: float, min_exalt: Optional[float] = None) -> list:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
     rate = exalted_rate(payload)
     seen = set()
@@ -1028,7 +1088,7 @@ def main():
     all_payloads = fetch_all_payloads(league, non_currency_cats)
     all_payloads["currency"] = currency_payload
 
-    for key, ninja_type, label, is_unique in categories:
+    for key, _ninja_type, label, is_unique in categories:
         payload = all_payloads.get(key)
 
         if isinstance(payload, Exception):
