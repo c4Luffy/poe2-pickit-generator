@@ -649,7 +649,13 @@ def build_exchange_lines(
     enabled_names: Optional[Set[str]] = None,
     always_names: Optional[List[str]] = None,
     ritual_threshold: Optional[float] = None,
+    forced_names: Optional[Set[str]] = None,
 ) -> list:
+    """
+    forced_names: items the user explicitly toggled ON in the Categories tab.
+    These always get active rules regardless of the price threshold, so that
+    manual enables are never silently commented out.
+    """
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
     rows = []
@@ -668,10 +674,9 @@ def build_exchange_lines(
         rows.append((name, exalt_value, divine_value))
 
     if tier_sort:
-        # Sort by essence tier (Lesser → base → Greater → Perfect), then alphabetically
         rows.sort(key=lambda r: _essence_tier_key(r[0]))
     else:
-        rows.sort(key=lambda r: -r[1])  # default: highest value first
+        rows.sort(key=lambda r: -r[1])
 
     if pick_all:
         result = [
@@ -679,8 +684,13 @@ def build_exchange_lines(
             for name, ev, _ in rows
         ]
     else:
-        result = [format_rule(name, ev, dv, min_exalt=min_exalt,
-                              ritual_threshold=ritual_threshold) for name, ev, dv in rows]
+        result = []
+        for name, ev, dv in rows:
+            if forced_names and name in forced_names:
+                result.append(f'[Type] == "{_quote_ipd(name)}" # [StashItem] == "true" // ExValue = {ev:.2f}')
+            else:
+                result.append(format_rule(name, ev, dv, min_exalt=min_exalt,
+                                          ritual_threshold=ritual_threshold))
 
     # Prepend hardcoded always-pick rules for items poe.ninja omits (e.g. base currency)
     if always_names:

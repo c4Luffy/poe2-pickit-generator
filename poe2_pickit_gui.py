@@ -235,7 +235,7 @@ def setup_styles(root):
 #  Main Application
 # ══════════════════════════════════════════════════════════════════════════════
 
-TABS = ["Generate", "Categories", "Preview", "History", "Settings", "Debug"]
+TABS = ["General", "Categories", "Preview", "History", "Settings", "Debug"]
 
 
 class PickitApp(tk.Tk):
@@ -2516,7 +2516,7 @@ class PickitApp(tk.Tk):
                     continue
 
                 try:
-                    # Build enabled_names set from per-item states (exchange cats only)
+                    # Build enabled_names and forced_names from per-item states
                     _cat_states = snapshot.get("item_states", {}).get(key, {})
                     if _cat_states and not is_unique:
                         _items_in_payload = {
@@ -2525,9 +2525,13 @@ class PickitApp(tk.Tk):
                         }
                         _disabled = {n for n, s in _cat_states.items()
                                      if not s.get("enabled", True)}
+                        # Items explicitly turned ON by user bypass the price threshold
+                        forced_names = {n for n, s in _cat_states.items()
+                                        if s.get("enabled", True)} & _items_in_payload
                         enabled_names = _items_in_payload - _disabled
                     else:
                         enabled_names = None  # all enabled (default / uniques)
+                        forced_names  = None
 
                     if is_unique:
                         lines = gen.build_unique_lines(payload, divine_rate_exalts, min_exalt=effective_min)
@@ -2550,7 +2554,8 @@ class PickitApp(tk.Tk):
                                                          tier_sort=tier_sort,
                                                          enabled_names=enabled_names,
                                                          always_names=always,
-                                                         ritual_threshold=ritual_th)
+                                                         ritual_threshold=ritual_th,
+                                                         forced_names=forced_names)
                         report_rows.extend(gen.collect_exchange_report_rows(
                             label_text, payload, divine_rate_exalts, pick_all=pick_all, min_exalt=effective_min))
 
