@@ -304,8 +304,9 @@ class PickitApp(tk.Tk):
         self._price_unit   = "ex"
         self._item_prices  = {}   # {cat_key: {name: {ex, chaos, div}}}
         self._cat_cards    = {}   # {cat_key: [card_frame, ...]}
-        self._active_cat   = None
-        self._price_unit_btns = {}
+        self._active_cat       = None
+        self._cat_last_fetched = {}   # {cat_key: "HH:MM"} shown in count label
+        self._price_unit_btns  = {}
 
         # Wiki icon URL cache
         self._wiki_icon_cache = {}
@@ -733,6 +734,9 @@ class PickitApp(tk.Tk):
             validate="key", validatecommand=vcmd_tbar)
         self._cat_thresh_entry.pack(side="right", padx=(0, 4), ipady=4)
         tk.Label(tbar, text="Threshold:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="right", padx=(0, 4))
+        tk.Frame(tbar, bg=BORDER, width=1).pack(side="right", padx=6, fill="y")
+        self._refresh_btn = btn(tbar, "↻ Refresh", self._refresh_cat_prices)
+        self._refresh_btn.pack(side="right", padx=(0, 4))
 
         sep(right).pack(fill="x")
 
@@ -887,6 +891,20 @@ class PickitApp(tk.Tk):
                 threading.Thread(target=self._load_cat_async,
                                  args=(key,), daemon=True).start()
 
+    def _refresh_cat_prices(self):
+        key = self._active_cat
+        if not key or key == "_gear":
+            return
+        league = self._selected_league() or "Mercenaries"
+        with gen._CACHE_LOCK:
+            gen._PAYLOAD_CACHE.pop((league, key), None)
+        self._refresh_btn.config(state="disabled", text="Refreshing…")
+        self._show_cat(key)
+
+    def _refresh_btn_ready(self):
+        if hasattr(self, "_refresh_btn"):
+            self._refresh_btn.config(state="normal", text="↻ Refresh")
+
     def _load_cat_async(self, key):
         entry_ = next((e for e in gen.EXCHANGE_CATEGORIES if e[0] == key), None)
         if not entry_:
@@ -899,6 +917,7 @@ class PickitApp(tk.Tk):
             self.after(0, lambda: self._populate_cat_grid(key, payload))
         except Exception as exc:
             self.after(0, lambda: self._cat_count_var.set(f"Failed: {exc}"))
+            self.after(0, self._refresh_btn_ready)
 
     # ── Item grid population ──────────────────────────────────────────────────
 
@@ -1048,7 +1067,9 @@ class PickitApp(tk.Tk):
         for c_ in range(NCOLS):
             self._cat_grid_frame.columnconfigure(c_, weight=1, uniform="catcol")
 
+        self._cat_last_fetched[key] = datetime.datetime.now().strftime("%H:%M")
         self._update_cat_count(key)
+        self._refresh_btn_ready()
         self._cat_canvas.configure(scrollregion=self._cat_canvas.bbox("all"))
         self._cat_canvas.yview_moveto(0)
 
@@ -1145,7 +1166,9 @@ class PickitApp(tk.Tk):
     def _update_cat_count(self, key):
         cards   = self._cat_cards.get(key, [])
         enabled = sum(1 for c in cards if c._enabled)
-        self._cat_count_var.set(f"{enabled} / {len(cards)} enabled")
+        ts      = self._cat_last_fetched.get(key, "")
+        suffix  = f"  ·  updated {ts}" if ts else ""
+        self._cat_count_var.set(f"{enabled} / {len(cards)} enabled{suffix}")
 
     # ── Price unit switching ──────────────────────────────────────────────────
 
