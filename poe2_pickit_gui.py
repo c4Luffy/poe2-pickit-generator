@@ -280,6 +280,7 @@ class PickitApp(tk.Tk):
         self._fetch_leagues_async()
         self._check_update_async()
         self._schedule_tick()
+        threading.Thread(target=self._fetch_divine_rate_async, daemon=True).start()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.bind_all("<Control-g>", lambda e: self._start_generate())
         self.bind_all("<Control-r>", lambda e: self._fetch_leagues_async())
@@ -307,6 +308,8 @@ class PickitApp(tk.Tk):
         self.include_bases_var  = tk.BooleanVar(value=True)
         self.base_quality_var   = tk.IntVar(value=self.cfg.get("base_quality", 28))
         self.base_min_level_var = tk.IntVar(value=self.cfg.get("base_min_level", 75))
+
+        self._divine_rate_var = tk.StringVar(value="—")
 
         self.cat_enabled = {}
         self.cat_thresh  = {}
@@ -611,6 +614,13 @@ class PickitApp(tk.Tk):
         _thresh_row(tr, "Gear  (Unique weapons / armour)", self.min_exalt_gear_var,
                     self._clamp_threshold_gear)
 
+        div_row = tk.Frame(tr, bg=BG2)
+        div_row.pack(anchor="w", pady=(6, 0))
+        label(div_row, "Divine rate:", fg=TEXT_DIM, font=FONT_SM, bg=BG2,
+              width=22, anchor="w").pack(side="left")
+        label(div_row, "", textvariable=self._divine_rate_var,
+              fg=TEXT_OK, font=FONT_SM, bg=BG2).pack(side="left", padx=(4, 0))
+
         # ── Output ───────────────────────────────────────────────────────────
         sec3 = self._section_frame(inner, "Output File")
         or_ = tk.Frame(sec3, bg=BG2)
@@ -631,6 +641,9 @@ class PickitApp(tk.Tk):
                            self._start_generate, style="Gold.TButton")
         self.gen_btn.pack(side="left")
 
+        self.force_btn = btn(btn_f, "⟳  Force Refresh", self._force_refresh_generate)
+        self.force_btn.pack(side="left", padx=(8, 0))
+
         self.open_ipd_btn = btn(btn_f, "Open .ipd", lambda: self._open_file(".ipd"))
         self.open_ipd_btn.pack(side="left", padx=(8, 0))
         self.open_ipd_btn.state(["disabled"])
@@ -642,6 +655,9 @@ class PickitApp(tk.Tk):
         self.progress_lbl = tk.Label(inner, textvariable=self.progress_var,
                                      bg=BG, fg=TEXT_INFO, font=FONT_SM)
         self.progress_lbl.pack(anchor="w", padx=10, pady=(6, 0))
+        self.progress_bar = ttk.Progressbar(inner, mode="indeterminate", length=400)
+        self.progress_bar.pack(anchor="w", padx=10, pady=(3, 0))
+        self.progress_bar.pack_forget()   # hidden until generate starts
 
         # ── Stats row ─────────────────────────────────────────────────────────
         sep(inner).pack(fill="x", padx=10, pady=(14, 0))
@@ -655,6 +671,7 @@ class PickitApp(tk.Tk):
             ("divine",    "Divine rate"),
             ("top",       "Top item"),
             ("duration",  "Run time"),
+            ("last_gen",  "Last Generated"),
         ]
         for i, (key, title) in enumerate(stat_defs):
             card = tk.Frame(stats_f, bg=BG2, highlightthickness=1,
@@ -2407,6 +2424,37 @@ class PickitApp(tk.Tk):
             except Exception:
                 pass
 
+    def _force_refresh_generate(self):
+        """Clear current-league cache then generate fresh data."""
+        league = self._selected_league()
+        if league:
+            with gen._CACHE_LOCK:
+                stale = [k for k in gen._PAYLOAD_CACHE if k[0] == league]
+                for k in stale:
+                    del gen._PAYLOAD_CACHE[k]
+        self._start_generate()
+
+    def _fetch_divine_rate_async(self):
+        """Background fetch of divine rate on startup so it shows before first generate."""
+        try:
+            league = self._selected_league() or "Mercenaries"
+            payload = gen._cache_get(league, "currency")
+            if payload is None:
+                payload = gen.fetch_category(league, "currency", "Currency", False)
+                gen._cache_set(league, "currency", payload)
+            rate = gen.exalted_rate(payload)
+            items_by_id = {i["id"]: i for i in payload.get("items", [])}
+            for line in payload.get("lines", []):
+                item = items_by_id.get(line.get("id"))
+                if item and item.get("name") == "Divine Orb":
+                    pv = float(line.get("primaryValue") or 0)
+                    divine = pv * rate if rate else pv
+                    self.after(0, lambda d=divine:
+                               self._divine_rate_var.set(f"1 Divine = {d:.1f} ex"))
+                    break
+        except Exception:
+            pass
+
     # ══════════════════════════════════════════════════════════════════════════
     #  Schedule
     # ══════════════════════════════════════════════════════════════════════════
@@ -2464,9 +2512,12 @@ class PickitApp(tk.Tk):
         else:
             self._log_clear()
         self.gen_btn.state(["disabled"])
+        self.force_btn.state(["disabled"])
         self.open_ipd_btn.state(["disabled"])
         self.status_lbl.config(text="Generating…", fg=TEXT_WARN)
         self.progress_var.set("Starting…")
+        self.progress_bar.pack(anchor="w", padx=10, pady=(3, 0))
+        self.progress_bar.start(12)
 
         # Snapshot all Tk variables here on the main thread so the worker never
         # touches Tcl/Tk state from a background thread (avoids intermittent
@@ -2674,6 +2725,8 @@ class PickitApp(tk.Tk):
 
             top_item    = ("", 0.0)
             report_rows = []
+            _cat_ok = 0
+            _cat_fail = 0
 
             # Fetch all non-currency categories in parallel
             non_currency_cats = [(k, t, l, u) for k, t, l, u in categories if k != "currency"]
@@ -2701,10 +2754,12 @@ class PickitApp(tk.Tk):
                     e = payload
                     output_lines += [gen.header_sub(label_text), f"// Failed: {e}", ""]
                     self._log(f"  ✗ {label_text}: {type(e).__name__}", "err")
+                    _cat_fail += 1
                     continue
                 if payload is None:
                     output_lines += [gen.header_sub(label_text), f"// No data returned", ""]
                     self._log(f"  ? {label_text}: no data", "warn")
+                    _cat_fail += 1
                     continue
 
                 try:
@@ -2757,6 +2812,7 @@ class PickitApp(tk.Tk):
 
                     active_in_cat = sum(1 for l in lines if l and not l.startswith("//"))
                     self._log(f"  ✓ {label_text}: {active_in_cat} active", "ok")
+                    _cat_ok += 1
 
                     for l in lines:
                         if l.startswith("//") or "[StashItem]" not in l:
@@ -2771,6 +2827,7 @@ class PickitApp(tk.Tk):
                 except Exception as e:
                     output_lines += [gen.header_sub(label_text), f"// Processing failed: {e}", ""]
                     self._log(f"  ✗ {label_text}: {e}", "err")
+                    _cat_fail += 1
 
             # ── Game uniques not on poe.ninja ────────────────────────────────
             ninja_unique_names = set()
@@ -2869,6 +2926,12 @@ class PickitApp(tk.Tk):
             duration  = time.time() - self._generate_start
             dur_str   = f"{duration:.1f}s"
 
+            try:
+                _fsize_kb = os.path.getsize(ipd_path) // 1024
+            except OSError:
+                _fsize_kb = 0
+            _gen_time_str = datetime.datetime.now().strftime("%H:%M")
+
             def _update_stats():
                 self._stat_vars["active"].set(str(active))
                 self._stat_vars["commented"].set(str(commented))
@@ -2876,6 +2939,8 @@ class PickitApp(tk.Tk):
                 self._stat_vars["top"].set(
                     f"{top_item[0][:22]}\n{top_item[1]:.0f} ex" if top_item[0] else "—")
                 self._stat_vars["duration"].set(dur_str)
+                self._stat_vars["last_gen"].set(f"{_gen_time_str}  ·  {_fsize_kb} KB")
+                self._divine_rate_var.set(f"1 Divine = {divine_rate_exalts:.1f} ex")
             self.after(0, _update_stats)
 
             self._add_history_entry({
@@ -2890,6 +2955,8 @@ class PickitApp(tk.Tk):
 
             self.after(0, lambda: self._populate_preview(output_lines))
 
+            _fail_note = f"  ·  {_cat_fail} failed" if _cat_fail else ""
+            self._log(f"  Categories: {_cat_ok} OK{_fail_note}", "ok" if not _cat_fail else "warn")
             self._log("─" * 55, "dim")
             self._log(f"Done in {dur_str}  ·  {active} active rules", "ok")
 
@@ -2916,7 +2983,11 @@ class PickitApp(tk.Tk):
 
     def _generate_done(self, success: bool = False):
         self._running = False
+        self.progress_bar.stop()
+        self.progress_bar.pack_forget()
+        self.progress_var.set("")
         self.gen_btn.state(["!disabled"])
+        self.force_btn.state(["!disabled"])
         if success:
             self.open_ipd_btn.state(["!disabled"])
         self.status_lbl.config(
