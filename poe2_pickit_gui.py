@@ -244,7 +244,7 @@ def setup_styles(root):
 
 TABS = ["General", "Categories", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "1.6.4"
+VERSION       = "1.6.5"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -1162,7 +1162,7 @@ class PickitApp(tk.Tk):
         Bonus: disabled + still above threshold → amber ✗ warning.
         """
         if enabled:
-            return _CON, _CTXON, _CONB, "●", GOLD
+            return _CON, _CTXON, _CONB, "", GOLD
         thresh = self._effective_threshold(cat_key)
         if thresh > 0 and ex_val >= thresh:
             return _CWARN, _CTXWRN, _CWARNB, "✗", _CWARNB
@@ -1430,7 +1430,7 @@ class PickitApp(tk.Tk):
         if enabled:
             # "Enable All" = clear all exclusions so every item follows the threshold.
             self._item_states.pop(key, None)
-            bg = _CON; fg = _CTXON; bdr = _CONB; dot = "●"; dfg = GOLD
+            bg = _CON; fg = _CTXON; bdr = _CONB; dot = ""; dfg = GOLD
             for card in self._cat_cards.get(key, []):
                 card._enabled = True
                 card.config(bg=bg, highlightbackground=bdr)
@@ -1466,7 +1466,7 @@ class PickitApp(tk.Tk):
             card._name_lbl.config(bg=_CON, fg=_CTXON)
             card._icon_lbl.config(bg=_CON)
             card._val_lbl.config(bg=_CON)
-            card._dot_lbl.config(bg=_CON, text="●", fg=GOLD)
+            card._dot_lbl.config(bg=_CON, text="", fg=GOLD)
         self._update_cat_count(key)
         self.after(0, self._save_states_now)
 
