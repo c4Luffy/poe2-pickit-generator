@@ -317,10 +317,11 @@ class PickitApp(tk.Tk):
             self.cat_thresh[key]  = tk.DoubleVar(value=threshold_cfg.get(key, -1.0))
 
         # Per-item category card state
-        self._item_states  = dict(self.cfg.get("item_states", {}))
-        self._price_unit   = "ex"
-        self._item_prices  = {}   # {cat_key: {name: {ex, chaos, div}}}
-        self._cat_cards    = {}   # {cat_key: [card_frame, ...]}
+        self._item_states     = dict(self.cfg.get("item_states", {}))
+        self._price_unit      = "ex"
+        self._item_prices     = {}   # {cat_key: {name: {ex, chaos, div}}}
+        self._cat_prev_prices = {}   # {cat_key: {name: ex}} — snapshot before last refresh
+        self._cat_cards       = {}   # {cat_key: [card_frame, ...]}
         self._active_cat       = None
         self._cat_last_fetched = {}   # {cat_key: "HH:MM"} shown in count label
         self._price_unit_btns  = {}
@@ -1003,7 +1004,10 @@ class PickitApp(tk.Tk):
         else:
             rows.sort(key=lambda r: -r[2])
 
-        # Cache prices
+        # Save previous prices for trend arrows, then cache new prices
+        self._cat_prev_prices[key] = {
+            name: p["ex"] for name, p in self._item_prices.get(key, {}).items()
+        }
         self._item_prices[key] = {
             name: {"ex": ex, "chaos": chaos, "div": (ex / div_rate if div_rate else 0.0)}
             for name, chaos, ex, div_rate, _ in rows
@@ -1046,7 +1050,8 @@ class PickitApp(tk.Tk):
                     current_type = gem_type
                 div_val = ex / _div_r if _div_r else 0.0
                 enabled = states.get(name, {}).get("enabled", True)
-                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled)
+                trend   = self._price_trend(key, name, ex)
+                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend)
                 card.grid(in_=self._cat_grid_frame, row=grid_row, column=col,
                           padx=3, pady=3, sticky="ew")
                 self._cat_cards[key].append(card)
@@ -1075,7 +1080,8 @@ class PickitApp(tk.Tk):
                     shown_flux_hdr = True
                 div_val = ex / _div_r if _div_r else 0.0
                 enabled = states.get(name, {}).get("enabled", True)
-                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled)
+                trend   = self._price_trend(key, name, ex)
+                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend)
                 card.grid(in_=self._cat_grid_frame, row=grid_row, column=col,
                           padx=3, pady=3, sticky="ew")
                 self._cat_cards[key].append(card)
@@ -1088,7 +1094,8 @@ class PickitApp(tk.Tk):
                 div_val = ex / _div_r if _div_r else 0.0
                 enabled = states.get(name, {}).get("enabled", True)
                 r_, c_ = divmod(i, NCOLS)
-                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled)
+                trend   = self._price_trend(key, name, ex)
+                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend)
                 card.grid(in_=self._cat_grid_frame, row=r_, column=c_,
                           padx=3, pady=3, sticky="ew")
                 self._cat_cards[key].append(card)
@@ -1129,7 +1136,18 @@ class PickitApp(tk.Tk):
             return _CWARN, _CTXWRN, _CWARNB, "○", _CWARNB
         return _COFF, _CTXOF, _COFB, "○", TEXT_DIM
 
-    def _make_item_card(self, cat_key, name, chaos, ex_val, div_val, icon_url, enabled):
+    def _price_trend(self, key, name, ex_val):
+        prev = self._cat_prev_prices.get(key, {}).get(name)
+        if prev is None:
+            return ""
+        delta = ex_val - prev
+        if delta > prev * 0.03:    # >3% up
+            return "up"
+        if delta < -prev * 0.03:   # >3% down
+            return "down"
+        return ""
+
+    def _make_item_card(self, cat_key, name, chaos, ex_val, div_val, icon_url, enabled, trend=""):
         bg, fg, bdr, dot_txt, dot_fg = self._card_colors(cat_key, ex_val, enabled)
 
         frame = tk.Frame(self._cat_grid_frame, bg=bg, cursor="hand2",
@@ -1156,6 +1174,16 @@ class PickitApp(tk.Tk):
         name_lbl.pack(side="left", fill="x", expand=True, padx=(0, 4))
         frame._name_lbl = name_lbl
 
+        # Trend arrow (▲ green / ▼ red) — only shown after a refresh
+        if trend == "up":
+            arrow_lbl = tk.Label(frame, text="▲", bg=bg, fg="#5dbb8a", font=("Segoe UI", 7))
+            arrow_lbl.pack(side="right", padx=(0, 1))
+        elif trend == "down":
+            arrow_lbl = tk.Label(frame, text="▼", bg=bg, fg="#e05555", font=("Segoe UI", 7))
+            arrow_lbl.pack(side="right", padx=(0, 1))
+        else:
+            arrow_lbl = None
+
         val_str = self._fmt_price(chaos, ex_val, div_val)
         val_lbl = tk.Label(frame, text=val_str, bg=bg, fg=_CVAL,
                            font=("Segoe UI", 8), anchor="e", width=11)
@@ -1170,6 +1198,9 @@ class PickitApp(tk.Tk):
         def _click(e=None, f=frame):
             self._toggle_card(f)
 
+        def _right_click(e, f=frame):
+            self._copy_card_rule(f)
+
         def _scroll(e):
             self._cat_canvas.yview_scroll(-3 if e.delta > 0 else 3, "units")
         def _scroll_up(e):
@@ -1177,13 +1208,40 @@ class PickitApp(tk.Tk):
         def _scroll_dn(e):
             self._cat_canvas.yview_scroll( 3, "units")
 
-        for w in (frame, icon_lbl, name_lbl, val_lbl, dot_lbl):
+        widgets = [frame, icon_lbl, name_lbl, val_lbl, dot_lbl]
+        if arrow_lbl:
+            widgets.append(arrow_lbl)
+        for w in widgets:
             w.bind("<Button-1>",    _click)
+            w.bind("<Button-3>",    _right_click)
+            w.bind("<Button-2>",    _right_click)
             w.bind("<MouseWheel>",  _scroll)
             w.bind("<Button-4>",    _scroll_up)
             w.bind("<Button-5>",    _scroll_dn)
 
         return frame
+
+    def _copy_card_rule(self, frame):
+        name = frame._name
+        rule = f'[Type] == "{name}" # [StashItem] == "true"'
+        self.clipboard_clear()
+        self.clipboard_append(rule)
+        # Brief visual flash on the card
+        orig_bg = frame.cget("bg")
+        frame.config(bg="#1e3a2a")
+        for w in frame.winfo_children():
+            try:
+                w.config(bg="#1e3a2a")
+            except Exception:
+                pass
+        def _restore():
+            frame.config(bg=orig_bg)
+            for w in frame.winfo_children():
+                try:
+                    w.config(bg=orig_bg)
+                except Exception:
+                    pass
+        self.after(350, _restore)
 
     def _toggle_card(self, frame):
         enabled = not frame._enabled
@@ -1818,17 +1876,26 @@ class PickitApp(tk.Tk):
             "A log of every pickit file you have generated in this session and across previous runs.  "
             "Each row shows the date and time, how many rules were active or commented out, the Divine Orb "
             "exchange rate at the time, the highest-value item found, and how long the run took.  "
-            "The last 50 runs are kept.  Click 'Clear history' to wipe the log.")
+            "The last 50 runs are kept.  The chart below shows active rules and top-item value over time.")
         cols = ("Date/time", "Active", "Commented", "Divine rate", "Top item", "Duration")
-        self._hist_tree = ttk.Treeview(page, columns=cols, show="headings", height=12)
+        self._hist_tree = ttk.Treeview(page, columns=cols, show="headings", height=10)
         for c in cols:
             self._hist_tree.heading(c, text=c)
             self._hist_tree.column(c, width=120, anchor="w")
         self._hist_tree.pack(fill="both", expand=True, padx=16, pady=(12, 4))
 
         btn_f = tk.Frame(page, bg=BG)
-        btn_f.pack(anchor="w", padx=16, pady=(4, 12))
+        btn_f.pack(anchor="w", padx=16, pady=(4, 6))
         btn(btn_f, "Clear history", self._clear_history).pack(side="left")
+
+        # Sparkline chart
+        chart_frame = tk.Frame(page, bg=BG2, highlightthickness=1, highlightbackground=BORDER)
+        chart_frame.pack(fill="x", padx=16, pady=(4, 14))
+        tk.Label(chart_frame, text="Active rules over time", bg=BG2,
+                 fg=TEXT_DIM, font=FONT_SM).pack(anchor="w", padx=10, pady=(6, 2))
+        self._hist_canvas = tk.Canvas(chart_frame, bg=BG2, height=80,
+                                      highlightthickness=0, bd=0)
+        self._hist_canvas.pack(fill="x", padx=10, pady=(0, 8))
 
         self._refresh_history_ui()
 
@@ -1854,6 +1921,49 @@ class PickitApp(tk.Tk):
                 f"{e.get('top_item', '')}  ({e.get('top_value', 0):.0f}ex)",
                 e.get("duration", ""),
             ))
+        self._draw_history_sparkline(h)
+
+    def _draw_history_sparkline(self, h):
+        c = self._hist_canvas
+        c.delete("all")
+        pts = [e.get("active", 0) for e in h[-20:] if isinstance(e.get("active"), int)]
+        if len(pts) < 2:
+            c.create_text(10, 40, anchor="w", text="Not enough data yet — generate a few times to see the chart.",
+                          fill=TEXT_DIM, font=FONT_SM)
+            return
+        c.update_idletasks()
+        W = c.winfo_width() or 600
+        H = 80
+        pad_x, pad_y = 8, 8
+        mn, mx = min(pts), max(pts)
+        rng = mx - mn or 1
+
+        def _x(i):  return pad_x + i * (W - 2*pad_x) / (len(pts) - 1)
+        def _y(v):  return pad_y + (1 - (v - mn) / rng) * (H - 2*pad_y)
+
+        # Shaded area under the line
+        poly = [pad_x, H - pad_y]
+        for i, v in enumerate(pts):
+            poly += [_x(i), _y(v)]
+        poly += [_x(len(pts)-1), H - pad_y]
+        c.create_polygon(poly, fill="#1a3a28", outline="")
+
+        # Line + dots
+        for i in range(len(pts) - 1):
+            c.create_line(_x(i), _y(pts[i]), _x(i+1), _y(pts[i+1]),
+                          fill="#5dbb8a", width=2)
+        for i, v in enumerate(pts):
+            c.create_oval(_x(i)-3, _y(v)-3, _x(i)+3, _y(v)+3,
+                          fill="#5dbb8a", outline="")
+
+        # Labels: first, last, max
+        c.create_text(_x(0)+2, _y(pts[0])-8, text=str(pts[0]),
+                      fill=TEXT_DIM, font=FONT_SM, anchor="w")
+        c.create_text(_x(len(pts)-1)-2, _y(pts[-1])-8, text=str(pts[-1]),
+                      fill=TEXT_DIM, font=FONT_SM, anchor="e")
+        peak_i = pts.index(mx)
+        c.create_text(_x(peak_i), _y(mx)-8, text=f"peak {mx}",
+                      fill=GOLD, font=FONT_SM, anchor="s")
 
     def _clear_history(self):
         if messagebox.askyesno("Clear history", "Delete all history entries?"):
