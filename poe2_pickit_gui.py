@@ -125,6 +125,9 @@ _CONB   = "#5a406a"   # item card enabled border
 _COFB   = "#2e2a38"   # item card disabled border
 _CTXON  = "#ece4d8"   # item card enabled text
 _CTXOF  = "#505060"   # item card disabled text
+_CWARN  = "#221a06"   # disabled-but-valuable bg
+_CWARNB = "#b87820"   # disabled-but-valuable border (amber)
+_CTXWRN = "#7a6840"   # disabled-but-valuable text
 _CVAL   = "#c8a050"   # value text
 
 FONT      = ("Segoe UI", 10)
@@ -1079,10 +1082,29 @@ class PickitApp(tk.Tk):
 
     # ── Item card widget ──────────────────────────────────────────────────────
 
+    def _effective_threshold(self, key):
+        """Active ex floor for a category (per-cat override if set, else global)."""
+        try:
+            cat_t = self.cat_thresh[key].get()
+            if cat_t >= 0:
+                return cat_t
+        except (tk.TclError, ValueError, KeyError):
+            pass
+        try:
+            return self.min_exalt_var.get()
+        except (tk.TclError, ValueError):
+            return 1.0
+
+    def _card_colors(self, cat_key, ex_val, enabled):
+        """Return (bg, fg, bdr, dot_text, dot_fg) for a card given its state."""
+        if enabled:
+            return _CON, _CTXON, _CONB, "●", GOLD
+        if ex_val >= self._effective_threshold(cat_key):
+            return _CWARN, _CTXWRN, _CWARNB, "○", _CWARNB
+        return _COFF, _CTXOF, _COFB, "○", TEXT_DIM
+
     def _make_item_card(self, cat_key, name, chaos, ex_val, div_val, icon_url, enabled):
-        bg  = _CON  if enabled else _COFF
-        fg  = _CTXON if enabled else _CTXOF
-        bdr = _CONB if enabled else _COFB
+        bg, fg, bdr, dot_txt, dot_fg = self._card_colors(cat_key, ex_val, enabled)
 
         frame = tk.Frame(self._cat_grid_frame, bg=bg, cursor="hand2",
                          highlightthickness=1, highlightbackground=bdr)
@@ -1114,10 +1136,7 @@ class PickitApp(tk.Tk):
         val_lbl.pack(side="right", padx=(0, 4))
         frame._val_lbl = val_lbl
 
-        dot_lbl = tk.Label(frame,
-                           text="●" if enabled else "○",
-                           bg=bg,
-                           fg=GOLD if enabled else TEXT_DIM,
+        dot_lbl = tk.Label(frame, text=dot_txt, bg=bg, fg=dot_fg,
                            font=("Segoe UI", 11))
         dot_lbl.pack(side="right", padx=(0, 2))
         frame._dot_lbl = dot_lbl
@@ -1143,17 +1162,13 @@ class PickitApp(tk.Tk):
     def _toggle_card(self, frame):
         enabled = not frame._enabled
         frame._enabled = enabled
-        bg  = _CON  if enabled else _COFF
-        fg  = _CTXON if enabled else _CTXOF
-        bdr = _CONB if enabled else _COFB
+        bg, fg, bdr, dot_txt, dot_fg = self._card_colors(frame._cat_key, frame._ex, enabled)
 
         frame.config(bg=bg, highlightbackground=bdr)
         frame._name_lbl.config(bg=bg, fg=fg)
         frame._icon_lbl.config(bg=bg)
         frame._val_lbl.config(bg=bg)
-        frame._dot_lbl.config(bg=bg,
-                              text="●" if enabled else "○",
-                              fg=GOLD if enabled else TEXT_DIM)
+        frame._dot_lbl.config(bg=bg, text=dot_txt, fg=dot_fg)
 
         key  = frame._cat_key
         name = frame._name
