@@ -71,6 +71,7 @@ DEFAULT_CONFIG = {
     "league": "",
     "min_exalt": 0.0,
     "min_exalt_gear": 0.0,
+    "min_exalt_unique": 0.0,
     "output_base": "poe2_pickit",
     "bot_folder": "",
     "auto_copy": False,
@@ -201,15 +202,21 @@ def btn(parent, text, cmd, **kw):
 
 # ── ttk style setup (called once on app init) ─────────────────────────────────
 
-def setup_styles(root):
+def setup_styles(root, scale=1.0):
     style = ttk.Style(root)
     style.theme_use("clam")
+
+    # ttk fonts are point-based and auto-scale with the monitor DPI, but ttk
+    # padding and Treeview row height are in raw pixels — scale them so they stay
+    # proportional to the (larger) text on high-DPI displays.
+    def _s(px):
+        return max(1, int(round(px * scale)))
 
     style.configure("TButton",
         background=BG3, foreground=TEXT,
         font=FONT, relief="flat",
         borderwidth=1, focusthickness=0,
-        padding=(10, 5))
+        padding=(_s(10), _s(5)))
     style.map("TButton",
         background=[("active", BORDER), ("pressed", BG)],
         foreground=[("active", TEXT)])
@@ -217,7 +224,7 @@ def setup_styles(root):
     style.configure("Gold.TButton",
         background=GOLD, foreground="#111",
         font=FONT_BOLD, relief="flat",
-        borderwidth=0, padding=(14, 6))
+        borderwidth=0, padding=(_s(14), _s(6)))
     style.map("Gold.TButton",
         background=[("active", GOLD_LT), ("pressed", GOLD)])
 
@@ -225,7 +232,7 @@ def setup_styles(root):
         fieldbackground=BG3, background=BG3,
         foreground=TEXT, selectbackground=BG3,
         selectforeground=TEXT, arrowcolor=GOLD,
-        bordercolor=BORDER, padding=4)
+        bordercolor=BORDER, padding=_s(4))
     style.map("TCombobox", fieldbackground=[("readonly", BG3)],
                             foreground=[("readonly", TEXT)])
     root.option_add("*TCombobox*Listbox.background",       BG3)
@@ -235,7 +242,7 @@ def setup_styles(root):
 
     style.configure("Treeview",
         background=BG2, foreground=TEXT,
-        fieldbackground=BG2, rowheight=22, font=FONT)
+        fieldbackground=BG2, rowheight=_s(22), font=FONT)
     style.configure("Treeview.Heading",
         background=BG3, foreground=GOLD, font=FONT_BOLD, relief="flat")
     style.map("Treeview", background=[("selected", BORDER)])
@@ -329,22 +336,25 @@ class PickitApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.cfg = load_config()
-        setup_styles(self)
 
-        self.title(f"ExileBot 2 Pickit Generator  v{VERSION}")
-        self.configure(bg=BG)
-        self.resizable(True, True)
-
-        # ── DPI-aware window sizing ───────────────────────────────────────────
+        # ── DPI scale factor ──────────────────────────────────────────────────
         # The process is DPI-aware (see _enable_dpi_awareness), so Tk renders at
-        # native resolution and auto-scales point-based fonts. The window geometry
-        # is in raw pixels, so scale it by the monitor's DPI factor to match.
+        # native resolution and auto-scales point-based fonts. Fixed *pixel* sizes
+        # (window geometry, the category sidebar, ttk row height/padding) do NOT
+        # auto-scale, so multiply them by this factor to keep the layout in
+        # proportion with the text.  1.0 @100%, 1.5 @150%, 2.5 @250%.
         try:
-            scale = self.winfo_fpixels("1i") / 96.0   # 1.0 @100%, 1.5 @150%
+            scale = self.winfo_fpixels("1i") / 96.0
         except Exception:
             scale = 1.0
         scale = max(1.0, min(scale, 3.0))
         self._ui_scale = scale
+
+        setup_styles(self, scale)
+
+        self.title(f"ExileBot 2 Pickit Generator  v{VERSION}")
+        self.configure(bg=BG)
+        self.resizable(True, True)
 
         base_w, base_h = 1020, 780
         self.minsize(int(900 * scale), int(640 * scale))
@@ -392,6 +402,7 @@ class PickitApp(tk.Tk):
         self.league_var       = tk.StringVar(value=self.cfg.get("league") or "")
         self.min_exalt_var      = tk.DoubleVar(value=self.cfg.get("min_exalt", 0.0))
         self.min_exalt_gear_var = tk.DoubleVar(value=self.cfg.get("min_exalt_gear", 0.0))
+        self.min_exalt_unique_var = tk.DoubleVar(value=self.cfg.get("min_exalt_unique", 0.0))
         self.output_var       = tk.StringVar(value=self.cfg.get("output_base", "poe2_pickit"))
         self.bot_folder_var   = tk.StringVar(value=self.cfg.get("bot_folder", ""))
         self.auto_copy_var    = tk.BooleanVar(value=self.cfg.get("auto_copy", False))
@@ -716,6 +727,7 @@ class PickitApp(tk.Tk):
             if self._active_cat and self._active_cat != "_gear":
                 self.after(50, lambda: self._show_cat(self._active_cat))
             self.after(100, lambda: self._preload_all_cats_async(new_league))
+            self.after(150, self._update_unique_conv)
 
         self.league_cb.bind("<<ComboboxSelected>>", _on_league_select)
         self.league_cb.bind("<Return>", _on_league_select)
@@ -747,6 +759,24 @@ class PickitApp(tk.Tk):
         or2.columnconfigure(0, weight=1)
         entry(or2, self.output_var).grid(row=0, column=0, sticky="ew", ipady=4, padx=(0, 6))
         btn(or2, "Browse…", self._browse_output).grid(row=0, column=1)
+
+        # ── Unique gear value floor ───────────────────────────────────────────
+        secu = self._section_frame(inner, "Unique Gear — Minimum Value")
+        label(secu, "Only pick up unique items worth at least this much.  The value is in "
+                    "Exalt, which already accounts for Divine and Chaos prices (every item's "
+                    "price is converted to its Exalt equivalent before comparing).  Set to 0 to "
+                    "pick up every unique.",
+              fg=TEXT_DIM, font=FONT_SM, bg=BG2, wraplength=820, justify="left").pack(
+                  anchor="w", padx=10, pady=(8, 2))
+        urow = tk.Frame(secu, bg=BG2)
+        urow.pack(fill="x", padx=10, pady=(2, 2))
+        self._make_slider(urow, self.min_exalt_unique_var,
+                          from_=0, to=1000, resolution=5,
+                          fmt="{:.0f} ex", width=int(320 * self._ui_scale)).pack(side="left")
+        self._unique_conv_lbl = label(secu, "", fg=GOLD, font=FONT_SM, bg=BG2)
+        self._unique_conv_lbl.pack(anchor="w", padx=10, pady=(0, 10))
+        self.min_exalt_unique_var.trace_add("write", self._on_unique_floor_change)
+        self.after(300, self._update_unique_conv)
 
         # ── Action buttons ───────────────────────────────────────────────────
         btn_f = tk.Frame(inner, bg=BG)
@@ -871,6 +901,40 @@ class PickitApp(tk.Tk):
         except (tk.TclError, ValueError):
             pass
 
+    def _on_unique_floor_change(self, *_):
+        """Keep the unique-gear floor in cfg (so it survives restart) and refresh
+        the divine/chaos readout under the slider."""
+        try:
+            self.cfg["min_exalt_unique"] = float(self.min_exalt_unique_var.get())
+        except (tk.TclError, ValueError):
+            pass
+        self._update_unique_conv()
+
+    def _update_unique_conv(self, *_):
+        """Show the unique-gear floor's Divine and Chaos equivalents under the slider."""
+        lbl = getattr(self, "_unique_conv_lbl", None)
+        if lbl is None:
+            return
+        try:
+            ex = float(self.min_exalt_unique_var.get())
+        except (tk.TclError, ValueError):
+            return
+        if ex <= 0:
+            lbl.config(text="Picking up every unique (no value floor).")
+            return
+        league   = self._selected_league() or ""
+        div_rate = self._get_divine_rate(league)      # ex per 1 divine (1.0 if no data)
+        chaos_ex = self._get_chaos_ex_value(league)   # ex per 1 chaos  (0.0 if no data)
+        parts = []
+        if div_rate and div_rate > 1.0:
+            parts.append(f"{ex / div_rate:.2f} divine")
+        if chaos_ex and chaos_ex > 0:
+            parts.append(f"~{ex / chaos_ex:.0f} chaos")
+        if parts:
+            lbl.config(text="≈  " + "    ·    ".join(parts))
+        else:
+            lbl.config(text="(Divine / Chaos equivalents shown once prices load)")
+
     # ══════════════════════════════════════════════════════════════════════════
     #  CATEGORIES PAGE
     # ══════════════════════════════════════════════════════════════════════════
@@ -878,7 +942,9 @@ class PickitApp(tk.Tk):
     def _build_categories_page(self, page):
         """Card-based category browser. Sidebar = categories, right = item grid."""
         # ── Horizontal split: sidebar | content ───────────────────────────────
-        sidebar = tk.Frame(page, bg=_CBAR, width=168)
+        # Fixed pixel width with pack_propagate(False) won't auto-scale on high-DPI
+        # monitors, so widen it by the DPI factor or category names get clipped.
+        sidebar = tk.Frame(page, bg=_CBAR, width=int(168 * self._ui_scale))
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
@@ -1895,11 +1961,16 @@ class PickitApp(tk.Tk):
             min_gear = float(self.min_exalt_gear_var.get())
         except (tk.TclError, ValueError):
             min_gear = 0.0
+        try:
+            min_unique = float(self.min_exalt_unique_var.get())
+        except (tk.TclError, ValueError):
+            min_unique = 0.0
         return {
-            "item_states":     copy.deepcopy(self._item_states),
-            "min_exalt":       min_ex,
-            "min_exalt_gear":  min_gear,
-            "output_base":     self.output_var.get(),
+            "item_states":      copy.deepcopy(self._item_states),
+            "min_exalt":        min_ex,
+            "min_exalt_gear":   min_gear,
+            "min_exalt_unique": min_unique,
+            "output_base":      self.output_var.get(),
             "min_chaos_filter": self._min_chaos_filter_var.get(),
         }
 
@@ -1929,6 +2000,7 @@ class PickitApp(tk.Tk):
         self._item_states = copy.deepcopy(prof.get("item_states", {}))
         self.min_exalt_var.set(prof.get("min_exalt", 0.0))
         self.min_exalt_gear_var.set(prof.get("min_exalt_gear", 0.0))
+        self.min_exalt_unique_var.set(prof.get("min_exalt_unique", 0.0))
         self.output_var.set(prof.get("output_base", "poe2_pickit"))
         self._min_chaos_filter_var.set(str(prof.get("min_chaos_filter", 0)))
 
@@ -2933,6 +3005,10 @@ class PickitApp(tk.Tk):
         self.cfg["base_min_level"]         = self.base_min_level_var.get()
         self.cfg["min_exalt"]      = 0.0
         self.cfg["min_exalt_gear"] = 0.0
+        try:
+            self.cfg["min_exalt_unique"] = float(self.min_exalt_unique_var.get())
+        except (tk.TclError, ValueError):
+            pass
         save_config(self.cfg)
         self._log("Settings saved.", "ok")
 
@@ -2944,6 +3020,7 @@ class PickitApp(tk.Tk):
             self.league_var.set(self.cfg.get("league", ""))
             self.min_exalt_var.set(self.cfg.get("min_exalt", 0.0))
             self.min_exalt_gear_var.set(self.cfg.get("min_exalt_gear", 0.0))
+            self.min_exalt_unique_var.set(self.cfg.get("min_exalt_unique", 0.0))
             self.output_var.set(self.cfg.get("output_base", "poe2_pickit"))
             self.bot_folder_var.set(self.cfg.get("bot_folder", ""))
             self.auto_copy_var.set(self.cfg.get("auto_copy", False))
@@ -3297,8 +3374,10 @@ class PickitApp(tk.Tk):
                 if item and item.get("name") == "Divine Orb":
                     pv = float(line.get("primaryValue") or 0)
                     divine = pv * rate if rate else pv
-                    self.after(0, lambda d=divine:
-                               self._divine_rate_var.set(f"1 Divine = {d:.1f} ex"))
+                    def _set(d=divine):
+                        self._divine_rate_var.set(f"1 Divine = {d:.1f} ex")
+                        self._update_unique_conv()
+                    self.after(0, _set)
                     break
         except Exception:
             pass
@@ -3403,6 +3482,12 @@ class PickitApp(tk.Tk):
             snapshot["min_exalt_gear"] = float(self.cfg.get("min_exalt_gear", 5.0))
             self.min_exalt_gear_var.set(snapshot["min_exalt_gear"])
             self._log("Gear threshold invalid — reset to saved value.", "warn")
+        try:
+            snapshot["min_exalt_unique"] = self.min_exalt_unique_var.get()
+        except tk.TclError:
+            snapshot["min_exalt_unique"] = float(self.cfg.get("min_exalt_unique", 0.0))
+            self.min_exalt_unique_var.set(snapshot["min_exalt_unique"])
+            self._log("Unique threshold invalid — reset to saved value.", "warn")
 
         # Init segmented bar — one segment per category + scout + maybe bases
         _n_main = sum(1 for c in gen.ALL_CATEGORIES
@@ -3420,6 +3505,7 @@ class PickitApp(tk.Tk):
             league    = snapshot["league"]
             min_exalt = snapshot["min_exalt"]
             min_exalt_gear = snapshot.get("min_exalt_gear", 5.0)
+            min_exalt_unique = snapshot.get("min_exalt_unique", 0.0)
 
             try:
                 min_exalt = float(min_exalt)
@@ -3431,13 +3517,18 @@ class PickitApp(tk.Tk):
             except (TypeError, ValueError):
                 min_exalt_gear = float(self.cfg.get("min_exalt_gear", 5.0))
                 self._log("Gear threshold invalid — reset to saved value.", "warn")
+            try:
+                min_exalt_unique = float(min_exalt_unique)
+            except (TypeError, ValueError):
+                min_exalt_unique = float(self.cfg.get("min_exalt_unique", 0.0))
+                self._log("Unique threshold invalid — reset to saved value.", "warn")
 
             base_path = os.path.join(OUTPUT_DIR,
                                      os.path.basename(os.path.splitext(snapshot["output_var"])[0]))
             ipd_path  = base_path + ".ipd"
 
             self._log(f"League    : {league}")
-            self._log(f"Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_gear:.0f} ex  (gear)")
+            self._log(f"Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_unique:.0f} ex  (unique gear)")
             self._log(f"Output    : {os.path.basename(base_path)}.ipd")
             self._log("─" * 55, "dim")
 
@@ -3454,7 +3545,7 @@ class PickitApp(tk.Tk):
                 f"// League    : {league}",
                 f"// Generated : {_gen_ts.strftime('%Y-%m-%d %H:%M:%S')}",
                 f"// Pickit ID : {_gen_id}",
-                f"// Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_gear:.0f} ex  (gear/uniques)",
+                f"// Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_unique:.0f} ex  (unique gear)",
                 "/" * gen._W, "",
                 # ── Configuration guide ───────────────────────────────────────
                 "//",
@@ -3591,7 +3682,6 @@ class PickitApp(tk.Tk):
                               gen.header_major("Economy Items"), ""]
 
             top_items: list[tuple[str, float]] = []   # (name, ex_val), sorted desc
-            report_rows = []
             _cat_ok = 0
             _cat_fail = 0
 
@@ -3616,7 +3706,7 @@ class PickitApp(tk.Tk):
                 cat_thresh = snapshot["cat_thresh"].get(key, -1.0)
                 if not isinstance(cat_thresh, (int, float)):
                     cat_thresh = -1.0
-                global_min = min_exalt_gear if is_unique else min_exalt
+                global_min = min_exalt_unique if is_unique else min_exalt
                 effective_min = cat_thresh if cat_thresh >= 0 else global_min
 
                 payload = all_payloads.get(key)
@@ -3652,14 +3742,11 @@ class PickitApp(tk.Tk):
 
                     if is_unique:
                         lines = gen.build_unique_lines(payload, divine_rate_exalts, min_exalt=effective_min)
-                        report_rows.extend(gen.collect_unique_report_rows(label_text, payload, divine_rate_exalts, min_exalt=effective_min))
                     elif key == "uncut_gems":
                         lines = gen.build_uncut_gem_lines(payload, divine_rate_exalts, min_exalt=effective_min,
                                                           enabled_names=enabled_names)
-                        report_rows.extend(gen.collect_exchange_report_rows(label_text, payload, divine_rate_exalts, min_exalt=effective_min))
                     elif key == "waystones":
                         lines = gen.build_waystone_lines(payload, divine_rate_exalts, min_exalt=effective_min)
-                        report_rows.extend(gen.collect_exchange_report_rows(label_text, payload, divine_rate_exalts, min_exalt=effective_min))
                     else:
                         pick_all  = key in gen.PICK_ALL_CATEGORIES
                         tier_sort = (key == "essences")
@@ -3672,8 +3759,6 @@ class PickitApp(tk.Tk):
                                                          enabled_names=enabled_names,
                                                          always_names=always,
                                                          ritual_threshold=ritual_th)
-                        report_rows.extend(gen.collect_exchange_report_rows(
-                            label_text, payload, divine_rate_exalts, pick_all=pick_all, min_exalt=effective_min))
 
                     output_lines += [gen.header_sub(label_text), ""]
                     output_lines += lines if lines else [f"// poe.ninja returned no rows for {label_text}"]
@@ -3719,7 +3804,7 @@ class PickitApp(tk.Tk):
                     lines = gen.build_scout_lines(
                         payload_items.get("items", []),
                         divine_rate_exalts,
-                        min_exalt=min_exalt_gear,
+                        min_exalt=min_exalt_unique,
                     )
                     active = [l for l in lines if "[StashItem]" in l]
                     output_lines += [gen.header_sub(label_text), ""] + lines + [""]
@@ -3770,19 +3855,11 @@ class PickitApp(tk.Tk):
 
             self._last_output = list(output_lines)
 
-            # Write files
+            # Write the single .ipd output file.
             self._backup_file(ipd_path, n=snapshot["backup_count"])
             with open(ipd_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(output_lines))
-            latest_path = os.path.join(OUTPUT_DIR, "latest.ipd")
-            with open(latest_path, "w", encoding="utf-8") as f:
-                f.write("\n".join(output_lines))
-
-            csv_path = os.path.join(OUTPUT_DIR,
-                                    os.path.splitext(os.path.basename(ipd_path))[0] + "_items.csv")
-            with open(csv_path, "w", encoding="utf-8", newline="") as f:
-                f.write(gen.build_csv_report(report_rows))
-            self._log(f"Item report: {os.path.basename(csv_path)}", "dim")
+            self._log(f"Written: {os.path.basename(ipd_path)}", "dim")
             success = True
 
             # Auto-copy
@@ -3908,6 +3985,7 @@ class PickitApp(tk.Tk):
                 "league":             league,
                 "min_exalt":          min_exalt,
                 "min_exalt_gear":     min_exalt_gear,
+                "min_exalt_unique":   min_exalt_unique,
                 "output_base":        snapshot["output_var"],
                 "category_enabled":   dict(snapshot["cat_enabled"]),
                 "category_threshold": dict(snapshot["cat_thresh"]),
@@ -3996,6 +4074,10 @@ class PickitApp(tk.Tk):
             self.after_cancel(self._schedule_after)
         self.cfg["window_geometry"]  = self.geometry()
         self.cfg["cat_prev_prices"]  = self._cat_prev_prices
+        try:
+            self.cfg["min_exalt_unique"] = float(self.min_exalt_unique_var.get())
+        except (tk.TclError, ValueError):
+            pass
         save_config(self.cfg)
         self.destroy()
 
@@ -4003,19 +4085,42 @@ class PickitApp(tk.Tk):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def _enable_dpi_awareness():
-    """Tell Windows this process scales itself, so the UI isn't bitmap-stretched
-    (blurry) on displays set to 125% / 150% / 175%. Must run before the Tk root
-    is created. No-op / harmless on non-Windows or older Windows."""
+    """Tell Windows this process renders at native resolution, so the UI isn't
+    bitmap-stretched (blurry) on displays scaled to 125%–250%. Must run before the
+    Tk root is created. No-op / harmless on non-Windows or older Windows.
+
+    SetProcessDpiAwarenessContext takes a pointer-sized DPI_AWARENESS_CONTEXT
+    handle. Passing a bare Python int makes ctypes marshal it as a 32-bit C int,
+    which fails *silently* (returns FALSE, no exception) on 64-bit Windows — the
+    process then stays DPI-unaware and every window is blurry. Marshal it as
+    c_void_p and check the BOOL result so we actually fall through to the older
+    APIs when a step fails."""
     try:
         import ctypes
-        try:
-            # Per-Monitor-v2 (Win 10 1703+) — best: crisp on every monitor
-            ctypes.windll.user32.SetProcessDpiAwarenessContext(-4)
-        except Exception:
-            try:
-                ctypes.windll.shcore.SetProcessDpiAwareness(1)  # System DPI aware
-            except Exception:
-                ctypes.windll.user32.SetProcessDPIAware()       # Vista+ fallback
+        from ctypes import wintypes
+    except Exception:
+        return
+
+    # 1) Per-Monitor-v2 (Win 10 1703+) — crisp on every monitor, survives DPI changes.
+    try:
+        fn = ctypes.windll.user32.SetProcessDpiAwarenessContext
+        fn.restype  = wintypes.BOOL
+        fn.argtypes = [ctypes.c_void_p]
+        if fn(ctypes.c_void_p(-4)):   # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+            return
+    except Exception:
+        pass
+
+    # 2) Per-Monitor aware (Win 8.1+). Returns S_OK (0) on success.
+    try:
+        if ctypes.windll.shcore.SetProcessDpiAwareness(2) == 0:
+            return
+    except Exception:
+        pass
+
+    # 3) System DPI aware (Vista+) — last resort, still beats bitmap stretching.
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
     except Exception:
         pass
 
