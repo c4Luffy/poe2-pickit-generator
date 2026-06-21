@@ -342,7 +342,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.2.0"
+VERSION       = "2.2.1"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -811,6 +811,10 @@ class PickitApp(tk.Tk):
         self.open_ipd_btn = btn(btn_f, "Open .ipd", lambda: self._open_file(".ipd"))
         self.open_ipd_btn.pack(side="left", padx=(8, 0))
         self.open_ipd_btn.state(["disabled"])
+
+        self.open_filter_btn = btn(btn_f, "Open .filter", lambda: self._open_file(".filter"))
+        self.open_filter_btn.pack(side="left", padx=(6, 0))
+        self.open_filter_btn.state(["disabled"])
 
         btn(btn_f, "Open output folder", self._open_output_folder).pack(side="left", padx=(6, 0))
 
@@ -1523,6 +1527,7 @@ class PickitApp(tk.Tk):
             arrow_lbl.pack(side="right", padx=(0, 1))
         else:
             arrow_lbl = None
+        frame._arrow_lbl = arrow_lbl
 
         # Sparkline (7-day price chart)
         if sparkline and len(sparkline) >= 2:
@@ -1619,6 +1624,8 @@ class PickitApp(tk.Tk):
         frame._icon_lbl.config(bg=bg)
         frame._val_lbl.config(bg=bg)
         frame._dot_lbl.config(bg=bg, text=dot_txt, fg=dot_fg)
+        if getattr(frame, "_arrow_lbl", None):
+            frame._arrow_lbl.config(bg=bg)
         if getattr(frame, "_spark_cv", None):
             frame._spark_cv.config(bg=bg)
 
@@ -3686,6 +3693,7 @@ class PickitApp(tk.Tk):
         self.gen_btn.state(["disabled"])
         self.force_btn.state(["disabled"])
         self.open_ipd_btn.state(["disabled"])
+        self.open_filter_btn.state(["disabled"])
         self.status_lbl.config(text="Generating…", fg=TEXT_WARN)
         self.progress_var.set("Starting…")
 
@@ -3996,7 +4004,7 @@ class PickitApp(tk.Tk):
                         lines = gen.build_uncut_gem_lines(payload, divine_rate_exalts, min_exalt=effective_min,
                                                           enabled_names=enabled_names)
                     elif key == "waystones":
-                        lines = gen.build_waystone_lines(payload, divine_rate_exalts, min_exalt=effective_min)
+                        lines = gen.build_waystone_lines()
                     else:
                         pick_all  = key in gen.PICK_ALL_CATEGORIES
                         tier_sort = (key == "essences")
@@ -4129,11 +4137,13 @@ class PickitApp(tk.Tk):
             self._log(f"Written: {os.path.basename(ipd_path)}", "dim")
             success = True
 
-            # Auto-copy
+            # Auto-copy — stable name so hourly auto-runs overwrite one pickit in the
+            # bot folder instead of leaving a trail of timestamped copies the bot
+            # (which points at a single file) never reads.
             if snapshot["auto_copy"]:
                 bot = snapshot["bot_folder"].strip()
                 if bot and os.path.isdir(bot):
-                    dest = os.path.join(bot, os.path.basename(ipd_path))
+                    dest = os.path.join(bot, (snapshot.get("output_stable") or "poe2_pickit") + ".ipd")
                     shutil.copy2(ipd_path, dest)
                     self._log(f"Copied to bot folder: {dest}", "ok")
                 else:
@@ -4259,7 +4269,9 @@ class PickitApp(tk.Tk):
                     text = f"{arrow} {name}: {chaos_prev:.0f}c → {chaos_now:.0f}c  ({sign}{delta*100:.0f}%)"
                     alerts.append((abs(delta), text))
 
-            self._last_gen_prices[league] = new_gen_prices
+            # Keep only the current league's baseline so the config file doesn't
+            # accumulate a full price snapshot for every league ever generated.
+            self._last_gen_prices = {league: new_gen_prices}
             alerts.sort(key=lambda t: t[0], reverse=True)
             # Shown in the post-generate summary box only (not re-logged below).
             self._price_alerts = [text for _, text in alerts[:10]]
@@ -4314,6 +4326,7 @@ class PickitApp(tk.Tk):
         self.force_btn.state(["!disabled"])
         if success:
             self.open_ipd_btn.state(["!disabled"])
+            self.open_filter_btn.state(["!disabled"])
             self._show_gen_summary()
         self.status_lbl.config(
             text=f"Last run: {datetime.datetime.now().strftime('%H:%M:%S')}",
