@@ -326,7 +326,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.0.1"
+VERSION       = "2.0.2"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
