@@ -11,7 +11,7 @@ Fixes over v5:
   - Simplified to ttk.Button throughout for native OS rendering
 """
 
-import sys, os, re, json, time, shutil, threading, datetime, traceback, subprocess, importlib, hashlib, copy
+import sys, os, re, json, time, shutil, threading, datetime, traceback, subprocess, importlib, hashlib, copy, tempfile
 from concurrent.futures import ThreadPoolExecutor as _TPE
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
@@ -326,7 +326,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.0.3"
+VERSION       = "2.1.0"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -1746,9 +1746,14 @@ class PickitApp(tk.Tk):
         grid_row  = 0
         col       = 0
         found_any = False
+        league    = self._selected_league() or "Mercenaries"
 
         for cat_key, _, cat_label, _ in gen.EXCHANGE_CATEGORIES:
-            prices = self._item_prices.get(cat_key, {})
+            prices = self._item_prices.get(cat_key)
+            if not prices:
+                # Category not opened yet — derive prices from the cached payload
+                # so global search covers everything the preloader has warmed.
+                prices = self._prices_from_payload(gen._cache_get(league, cat_key), league)
             if not prices:
                 continue
             matches = sorted(
@@ -2063,6 +2068,34 @@ class PickitApp(tk.Tk):
                 pv = float(line.get("primaryValue") or 0.0)
                 return pv * rate if rate else pv
         return 0.0
+
+    def _prices_from_payload(self, payload, league):
+        """Derive {name: {ex, chaos, div}} from a cached poe.ninja payload so
+        global search can cover categories that haven't been rendered yet.
+        Mirrors the price extraction in _populate_cat_grid."""
+        if not payload or isinstance(payload, Exception):
+            return {}
+        items_by_id = {i["id"]: i for i in payload.get("items", [])}
+        rate     = gen.exalted_rate(payload)
+        div_rate = self._get_divine_rate(league)
+        chaos_ex = self._get_chaos_ex_value(league)
+        out = {}
+        for line in payload.get("lines", []):
+            item = items_by_id.get(line.get("id"))
+            if not item or not item.get("name"):
+                continue
+            raw = item["name"]
+            if raw in gen.ITEM_NAME_SKIP:
+                continue
+            name = gen.ITEM_NAME_CORRECTIONS.get(raw, raw)
+            pv   = float(line.get("primaryValue") or 0.0)
+            ex   = pv * rate if rate else pv
+            out[name] = {
+                "ex":    ex,
+                "chaos": ex / chaos_ex if chaos_ex else ex,
+                "div":   ex / div_rate if div_rate else 0.0,
+            }
+        return out
 
     # ── Icon loading ──────────────────────────────────────────────────────────
 
@@ -2749,6 +2782,19 @@ class PickitApp(tk.Tk):
             "Active rules are shown in green, commented-out (below-threshold) rules in grey, "
             "and section headers in gold.  Use the Filter box to search by item name or any keyword.  "
             "Click 'Copy all' to copy the entire file to your clipboard.")
+        # ── Validation results banner (#1) ────────────────────────────────────
+        self._val_bar = tk.Frame(page, bg=BG2, highlightthickness=1,
+                                 highlightbackground=BORDER)
+        self._val_bar.pack(fill="x", padx=16, pady=(8, 0))
+        self._val_hdr = tk.Label(self._val_bar, text="Generate to validate your pickit.",
+                                 bg=BG2, fg=TEXT_DIM, font=FONT_BOLD, anchor="w",
+                                 padx=10, pady=6)
+        self._val_hdr.pack(fill="x")
+        self._val_detail, self._val_text = scrolled_text(self._val_bar, height=5, state="disabled")
+        # _val_detail packed only when there are issues to show
+        self._val_text.tag_config("err",  foreground=TEXT_ERR)
+        self._val_text.tag_config("warn", foreground=TEXT_WARN)
+
         ctrl = tk.Frame(page, bg=BG)
         ctrl.pack(fill="x", padx=16, pady=10)
         label(ctrl, "Filter:", fg=TEXT_DIM, font=FONT).pack(side="left", padx=(0, 6))
@@ -2759,6 +2805,7 @@ class PickitApp(tk.Tk):
         label(ctrl, "", textvariable=self.preview_count_var,
               fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(12, 0))
         btn(ctrl, "Copy all", self._preview_copy).pack(side="right")
+        btn(ctrl, "Re-validate", self._revalidate).pack(side="right", padx=(0, 6))
 
         sep(page).pack(fill="x", padx=16)
 
@@ -2808,6 +2855,36 @@ class PickitApp(tk.Tk):
                 self._render_preview(self._preview_lines)
             return
         self._render_preview([l for l in self._preview_lines if q in l.lower()])
+
+    def _render_validation(self, validation):
+        """Show validator results in the Preview-tab banner (#1)."""
+        if not hasattr(self, "_val_hdr"):
+            return
+        errs  = validation.get("errors", [])   if validation else []
+        warns = validation.get("warnings", []) if validation else []
+        if not errs and not warns:
+            self._val_hdr.config(text="✓ Validation passed — no issues found", fg=TEXT_OK)
+            self._val_detail.pack_forget()
+            return
+        parts = []
+        if errs:
+            parts.append(f"{len(errs)} error{'s' if len(errs) != 1 else ''}")
+        if warns:
+            parts.append(f"{len(warns)} warning{'s' if len(warns) != 1 else ''}")
+        self._val_hdr.config(text="⚠ Validation: " + "  ·  ".join(parts),
+                             fg=TEXT_ERR if errs else TEXT_WARN)
+        self._val_text.config(state="normal")
+        self._val_text.delete("1.0", "end")
+        for ln, msg in errs:
+            self._val_text.insert("end", f"Line {ln}: {msg}\n", "err")
+        for ln, msg in warns:
+            self._val_text.insert("end", f"Line {ln}: {msg}\n", "warn")
+        self._val_text.config(state="disabled")
+        self._val_detail.pack(fill="x", padx=6, pady=(0, 6))
+
+    def _revalidate(self):
+        if self._preview_lines:
+            self._render_validation(gen.validate_pickit(self._preview_lines))
 
     def _preview_copy(self):
         if not self._preview_lines:
@@ -3210,13 +3287,104 @@ class PickitApp(tk.Tk):
                     f"A new version of ExileBot 2 Pickit Generator is available!\n\n"
                     f"        You have:   v{VERSION}\n"
                     f"        Latest:       v{remote}\n\n"
-                    f"Open the download page now?",
+                    f"Download and install it now?",
                     parent=self):
-                self._open_releases()
+                self._install_update(remote)
 
     def _open_releases(self):
         import webbrowser
         webbrowser.open(RELEASES_URL)
+
+    # ── One-click update (#2) ──────────────────────────────────────────────────
+
+    def _install_update(self, remote: str):
+        """Download the new EXE and swap it in via a helper script, then relaunch.
+        Only works when running the built EXE; in dev just open the releases page."""
+        if not getattr(sys, "frozen", False):
+            self._open_releases()
+            return
+
+        url = (f"https://github.com/{GITHUB_REPO}/releases/download/"
+               f"v{remote}/ExileBot2PickitGenerator.exe")
+
+        dlg = tk.Toplevel(self)
+        dlg.title("Updating…")
+        dlg.configure(bg=BG)
+        dlg.resizable(False, False)
+        dlg.transient(self)
+        tk.Label(dlg, text=f"Downloading v{remote}…", bg=BG, fg=TEXT,
+                 font=FONT, padx=28, pady=(18, 4)).pack()
+        status = tk.Label(dlg, text="Connecting…", bg=BG, fg=TEXT_DIM, font=FONT_SM)
+        status.pack(padx=28, pady=(0, 18))
+        dlg.update_idletasks()
+
+        def _worker():
+            try:
+                dest = os.path.join(tempfile.gettempdir(),
+                                    f"ExileBot2PickitGenerator_v{remote}.exe")
+                with requests.get(url, stream=True, timeout=60,
+                                  headers={"User-Agent": f"poe2-pickit/{VERSION}"}) as r:
+                    r.raise_for_status()
+                    total = int(r.headers.get("Content-Length", 0))
+                    done = 0
+                    with open(dest, "wb") as f:
+                        for chunk in r.iter_content(chunk_size=262144):
+                            if not chunk:
+                                continue
+                            f.write(chunk)
+                            done += len(chunk)
+                            if total:
+                                self.after(0, lambda d=done, t=total: status.config(
+                                    text=f"{d*100//t}%   ({d//1048576} / {t//1048576} MB)"))
+                if os.path.getsize(dest) < 5_000_000:
+                    raise RuntimeError("downloaded file looks incomplete")
+                self.after(0, lambda: self._apply_update_swap(dest, dlg))
+            except Exception as exc:
+                self.after(0, lambda e=str(exc): self._update_failed(e, dlg))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _apply_update_swap(self, new_exe: str, dlg):
+        """Spawn a detached helper that waits for us to exit, overwrites the EXE,
+        relaunches it, then deletes itself."""
+        try:
+            cur = sys.executable
+            pid = os.getpid()
+            bat = os.path.join(tempfile.gettempdir(), "poe2_pickit_update.bat")
+            script = (
+                "@echo off\r\n"
+                ":waitloop\r\n"
+                f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL\r\n'
+                "if not errorlevel 1 (\r\n"
+                "  timeout /t 1 /nobreak >NUL\r\n"
+                "  goto waitloop\r\n"
+                ")\r\n"
+                f'copy /Y "{new_exe}" "{cur}" >NUL\r\n'
+                f'start "" "{cur}"\r\n'
+                'del "%~f0"\r\n'
+            )
+            with open(bat, "w", encoding="ascii", errors="ignore") as f:
+                f.write(script)
+            DETACHED = 0x00000008 | 0x00000200   # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+            subprocess.Popen(["cmd", "/c", bat], creationflags=DETACHED, close_fds=True)
+            try:
+                dlg.destroy()
+            except Exception:
+                pass
+            self._quit_app()
+        except Exception as exc:
+            self._update_failed(str(exc), dlg)
+
+    def _update_failed(self, msg: str, dlg):
+        try:
+            dlg.destroy()
+        except Exception:
+            pass
+        messagebox.showwarning(
+            "Update failed",
+            f"Couldn't auto-update:\n{msg}\n\nOpening the download page instead.",
+            parent=self)
+        self._open_releases()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  League helpers
@@ -3421,6 +3589,18 @@ class PickitApp(tk.Tk):
             return um.group(1)
         nm = re.search(r'"([^"]+)"', line)
         return nm.group(1) if nm else None
+
+    def _active_rule_ids(self, lines):
+        """Identities of active (non-commented) rules — UniqueName if present,
+        else the Type name — used to diff one pickit against another."""
+        ids = set()
+        for l in lines:
+            if not l or l.startswith("//") or "[StashItem]" not in l:
+                continue
+            n = self._extract_rule_name(l)
+            if n:
+                ids.add(n)
+        return ids
 
     # ══════════════════════════════════════════════════════════════════════════
     #  GENERATE
@@ -3869,6 +4049,23 @@ class PickitApp(tk.Tk):
 
             self._last_output = list(output_lines)
 
+            # Static validation (#1) + diff vs the previous pickit (#5) — both
+            # computed before the file is overwritten.
+            validation = gen.validate_pickit(output_lines)
+            self.after(0, lambda v=validation: self._render_validation(v))
+            if os.path.isfile(ipd_path):
+                try:
+                    with open(ipd_path, encoding="utf-8") as _pf:
+                        _old_ids = self._active_rule_ids(_pf.read().splitlines())
+                    _diff_prev = True
+                except OSError:
+                    _old_ids, _diff_prev = set(), False
+            else:
+                _old_ids, _diff_prev = set(), False
+            _new_ids = self._active_rule_ids(output_lines)
+            _added   = sorted(_new_ids - _old_ids)
+            _removed = sorted(_old_ids - _new_ids)
+
             # Write the single .ipd output file.
             self._backup_file(ipd_path, n=snapshot["backup_count"])
             with open(ipd_path, "w", encoding="utf-8") as f:
@@ -3991,6 +4188,10 @@ class PickitApp(tk.Tk):
                 "top_items": top_items,
                 "cat_ok":    _cat_ok,
                 "cat_fail":  _cat_fail,
+                "validation": validation,
+                "diff_prev":  _diff_prev,
+                "diff_added": _added,
+                "diff_removed": _removed,
             }
 
             # Update config on the main thread to avoid racing with _save_settings.
@@ -4058,18 +4259,50 @@ class PickitApp(tk.Tk):
             cat_note += f"  ·  {cat_fail} failed"
         self._sum_cats_lbl.config(text=cat_note)
 
-        # row 3: biggest price movers since last generate
+        # row 3: validation status, what-changed, and price movers
         for w in self._sum_alerts_frame.winfo_children():
             w.destroy()
+        rows = []   # (text, colour)
+
+        # Validation (#1)
+        val    = s.get("validation") or {}
+        n_err  = len(val.get("errors", []))
+        n_warn = len(val.get("warnings", []))
+        if n_err:
+            note = f"⚠ Validation: {n_err} error{'s' if n_err != 1 else ''}"
+            if n_warn:
+                note += f", {n_warn} warning{'s' if n_warn != 1 else ''}"
+            rows.append((note + "  — see Preview tab", TEXT_ERR))
+        elif n_warn:
+            rows.append((f"⚠ Validation: {n_warn} warning{'s' if n_warn != 1 else ''}  — see Preview tab", TEXT_WARN))
+        else:
+            rows.append(("✓ Validation passed", TEXT_OK))
+
+        # Changes since last pickit (#5)
+        if s.get("diff_prev"):
+            added, removed = s.get("diff_added", []), s.get("diff_removed", [])
+            if added or removed:
+                rows.append((f"Changes: +{len(added)} added  ·  -{len(removed)} removed", TEXT))
+                for n in added[:3]:
+                    rows.append((f"    + {n}", TEXT_OK))
+                for n in removed[:3]:
+                    rows.append((f"    - {n}", TEXT_ERR))
+            else:
+                rows.append(("Changes: none since last pickit", TEXT_DIM))
+
         alerts = getattr(self, "_price_alerts", [])
-        if alerts:
+        if rows or alerts:
             self._sum_alerts_frame.pack(fill="x", padx=12, pady=(0, 8))
-            tk.Label(self._sum_alerts_frame, text="Price moves:", bg=BG2,
-                     fg=TEXT_DIM, font=FONT_SM).pack(anchor="w")
-            for a in alerts[:5]:
-                clr = TEXT_OK if a.startswith("▲") else TEXT_ERR
-                tk.Label(self._sum_alerts_frame, text=a, bg=BG2, fg=clr,
-                         font=FONT_SM, anchor="w").pack(anchor="w", padx=(8, 0))
+            for text, clr in rows:
+                tk.Label(self._sum_alerts_frame, text=text, bg=BG2, fg=clr,
+                         font=FONT_SM, anchor="w").pack(anchor="w")
+            if alerts:
+                tk.Label(self._sum_alerts_frame, text="Price moves:", bg=BG2,
+                         fg=TEXT_DIM, font=FONT_SM).pack(anchor="w", pady=(4, 0))
+                for a in alerts[:5]:
+                    clr = TEXT_OK if a.startswith("▲") else TEXT_ERR
+                    tk.Label(self._sum_alerts_frame, text=a, bg=BG2, fg=clr,
+                             font=FONT_SM, anchor="w").pack(anchor="w", padx=(8, 0))
         else:
             self._sum_alerts_frame.pack_forget()
 
