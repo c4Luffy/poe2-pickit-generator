@@ -2,6 +2,10 @@
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
+
+# Build log
+build_log.txt
 
 # PyInstaller
 build/

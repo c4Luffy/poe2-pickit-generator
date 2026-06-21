@@ -613,7 +613,7 @@ def _lf_show_blocks(names, extra_lines, chunk: int = _LF_CHUNK) -> list:
         for ex in extra_lines:
             out.append(f"    {ex}")
         bt = " ".join(f'"{_quote_ipd(n)}"' for n in ch)
-        out.append(f"    BaseType {bt}")
+        out.append(f"    BaseType == {bt}")   # exact match — faithful to the .ipd [Type] == rules
         out.append("")
     return out
 
@@ -1119,7 +1119,7 @@ def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: Opt
 
 
 
-def build_waystone_lines(payload: dict, divine_rate_exalts: float, min_exalt: Optional[float] = None) -> list:
+def build_waystone_lines() -> list:
     """Always pick all waystones tier 1-15 regardless of value."""
     return list(WAYSTONE_FALLBACK_RULES)
 
@@ -1319,7 +1319,7 @@ def main():
                 lines = build_uncut_gem_lines(payload, divine_rate_exalts, min_exalt=min_exalt)
                 report_rows.extend(collect_exchange_report_rows(label, payload, divine_rate_exalts, min_exalt=min_exalt))
             elif key == "waystones":
-                lines = build_waystone_lines(payload, divine_rate_exalts, min_exalt=min_exalt)
+                lines = build_waystone_lines()
                 report_rows.extend(collect_exchange_report_rows(label, payload, divine_rate_exalts, min_exalt=min_exalt))
             else:
                 pick_all  = key in PICK_ALL_CATEGORIES
@@ -1379,11 +1379,17 @@ def main():
     with open(csv_path, "w", encoding="utf-8", newline="") as f:
         f.write(build_csv_report(report_rows))
 
+    # ── Also write a matching PoE2 client loot filter ─────────────────────────
+    filter_path = os.path.splitext(args.output)[0] + ".filter"
+    with open(filter_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(build_loot_filter(output_lines)))
+
     active    = sum(1 for l in output_lines if l and not l.startswith("//") and "[StashItem]" in l)
     commented = sum(1 for l in output_lines if l.startswith("//") and "[StashItem]" in l)
     print(f"Written to   : {args.output}")
     print(f"Latest copy  : {latest}")
     print(f"Item report  : {csv_path}")
+    print(f"Loot filter  : {filter_path}")
     print(f"Active rules : {active}   Commented out: {commented}")
     if getattr(sys, 'frozen', False):
         input("\nDone! Press Enter to exit...")
