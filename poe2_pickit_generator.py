@@ -65,17 +65,24 @@ UNIQUE_CATEGORIES = [
 
 ALL_CATEGORIES = EXCHANGE_CATEGORIES + UNIQUE_CATEGORIES
 
-# Categories where EVERY item is picked regardless of price threshold.
-# Lineage Support Gems are always wanted — they're too rare to skip any.
-PICK_ALL_CATEGORIES = {"lineage_support_gems"}
+# Categories where EVERY item is picked regardless of price threshold —
+# inclusion is driven purely by the per-item selections (the Items-tab
+# checkboxes), not by value.
+#   • Lineage Support Gems: too rare to skip any.
+#   • Currency: picked by selection, never value-filtered.
+PICK_ALL_CATEGORIES = {"lineage_support_gems", "currency"}
 
 # poe.ninja sometimes returns names that don't match in-game base types.
 # Map the poe.ninja name → correct in-game name here.
 ITEM_NAME_CORRECTIONS: dict = {}
 
 # Items returned by poe.ninja that have no valid in-game base type and should
-# be skipped entirely rather than written to the pickit.
-ITEM_NAME_SKIP: set = set()
+# be skipped entirely rather than written to the pickit. (Exiled Bot's pickit
+# validator rejects these base types, so writing them just fails validation.)
+ITEM_NAME_SKIP: set = {
+    "Necrotic Catalyst",
+    "Refined Necrotic Catalyst",
+}
 
 # Currency items that must always be picked up even if poe.ninja omits them
 # (Exalted Orb is the PoE2 base pricing currency and won't appear in lines).
@@ -113,7 +120,7 @@ _BASE_TYPES_BY_CATEGORY: dict = {
         ("Assassin Garb", 3), ("Austere Garb", 3), ("Ceremonial Robe", 3),
         ("Conjurer Mantle", 3), ("Conqueror Plate", 3), ("Corsair Coat", 3),
         ("Corvus Mantle", 3), ("Dastard Armour", 3), ("Death Mail", 3),
-        ("Death Mantle", 3), ("Devout Garb", 3), ("Dustbloom", 3),
+        ("Death Mantle", 3), ("Devout Garb", 3),
         ("Enlightened Robe", 3), ("Exquisite Vest", 3), ("Falconer's Jacket", 3),
         ("Feathered Raiment", 3), ("Flowing Raiment", 3), ("Glorious Plate", 3),
         ("Golden Mail", 3), ("Grand Regalia", 3), ("Havoc Raiment", 3),

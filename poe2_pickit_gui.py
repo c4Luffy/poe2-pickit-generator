@@ -326,7 +326,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.0.2"
+VERSION       = "2.0.3"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -3198,7 +3198,21 @@ class PickitApp(tk.Tk):
         self._update_lbl.config(
             text=f"⬆  Update available: v{remote}  —  click here to download  (you have v{VERSION})"
         )
-        self._update_bar.pack(fill="x", after=self.winfo_children()[1])
+        try:
+            self._update_bar.pack(fill="x", after=self.winfo_children()[1])
+        except Exception:
+            self._update_bar.pack(fill="x")
+        # Also pop a small dialog so the update can't be missed (once per launch).
+        if not getattr(self, "_update_prompted", False):
+            self._update_prompted = True
+            if messagebox.askyesno(
+                    "Update available",
+                    f"A new version of ExileBot 2 Pickit Generator is available!\n\n"
+                    f"        You have:   v{VERSION}\n"
+                    f"        Latest:       v{remote}\n\n"
+                    f"Open the download page now?",
+                    parent=self):
+                self._open_releases()
 
     def _open_releases(self):
         import webbrowser
@@ -3773,7 +3787,7 @@ class PickitApp(tk.Tk):
                         if l.startswith("//") or "[StashItem]" not in l:
                             continue
                         name = self._extract_rule_name(l)
-                        vm   = re.search(r'([\d.]+) exalted', l)
+                        vm   = re.search(r'ExValue = ([\d.]+)', l)
                         if name and vm:
                             v = float(vm.group(1))
                             top_items.append((name, v))
@@ -3949,23 +3963,23 @@ class PickitApp(tk.Tk):
                     if ex_prev is None or ex_prev <= 0 or ex_now <= 0:
                         continue
                     delta = (ex_now - ex_prev) / ex_prev
-                    if abs(delta) >= ALERT_THRESHOLD:
-                        sign  = "+" if delta > 0 else ""
-                        arrow = "▲" if delta > 0 else "▼"
-                        chaos_now  = ex_now  / chaos_ex_val if chaos_ex_val else ex_now
-                        chaos_prev = ex_prev / chaos_ex_val if chaos_ex_val else ex_prev
-                        text = f"{arrow} {name}: {chaos_prev:.0f}c → {chaos_now:.0f}c  ({sign}{delta*100:.0f}%)"
-                        alerts.append((abs(delta), text))
+                    if abs(delta) < ALERT_THRESHOLD:
+                        continue
+                    chaos_now  = ex_now  / chaos_ex_val if chaos_ex_val else ex_now
+                    chaos_prev = ex_prev / chaos_ex_val if chaos_ex_val else ex_prev
+                    # Skip near-worthless items — they round to "0c → 0c" and just
+                    # spam the panel with meaningless huge percentages.
+                    if max(chaos_now, chaos_prev) < 1.0:
+                        continue
+                    sign  = "+" if delta > 0 else ""
+                    arrow = "▲" if delta > 0 else "▼"
+                    text = f"{arrow} {name}: {chaos_prev:.0f}c → {chaos_now:.0f}c  ({sign}{delta*100:.0f}%)"
+                    alerts.append((abs(delta), text))
 
             self._last_gen_prices[league] = new_gen_prices
             alerts.sort(key=lambda t: t[0], reverse=True)
+            # Shown in the post-generate summary box only (not re-logged below).
             self._price_alerts = [text for _, text in alerts[:10]]
-
-            if self._price_alerts:
-                self._log("── Price moves since last generate ─", "dim")
-                for a in self._price_alerts:
-                    lvl = "ok" if a.startswith("▲") else "err"
-                    self._log(f"  {a}", lvl)
 
             self._log("─" * 55, "dim")
             self._log(f"Done in {dur_str}  ·  {active} active rules", "ok")
