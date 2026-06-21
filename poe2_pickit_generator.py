@@ -446,11 +446,8 @@ _CRAFT_BEST_BASES: dict = {
     "Crossbows":     ["Siege Crossbow"],
     "Bows":          ["Warmonger Bow"],
     "Staves":        ["Ravenous Staff"],
-    "Claws":         ["Talon Claw"],
-    "Daggers":       ["Cinquedea"],
     "Wands":         ["Dueling Wand"],
     "Sceptres":      ["Hallowed Sceptre"],
-    "Flails":        ["Abyssal Flail"],
 }
 
 
