@@ -72,7 +72,7 @@ python poe2_pickit_gui.py
 | **Chance Bases** | Toggle Normal-rarity bases to Orb-of-Chance into target uniques |
 | **Preview** | Syntax-highlighted view of the generated `.ipd` file |
 | **History** | Log of all past generate runs |
-| **Settings** | Bot folder, auto-copy, backups |
+| **Settings** | Bot folder, auto-copy, loot-filter export, backups |
 | **Debug** | API connectivity tests and config dump |
 
 ---
@@ -112,6 +112,8 @@ Everything is picked by default. Use the **Items** tab to exclude specific items
 - **Min X c** filter in the Items toolbar → enter a chaos value and click **Apply** to auto-disable all items below that price across every loaded category
 - Price arrows **▲▼** appear on cards after a refresh if the price moved more than 3%
 - **Price alerts** in the generate log — items that moved more than 20% since the last run are flagged with ▲/▼ and the old → new price
+- **Open .ipd / Open .filter** buttons on the Generate tab open the last generated files instantly
+- Every generate also writes a **PoE2 in-game loot filter** (`.filter`) — see the section above
 - The app **auto-generates every hour** in the background automatically
 
 ---
