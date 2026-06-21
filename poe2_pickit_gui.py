@@ -326,7 +326,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.1.0"
+VERSION       = "2.1.1"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -868,22 +868,12 @@ class PickitApp(tk.Tk):
         self._sum_alerts_frame = tk.Frame(self._gen_summary, bg=BG2)
         self._gen_summary.pack_forget()  # hidden until first generate
 
-        # ── Log ───────────────────────────────────────────────────────────────
-        self._log_sep = sep(inner)
-        self._log_sep.pack(fill="x", padx=10, pady=(4, 0))
-        log_hdr = tk.Frame(inner, bg=BG)
-        log_hdr.pack(fill="x", padx=10, pady=(8, 4))
-        label(log_hdr, "Log", fg=TEXT_DIM, font=FONT_SM).pack(side="left")
-        btn(log_hdr, "Copy log", self._log_copy).pack(side="right")
-        btn(log_hdr, "Clear", self._log_clear).pack(side="right", padx=(0, 6))
-
-        log_wrap = tk.Frame(inner, bg=BG)
-        log_wrap.pack(fill="both", expand=True, padx=10, pady=(0, 16))
-        lf, self.log_text = scrolled_text(log_wrap, height=10, state="disabled")
-        lf.pack(fill="both", expand=True)
-        for tag, col in [("ok", TEXT_OK), ("err", TEXT_ERR), ("warn", TEXT_WARN),
-                         ("info", TEXT_INFO), ("dim", TEXT_DIM), ("ts", "#404055")]:
-            self.log_text.tag_config(tag, foreground=col)
+        # The verbose generate Log was removed from this tab — progress shows in
+        # the progress bar + summary box (full diagnostics live on the Debug tab).
+        # _log() / _log_clear() no-op safely when log_text is None.
+        self.log_text = None
+        # bottom spacer so the last section isn't flush against the window edge
+        tk.Frame(inner, bg=BG, height=8).pack(fill="x")
 
     def _clamp_threshold(self, *_):
         try:
@@ -3484,6 +3474,10 @@ class PickitApp(tk.Tk):
     # ══════════════════════════════════════════════════════════════════════════
 
     def _log(self, msg, tag=""):
+        # The Generate-tab Log was removed; keep this a safe no-op so the many
+        # existing self._log(...) progress calls still work.
+        if getattr(self, "log_text", None) is None:
+            return
         ts = datetime.datetime.now().strftime("%H:%M:%S")
         def _do():
             self.log_text.config(state="normal")
@@ -3494,11 +3488,15 @@ class PickitApp(tk.Tk):
         self.after(0, _do)
 
     def _log_clear(self):
+        if getattr(self, "log_text", None) is None:
+            return
         self.log_text.config(state="normal")
         self.log_text.delete("1.0", "end")
         self.log_text.config(state="disabled")
 
     def _log_copy(self):
+        if getattr(self, "log_text", None) is None:
+            return
         content = self.log_text.get("1.0", "end").strip()
         if not content:
             self._log("Log is empty — nothing to copy.", "warn")
@@ -3601,6 +3599,17 @@ class PickitApp(tk.Tk):
             if n:
                 ids.add(n)
         return ids
+
+    @staticmethod
+    def _fmt_val_multi(ex, divine_rate, chaos_ex, sep="  ·  "):
+        """Format an exalt value with its divine and chaos equivalents, e.g.
+        '1,037,226 ex · 3,667 div · 41,234c'."""
+        parts = [f"{ex:,.0f} ex"]
+        if divine_rate and divine_rate > 0:
+            parts.append(f"{ex / divine_rate:,.1f} div")
+        if chaos_ex and chaos_ex > 0:
+            parts.append(f"{ex / chaos_ex:,.0f}c")
+        return sep.join(parts)
 
     # ══════════════════════════════════════════════════════════════════════════
     #  GENERATE
@@ -4094,13 +4103,18 @@ class PickitApp(tk.Tk):
             except OSError:
                 _fsize_kb = 0
             _gen_time_str = datetime.datetime.now().strftime("%H:%M")
+            _chaos_ex = self._get_chaos_ex_value(league)   # ex value of 1 chaos
 
             def _update_stats():
                 self._stat_vars["active"].set(str(active))
                 self._stat_vars["commented"].set(str(commented))
                 self._stat_vars["divine"].set(f"{divine_rate_exalts:.1f} ex")
-                self._stat_vars["top"].set(
-                    f"{top_item[0][:22]}\n{top_item[1]:.0f} ex" if top_item[0] else "—")
+                if top_item[0]:
+                    self._stat_vars["top"].set(
+                        f"{top_item[0][:22]}\n"
+                        + self._fmt_val_multi(top_item[1], divine_rate_exalts, _chaos_ex))
+                else:
+                    self._stat_vars["top"].set("—")
                 self._stat_vars["duration"].set(dur_str)
                 self._stat_vars["last_gen"].set(f"{_gen_time_str}  ·  {_fsize_kb} KB")
                 self._divine_rate_var.set(f"1 Divine = {divine_rate_exalts:.1f} ex")
@@ -4192,6 +4206,8 @@ class PickitApp(tk.Tk):
                 "diff_prev":  _diff_prev,
                 "diff_added": _added,
                 "diff_removed": _removed,
+                "divine_rate": divine_rate_exalts,
+                "chaos_ex":    _chaos_ex,
             }
 
             # Update config on the main thread to avoid racing with _save_settings.
@@ -4247,10 +4263,12 @@ class PickitApp(tk.Tk):
         self._sum_vars["fsize"].config(text=f"{fsize} KB")
 
         if top:
+            dr = s.get("divine_rate", 0)
+            cx = s.get("chaos_ex", 0)
             top_parts = []
             for name, ex_val in top[:3]:
-                top_parts.append(f"{name}  {ex_val:,.0f}ex")
-            self._sum_top_lbl.config(text="  ·  ".join(top_parts))
+                top_parts.append(f"{name}  {self._fmt_val_multi(ex_val, dr, cx, sep=' / ')}")
+            self._sum_top_lbl.config(text="      ·      ".join(top_parts))
         else:
             self._sum_top_lbl.config(text="No items above threshold")
 
@@ -4306,8 +4324,7 @@ class PickitApp(tk.Tk):
         else:
             self._sum_alerts_frame.pack_forget()
 
-        self._gen_summary.pack(fill="x", padx=10, pady=(8, 0),
-                               before=self._log_sep)
+        self._gen_summary.pack(fill="x", padx=10, pady=(8, 0))
 
     # ══════════════════════════════════════════════════════════════════════════
     #  Close
