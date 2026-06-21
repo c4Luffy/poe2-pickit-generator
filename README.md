@@ -8,27 +8,32 @@ Generate `.ipd` pickit rules for **Exiled Bot 2** using live **Path of Exile 2**
 
 ## How to Use
 
-**1. Download & open**
-- Download `ExileBot2PickitGenerator.exe` from [Releases](https://github.com/c4Luffy/poe2-pickit-generator/releases)
-- Run it — if Windows shows a warning, click **More info → Run anyway**
+### 1. Download & open
+1. Go to the [**Releases page**](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
+2. Download **`ExileBot2PickitGenerator.exe`**
+3. Run it — if Windows SmartScreen appears, click **More info → Run anyway**
 
-**2. Select your league**
-- On the **Generate** tab, pick your current league from the dropdown
-- Optionally pick a **Profile** (e.g. "Farmer" vs "Boss runner") to load a saved setup
+> [!NOTE]
+> It's a single self-contained `.exe`. No Python or install needed.
 
-**3. Choose what NOT to pick (optional)**
-- Open the **Items** tab
-- Every item is **ON by default** — the bot picks everything
-- Click any item card to turn it **gray** (excluded) — the bot will skip it
-- Click it again to re-enable
+### 2. Select your league
+- On the **Generate** tab, pick your current league from the dropdown.
+- *(Optional)* Choose a **Profile** (e.g. `Farmer`, `Boss runner`) to load a saved setup.
 
-**4. Generate**
-- Go back to **Generate** and click **⚡ Generate Pickit**
-- The `.ipd` file is saved to the `pickit_output/` folder
+### 3. Choose what *not* to pick *(optional)*
+- Open the **Items** tab.
+- Every item is **ON by default** — the bot picks everything.
+- Click a card to turn it **gray (✗)** = excluded. Click it again to re-enable.
+- Use **Min `X` c** to bulk-disable everything under a chaos value.
+- Use the **search** box to jump to any item instantly.
 
-**5. Point your bot at the file**
-- In Exiled Bot 2 settings, point the pickit path to the generated `.ipd` file
-- Or enable **Auto-copy** in Settings to deploy it automatically after each generate
+### 4. Generate
+- Return to the **Generate** tab and click **⚡ Generate Pickit**.
+- The `.ipd` file is written to the `pickit_output/` folder.
+
+### 5. Point your bot at the file
+- In Exiled Bot 2 settings, set the pickit path to the generated `.ipd`, **or**
+- Enable **Auto-copy** in **Settings** to deploy it automatically after each generate.
 
 ---
 
@@ -47,6 +52,7 @@ python poe2_pickit_gui.py
 |---|---|
 | **Generate** | Select league, pick a profile, run generation, view stats, price moves and log |
 | **Items** | Turn individual items ON/OFF — click a card to exclude it; use **Min c** to bulk-disable cheap items |
+| **Chance Bases** | Toggle Normal-rarity bases to Orb-of-Chance into target uniques |
 | **Preview** | Syntax-highlighted view of the generated `.ipd` file |
 | **History** | Log of all past generate runs |
 | **Settings** | Bot folder, auto-copy, backups |
@@ -90,6 +96,31 @@ Everything is picked by default. Use the **Items** tab to exclude specific items
 - Price arrows **▲▼** appear on cards after a refresh if the price moved more than 3%
 - **Price alerts** in the generate log — items that moved more than 20% since the last run are flagged with ▲/▼ and the old → new price
 - The app **auto-generates every hour** in the background automatically
+
+---
+
+## Troubleshooting
+
+<details>
+<summary><b>No prices loading?</b></summary>
+
+Open the **Debug** tab and run the API connectivity test. poe.ninja may be temporarily
+down — the app falls back to its offline price cache when that happens.
+</details>
+
+<details>
+<summary><b>Bot isn't picking items?</b></summary>
+
+Confirm the pickit path in Exiled Bot 2 points to your generated `.ipd`, or enable
+**Auto-copy** in **Settings** so the file is deployed automatically after each generate.
+</details>
+
+<details>
+<summary><b>Windows blocked the .exe?</b></summary>
+
+Click **More info → Run anyway**. The build is unsigned, not malicious — the source is
+right here in this repo.
+</details>
 
 ---
 
