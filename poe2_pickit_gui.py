@@ -71,6 +71,7 @@ DEFAULT_CONFIG = {
     "league": "",
     "min_exalt": 0.0,
     "min_exalt_gear": 0.0,
+    "min_exalt_unique": 0.0,
     "output_base": "poe2_pickit",
     "bot_folder": "",
     "auto_copy": False,
@@ -401,6 +402,7 @@ class PickitApp(tk.Tk):
         self.league_var       = tk.StringVar(value=self.cfg.get("league") or "")
         self.min_exalt_var      = tk.DoubleVar(value=self.cfg.get("min_exalt", 0.0))
         self.min_exalt_gear_var = tk.DoubleVar(value=self.cfg.get("min_exalt_gear", 0.0))
+        self.min_exalt_unique_var = tk.DoubleVar(value=self.cfg.get("min_exalt_unique", 0.0))
         self.output_var       = tk.StringVar(value=self.cfg.get("output_base", "poe2_pickit"))
         self.bot_folder_var   = tk.StringVar(value=self.cfg.get("bot_folder", ""))
         self.auto_copy_var    = tk.BooleanVar(value=self.cfg.get("auto_copy", False))
@@ -725,6 +727,7 @@ class PickitApp(tk.Tk):
             if self._active_cat and self._active_cat != "_gear":
                 self.after(50, lambda: self._show_cat(self._active_cat))
             self.after(100, lambda: self._preload_all_cats_async(new_league))
+            self.after(150, self._update_unique_conv)
 
         self.league_cb.bind("<<ComboboxSelected>>", _on_league_select)
         self.league_cb.bind("<Return>", _on_league_select)
@@ -756,6 +759,24 @@ class PickitApp(tk.Tk):
         or2.columnconfigure(0, weight=1)
         entry(or2, self.output_var).grid(row=0, column=0, sticky="ew", ipady=4, padx=(0, 6))
         btn(or2, "Browse…", self._browse_output).grid(row=0, column=1)
+
+        # ── Unique gear value floor ───────────────────────────────────────────
+        secu = self._section_frame(inner, "Unique Gear — Minimum Value")
+        label(secu, "Only pick up unique items worth at least this much.  The value is in "
+                    "Exalt, which already accounts for Divine and Chaos prices (every item's "
+                    "price is converted to its Exalt equivalent before comparing).  Set to 0 to "
+                    "pick up every unique.",
+              fg=TEXT_DIM, font=FONT_SM, bg=BG2, wraplength=820, justify="left").pack(
+                  anchor="w", padx=10, pady=(8, 2))
+        urow = tk.Frame(secu, bg=BG2)
+        urow.pack(fill="x", padx=10, pady=(2, 2))
+        self._make_slider(urow, self.min_exalt_unique_var,
+                          from_=0, to=1000, resolution=5,
+                          fmt="{:.0f} ex", width=int(320 * self._ui_scale)).pack(side="left")
+        self._unique_conv_lbl = label(secu, "", fg=GOLD, font=FONT_SM, bg=BG2)
+        self._unique_conv_lbl.pack(anchor="w", padx=10, pady=(0, 10))
+        self.min_exalt_unique_var.trace_add("write", self._on_unique_floor_change)
+        self.after(300, self._update_unique_conv)
 
         # ── Action buttons ───────────────────────────────────────────────────
         btn_f = tk.Frame(inner, bg=BG)
@@ -879,6 +900,40 @@ class PickitApp(tk.Tk):
                 self.min_exalt_gear_var.set(0.0)
         except (tk.TclError, ValueError):
             pass
+
+    def _on_unique_floor_change(self, *_):
+        """Keep the unique-gear floor in cfg (so it survives restart) and refresh
+        the divine/chaos readout under the slider."""
+        try:
+            self.cfg["min_exalt_unique"] = float(self.min_exalt_unique_var.get())
+        except (tk.TclError, ValueError):
+            pass
+        self._update_unique_conv()
+
+    def _update_unique_conv(self, *_):
+        """Show the unique-gear floor's Divine and Chaos equivalents under the slider."""
+        lbl = getattr(self, "_unique_conv_lbl", None)
+        if lbl is None:
+            return
+        try:
+            ex = float(self.min_exalt_unique_var.get())
+        except (tk.TclError, ValueError):
+            return
+        if ex <= 0:
+            lbl.config(text="Picking up every unique (no value floor).")
+            return
+        league   = self._selected_league() or ""
+        div_rate = self._get_divine_rate(league)      # ex per 1 divine (1.0 if no data)
+        chaos_ex = self._get_chaos_ex_value(league)   # ex per 1 chaos  (0.0 if no data)
+        parts = []
+        if div_rate and div_rate > 1.0:
+            parts.append(f"{ex / div_rate:.2f} divine")
+        if chaos_ex and chaos_ex > 0:
+            parts.append(f"~{ex / chaos_ex:.0f} chaos")
+        if parts:
+            lbl.config(text="≈  " + "    ·    ".join(parts))
+        else:
+            lbl.config(text="(Divine / Chaos equivalents shown once prices load)")
 
     # ══════════════════════════════════════════════════════════════════════════
     #  CATEGORIES PAGE
@@ -1906,11 +1961,16 @@ class PickitApp(tk.Tk):
             min_gear = float(self.min_exalt_gear_var.get())
         except (tk.TclError, ValueError):
             min_gear = 0.0
+        try:
+            min_unique = float(self.min_exalt_unique_var.get())
+        except (tk.TclError, ValueError):
+            min_unique = 0.0
         return {
-            "item_states":     copy.deepcopy(self._item_states),
-            "min_exalt":       min_ex,
-            "min_exalt_gear":  min_gear,
-            "output_base":     self.output_var.get(),
+            "item_states":      copy.deepcopy(self._item_states),
+            "min_exalt":        min_ex,
+            "min_exalt_gear":   min_gear,
+            "min_exalt_unique": min_unique,
+            "output_base":      self.output_var.get(),
             "min_chaos_filter": self._min_chaos_filter_var.get(),
         }
 
@@ -1940,6 +2000,7 @@ class PickitApp(tk.Tk):
         self._item_states = copy.deepcopy(prof.get("item_states", {}))
         self.min_exalt_var.set(prof.get("min_exalt", 0.0))
         self.min_exalt_gear_var.set(prof.get("min_exalt_gear", 0.0))
+        self.min_exalt_unique_var.set(prof.get("min_exalt_unique", 0.0))
         self.output_var.set(prof.get("output_base", "poe2_pickit"))
         self._min_chaos_filter_var.set(str(prof.get("min_chaos_filter", 0)))
 
@@ -2944,6 +3005,10 @@ class PickitApp(tk.Tk):
         self.cfg["base_min_level"]         = self.base_min_level_var.get()
         self.cfg["min_exalt"]      = 0.0
         self.cfg["min_exalt_gear"] = 0.0
+        try:
+            self.cfg["min_exalt_unique"] = float(self.min_exalt_unique_var.get())
+        except (tk.TclError, ValueError):
+            pass
         save_config(self.cfg)
         self._log("Settings saved.", "ok")
 
@@ -2955,6 +3020,7 @@ class PickitApp(tk.Tk):
             self.league_var.set(self.cfg.get("league", ""))
             self.min_exalt_var.set(self.cfg.get("min_exalt", 0.0))
             self.min_exalt_gear_var.set(self.cfg.get("min_exalt_gear", 0.0))
+            self.min_exalt_unique_var.set(self.cfg.get("min_exalt_unique", 0.0))
             self.output_var.set(self.cfg.get("output_base", "poe2_pickit"))
             self.bot_folder_var.set(self.cfg.get("bot_folder", ""))
             self.auto_copy_var.set(self.cfg.get("auto_copy", False))
@@ -3308,8 +3374,10 @@ class PickitApp(tk.Tk):
                 if item and item.get("name") == "Divine Orb":
                     pv = float(line.get("primaryValue") or 0)
                     divine = pv * rate if rate else pv
-                    self.after(0, lambda d=divine:
-                               self._divine_rate_var.set(f"1 Divine = {d:.1f} ex"))
+                    def _set(d=divine):
+                        self._divine_rate_var.set(f"1 Divine = {d:.1f} ex")
+                        self._update_unique_conv()
+                    self.after(0, _set)
                     break
         except Exception:
             pass
@@ -3414,6 +3482,12 @@ class PickitApp(tk.Tk):
             snapshot["min_exalt_gear"] = float(self.cfg.get("min_exalt_gear", 5.0))
             self.min_exalt_gear_var.set(snapshot["min_exalt_gear"])
             self._log("Gear threshold invalid — reset to saved value.", "warn")
+        try:
+            snapshot["min_exalt_unique"] = self.min_exalt_unique_var.get()
+        except tk.TclError:
+            snapshot["min_exalt_unique"] = float(self.cfg.get("min_exalt_unique", 0.0))
+            self.min_exalt_unique_var.set(snapshot["min_exalt_unique"])
+            self._log("Unique threshold invalid — reset to saved value.", "warn")
 
         # Init segmented bar — one segment per category + scout + maybe bases
         _n_main = sum(1 for c in gen.ALL_CATEGORIES
@@ -3431,6 +3505,7 @@ class PickitApp(tk.Tk):
             league    = snapshot["league"]
             min_exalt = snapshot["min_exalt"]
             min_exalt_gear = snapshot.get("min_exalt_gear", 5.0)
+            min_exalt_unique = snapshot.get("min_exalt_unique", 0.0)
 
             try:
                 min_exalt = float(min_exalt)
@@ -3442,13 +3517,18 @@ class PickitApp(tk.Tk):
             except (TypeError, ValueError):
                 min_exalt_gear = float(self.cfg.get("min_exalt_gear", 5.0))
                 self._log("Gear threshold invalid — reset to saved value.", "warn")
+            try:
+                min_exalt_unique = float(min_exalt_unique)
+            except (TypeError, ValueError):
+                min_exalt_unique = float(self.cfg.get("min_exalt_unique", 0.0))
+                self._log("Unique threshold invalid — reset to saved value.", "warn")
 
             base_path = os.path.join(OUTPUT_DIR,
                                      os.path.basename(os.path.splitext(snapshot["output_var"])[0]))
             ipd_path  = base_path + ".ipd"
 
             self._log(f"League    : {league}")
-            self._log(f"Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_gear:.0f} ex  (gear)")
+            self._log(f"Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_unique:.0f} ex  (unique gear)")
             self._log(f"Output    : {os.path.basename(base_path)}.ipd")
             self._log("─" * 55, "dim")
 
@@ -3465,7 +3545,7 @@ class PickitApp(tk.Tk):
                 f"// League    : {league}",
                 f"// Generated : {_gen_ts.strftime('%Y-%m-%d %H:%M:%S')}",
                 f"// Pickit ID : {_gen_id}",
-                f"// Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_gear:.0f} ex  (gear/uniques)",
+                f"// Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_unique:.0f} ex  (unique gear)",
                 "/" * gen._W, "",
                 # ── Configuration guide ───────────────────────────────────────
                 "//",
@@ -3626,7 +3706,7 @@ class PickitApp(tk.Tk):
                 cat_thresh = snapshot["cat_thresh"].get(key, -1.0)
                 if not isinstance(cat_thresh, (int, float)):
                     cat_thresh = -1.0
-                global_min = min_exalt_gear if is_unique else min_exalt
+                global_min = min_exalt_unique if is_unique else min_exalt
                 effective_min = cat_thresh if cat_thresh >= 0 else global_min
 
                 payload = all_payloads.get(key)
@@ -3724,7 +3804,7 @@ class PickitApp(tk.Tk):
                     lines = gen.build_scout_lines(
                         payload_items.get("items", []),
                         divine_rate_exalts,
-                        min_exalt=min_exalt_gear,
+                        min_exalt=min_exalt_unique,
                     )
                     active = [l for l in lines if "[StashItem]" in l]
                     output_lines += [gen.header_sub(label_text), ""] + lines + [""]
@@ -3905,6 +3985,7 @@ class PickitApp(tk.Tk):
                 "league":             league,
                 "min_exalt":          min_exalt,
                 "min_exalt_gear":     min_exalt_gear,
+                "min_exalt_unique":   min_exalt_unique,
                 "output_base":        snapshot["output_var"],
                 "category_enabled":   dict(snapshot["cat_enabled"]),
                 "category_threshold": dict(snapshot["cat_thresh"]),
@@ -3993,6 +4074,10 @@ class PickitApp(tk.Tk):
             self.after_cancel(self._schedule_after)
         self.cfg["window_geometry"]  = self.geometry()
         self.cfg["cat_prev_prices"]  = self._cat_prev_prices
+        try:
+            self.cfg["min_exalt_unique"] = float(self.min_exalt_unique_var.get())
+        except (tk.TclError, ValueError):
+            pass
         save_config(self.cfg)
         self.destroy()
 
