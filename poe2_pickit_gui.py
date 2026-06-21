@@ -67,6 +67,19 @@ for _d in (OUTPUT_DIR, ICON_DIR, PRESETS_DIR):
 # restarts and can be reused when poe.ninja is unreachable.
 gen.set_disk_cache_dir(PRICE_CACHE_DIR)
 
+
+def _default_poe2_filter_dir() -> str:
+    """Best-guess location of the PoE2 client loot-filter folder."""
+    home = os.path.expanduser("~")
+    candidates = [
+        os.path.join(home, "Documents", "My Games", "Path of Exile 2"),
+        os.path.join(home, "OneDrive", "Documents", "My Games", "Path of Exile 2"),
+    ]
+    for c in candidates:
+        if os.path.isdir(c):
+            return c
+    return candidates[0]
+
 DEFAULT_CONFIG = {
     "league": "",
     "min_exalt": 0.0,
@@ -91,6 +104,9 @@ DEFAULT_CONFIG = {
     "last_gen_prices": {},
     "profiles": {},
     "active_profile": "",
+
+    "copy_filter_to_game": True,
+    "poe2_filter_dir": "",
 }
 
 def load_config():
@@ -326,7 +342,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.1.1"
+VERSION       = "2.2.0"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -406,6 +422,9 @@ class PickitApp(tk.Tk):
         self.output_var       = tk.StringVar(value=self.cfg.get("output_base", "poe2_pickit"))
         self.bot_folder_var   = tk.StringVar(value=self.cfg.get("bot_folder", ""))
         self.auto_copy_var    = tk.BooleanVar(value=self.cfg.get("auto_copy", False))
+        self.copy_filter_var  = tk.BooleanVar(value=self.cfg.get("copy_filter_to_game", True))
+        self.poe2_filter_dir_var = tk.StringVar(
+            value=self.cfg.get("poe2_filter_dir") or _default_poe2_filter_dir())
         self.backup_count_var = tk.IntVar(value=self.cfg.get("backup_count", 5))
         self.ovw_var          = tk.IntVar(value=self.cfg.get("confirm_overwrite_secs", 120))
 
@@ -3016,6 +3035,20 @@ class PickitApp(tk.Tk):
         checkbtn(sec, "Auto-copy .ipd to bot folder after generate", self.auto_copy_var
                  ).pack(anchor="w", padx=10, pady=(0, 4))
 
+        # Loot filter (PoE2 game client)
+        secf = self._section_frame(inner, "Loot Filter (PoE2 client)")
+        label(secf, "A matching PoE2 in-game loot filter (.filter) is written next to the .ipd on every "
+                    "generate. Optionally also copy it to your Path of Exile 2 folder so it appears in the "
+                    "in-game filter list. It shows only what the bot picks up and hides everything else.",
+              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 4))
+        ff = tk.Frame(secf, bg=BG2)
+        ff.pack(fill="x", padx=10, pady=(0, 6))
+        ff.columnconfigure(0, weight=1)
+        entry(ff, self.poe2_filter_dir_var).grid(row=0, column=0, sticky="ew", ipady=4, padx=(0, 6))
+        btn(ff, "Browse…", self._browse_filter_folder).grid(row=0, column=1)
+        checkbtn(secf, "Also copy loot filter to PoE2 folder after generate", self.copy_filter_var
+                 ).pack(anchor="w", padx=10, pady=(0, 4))
+
         # Schedule
         sec2 = self._section_frame(inner, "Auto-Schedule")
         label(sec2, "Pickit automatically re-generates every 1 hour so your prices are always up to date. "
@@ -3065,6 +3098,8 @@ class PickitApp(tk.Tk):
     def _save_settings(self):
         self.cfg["bot_folder"]             = self.bot_folder_var.get()
         self.cfg["auto_copy"]              = self.auto_copy_var.get()
+        self.cfg["copy_filter_to_game"]    = self.copy_filter_var.get()
+        self.cfg["poe2_filter_dir"]        = self.poe2_filter_dir_var.get().strip()
         self.cfg["backup_count"]           = self.backup_count_var.get()
         self.cfg["confirm_overwrite_secs"] = self.ovw_var.get()
         self.cfg["include_bases"]          = self.include_bases_var.get()
@@ -3091,6 +3126,8 @@ class PickitApp(tk.Tk):
             self.output_var.set(self.cfg.get("output_base", "poe2_pickit"))
             self.bot_folder_var.set(self.cfg.get("bot_folder", ""))
             self.auto_copy_var.set(self.cfg.get("auto_copy", False))
+            self.copy_filter_var.set(self.cfg.get("copy_filter_to_game", True))
+            self.poe2_filter_dir_var.set(self.cfg.get("poe2_filter_dir") or _default_poe2_filter_dir())
             self.backup_count_var.set(self.cfg.get("backup_count", 5))
             self.ovw_var.set(self.cfg.get("confirm_overwrite_secs", 120))
             self.include_bases_var.set(True)
@@ -3105,6 +3142,11 @@ class PickitApp(tk.Tk):
         folder = filedialog.askdirectory(title="Select Exiled Bot pickit folder")
         if folder:
             self.bot_folder_var.set(folder)
+
+    def _browse_filter_folder(self):
+        folder = filedialog.askdirectory(title="Select Path of Exile 2 folder")
+        if folder:
+            self.poe2_filter_dir_var.set(folder)
 
     # ══════════════════════════════════════════════════════════════════════════
     #  DEBUG PAGE
@@ -3658,8 +3700,13 @@ class PickitApp(tk.Tk):
         snapshot = {
             "league":          league,
             "output_var":      out_name,
+            # Stable base (no silent timestamp) — used for the in-game filter name
+            # so hourly auto-runs overwrite one file instead of piling up copies.
+            "output_stable":   os.path.basename(os.path.splitext(self.output_var.get())[0]),
             "auto_copy":       self.auto_copy_var.get(),
             "bot_folder":      self.bot_folder_var.get(),
+            "copy_filter_to_game": self.copy_filter_var.get(),
+            "poe2_filter_dir":     self.poe2_filter_dir_var.get().strip(),
             "backup_count":    self.backup_count_var.get(),
             "cat_enabled":     {k: v.get() for k, v in self.cat_enabled.items()},
             "cat_thresh":      {},
@@ -4091,6 +4138,31 @@ class PickitApp(tk.Tk):
                     self._log(f"Copied to bot folder: {dest}", "ok")
                 else:
                     self._log("Auto-copy: bot folder not set or not found.", "warn")
+
+            # ── PoE2 client loot filter (always written next to the .ipd) ─────
+            try:
+                filter_path = os.path.splitext(ipd_path)[0] + ".filter"
+                filter_lines = gen.build_loot_filter(
+                    output_lines, generated_iso=datetime.datetime.now().isoformat())
+                with open(filter_path, "w", encoding="utf-8") as f:
+                    f.write("\n".join(filter_lines))
+                shows = sum(1 for l in filter_lines if l == "Show")
+                self._log(f"Loot filter: {os.path.basename(filter_path)} ({shows} Show blocks)", "dim")
+
+                if snapshot.get("copy_filter_to_game"):
+                    game_dir = (snapshot.get("poe2_filter_dir") or "").strip()
+                    if game_dir and os.path.isdir(game_dir):
+                        # Stable name so hourly auto-runs overwrite one in-game filter
+                        # instead of leaving a trail of timestamped copies.
+                        game_name = (snapshot.get("output_stable") or "poe2_pickit") + ".filter"
+                        fdest = os.path.join(game_dir, game_name)
+                        shutil.copy2(filter_path, fdest)
+                        self._log(f"Loot filter copied to PoE2 folder: {fdest}", "ok")
+                    else:
+                        self._log("Loot filter: PoE2 folder not set or not found "
+                                  "(set it in Settings).", "warn")
+            except Exception as e:
+                self._log(f"Loot filter failed: {e}", "err")
 
             # Stats
             active    = sum(1 for l in output_lines if l and not l.startswith("//") and "[StashItem]" in l)
