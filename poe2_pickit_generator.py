@@ -575,6 +575,116 @@ def build_chance_base_rules(disabled_bases=None) -> list:
     out.append("")
     return out
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  PoE2 client loot-filter export
+#  Translates the generated .ipd pickit into an in-game .filter file: every item
+#  the bot would pick becomes a `Show` block, everything else is hidden. The
+#  game filter only understands BaseType / Rarity / Quality / Sockets / Class —
+#  it cannot replicate [UniqueName] or value thresholds, so uniques are shown by
+#  base type (matching reference filters generated from IPD).
+# ─────────────────────────────────────────────────────────────────────────────
+_LF_TYPE_RE     = re.compile(r'\[Type\]\s*==\s*"((?:[^"\\]|\\.)*)"')
+_LF_RARITY_RE   = re.compile(r'\[Rarity\]\s*==\s*"(\w+)"')
+_LF_QUALITY_RE  = re.compile(r'\[Quality\]\s*>=\s*"(\d+)"')
+_LF_SOCKETS_RE  = re.compile(r'\[Sockets\]\s*>=\s*"(\d+)"')
+_LF_CATEGORY_RE = re.compile(r'\[Category\]\s*==\s*"(\w+)"')
+
+_LF_CHUNK = 30  # BaseTypes per Show block (matches reference IPD-derived filters)
+
+
+def _lf_show_blocks(names, extra_lines, chunk: int = _LF_CHUNK) -> list:
+    """Build Show-block lines for a list of base names, de-duped and chunked.
+
+    ``extra_lines`` are extra condition lines placed inside each block
+    (e.g. 'Rarity = Unique', 'Quality >= 28'). A '# Part i/n' comment is added
+    only when the names span more than one chunk.
+    """
+    names = list(dict.fromkeys(names))  # order-preserving de-dupe
+    if not names:
+        return []
+    chunks = [names[i:i + chunk] for i in range(0, len(names), chunk)]
+    multi  = len(chunks) > 1
+    out: list = []
+    for idx, ch in enumerate(chunks, 1):
+        out.append("Show")
+        if multi:
+            out.append(f"    # Part {idx}/{len(chunks)}")
+        for ex in extra_lines:
+            out.append(f"    {ex}")
+        bt = " ".join(f'"{_quote_ipd(n)}"' for n in ch)
+        out.append(f"    BaseType {bt}")
+        out.append("")
+    return out
+
+
+def build_loot_filter(ipd_lines, generated_iso: Optional[str] = None) -> list:
+    """Parse generated .ipd rule lines and return PoE2 client loot-filter lines."""
+    if generated_iso is None:
+        generated_iso = time.strftime("%Y-%m-%dT%H:%M:%S")
+
+    plain: list = []          # [Type] only (currency, essences, runes, gems, …)
+    unique: list = []         # [Rarity] == "Unique"
+    by_rarity = {"Normal": [], "Magic": [], "Rare": []}
+    by_quality: dict = {}     # quality int -> [names]
+    by_sockets: dict = {}     # socket  int -> [names]
+    has_waystone = False
+
+    for raw in ipd_lines:
+        line = raw.strip()
+        if not line or line.startswith("/"):
+            continue              # blank, header, or commented-out (disabled) rule
+        if "[StashItem]" not in line:
+            continue
+        mt = _LF_TYPE_RE.search(line)
+        if not mt:
+            mc = _LF_CATEGORY_RE.search(line)
+            if mc and mc.group(1) == "Waystone":
+                has_waystone = True
+            continue
+        name = mt.group(1).replace('\\"', '"')
+        mr = _LF_RARITY_RE.search(line)
+        mq = _LF_QUALITY_RE.search(line)
+        ms = _LF_SOCKETS_RE.search(line)
+        if mr and mr.group(1) == "Unique":
+            unique.append(name)
+        elif mr and mr.group(1) in by_rarity:
+            by_rarity[mr.group(1)].append(name)
+        elif mq:
+            by_quality.setdefault(int(mq.group(1)), []).append(name)
+        elif ms:
+            by_sockets.setdefault(int(ms.group(1)), []).append(name)
+        else:
+            plain.append(name)
+
+    out: list = [
+        "# Path of Exile 2 Filter - Generated from IPD",
+        "# IMPORTANT: Shows items based on PICKUP conditions (before #)",
+        "# Bot will pick these up and decide what to keep after identification",
+        f"# Generated on: {generated_iso}",
+        "",
+    ]
+    out += _lf_show_blocks(plain, [])
+    out += _lf_show_blocks(unique, ["Rarity = Unique"])
+    for rar in ("Normal", "Magic", "Rare"):
+        out += _lf_show_blocks(by_rarity[rar], [f"Rarity = {rar}"])
+    for q in sorted(by_quality):
+        out += _lf_show_blocks(by_quality[q], [f"Quality >= {q}"])
+    for s in sorted(by_sockets):
+        out += _lf_show_blocks(by_sockets[s], [f"Sockets >= {s}"])
+    if has_waystone:
+        out += ["Show", '    Class "Waystone"', ""]
+
+    out += [
+        "# Hide everything else",
+        "Hide",
+        "",
+        "# WARNING: This filter only shows items from parsed IPD rules",
+        "# Make sure to show other important items your build needs",
+    ]
+    return out
+
+
 # Scout (poe2scout.com) — unique item categories supplementing poe.ninja.
 # Fetched at generate time; silently skipped if the API is unavailable.
 SCOUT_CATEGORIES = [

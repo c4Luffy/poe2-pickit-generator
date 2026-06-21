@@ -1,6 +1,6 @@
 # ExileBot 2 Pickit Generator
 
-Generate `.ipd` pickit rules for **Exiled Bot 2** using live **Path of Exile 2** economy prices from [poe.ninja](https://poe.ninja).
+Generate `.ipd` pickit rules for **Exiled Bot 2** using live **Path of Exile 2** economy prices from [poe.ninja](https://poe.ninja) — and a matching **in-game loot filter** (`.filter`) on every run.
 
 > **Download:** grab the latest `.exe` from the [Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases) — no Python needed.
 
@@ -34,6 +34,23 @@ Generate `.ipd` pickit rules for **Exiled Bot 2** using live **Path of Exile 2**
 ### 5. Point your bot at the file
 - In Exiled Bot 2 settings, set the pickit path to the generated `.ipd`, **or**
 - Enable **Auto-copy** in **Settings** to deploy it automatically after each generate.
+
+---
+
+## In-Game Loot Filter
+
+Every generate also writes a **PoE2 client loot filter** (`.filter`) next to the `.ipd`, mirroring
+what the bot picks up — currency, uniques (by base), tablets, and gear bases (by quality/sockets) —
+and hides everything else.
+
+- In **Settings → Loot Filter (PoE2 client)** you can set your Path of Exile 2 folder and toggle
+  **"Also copy loot filter to PoE2 folder after generate"** (on by default). The folder is
+  auto-detected at `Documents\My Games\Path of Exile 2`.
+- Select it in-game under **Options → Game → Loot Filter**.
+
+> [!NOTE]
+> A game filter can only match by BaseType / Rarity / Quality / Sockets — it can't replicate
+> `[UniqueName]` or value thresholds. Per-item value filtering stays in the bot's `.ipd`.
 
 ---
 
