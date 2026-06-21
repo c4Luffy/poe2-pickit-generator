@@ -319,7 +319,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.0.0"
+VERSION       = "2.0.1"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -902,14 +902,13 @@ class PickitApp(tk.Tk):
                  bg=BG2, fg=TEXT_DIM, font=FONT_SM, padx=8).pack(side="right", padx=8)
         sep(right).pack(fill="x")
 
+        # Row 1 — item actions: search, enable/disable, min filter, value unit
         tbar = tk.Frame(right, bg=BG)
-        tbar.pack(fill="x", padx=10, pady=(6, 4))
+        tbar.pack(fill="x", padx=10, pady=(6, 2))
 
-        # Search box
         tk.Label(tbar, text="Search:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left")
-        entry(tbar, self._cat_search_var, width=18).pack(side="left", padx=(4, 10), ipady=3)
+        entry(tbar, self._cat_search_var, width=16).pack(side="left", padx=(4, 10), ipady=3)
 
-        # Enable/Disable all / Reset
         btn(tbar, "Enable All",  lambda: self._cat_items_set_all(True)).pack(side="left", padx=(0, 3))
         btn(tbar, "Disable All", lambda: self._cat_items_set_all(False)).pack(side="left", padx=(0, 3))
         btn(tbar, "Reset",       self._cat_items_reset).pack(side="left", padx=(0, 8))
@@ -920,12 +919,26 @@ class PickitApp(tk.Tk):
         entry(tbar, self._min_chaos_filter_var, width=5).pack(side="left", ipady=3)
         tk.Label(tbar, text="c", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(2, 4))
         btn(tbar, "Apply", self._apply_chaos_filter).pack(side="left", padx=(0, 8))
-        tk.Frame(tbar, bg=BORDER, width=1).pack(side="left", padx=6, fill="y")
 
-        # Price unit selector
-        tk.Label(tbar, text="Value:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(0, 4))
+        # Row 2 — presets (left), value unit + refresh (right)
+        tbar2 = tk.Frame(right, bg=BG)
+        tbar2.pack(fill="x", padx=10, pady=(0, 4))
+        tk.Label(tbar2, text="Preset:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(0, 4))
+        btn(tbar2, "Save",   self._preset_save).pack(side="left", padx=(0, 3))
+        btn(tbar2, "Load",   self._preset_load).pack(side="left", padx=(0, 3))
+        btn(tbar2, "Export", self._preset_export).pack(side="left", padx=(0, 3))
+        btn(tbar2, "Import", self._preset_import).pack(side="left")
+
+        # Refresh = rightmost; pack it first so side="right" anchors it to the edge
+        self._refresh_btn = btn(tbar2, "↻ Refresh", self._refresh_cat_prices)
+        self._refresh_btn.pack(side="right", padx=(0, 4))
+
+        # Price unit selector — right side of row 2, just left of Refresh
+        val_f = tk.Frame(tbar2, bg=BG)
+        val_f.pack(side="right", padx=(0, 10))
+        tk.Label(val_f, text="Value:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(0, 4))
         for unit_key, unit_label in (("ex", "Exalt"), ("chaos", "Chaos"), ("div", "Divine")):
-            ub = tk.Button(tbar, text=unit_label,
+            ub = tk.Button(val_f, text=unit_label,
                            bg=BG3, fg=TEXT_DIM, activebackground=BORDER,
                            activeforeground=TEXT, relief="flat", bd=1,
                            font=FONT_SM, padx=7, pady=2,
@@ -933,16 +946,6 @@ class PickitApp(tk.Tk):
             ub.pack(side="left", padx=1)
             self._price_unit_btns[unit_key] = ub
         self._update_price_unit_btns()
-
-        # Preset buttons
-        tk.Frame(tbar, bg=BORDER, width=1).pack(side="left", padx=10, fill="y")
-        btn(tbar, "Save Preset",   self._preset_save).pack(side="left", padx=(0, 3))
-        btn(tbar, "Load Preset",   self._preset_load).pack(side="left", padx=(0, 3))
-        btn(tbar, "Export",        self._preset_export).pack(side="left", padx=(0, 3))
-        btn(tbar, "Import",        self._preset_import).pack(side="left")
-
-        self._refresh_btn = btn(tbar, "↻ Refresh", self._refresh_cat_prices)
-        self._refresh_btn.pack(side="right", padx=(0, 4))
 
         sep(right).pack(fill="x")
 
