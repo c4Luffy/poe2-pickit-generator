@@ -18,6 +18,7 @@ Usage:
 
 import argparse
 import csv
+import difflib
 from concurrent.futures import ThreadPoolExecutor
 import io
 import json
@@ -283,6 +284,93 @@ _RUNEFORGED_BASES: tuple = (
 def _quote_ipd(name: str) -> str:
     """Escape double quotes inside an item name for the IPD rule format."""
     return name.replace('"', '\\"')
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Pickit validation (mirrors what exiled-bot.net flags, best-effort)
+# ─────────────────────────────────────────────────────────────────────────────
+#  Exiled Bot's full accepted base-type list isn't public, so we can't replicate
+#  it perfectly for economy items. We DO reliably check:
+#    • rule syntax (balanced quotes/brackets, a [StashItem] action)
+#    • equipment base-type rules against the bases we ship (catches typos / a
+#      unique name wrongly used as a base, e.g. "Dustbloom")
+#    • maintained lists of names Exiled Bot rejects / deprecates
+#  The maintained lists are easy to extend as new cases surface.
+
+VALID_EQUIPMENT_BASES: frozenset = (
+    frozenset(name for entries in _BASE_TYPES_BY_CATEGORY.values() for name, _ in entries)
+    | frozenset(name for name, _ in _RUNEFORGED_BASES)
+)
+
+# Names Exiled Bot rejects outright (validation error). Seeded with the cases we
+# already hit so they're caught immediately if a data update reintroduces them as
+# a [Type] (note: "Dustbloom" is still valid as a [UniqueName], which we don't flag).
+KNOWN_INVALID_TYPES: set = {
+    "Necrotic Catalyst",
+    "Refined Necrotic Catalyst",
+    "Dustbloom",
+}
+
+# Names Exiled Bot still accepts but marks as deprecated (validation warning).
+DEPRECATED_TYPES: set = {"Aldur's Legacy"}
+
+_VAL_TYPE_RE   = re.compile(r'\[Type\]\s*==\s*"((?:[^"\\]|\\.)*)"')
+_VAL_UNIQUE_RE = re.compile(r'\[UniqueName\]\s*==\s*"((?:[^"\\]|\\.)*)"')
+
+
+def validate_pickit(lines) -> dict:
+    """Statically validate generated pickit lines (no network).
+
+    Returns {"errors": [(lineno, msg), ...], "warnings": [(lineno, msg), ...]}.
+    Only active (non-commented) rule lines are checked; ``//`` lines and
+    headers/blanks are skipped.
+    """
+    errors: list = []
+    warnings: list = []
+    for i, raw in enumerate(lines, 1):
+        line = raw.strip()
+        if not line or line.startswith("/"):
+            continue  # blank line, header, or commented-out (disabled) rule
+        if "#" not in line and "[StashItem]" not in line:
+            continue  # not a rule line
+
+        if line.count('"') % 2 != 0:
+            errors.append((i, "Unbalanced quotes in rule"))
+            continue
+        if line.count("[") != line.count("]"):
+            errors.append((i, "Unbalanced [ ] brackets in rule"))
+            continue
+        if "[StashItem]" not in line:
+            errors.append((i, "Rule has no [StashItem] action"))
+            continue
+
+        m  = _VAL_TYPE_RE.search(line)
+        mu = _VAL_UNIQUE_RE.search(line)
+        tname = m.group(1).replace('\\"', '"') if m else None
+        uname = mu.group(1).replace('\\"', '"') if mu else None
+
+        if tname and tname in KNOWN_INVALID_TYPES:
+            errors.append((i, f'Invalid base type: "{tname}"'))
+            continue
+        if tname and tname in DEPRECATED_TYPES:
+            warnings.append((i, f'Deprecated base type: "{tname}"'))
+
+        # Equipment base-type rule = a [Type] rule with a Quality/Sockets gate
+        # that is NOT a unique. These map 1:1 to the bases we ship, so an unknown
+        # name here is a real error.
+        is_base_rule = (
+            tname is not None and uname is None
+            and '[Rarity] == "Unique"' not in line
+            and ('[Quality]' in line or '[Sockets]' in line)
+        )
+        if is_base_rule and tname not in VALID_EQUIPMENT_BASES:
+            msg = f'Invalid base type: "{tname}"'
+            near = difflib.get_close_matches(tname, VALID_EQUIPMENT_BASES, n=3, cutoff=0.6)
+            if near:
+                msg += "  — did you mean: " + " or ".join(f'"{s}"' for s in near)
+            errors.append((i, msg))
+
+    return {"errors": errors, "warnings": warnings}
 
 
 def build_base_rules(min_quality: int = 28, min_level: int = 60, progress_callback=None) -> list:
