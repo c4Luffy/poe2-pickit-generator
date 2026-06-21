@@ -138,6 +138,36 @@ def test_waystone_lines_returns_fallback():
     assert gen.build_waystone_lines() == list(gen.WAYSTONE_FALLBACK_RULES)
 
 
+# ── build_craft_base_rules ───────────────────────────────────────────────────
+
+def test_craft_bases_are_normal_ilvl_rules():
+    out = "\n".join(gen.build_craft_base_rules())
+    assert '[Rarity] == "Normal"' in out
+    assert '[ItemLevel] >= "81"' in out
+
+
+def test_craft_bases_exclude_sword_axe_mace():
+    out = "\n".join(gen.build_craft_base_rules())
+    assert "Hand Sword" not in out
+    assert "Hand Axe" not in out
+    assert "Hand Mace" not in out
+
+
+def test_craft_base_names_are_all_valid():
+    # Every curated craft base must exist in the bot's known base list
+    for cat, names in gen._CRAFT_BEST_BASES.items():
+        for n in names:
+            assert n in gen.VALID_EQUIPMENT_BASES, f"{cat}: unknown base {n!r}"
+
+
+def test_craft_bases_respect_disabled():
+    full = gen.build_craft_base_rules()
+    one  = next(l for l in full if l.startswith("[Type]"))
+    name = one.split('"')[1]
+    trimmed = "\n".join(gen.build_craft_base_rules(disabled={name}))
+    assert f'[Type] == "{name}"' not in trimmed
+
+
 def test_divine_value_from_exalt():
     assert gen.divine_value_from_exalt(200.0, 100.0) == 2.0
     assert gen.divine_value_from_exalt(5.0, 0.0) == 0.0   # no divide-by-zero

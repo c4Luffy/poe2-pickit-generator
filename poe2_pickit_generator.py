@@ -420,6 +420,75 @@ def build_base_rules(min_quality: int = 28, min_level: int = 60, progress_callba
     return all_lines
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  Craft bases — pick the BEST WHITE (Normal) base of each defence type per slot
+#  at high item level, as blank bases worth crafting on. Curated (not the full
+#  base list) to keep the stash from filling up. Emitted as:
+#    [Type] == "Name" && [Rarity] == "Normal" && [ItemLevel] >= "81" # [StashItem] == "true"
+#
+#  These are best-effort meta picks (verified to exist in the base list); they are
+#  toggleable in the Craft Bases tab and easy to swap here. Sword/axe/mace are
+#  intentionally omitted.
+# ─────────────────────────────────────────────────────────────────────────────
+CRAFT_BASE_MIN_ILVL = 81
+
+# Ordered slot -> best base(s). Armour/off-hand = best of each defence type
+# (Armour/STR, Evasion/DEX, Energy Shield/INT). Weapons = best base per kept type.
+_CRAFT_BEST_BASES: dict = {
+    "Body Armours":  ["Glorious Plate", "Assassin Garb", "Vile Robe"],
+    "Helmets":       ["Imperial Greathelm", "Soaring Mask", "Sorcerous Tiara"],
+    "Gloves":        ["Blacksteel Gauntlets", "Sirenscale Gloves", "Grand Mitts"],
+    "Boots":         ["Fortress Sabatons", "Drakeskin Boots", "Warlock Leggings"],
+    "Shields":       ["Goldworked Tower Shield", "Soaring Targe"],
+    "Foci":          ["Sacred Focus"],
+    "Spears":        ["Orichalcum Spear"],
+    "Quarterstaves": ["Wyrm Quarterstaff"],
+    "Crossbows":     ["Siege Crossbow"],
+    "Bows":          ["Warmonger Bow"],
+    "Staves":        ["Ravenous Staff"],
+    "Claws":         ["Talon Claw"],
+    "Daggers":       ["Cinquedea"],
+    "Wands":         ["Dueling Wand"],
+    "Sceptres":      ["Hallowed Sceptre"],
+    "Flails":        ["Abyssal Flail"],
+}
+
+
+def craft_base_categories() -> list:
+    """Ordered ``[(category, [base_name, ...]), ...]`` for the curated craft bases."""
+    return [(cat, list(names)) for cat, names in _CRAFT_BEST_BASES.items() if names]
+
+
+def build_craft_base_rules(disabled=None, min_ilvl: int = CRAFT_BASE_MIN_ILVL) -> list:
+    """Return pickit lines that pick Normal-rarity bases at item level >= min_ilvl
+    — ideal blank bases for crafting. Skips any base names in ``disabled``."""
+    skip = set(disabled) if disabled else set()
+    body: list = []
+    for cat, names in craft_base_categories():
+        active = [n for n in names if n not in skip]
+        if not active:
+            continue
+        body.append(f"// -- {cat} " + "-" * max(0, 73 - len(cat)))
+        for name in active:
+            safe = _quote_ipd(name)
+            body.append(
+                f'[Type] == "{safe}" && [Rarity] == "Normal" '
+                f'&& [ItemLevel] >= "{min_ilvl}" # [StashItem] == "true"'
+            )
+        body.append("")
+    if not body:
+        return []
+    return [
+        "/////////////////////////////////////////////////////////////////////////////////////",
+        "//                                                                                 //",
+        "//                              CRAFT BASES                                        //",
+        f"//  Normal-rarity bases at item level {min_ilvl}+ - blank bases worth crafting on.        //",
+        "//  Manage individual bases in the Craft Bases tab.                                //",
+        "//                                                                                 //",
+        "/////////////////////////////////////////////////////////////////////////////////////",
+        "",
+    ] + body
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 

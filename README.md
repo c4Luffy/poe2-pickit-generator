@@ -70,6 +70,7 @@ python poe2_pickit_gui.py
 | **Generate** | Select league, pick a profile, run generation, view stats, price moves and log |
 | **Items** | Turn individual items ON/OFF — click a card to exclude it; use **Min c** to bulk-disable cheap items |
 | **Chance Bases** | Toggle Normal-rarity bases to Orb-of-Chance into target uniques |
+| **Craft Bases** | Toggle the best blank bases to pick up for crafting (Normal rarity, item level 81+) |
 | **Preview** | Syntax-highlighted view of the generated `.ipd` file |
 | **History** | Log of all past generate runs |
 | **Settings** | Bot folder, auto-copy, loot-filter export, backups |
@@ -99,6 +100,7 @@ Everything is picked by default. Use the **Items** tab to exclude specific items
 | Waystones | All tiers and rarities (always picked) |
 | Unique Weapons / Armours / Accessories / Flasks / Charms / Jewels / Relics | Via poe.ninja |
 | Endgame Gear Bases | 245 bases, level 75+, all 25 categories |
+| Craft Bases | Best blank base of each defence type per slot (Normal, ilvl 81+) — manage in the **Craft Bases** tab |
 
 ---
 
