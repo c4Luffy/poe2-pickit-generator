@@ -95,6 +95,7 @@ DEFAULT_CONFIG = {
 
     "window_geometry": "",
     "confirm_overwrite_secs": 120,
+    "auto_schedule": True,
     "include_bases": True,
     "base_quality": 28,
     "base_min_level": 75,
@@ -342,7 +343,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.3.1"
+VERSION       = "2.3.2"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -426,7 +427,8 @@ class PickitApp(tk.Tk):
         self.poe2_filter_dir_var = tk.StringVar(
             value=self.cfg.get("poe2_filter_dir") or _default_poe2_filter_dir())
         self.backup_count_var = tk.IntVar(value=self.cfg.get("backup_count", 5))
-        self.ovw_var          = tk.IntVar(value=self.cfg.get("confirm_overwrite_secs", 120))
+        self.confirm_ovw_var  = tk.BooleanVar(value=self.cfg.get("confirm_overwrite_secs", 120) > 0)
+        self.auto_schedule_var = tk.BooleanVar(value=self.cfg.get("auto_schedule", True))
 
         self.include_bases_var  = tk.BooleanVar(value=True)
         self.base_quality_var   = tk.IntVar(value=self.cfg.get("base_quality", 28))
@@ -3188,11 +3190,9 @@ class PickitApp(tk.Tk):
 
     def _build_settings_page(self, page):
         self._tab_desc(page,
-            "Configure the tool's behaviour.  Point the bot folder to your Exiled Bot pickit directory "
-            "and enable Auto-copy to have the .ipd file deployed there automatically after every generate.  "
-            "Auto-Schedule re-generates on a timer so your pickit stays fresh without manual clicks.  "
-            "Adjust backup count, notifications, and overwrite protection to suit your workflow, "
-            "then click 'Save settings' to apply.")
+            "Point the bot folder to your Exiled Bot pickit directory, set where the in-game loot "
+            "filter goes, and tune auto-schedule, backups and overwrite protection.  "
+            "Click 'Save settings' to apply.")
         inner, _ = self._scrollable(page)
 
         # Bot folder
@@ -3224,9 +3224,11 @@ class PickitApp(tk.Tk):
 
         # Schedule
         sec2 = self._section_frame(inner, "Auto-Schedule")
-        label(sec2, "Pickit automatically re-generates every 1 hour so your prices are always up to date. "
-                    "This runs in the background as long as the app is open — no setup needed.",
-              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 10))
+        label(sec2, "Re-generate the pickit automatically every hour in the background so prices stay "
+                    "fresh. Turn this off if you'd rather only generate manually.",
+              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 4))
+        checkbtn(sec2, "Auto-generate every hour while the app is open", self.auto_schedule_var
+                 ).pack(anchor="w", padx=10, pady=(0, 8))
 
         # Backups
         sec3 = self._section_frame(inner, "Backups")
@@ -3242,15 +3244,11 @@ class PickitApp(tk.Tk):
 
         # Overwrite protection
         sec5 = self._section_frame(inner, "Overwrite Protection")
-        label(sec5, "Asks for confirmation before overwriting a file that was generated recently. "
-                    "Prevents accidents if you click Generate twice by mistake. Set to 0 to always ask.",
+        label(sec5, "Ask for confirmation before overwriting a pickit you generated in the last couple "
+                    "of minutes — prevents accidents if you click Generate twice.",
               fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 4))
-        of = tk.Frame(sec5, bg=BG2)
-        of.pack(fill="x", padx=10, pady=(0, 10))
-        label(of, "Confirm overwrite if file younger than", fg=TEXT_DIM, bg=BG2).pack(side="left")
-        self._make_slider(of, self.ovw_var, from_=0, to=3600, resolution=30,
-                          fmt="{:.0f} s", width=260).pack(side="left", padx=(10, 4))
-        label(of, "(0 = always ask)", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(side="left", padx=(6, 0))
+        checkbtn(sec5, "Confirm before overwriting a recent pickit", self.confirm_ovw_var
+                 ).pack(anchor="w", padx=10, pady=(0, 10))
 
         # Config file location
         sec6 = self._section_frame(inner, "Config File")
@@ -3274,7 +3272,8 @@ class PickitApp(tk.Tk):
         self.cfg["copy_filter_to_game"]    = self.copy_filter_var.get()
         self.cfg["poe2_filter_dir"]        = self.poe2_filter_dir_var.get().strip()
         self.cfg["backup_count"]           = self.backup_count_var.get()
-        self.cfg["confirm_overwrite_secs"] = self.ovw_var.get()
+        self.cfg["confirm_overwrite_secs"] = 120 if self.confirm_ovw_var.get() else 0
+        self.cfg["auto_schedule"]          = self.auto_schedule_var.get()
         self.cfg["include_bases"]          = self.include_bases_var.get()
         self.cfg["base_quality"]           = self.base_quality_var.get()
         self.cfg["base_min_level"]         = self.base_min_level_var.get()
@@ -3302,7 +3301,8 @@ class PickitApp(tk.Tk):
             self.copy_filter_var.set(self.cfg.get("copy_filter_to_game", True))
             self.poe2_filter_dir_var.set(self.cfg.get("poe2_filter_dir") or _default_poe2_filter_dir())
             self.backup_count_var.set(self.cfg.get("backup_count", 5))
-            self.ovw_var.set(self.cfg.get("confirm_overwrite_secs", 120))
+            self.confirm_ovw_var.set(True)
+            self.auto_schedule_var.set(True)
             self.include_bases_var.set(True)
             self.base_quality_var.set(self.cfg.get("base_quality", 28))
             self.base_min_level_var.set(self.cfg.get("base_min_level", 75))
@@ -3782,7 +3782,9 @@ class PickitApp(tk.Tk):
     # ══════════════════════════════════════════════════════════════════════════
 
     def _schedule_tick(self):
-        if not self._running:
+        if not self.cfg.get("auto_schedule", True):
+            self.schedule_lbl.config(text="⏱ Auto: off")
+        elif not self._running:
             now = time.time()
             if now - self._last_run_time >= 3600:
                 self._start_generate(silent=True)
