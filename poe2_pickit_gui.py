@@ -49,8 +49,22 @@ except ImportError:
     sys.exit(1)
 
 # ── Config ────────────────────────────────────────────────────────────────────
+# Built EXE: keep everything in ONE tidy data folder next to the .exe instead of
+# scattering config/caches/output loose beside it (e.g. all over the Desktop).
 if getattr(sys, 'frozen', False):
-    _cfg_dir = os.path.dirname(sys.executable)
+    _exe_dir = os.path.dirname(sys.executable)
+    _cfg_dir = os.path.join(_exe_dir, "ExileBot2PickitGenerator_data")
+    os.makedirs(_cfg_dir, exist_ok=True)
+    # One-time migration: move loose files from older versions into the data folder.
+    for _name in ("pickit_gui_config.json", "wiki_icon_cache.json", "pickit_output",
+                  "icon_cache", "presets", "price_cache", "latest.ipd"):
+        _src = os.path.join(_exe_dir, _name)
+        _dst = os.path.join(_cfg_dir, _name)
+        if os.path.exists(_src) and not os.path.exists(_dst):
+            try:
+                shutil.move(_src, _dst)
+            except Exception:
+                pass
 else:
     _cfg_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -60,7 +74,7 @@ ICON_DIR         = os.path.join(_cfg_dir, "icon_cache")
 PRESETS_DIR      = os.path.join(_cfg_dir, "presets")
 PRICE_CACHE_DIR  = os.path.join(_cfg_dir, "price_cache")
 WIKI_CACHE_FILE  = os.path.join(_cfg_dir, "wiki_icon_cache.json")
-for _d in (OUTPUT_DIR, ICON_DIR, PRESETS_DIR):
+for _d in (_cfg_dir, OUTPUT_DIR, ICON_DIR, PRESETS_DIR):
     os.makedirs(_d, exist_ok=True)
 
 # Point the generator's offline cache at a local folder so prices survive
@@ -144,7 +158,7 @@ from tab_craft_bases import CraftBasesTab
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.3.4"
+VERSION       = "2.4.0"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -3028,7 +3042,20 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                  font=FONT, padx=28, pady=(18, 4)).pack()
         status = tk.Label(dlg, text="Connecting…", bg=BG, fg=TEXT_DIM, font=FONT_SM)
         status.pack(padx=28, pady=(0, 18))
+        # Force the dialog to actually render + sit on top (it was showing blank).
         dlg.update_idletasks()
+        try:
+            x = self.winfo_rootx() + max((self.winfo_width() - dlg.winfo_width()) // 2, 0)
+            y = self.winfo_rooty() + 140
+            dlg.geometry(f"+{x}+{y}")
+        except Exception:
+            pass
+        dlg.lift()
+        try:
+            dlg.attributes("-topmost", True)
+        except Exception:
+            pass
+        dlg.update()
 
         def _worker():
             try:
@@ -3071,6 +3098,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 "  timeout /t 1 /nobreak >NUL\r\n"
                 "  goto waitloop\r\n"
                 ")\r\n"
+                "timeout /t 1 /nobreak >NUL\r\n"          # let the OS release the EXE lock
                 f'copy /Y "{new_exe}" "{cur}" >NUL\r\n'
                 f'start "" "{cur}"\r\n'
                 'del "%~f0"\r\n'
@@ -3083,7 +3111,17 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 dlg.destroy()
             except Exception:
                 pass
-            self._quit_app()
+            # Persist settings, then HARD-exit so the helper can overwrite the EXE.
+            # (self.destroy() alone sometimes left the process alive, so the helper
+            # waited forever and the update never applied.)
+            try:
+                if self._schedule_after:
+                    self.after_cancel(self._schedule_after)
+                self.cfg["window_geometry"] = self.geometry()
+                save_config(self.cfg)
+            except Exception:
+                pass
+            os._exit(0)
         except Exception as exc:
             self._update_failed(str(exc), dlg)
 
