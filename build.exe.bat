@@ -22,7 +22,7 @@ if errorlevel 1 (
 echo.
 echo [2/5] Installing packages...
 python -m pip install --upgrade pip --quiet
-python -m pip install requests Pillow pyinstaller
+python -m pip install requests Pillow customtkinter pyinstaller
 if errorlevel 1 (
     echo.
     echo ERROR: pip install failed. See above.
@@ -67,6 +67,7 @@ python -m PyInstaller ^
     --hidden-import PIL.Image ^
     --hidden-import PIL.ImageTk ^
     --hidden-import PIL.ImageDraw ^
+    --collect-all customtkinter ^
     --noconfirm ^
     poe2_pickit_gui.py
 
@@ -101,7 +102,7 @@ echo Your EXE is at:
 echo   %CD%\dist\ExileBot2PickitGenerator.exe
 echo.
 echo You can copy that EXE anywhere and double-click to run.
-echo Settings are saved next to the EXE automatically.
+echo Settings/output live in an ExileBot2PickitGenerator_data folder beside the EXE.
 echo.
 echo NOTE: Windows Defender may warn about the EXE.
 echo This is a false positive - click "More info" then "Run anyway".

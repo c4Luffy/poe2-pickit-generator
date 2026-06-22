@@ -1,0 +1,6 @@
+# Runtime dependencies for the ExileBot 2 Pickit Generator GUI.
+#   pip install -r requirements.txt
+requests
+Pillow
+customtkinter
+# Build-only (for producing the .exe): pip install pyinstaller
