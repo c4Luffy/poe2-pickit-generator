@@ -8,7 +8,12 @@ for the look-and-feel and no circular import between tabs and the app shell.
 import tkinter as tk
 from tkinter import ttk
 
+import customtkinter as ctk
+
 import poe2_pickit_generator as gen
+
+# Modern dark look for the CustomTkinter widgets (buttons, etc.).
+ctk.set_appearance_mode("dark")
 
 
 # ── Colours & fonts ───────────────────────────────────────────────────────────
@@ -96,10 +101,21 @@ def checkbtn(parent, text, var, bg=None):
         activeforeground=TEXT,
         font=FONT, anchor="w")
 
-def btn(parent, text, cmd, **kw):
-    """Standard ttk button styled for dark theme."""
-    b = ttk.Button(parent, text=text, command=cmd, **kw)
-    return b
+def btn(parent, text, cmd, style=None, **kw):
+    """Modern rounded button (CustomTkinter).
+
+    style='Gold.TButton' renders the gold accent button. Width auto-sizes to the
+    label (CTkButton's 140px default would blow out the compact toolbars).
+    Supports the same .configure(state=...) used throughout for enable/disable.
+    """
+    width = kw.pop("width", max(64, len(str(text)) * 9 + 22))
+    if style == "Gold.TButton":
+        return ctk.CTkButton(parent, text=text, command=cmd, width=width, height=30,
+                             corner_radius=8, font=FONT_BOLD,
+                             fg_color=GOLD, hover_color=GOLD_LT, text_color="#111111", **kw)
+    return ctk.CTkButton(parent, text=text, command=cmd, width=width, height=28,
+                         corner_radius=8, font=FONT,
+                         fg_color=BG3, hover_color=BORDER, text_color=TEXT, **kw)
 
 # ── ttk style setup (called once on app init) ─────────────────────────────────
 
@@ -223,4 +239,4 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 # Export everything (incl. the underscore-prefixed colour names) so the app shell
 # and tab modules can `from ui_common import *` and get the full toolkit.
-__all__ = [n for n in dir() if n not in ("tk", "ttk", "gen") and not n.startswith("__")]
+__all__ = [n for n in dir() if n not in ("tk", "ttk", "ctk", "gen") and not n.startswith("__")]

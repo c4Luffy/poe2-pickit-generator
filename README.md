@@ -57,7 +57,7 @@ and hides everything else.
 ## Running from Source
 
 ```bash
-pip install requests Pillow
+pip install requests Pillow customtkinter
 python poe2_pickit_gui.py
 ```
 
