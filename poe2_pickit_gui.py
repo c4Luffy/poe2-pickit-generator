@@ -158,7 +158,7 @@ from tab_craft_bases import CraftBasesTab
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.4.1"
+VERSION       = "2.5.0"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -651,11 +651,11 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
         self.open_ipd_btn = btn(btn_f, "Open .ipd", lambda: self._open_file(".ipd"))
         self.open_ipd_btn.pack(side="left", padx=(8, 0))
-        self.open_ipd_btn.state(["disabled"])
+        self.open_ipd_btn.configure(state="disabled")
 
         self.open_filter_btn = btn(btn_f, "Open .filter", lambda: self._open_file(".filter"))
         self.open_filter_btn.pack(side="left", padx=(6, 0))
-        self.open_filter_btn.state(["disabled"])
+        self.open_filter_btn.configure(state="disabled")
 
         btn(btn_f, "Open output folder", self._open_output_folder).pack(side="left", padx=(6, 0))
 
@@ -3418,10 +3418,10 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             self._log("Auto-schedule triggered.", "info")
         else:
             self._log_clear()
-        self.gen_btn.state(["disabled"])
-        self.force_btn.state(["disabled"])
-        self.open_ipd_btn.state(["disabled"])
-        self.open_filter_btn.state(["disabled"])
+        self.gen_btn.configure(state="disabled")
+        self.force_btn.configure(state="disabled")
+        self.open_ipd_btn.configure(state="disabled")
+        self.open_filter_btn.configure(state="disabled")
         self.status_lbl.config(text="Generating…", fg=TEXT_WARN)
         self.progress_var.set("Starting…")
 
@@ -4061,11 +4061,11 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self._running = False
         self._seg_bar.pack_forget()
         self.progress_var.set("")
-        self.gen_btn.state(["!disabled"])
-        self.force_btn.state(["!disabled"])
+        self.gen_btn.configure(state="normal")
+        self.force_btn.configure(state="normal")
         if success:
-            self.open_ipd_btn.state(["!disabled"])
-            self.open_filter_btn.state(["!disabled"])
+            self.open_ipd_btn.configure(state="normal")
+            self.open_filter_btn.configure(state="normal")
             self._show_gen_summary()
         self.status_lbl.config(
             text=f"Last run: {datetime.datetime.now().strftime('%H:%M:%S')}",
