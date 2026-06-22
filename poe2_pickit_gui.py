@@ -96,6 +96,7 @@ DEFAULT_CONFIG = {
     "window_geometry": "",
     "confirm_overwrite_secs": 120,
     "auto_schedule": True,
+    "items_sort_desc": True,
     "include_bases": True,
     "base_quality": 28,
     "base_min_level": 75,
@@ -343,7 +344,7 @@ def _draw_sparkline(canvas: tk.Canvas, data: list, w: int, h: int):
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.3.2"
+VERSION       = "2.3.3"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -454,6 +455,8 @@ class PickitApp(tk.Tk):
         self._cat_last_fetched = {}   # {cat_key: "HH:MM"} shown in count label
         self._price_unit_btns  = {}
         self._min_chaos_filter_var = tk.StringVar(value=str(self.cfg.get("min_chaos_filter", 0)))
+        self._items_sort_var = tk.StringVar(
+            value="High → Low" if self.cfg.get("items_sort_desc", True) else "Low → High")
         self._last_gen_prices  = dict(self.cfg.get("last_gen_prices", {}))  # {league: {key: {name: ex}}}
         self._price_alerts: list = []
 
@@ -1008,6 +1011,14 @@ class PickitApp(tk.Tk):
         tk.Label(tbar, text="c", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(2, 4))
         btn(tbar, "Apply", self._apply_chaos_filter).pack(side="left", padx=(0, 8))
 
+        # Sort by price
+        tk.Frame(tbar, bg=BORDER, width=1).pack(side="left", padx=6, fill="y")
+        tk.Label(tbar, text="Sort:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(0, 3))
+        sort_cb = ttk.Combobox(tbar, textvariable=self._items_sort_var, state="readonly",
+                               width=11, values=["High → Low", "Low → High"])
+        sort_cb.pack(side="left")
+        sort_cb.bind("<<ComboboxSelected>>", self._on_items_sort_change)
+
         # Row 2 — presets (left), value unit + refresh (right)
         tbar2 = tk.Frame(right, bg=BG)
         tbar2.pack(fill="x", padx=10, pady=(0, 4))
@@ -1348,7 +1359,8 @@ class PickitApp(tk.Tk):
                 return (0, -r[2])
             rows.sort(key=_exp_sort)
         else:
-            rows.sort(key=lambda r: -r[2])
+            # Price sort, direction from the Items toolbar (High→Low default).
+            rows.sort(key=lambda r: r[2], reverse=self.cfg.get("items_sort_desc", True))
 
         # Save previous prices for trend arrows, then cache new prices
         self._cat_prev_prices[key] = {
@@ -1908,6 +1920,16 @@ class PickitApp(tk.Tk):
             chaos = ex / chaos_ex_val if chaos_ex_val else ex
             prices[name] = chaos
         return prices
+
+    def _on_items_sort_change(self, evt=None):
+        """Re-sort the open category grid when the price-sort direction changes."""
+        self.cfg["items_sort_desc"] = (self._items_sort_var.get() == "High → Low")
+        save_config(self.cfg)
+        key = self._active_cat
+        if key and key != "_gear":
+            payload = gen._cache_get(self._selected_league() or "Mercenaries", key)
+            if payload and not isinstance(payload, Exception):
+                self._populate_cat_grid(key, payload)
 
     def _apply_chaos_filter(self):
         """Disable all items below the min chaos threshold across all loaded categories."""
