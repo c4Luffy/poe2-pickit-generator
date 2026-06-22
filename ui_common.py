@@ -83,23 +83,21 @@ def label(parent, text, fg=None, font=None, bg=None, **kw):
                     font=font or FONT, **kw)
 
 def entry(parent, var, width=None, **kw):
-    e = tk.Entry(parent, textvariable=var,
-                 bg=BG3, fg=TEXT, insertbackground=GOLD,
-                 relief="flat", bd=0, font=FONT,
-                 highlightthickness=1,
-                 highlightbackground=BORDER,
-                 highlightcolor=GOLD, **kw)
+    """Modern rounded entry (CustomTkinter). width is in characters (converted to
+    px); entries that stretch via grid/pack ignore it."""
+    kwargs = dict(textvariable=var, fg_color=BG3, text_color=TEXT,
+                  border_color=BORDER, corner_radius=6, font=FONT)
     if width:
-        e.config(width=width)
-    return e
+        kwargs["width"] = max(int(width) * 8, 40)
+    kwargs.update(kw)
+    return ctk.CTkEntry(parent, **kwargs)
 
 def checkbtn(parent, text, var, bg=None):
-    return tk.Checkbutton(parent, text=text, variable=var,
-        bg=bg or BG2, fg=TEXT,
-        selectcolor=BG3,
-        activebackground=bg or BG2,
-        activeforeground=TEXT,
-        font=FONT, anchor="w")
+    """Modern checkbox (CustomTkinter). bg kept for call-site compatibility (unused)."""
+    return ctk.CTkCheckBox(parent, text=text, variable=var,
+        onvalue=True, offvalue=False,
+        fg_color=GOLD, hover_color=GOLD_LT, text_color=TEXT, font=FONT,
+        checkbox_width=18, checkbox_height=18, corner_radius=4)
 
 def btn(parent, text, cmd, style=None, **kw):
     """Modern rounded button (CustomTkinter).
