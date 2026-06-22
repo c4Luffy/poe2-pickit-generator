@@ -158,7 +158,7 @@ from tab_craft_bases import CraftBasesTab
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.4.0"
+VERSION       = "2.4.1"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -357,9 +357,10 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self._container = tk.Frame(self, bg=BG)
         self._container.pack(fill="both", expand=True)
 
-        # Build all pages
-        self._pages = []
-        for i, builder in enumerate([
+        # Build pages. Generate/Items/Preview/History are built up front because
+        # startup tasks (league preload, badges) and background generates touch
+        # them; the rest are built lazily on first open for a faster launch.
+        self._tab_builders = [
             self._build_generate_page,
             self._build_categories_page,
             self._build_chance_page,
@@ -368,17 +369,31 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             self._build_history_page,
             self._build_settings_page,
             self._build_debug_page,
-        ]):
+        ]
+        _eager = {0, 1, 4, 5}   # Generate, Items, Preview, History
+        self._pages = []
+        self._tab_built = []
+        for i, builder in enumerate(self._tab_builders):
             page = tk.Frame(self._container, bg=BG)
-            self._building_tab_idx = i
-            builder(page)
             self._pages.append(page)
+            if i in _eager:
+                self._building_tab_idx = i
+                builder(page)
+                self._tab_built.append(True)
+            else:
+                self._tab_built.append(False)
         self._building_tab_idx = None
 
         self._cur_tab = -1
         self._show_tab(0)
 
     def _show_tab(self, idx):
+        # Lazy-build the page's content the first time it's opened.
+        if not self._tab_built[idx]:
+            self._building_tab_idx = idx
+            self._tab_builders[idx](self._pages[idx])
+            self._building_tab_idx = None
+            self._tab_built[idx] = True
         for i, page in enumerate(self._pages):
             if i == idx:
                 page.pack(fill="both", expand=True)
