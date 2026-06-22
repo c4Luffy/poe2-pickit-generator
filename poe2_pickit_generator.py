@@ -373,7 +373,7 @@ def validate_pickit(lines) -> dict:
     return {"errors": errors, "warnings": warnings}
 
 
-def build_base_rules(min_quality: int = 28, min_level: int = 60, progress_callback=None) -> list:
+def build_base_rules(min_quality: int = 28, min_level: int = 82, progress_callback=None) -> list:
     """Build endgame base-type pickup rules from local game data — no network requests.
 
     Uses _BASE_TYPES_BY_CATEGORY (sourced from baseitemtypes.json) for all equipment
@@ -397,9 +397,9 @@ def build_base_rules(min_quality: int = 28, min_level: int = 60, progress_callba
         cat_rules: set = set()
         for name, sock in entries:
             safe = _quote_ipd(name)
-            cat_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" # [StashItem] == "true"')
+            cat_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" && [ItemLevel] >= "{min_level}" # [StashItem] == "true"')
             if sock > 0:
-                cat_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" # [StashItem] == "true"')
+                cat_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" && [ItemLevel] >= "{min_level}" # [StashItem] == "true"')
         all_lines.extend(sorted(cat_rules))
         all_lines.append("")
 
@@ -411,9 +411,9 @@ def build_base_rules(min_quality: int = 28, min_level: int = 60, progress_callba
     rf_rules: set = set()
     for name, sock in _RUNEFORGED_BASES:
         safe = _quote_ipd(name)
-        rf_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" # [StashItem] == "true"')
+        rf_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" && [ItemLevel] >= "{min_level}" # [StashItem] == "true"')
         if sock > 0:
-            rf_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" # [StashItem] == "true"')
+            rf_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" && [ItemLevel] >= "{min_level}" # [StashItem] == "true"')
     all_lines.extend(sorted(rf_rules))
     all_lines.append("")
 
@@ -424,13 +424,13 @@ def build_base_rules(min_quality: int = 28, min_level: int = 60, progress_callba
 #  Craft bases — pick the BEST WHITE (Normal) base of each defence type per slot
 #  at high item level, as blank bases worth crafting on. Curated (not the full
 #  base list) to keep the stash from filling up. Emitted as:
-#    [Type] == "Name" && [Rarity] == "Normal" && [ItemLevel] >= "81" # [StashItem] == "true"
+#    [Type] == "Name" && [Rarity] == "Normal" && [ItemLevel] >= "82" # [StashItem] == "true"
 #
 #  These are best-effort meta picks (verified to exist in the base list); they are
 #  toggleable in the Craft Bases tab and easy to swap here. Sword/axe/mace are
 #  intentionally omitted.
 # ─────────────────────────────────────────────────────────────────────────────
-CRAFT_BASE_MIN_ILVL = 81
+CRAFT_BASE_MIN_ILVL = 82
 
 # Ordered slot -> best base(s). Armour/off-hand = best of each defence type
 # (Armour/STR, Evasion/DEX, Energy Shield/INT). Weapons = best base per kept type.

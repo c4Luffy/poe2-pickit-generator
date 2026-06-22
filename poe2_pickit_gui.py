@@ -99,7 +99,7 @@ DEFAULT_CONFIG = {
     "items_sort_desc": True,
     "include_bases": True,
     "base_quality": 28,
-    "base_min_level": 75,
+    "base_min_level": 82,
     "item_states":  {},
     "cat_prev_prices": {},
     "min_chaos_filter": 0,
@@ -117,6 +117,11 @@ def load_config():
             data = json.load(f)
         cfg = dict(DEFAULT_CONFIG)
         cfg.update(data)
+        # Migrate: the base-type item-level floor used to be silently ignored, so
+        # the old default (75) never filtered. Bump it to the endgame default (82)
+        # so high-ilvl crafting bases are kept and low-level white junk isn't.
+        if cfg.get("base_min_level") == 75:
+            cfg["base_min_level"] = 82
         return cfg
     except Exception:
         return dict(DEFAULT_CONFIG)
@@ -139,7 +144,7 @@ from tab_craft_bases import CraftBasesTab
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.3.3"
+VERSION       = "2.3.4"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -228,7 +233,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
         self.include_bases_var  = tk.BooleanVar(value=True)
         self.base_quality_var   = tk.IntVar(value=self.cfg.get("base_quality", 28))
-        self.base_min_level_var = tk.IntVar(value=self.cfg.get("base_min_level", 75))
+        self.base_min_level_var = tk.IntVar(value=self.cfg.get("base_min_level", 82))
 
         self._divine_rate_var = tk.StringVar(value="—")
 
@@ -2452,7 +2457,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         label(qrow, "   Min item level:", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(
             side="left", padx=(16, 0))
         entry(qrow, self.base_min_level_var, width=5).pack(side="left", padx=(6, 4), ipady=4)
-        label(qrow, "(75+ = endgame)", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(
+        label(qrow, "(82 = max ilvl)", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(
             side="left", padx=(6, 0))
 
     # Chance Bases + Craft Bases tabs now live in tab_chance_bases.py and
@@ -2807,7 +2812,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             self.auto_schedule_var.set(True)
             self.include_bases_var.set(True)
             self.base_quality_var.set(self.cfg.get("base_quality", 28))
-            self.base_min_level_var.set(self.cfg.get("base_min_level", 75))
+            self.base_min_level_var.set(self.cfg.get("base_min_level", 82))
             for key in ALL_CATEGORY_KEYS:
                 self.cat_enabled[key].set(True)
                 self.cat_thresh[key].set(-1.0)
@@ -3752,7 +3757,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             }
             output_lines.extend(gen.build_chance_base_rules(_chance_disabled))
 
-            # ── Craft bases (Normal, item level 81+) ──────────────────────────
+            # ── Craft bases (Normal, item level 82) ───────────────────────────
             _craftbase_disabled = {
                 name for name, st in snapshot.get("item_states", {}).get("_craftbase", {}).items()
                 if not st.get("enabled", True)
@@ -3761,7 +3766,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             if _craftbase_lines:
                 output_lines.extend(_craftbase_lines)
                 _cb_count = sum(1 for l in _craftbase_lines if l.startswith("[Type]"))
-                self._log(f"  ✓ Craft bases: {_cb_count} Normal ilvl-81+ rules", "ok")
+                self._log(f"  ✓ Craft bases: {_cb_count} Normal ilvl-82 rules", "ok")
 
             # ── Base types (optional) ─────────────────────────────────────────
             if snapshot.get("include_bases"):
@@ -3774,7 +3779,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                                self.progress_var.set(s))
                     self._log(f"  [{idx}/{total}] {title}", "dim")
                 try:
-                    min_lvl   = int(snapshot.get("base_min_level", 75))
+                    min_lvl   = int(snapshot.get("base_min_level", 82))
                     base_lines = gen.build_base_rules(min_quality=min_q,
                                                       min_level=min_lvl,
                                                       progress_callback=_base_prog)

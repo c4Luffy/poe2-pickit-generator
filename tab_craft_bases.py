@@ -1,4 +1,4 @@
-"""Craft Bases tab — pick the best blank (Normal) bases at item level 81+.
+"""Craft Bases tab — pick the best blank (Normal) bases at item level 82.
 
 Mixed into PickitApp; all methods operate on the shared app instance (self).
 """
@@ -15,7 +15,7 @@ class CraftBasesTab:
 
     def _build_craftbase_page(self, page):
         """Cards for each craft base — click to enable/disable picking it up as a
-        Normal (white) base at item level 81+, ideal for crafting."""
+        Normal (white) base at item level 82, ideal for crafting."""
         tab_idx = self._building_tab_idx
 
         hdr_bar = tk.Frame(page, bg=BG2)
@@ -24,7 +24,7 @@ class CraftBasesTab:
                  bg=BG2, fg=GOLD, font=("Segoe UI", 12, "bold"),
                  padx=16, pady=8).pack(side="left")
         tk.Label(hdr_bar,
-                 text="Pick Normal-rarity bases at item level 81+ — blank bases worth crafting on.",
+                 text="Pick Normal-rarity bases at item level 82 — blank bases worth crafting on.",
                  bg=BG2, fg=TEXT_DIM, font=FONT_SM, padx=4).pack(side="left")
         tk.Label(hdr_bar, textvariable=self._craftbase_count_var,
                  bg=BG2, fg=TEXT_DIM, font=FONT_SM, padx=8).pack(side="right", padx=8)
@@ -103,7 +103,7 @@ class CraftBasesTab:
         name_lbl.pack(side="left", fill="x", expand=True)
         frame._name_lbl = name_lbl
 
-        tag_lbl = tk.Label(frame, text='Normal · ilvl 81+', bg=bg,
+        tag_lbl = tk.Label(frame, text='Normal · ilvl 82+', bg=bg,
                            fg=TEXT_DIM if enabled else _CTXOF,
                            font=("Segoe UI", 9), padx=10)
         tag_lbl.pack(side="right")

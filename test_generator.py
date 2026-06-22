@@ -143,7 +143,7 @@ def test_waystone_lines_returns_fallback():
 def test_craft_bases_are_normal_ilvl_rules():
     out = "\n".join(gen.build_craft_base_rules())
     assert '[Rarity] == "Normal"' in out
-    assert '[ItemLevel] >= "81"' in out
+    assert '[ItemLevel] >= "82"' in out
 
 
 def test_craft_bases_exclude_sword_axe_mace():
