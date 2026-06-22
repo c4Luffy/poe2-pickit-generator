@@ -158,7 +158,7 @@ from tab_craft_bases import CraftBasesTab
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.5.1"
+VERSION       = "2.5.2"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -2936,19 +2936,55 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         except Exception as e:
             d(f"  ✗  {e}", "err")
         d("")
-        d("── 4. poe.ninja connectivity", "header")
+        d("── 4. External API connectivity", "header")
+        # poe.ninja — the only hard dependency (generation falls back to the
+        # offline cache if it's down).
         try:
             t0 = time.time()
             data = gen.fetch_json(gen.INDEX_STATE_URL, {})
-            d(f"  ✓  Reachable ({(time.time()-t0)*1000:.0f} ms)", "ok")
+            d(f"  ✓  poe.ninja      reachable ({(time.time()-t0)*1000:.0f} ms)", "ok")
             leagues = data.get("economyLeagues", [])
-            d(f"  Active leagues : {len(leagues)}", "info")
-            for lg in leagues:
-                d(f"    • {lg.get('name', '?')}", "dim")
+            d(f"     active leagues: {', '.join(lg.get('name', '?') for lg in leagues) or 'none'}", "dim")
         except Exception as e:
-            d(f"  ✗  FAILED: {e}", "err")
+            d(f"  ✗  poe.ninja      FAILED — will use cached prices if available: {e}", "err")
+        # poe2scout — optional (extra unique prices); skipped silently if down.
+        try:
+            from urllib.parse import quote as _q
+            _lg = self.cfg.get("league") or "Mercenaries"   # dict read (thread-safe)
+            t0 = time.time()
+            r = requests.get(gen.SCOUT_BASE_URL.format(cat="accessory", league=_q(_lg)),
+                             headers={"User-Agent": gen.USER_AGENT}, timeout=10)
+            ok = r.status_code == 200
+            d(f"  {'✓' if ok else '⚠'}  poe2scout.com  {'reachable' if ok else 'HTTP '+str(r.status_code)} "
+              f"({(time.time()-t0)*1000:.0f} ms)  [optional]", "ok" if ok else "warn")
+        except Exception as e:
+            d(f"  ⚠  poe2scout.com  unreachable [optional — extra uniques skipped]: {e}", "warn")
+        # poe2wiki — optional (item icons); icons fall back to poe.ninja if down.
+        try:
+            t0 = time.time()
+            r = requests.get(self._WIKI_API,
+                             params={"action": "query", "meta": "siteinfo", "format": "json"},
+                             headers={"User-Agent": gen.USER_AGENT}, timeout=10)
+            ok = r.status_code == 200
+            d(f"  {'✓' if ok else '⚠'}  poe2wiki.net   {'reachable' if ok else 'HTTP '+str(r.status_code)} "
+              f"({(time.time()-t0)*1000:.0f} ms)  [optional]", "ok" if ok else "warn")
+        except Exception as e:
+            d(f"  ⚠  poe2wiki.net   unreachable [optional — icons skipped]: {e}", "warn")
         d("")
-        d("── 5. Output paths", "header")
+        d("── 5. Offline cache (lets you generate when poe.ninja is down)", "header")
+        try:
+            import glob
+            files = glob.glob(os.path.join(PRICE_CACHE_DIR, "*.json"))
+            if files:
+                age_m = (time.time() - max(os.path.getmtime(f) for f in files)) / 60
+                d(f"  ✓  {len(files)} categories cached on disk (newest {age_m:.0f} min old)", "ok")
+                d("     → generation can still run offline from these prices", "dim")
+            else:
+                d("  ⚠  no cached prices yet — generate once online to enable offline mode", "warn")
+        except Exception as e:
+            d(f"  ✗  {e}", "err")
+        d("")
+        d("── 6. Output paths", "header")
         base = self._output_base_path()
         ipd = base + ".ipd"
         out_dir = os.path.dirname(os.path.abspath(ipd)) or os.getcwd()
