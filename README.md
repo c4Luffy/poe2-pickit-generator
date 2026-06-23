@@ -24,7 +24,6 @@ Generate `.ipd` pickit rules for **Exiled Bot 2** using live **Path of Exile 2**
 - Open the **Items** tab.
 - Every item is **ON by default** — the bot picks everything.
 - Click a card to turn it **gray (✗)** = excluded. Click it again to re-enable.
-- Use **Min `X` c** to bulk-disable everything under a chaos value.
 - Use the **search** box to jump to any item instantly.
 
 ### 4. Generate
@@ -68,9 +67,9 @@ python poe2_pickit_gui.py
 | Tab | What it does |
 |---|---|
 | **Generate** | Select league, pick a profile, run generation, view stats, price moves and log |
-| **Items** | Turn individual items ON/OFF — click a card to exclude it; cards are sorted by price High → Low; use **Min c** to bulk-disable cheap items |
+| **Items** | Turn individual items ON/OFF — click a card to exclude it; cards are sorted by price High → Low |
 | **Chance Bases** | Toggle Normal-rarity bases to Orb-of-Chance into target uniques |
-| **Craft Bases** | Toggle the best blank bases to pick up for crafting (Normal rarity, item level 82) |
+| **Craft Bases** | Toggle the best blank (Normal) bases to pick up for crafting at item level 82 — armour slots cover all 6 defence types, each card tagged STR/DEX/INT or a hybrid |
 | **Preview** | Syntax-highlighted view of the generated `.ipd` file |
 | **History** | Log of all past generate runs |
 | **Settings** | Bot folder, auto-copy, loot-filter export, backups |
@@ -100,7 +99,7 @@ Everything is picked by default. Use the **Items** tab to exclude specific items
 | Waystones | All tiers and rarities (always picked) |
 | Unique Weapons / Armours / Accessories / Flasks / Charms / Jewels / Relics | Via poe.ninja |
 | Gear Base Types | Exceptional gear bases from game data (item level 82), all categories — kept separate from Craft Bases |
-| Craft Bases | Best blank base of each defence type per slot (Normal, ilvl 82) — manage in the **Craft Bases** tab |
+| Craft Bases | Best Normal (blank) base at ilvl 82 for **all 6 defence types** per armour slot — STR / DEX / INT plus the STR/DEX, STR/INT, DEX/INT hybrids — and one top base per weapon type. 31 bases, manage in the **Craft Bases** tab |
 
 ---
 
@@ -110,7 +109,6 @@ Everything is picked by default. Use the **Items** tab to exclude specific items
 - **↻ Refresh** in the Items tab → fetches fresh prices for the current category
 - **Enable All / Disable All** buttons toggle all items in the active category at once
 - Item cards are always sorted by price **High → Low** so the most valuable items are on top
-- **Min X c** filter in the Items toolbar → enter a chaos value and click **Apply** to auto-disable all items below that price across every loaded category
 - Price arrows **▲▼** appear on cards after a refresh if the price moved more than 3%
 - **Price alerts** in the generate log — items that moved more than 20% since the last run are flagged with ▲/▼ and the old → new price
 - **Open .ipd / Open .filter** buttons on the Generate tab open the last generated files instantly
