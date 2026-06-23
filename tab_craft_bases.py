@@ -113,7 +113,9 @@ class CraftBasesTab:
         name_lbl.pack(side="left", fill="x", expand=True)
         frame._name_lbl = name_lbl
 
-        tag_lbl = tk.Label(frame, text='Normal · ilvl 82+', bg=bg,
+        _dt      = gen.craft_base_defence(name)
+        _tag_txt = f"{_dt} · ilvl 82+" if _dt else "Normal · ilvl 82+"
+        tag_lbl = tk.Label(frame, text=_tag_txt, bg=bg,
                            fg=TEXT_DIM if enabled else _CTXOF,
                            font=("Segoe UI", 9), padx=10)
         tag_lbl.pack(side="right")

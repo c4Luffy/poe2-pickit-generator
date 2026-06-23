@@ -432,28 +432,45 @@ def build_base_rules(min_quality: int = 28, min_level: int = 82, progress_callba
 # ─────────────────────────────────────────────────────────────────────────────
 CRAFT_BASE_MIN_ILVL = 82
 
-# Ordered slot -> best base(s). Armour/off-hand = best of each defence type
-# (Armour/STR, Evasion/DEX, Energy Shield/INT). Weapons = best base per kept type.
+# Ordered slot -> [(base_name, defence_type), ...].  Armour slots cover ALL six
+# defence types — the three pure attributes (STR=Armour, DEX=Evasion, INT=Energy
+# Shield) plus the three hybrids (STR/DEX, STR/INT, DEX/INT) — using the highest
+# item-level-82 base of each type (verified against poe2db).  Off-hand + weapons
+# keep one top base per type (attribute hybrids don't apply to them).
 _CRAFT_BEST_BASES: dict = {
-    "Body Armours":  ["Glorious Plate", "Assassin Garb", "Vile Robe"],
-    "Helmets":       ["Imperial Greathelm", "Soaring Mask", "Sorcerous Tiara"],
-    "Gloves":        ["Blacksteel Gauntlets", "Sirenscale Gloves", "Grand Mitts"],
-    "Boots":         ["Fortress Sabatons", "Drakeskin Boots", "Warlock Leggings"],
-    "Shields":       ["Goldworked Tower Shield", "Soaring Targe"],
-    "Foci":          ["Sacred Focus"],
-    "Spears":        ["Orichalcum Spear"],
-    "Quarterstaves": ["Wyrm Quarterstaff"],
-    "Crossbows":     ["Siege Crossbow"],
-    "Bows":          ["Warmonger Bow"],
-    "Staves":        ["Ravenous Staff"],
-    "Wands":         ["Dueling Wand"],
-    "Sceptres":      ["Hallowed Sceptre"],
+    "Body Armours":  [("Warlord Cuirass", "STR"),     ("Corsair Coat", "DEX"),
+                      ("Feathered Raiment", "INT"),    ("Thane Mail", "STR/DEX"),
+                      ("Seastorm Mantle", "STR/INT"),  ("Austere Garb", "DEX/INT")],
+    "Helmets":       [("Imperial Greathelm", "STR"),   ("Freebooter Cap", "DEX"),
+                      ("Ancestral Tiara", "INT"),      ("Gladiatorial Helm", "STR/DEX"),
+                      ("Cryptic Crown", "STR/INT"),    ("Grinning Mask", "DEX/INT")],
+    "Gloves":        [("Massive Mitts", "STR"),        ("Polished Bracers", "DEX"),
+                      ("Sirenscale Gloves", "INT"),    ("Blacksteel Gauntlets", "STR/DEX"),
+                      ("Adherent Cuffs", "STR/INT"),   ("Secured Wraps", "DEX/INT")],
+    "Boots":         [("Tasalian Greaves", "STR"),     ("Drakeskin Boots", "DEX"),
+                      ("Sekhema Sandals", "INT"),      ("Blacksteel Sabatons", "STR/DEX"),
+                      ("Cryptic Leggings", "STR/INT"), ("Daggerfoot Shoes", "DEX/INT")],
+    "Foci":          [("Tasalian Focus", "INT")],
+    "Spears":        [("Grand Spear", "")],
+    "Quarterstaves": [("Aegis Quarterstaff", "")],
+    "Crossbows":     [("Siege Crossbow", "")],
+    "Bows":          [("Fanatic Bow", "")],
+    "Staves":        [("Permafrost Staff", "")],
+    "Wands":         [("Dueling Wand", "")],
 }
+
+# Flat base_name -> defence_type lookup (used for the Craft Bases card labels).
+_CRAFT_BASE_DEFENCE = {n: dt for items in _CRAFT_BEST_BASES.values() for n, dt in items}
 
 
 def craft_base_categories() -> list:
     """Ordered ``[(category, [base_name, ...]), ...]`` for the curated craft bases."""
-    return [(cat, list(names)) for cat, names in _CRAFT_BEST_BASES.items() if names]
+    return [(cat, [n for n, _ in items]) for cat, items in _CRAFT_BEST_BASES.items() if items]
+
+
+def craft_base_defence(name: str) -> str:
+    """Defence-type label (STR / DEX / INT / STR/DEX / …) for a craft base, '' for weapons."""
+    return _CRAFT_BASE_DEFENCE.get(name, "")
 
 
 def build_craft_base_rules(disabled=None, min_ilvl: int = CRAFT_BASE_MIN_ILVL) -> list:

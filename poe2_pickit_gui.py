@@ -114,7 +114,6 @@ DEFAULT_CONFIG = {
     "base_min_level": 82,
     "item_states":  {},
     "cat_prev_prices": {},
-    "min_chaos_filter": 0,
     "last_gen_prices": {},
     "profiles": {},
     "active_profile": "",
@@ -156,7 +155,7 @@ from tab_craft_bases import CraftBasesTab
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.6.0"
+VERSION       = "2.6.1"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -266,7 +265,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self._active_cat       = None
         self._cat_last_fetched = {}   # {cat_key: "HH:MM"} shown in count label
         self._price_unit_btns  = {}
-        self._min_chaos_filter_var = tk.StringVar(value=str(self.cfg.get("min_chaos_filter", 0)))
         self._last_gen_prices  = dict(self.cfg.get("last_gen_prices", {}))  # {league: {key: {name: ex}}}
         self._price_alerts: list = []
 
@@ -833,13 +831,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         btn(tbar, "Enable All",  lambda: self._cat_items_set_all(True)).pack(side="left", padx=(0, 3))
         btn(tbar, "Disable All", lambda: self._cat_items_set_all(False)).pack(side="left", padx=(0, 3))
         btn(tbar, "Reset",       self._cat_items_reset).pack(side="left", padx=(0, 8))
-
-        # Min price filter
-        tk.Frame(tbar, bg=BORDER, width=1).pack(side="left", padx=6, fill="y")
-        tk.Label(tbar, text="Min:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(0, 3))
-        entry(tbar, self._min_chaos_filter_var, width=5).pack(side="left", ipady=3)
-        tk.Label(tbar, text="c", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(2, 4))
-        btn(tbar, "Apply", self._apply_chaos_filter).pack(side="left", padx=(0, 8))
 
         # Row 2 — value unit + refresh (right)
         tbar2 = tk.Frame(right, bg=BG)
@@ -1738,70 +1729,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             prices[name] = chaos
         return prices
 
-    def _apply_chaos_filter(self):
-        """Disable all items below the min chaos threshold across all loaded categories."""
-        try:
-            threshold = float(self._min_chaos_filter_var.get())
-        except ValueError:
-            return
-        if threshold <= 0:
-            return
-
-        league         = self._selected_league() or "Mercenaries"
-        total_disabled = 0
-        cats_touched   = 0
-
-        for key, _, _, is_unique in gen.ALL_CATEGORIES:
-            if is_unique:
-                continue  # unique items don't have chaos prices in the same way
-
-            # Get prices: prefer already-rendered _item_prices, fall back to raw cache
-            if key in self._item_prices:
-                prices = {n: p["chaos"] for n, p in self._item_prices[key].items()}
-            else:
-                payload = gen._cache_get(league, key)
-                if not payload or isinstance(payload, Exception):
-                    continue
-                prices = self._extract_cat_prices(key, payload)
-
-            if not prices:
-                continue
-
-            if key not in self._item_states:
-                self._item_states[key] = {}
-
-            changed = 0
-            for name, chaos in prices.items():
-                if chaos < threshold:
-                    if self._item_states[key].get(name, {}).get("enabled", True):
-                        self._item_states[key][name] = {"enabled": False}
-                        changed += 1
-
-            if changed:
-                total_disabled += changed
-                cats_touched   += 1
-
-        # Save and refresh
-        self.cfg["item_states"]        = self._item_states
-        self.cfg["min_chaos_filter"]   = threshold
-        save_config(self.cfg)
-
-        # Refresh the active category grid if it was touched
-        key = self._active_cat
-        if key and key != "_gear" and key in self._item_states:
-            payload = gen._cache_get(league, key)
-            if payload and not isinstance(payload, Exception):
-                self._populate_cat_grid(key, payload)
-
-        if total_disabled:
-            self._log_items(f"Min {threshold:.0f}c filter: disabled {total_disabled} items across {cats_touched} categories.", "warn")
-        else:
-            self._log_items(f"Min {threshold:.0f}c filter: nothing to disable (all items are above threshold).", "ok")
-
-    def _log_items(self, msg: str, level: str = ""):
-        """Log to the Items tab status area if available, else pass."""
-        pass  # placeholder — items tab has no log; just skip silently
-
     # ── Output profiles ───────────────────────────────────────────────────────
 
     def _refresh_profile_dropdown(self):
@@ -1830,7 +1757,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             "min_exalt_gear":   min_gear,
             "min_exalt_unique": min_unique,
             "output_base":      self.output_var.get(),
-            "min_chaos_filter": self._min_chaos_filter_var.get(),
         }
 
     def _profile_save_current(self):
@@ -1861,7 +1787,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self.min_exalt_gear_var.set(prof.get("min_exalt_gear", 0.0))
         self.min_exalt_unique_var.set(prof.get("min_exalt_unique", 0.0))
         self.output_var.set(prof.get("output_base", "poe2_pickit"))
-        self._min_chaos_filter_var.set(str(prof.get("min_chaos_filter", 0)))
 
         self.cfg["item_states"]    = self._item_states
         self.cfg["active_profile"] = name

@@ -155,7 +155,7 @@ def test_craft_bases_exclude_sword_axe_mace():
 
 def test_craft_base_names_are_all_valid():
     # Every curated craft base must exist in the bot's known base list
-    for cat, names in gen._CRAFT_BEST_BASES.items():
+    for cat, names in gen.craft_base_categories():
         for n in names:
             assert n in gen.VALID_EQUIPMENT_BASES, f"{cat}: unknown base {n!r}"
 
