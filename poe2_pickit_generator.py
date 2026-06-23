@@ -452,7 +452,7 @@ _CRAFT_BEST_BASES: dict = {
                       ("Cryptic Leggings", "STR/INT"), ("Daggerfoot Shoes", "DEX/INT")],
     "Foci":          [("Tasalian Focus", "INT")],
     "Spears":        [("Grand Spear", "")],
-    "Quarterstaves": [("Aegis Quarterstaff", "")],
+    "Quarterstaves": [("Aegis Quarterstaff", ""), ("Sinister Quarterstaff", "")],
     "Crossbows":     [("Siege Crossbow", "")],
     "Bows":          [("Fanatic Bow", "")],
     "Staves":        [("Permafrost Staff", "")],
