@@ -67,10 +67,13 @@ class CraftBasesTab:
             w.destroy()
         self._craftbase_cards = []
         states = self._item_states.get("_craftbase", {})
+        NCOLS  = 2
 
+        first = True
         for cat, names in gen.craft_base_categories():
             hdr_f = tk.Frame(self._craftbase_frame, bg=BG)
-            hdr_f.pack(fill="x", padx=14, pady=(14 if self._craftbase_cards else 6, 2))
+            hdr_f.pack(fill="x", padx=14, pady=(4 if first else 14, 4))
+            first = False
             tk.Label(hdr_f, text=cat.upper(), bg=BG, fg=GOLD,
                      font=("Segoe UI", 8, "bold")).pack(side="left")
             tk.Frame(hdr_f, bg=BORDER, height=1).pack(
@@ -79,21 +82,28 @@ class CraftBasesTab:
                 w.bind("<MouseWheel>",
                        lambda e, c=self._craftbase_canvas: c.yview_scroll(-3 if e.delta > 0 else 3, "units"))
 
-            for name in names:
+            grid_f = tk.Frame(self._craftbase_frame, bg=BG)
+            grid_f.pack(fill="x", padx=12)
+            for c_ in range(NCOLS):
+                grid_f.columnconfigure(c_, weight=1, uniform="cb")
+            grid_f.bind("<MouseWheel>",
+                        lambda e, c=self._craftbase_canvas: c.yview_scroll(-3 if e.delta > 0 else 3, "units"))
+
+            for i, name in enumerate(names):
                 enabled = states.get(name, {}).get("enabled", True) if name in states else True
-                card = self._make_craftbase_card(name, enabled)
-                card.pack(fill="x", padx=12, pady=2)
+                card = self._make_craftbase_card(name, enabled, grid_f)
+                card.grid(row=i // NCOLS, column=i % NCOLS, sticky="ew", padx=3, pady=3)
                 self._craftbase_cards.append(card)
 
         self._update_craftbase_count()
 
-    def _make_craftbase_card(self, name, enabled):
+    def _make_craftbase_card(self, name, enabled, parent):
         bg  = _CON  if enabled else _COFF
         fg  = _CTXON if enabled else _CTXOF
         bdr = _CONB if enabled else _COFB
         dot = ""    if enabled else "✗"
 
-        frame = tk.Frame(self._craftbase_frame, bg=bg, cursor="hand2",
+        frame = tk.Frame(parent, bg=bg, cursor="hand2",
                          highlightthickness=1, highlightbackground=bdr)
         frame._name    = name
         frame._enabled = enabled

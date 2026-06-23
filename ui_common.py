@@ -47,10 +47,10 @@ _CWARNB = "#b87820"   # disabled-but-valuable border (amber)
 _CTXWRN = "#7a6840"   # disabled-but-valuable text
 _CVAL   = "#c8a050"   # value text
 
-FONT      = ("Segoe UI", 10)
-FONT_BOLD = ("Segoe UI", 10, "bold")
-FONT_MONO = ("Consolas",  9)
-FONT_SM   = ("Segoe UI",  9)
+FONT      = ("Segoe UI", 11, "bold")
+FONT_BOLD = ("Segoe UI", 11, "bold")
+FONT_MONO = ("Consolas",  10)
+FONT_SM   = ("Segoe UI",  10, "bold")
 
 ALL_CATEGORY_KEYS = [c[0] for c in gen.ALL_CATEGORIES]
 

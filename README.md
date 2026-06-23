@@ -68,7 +68,7 @@ python poe2_pickit_gui.py
 | Tab | What it does |
 |---|---|
 | **Generate** | Select league, pick a profile, run generation, view stats, price moves and log |
-| **Items** | Turn individual items ON/OFF — click a card to exclude it; **Sort** by price (High↔Low); use **Min c** to bulk-disable cheap items |
+| **Items** | Turn individual items ON/OFF — click a card to exclude it; cards are sorted by price High → Low; use **Min c** to bulk-disable cheap items |
 | **Chance Bases** | Toggle Normal-rarity bases to Orb-of-Chance into target uniques |
 | **Craft Bases** | Toggle the best blank bases to pick up for crafting (Normal rarity, item level 82) |
 | **Preview** | Syntax-highlighted view of the generated `.ipd` file |
@@ -99,7 +99,7 @@ Everything is picked by default. Use the **Items** tab to exclude specific items
 | Expedition | Logbooks and expedition currency |
 | Waystones | All tiers and rarities (always picked) |
 | Unique Weapons / Armours / Accessories / Flasks / Charms / Jewels / Relics | Via poe.ninja |
-| Endgame Gear Bases | 245 bases, level 75+, all 25 categories |
+| Gear Base Types | Exceptional gear bases from game data (item level 82), all categories — kept separate from Craft Bases |
 | Craft Bases | Best blank base of each defence type per slot (Normal, ilvl 82) — manage in the **Craft Bases** tab |
 
 ---
@@ -109,9 +109,7 @@ Everything is picked by default. Use the **Items** tab to exclude specific items
 - **Right-click** any item card → copies its pickit rule to clipboard
 - **↻ Refresh** in the Items tab → fetches fresh prices for the current category
 - **Enable All / Disable All** buttons toggle all items in the active category at once
-- **Save Preset** → save your item selections with a name, author and description; **Load Preset** → restore with a metadata preview
-- **Export Preset** → save your selections as a shareable `.json` file; **Import Preset** → load one from someone else (shows a preview before applying)
-- **Sort** dropdown in the Items toolbar → order each category's cards by price **High → Low** or **Low → High**
+- Item cards are always sorted by price **High → Low** so the most valuable items are on top
 - **Min X c** filter in the Items toolbar → enter a chaos value and click **Apply** to auto-disable all items below that price across every loaded category
 - Price arrows **▲▼** appear on cards after a refresh if the price moved more than 3%
 - **Price alerts** in the generate log — items that moved more than 20% since the last run are flagged with ▲/▼ and the old → new price

@@ -64,36 +64,50 @@ class ChanceBasesTab:
             w.destroy()
         self._chance_cards = []
         states = self._item_states.get("_chance", {})
-        cur_cat = None
+        NCOLS  = 2
 
+        # Group the flat CHANCE_BASES list by category, preserving order.
+        groups = []
         for cat, base_type, target in gen.CHANCE_BASES:
-            enabled = states.get(base_type, {}).get("enabled", True) if base_type in states else True
+            if not groups or groups[-1][0] != cat:
+                groups.append((cat, []))
+            groups[-1][1].append((base_type, target))
 
-            if cat != cur_cat:
-                cur_cat = cat
-                hdr_f = tk.Frame(self._chance_frame, bg=BG)
-                hdr_f.pack(fill="x", padx=14, pady=(14 if self._chance_cards else 6, 2))
-                tk.Label(hdr_f, text=cat.upper(), bg=BG, fg=GOLD,
-                         font=("Segoe UI", 8, "bold")).pack(side="left")
-                tk.Frame(hdr_f, bg=BORDER, height=1).pack(
-                    side="left", fill="x", expand=True, padx=(8, 0), pady=5)
-                for w in [hdr_f] + list(hdr_f.winfo_children()):
-                    w.bind("<MouseWheel>",
-                           lambda e, c=self._chance_canvas: c.yview_scroll(-3 if e.delta > 0 else 3, "units"))
+        first = True
+        for cat, items in groups:
+            hdr_f = tk.Frame(self._chance_frame, bg=BG)
+            hdr_f.pack(fill="x", padx=14, pady=(4 if first else 14, 4))
+            first = False
+            tk.Label(hdr_f, text=cat.upper(), bg=BG, fg=GOLD,
+                     font=("Segoe UI", 8, "bold")).pack(side="left")
+            tk.Frame(hdr_f, bg=BORDER, height=1).pack(
+                side="left", fill="x", expand=True, padx=(8, 0), pady=5)
+            for w in [hdr_f] + list(hdr_f.winfo_children()):
+                w.bind("<MouseWheel>",
+                       lambda e, c=self._chance_canvas: c.yview_scroll(-3 if e.delta > 0 else 3, "units"))
 
-            card = self._make_chance_card(base_type, target, enabled)
-            card.pack(fill="x", padx=12, pady=2)
-            self._chance_cards.append(card)
+            grid_f = tk.Frame(self._chance_frame, bg=BG)
+            grid_f.pack(fill="x", padx=12)
+            for c_ in range(NCOLS):
+                grid_f.columnconfigure(c_, weight=1, uniform="ch")
+            grid_f.bind("<MouseWheel>",
+                        lambda e, c=self._chance_canvas: c.yview_scroll(-3 if e.delta > 0 else 3, "units"))
+
+            for i, (base_type, target) in enumerate(items):
+                enabled = states.get(base_type, {}).get("enabled", True) if base_type in states else True
+                card = self._make_chance_card(base_type, target, enabled, grid_f)
+                card.grid(row=i // NCOLS, column=i % NCOLS, sticky="ew", padx=3, pady=3)
+                self._chance_cards.append(card)
 
         self._update_chance_count()
 
-    def _make_chance_card(self, base_type, target, enabled):
+    def _make_chance_card(self, base_type, target, enabled, parent):
         bg  = _CON  if enabled else _COFF
         fg  = _CTXON if enabled else _CTXOF
         bdr = _CONB if enabled else _COFB
         dot = ""    if enabled else "✗"
 
-        frame = tk.Frame(self._chance_frame, bg=bg, cursor="hand2",
+        frame = tk.Frame(parent, bg=bg, cursor="hand2",
                          highlightthickness=1, highlightbackground=bdr)
         frame._base_type = base_type
         frame._target    = target

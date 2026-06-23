@@ -71,10 +71,9 @@ else:
 CONFIG_PATH      = os.path.join(_cfg_dir, "pickit_gui_config.json")
 OUTPUT_DIR       = os.path.join(_cfg_dir, "pickit_output")
 ICON_DIR         = os.path.join(_cfg_dir, "icon_cache")
-PRESETS_DIR      = os.path.join(_cfg_dir, "presets")
 PRICE_CACHE_DIR  = os.path.join(_cfg_dir, "price_cache")
 WIKI_CACHE_FILE  = os.path.join(_cfg_dir, "wiki_icon_cache.json")
-for _d in (_cfg_dir, OUTPUT_DIR, ICON_DIR, PRESETS_DIR):
+for _d in (_cfg_dir, OUTPUT_DIR, ICON_DIR):
     os.makedirs(_d, exist_ok=True)
 
 # Point the generator's offline cache at a local folder so prices survive
@@ -110,7 +109,6 @@ DEFAULT_CONFIG = {
     "window_geometry": "",
     "confirm_overwrite_secs": 120,
     "auto_schedule": True,
-    "items_sort_desc": True,
     "include_bases": True,
     "base_quality": 28,
     "base_min_level": 82,
@@ -158,7 +156,7 @@ from tab_craft_bases import CraftBasesTab
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.5.2"
+VERSION       = "2.6.0"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -269,8 +267,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self._cat_last_fetched = {}   # {cat_key: "HH:MM"} shown in count label
         self._price_unit_btns  = {}
         self._min_chaos_filter_var = tk.StringVar(value=str(self.cfg.get("min_chaos_filter", 0)))
-        self._items_sort_var = tk.StringVar(
-            value="High → Low" if self.cfg.get("items_sort_desc", True) else "Low → High")
         self._last_gen_prices  = dict(self.cfg.get("last_gen_prices", {}))  # {league: {key: {name: ex}}}
         self._price_alerts: list = []
 
@@ -309,6 +305,11 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                     self._wiki_icon_cache = json.load(_f)
             except Exception:
                 pass
+        # poe.ninja's image CDN is dead (404s), so any cached poe.ninja icon URL is
+        # useless — drop them so those items re-resolve against poe2wiki instead.
+        self._wiki_icon_cache = {
+            n: u for n, u in self._wiki_icon_cache.items() if u and "poe.ninja" not in u
+        }
 
     # ── UI skeleton ───────────────────────────────────────────────────────────
 
@@ -347,8 +348,8 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                          font=FONT, padx=14, pady=7, cursor="hand2")
             b.pack(side="left")
             b.bind("<Button-1>", lambda e, idx=i: self._show_tab(idx))
-            b.bind("<Enter>",    lambda e, w=b, idx=i: w.config(fg=TEXT) if self._cur_tab != idx else None)
-            b.bind("<Leave>",    lambda e, w=b, idx=i: w.config(fg=TEXT_DIM) if self._cur_tab != idx else None)
+            b.bind("<Enter>",    lambda e, w=b, idx=i: w.configure(fg=TEXT) if self._cur_tab != idx else None)
+            b.bind("<Leave>",    lambda e, w=b, idx=i: w.configure(fg=TEXT_DIM) if self._cur_tab != idx else None)
             self._tab_btns.append(b)
 
         sep(self).pack(fill="x")
@@ -401,9 +402,9 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 page.pack_forget()
         for i, b in enumerate(self._tab_btns):
             if i == idx:
-                b.config(bg=BG3, fg=GOLD)
+                b.configure(bg=BG3, fg=GOLD)
             else:
-                b.config(bg=BG2, fg=TEXT_DIM)
+                b.configure(bg=BG2, fg=TEXT_DIM)
         self._cur_tab = idx
         self._active_canvas = self._tab_canvases.get(idx)
 
@@ -462,7 +463,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 snapped = max(from_, min(to, snapped))
                 if raw != snapped:
                     var.set(snapped)
-                val_lbl.config(text=fmt.format(snapped))
+                val_lbl.configure(text=fmt.format(snapped))
             except (tk.TclError, ValueError):
                 pass
 
@@ -481,7 +482,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             activebackground=GOLD,
             highlightthickness=0,
             bd=0,
-            command=lambda v: val_lbl.config(text=fmt.format(float(v))),
+            command=lambda v: val_lbl.configure(text=fmt.format(float(v))),
         )
         scale.pack(side="left")
 
@@ -497,7 +498,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             try:
                 new_val = max(from_, min(to, var.get() + delta * resolution))
                 var.set(new_val)
-                val_lbl.config(text=fmt.format(new_val))
+                val_lbl.configure(text=fmt.format(new_val))
             except (tk.TclError, ValueError):
                 pass
 
@@ -505,7 +506,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             try:
                 new_val = max(from_, min(to, var.get() + resolution))
                 var.set(new_val)
-                val_lbl.config(text=fmt.format(new_val))
+                val_lbl.configure(text=fmt.format(new_val))
             except (tk.TclError, ValueError):
                 pass
 
@@ -513,7 +514,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             try:
                 new_val = max(from_, min(to, var.get() - resolution))
                 var.set(new_val)
-                val_lbl.config(text=fmt.format(new_val))
+                val_lbl.configure(text=fmt.format(new_val))
             except (tk.TclError, ValueError):
                 pass
 
@@ -774,7 +775,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         except (tk.TclError, ValueError):
             return
         if ex <= 0:
-            lbl.config(text="Picking up every unique (no value floor).")
+            lbl.configure(text="Picking up every unique (no value floor).")
             return
         league   = self._selected_league() or ""
         div_rate = self._get_divine_rate(league)      # ex per 1 divine (1.0 if no data)
@@ -785,9 +786,9 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         if chaos_ex and chaos_ex > 0:
             parts.append(f"~{ex / chaos_ex:.0f} chaos")
         if parts:
-            lbl.config(text="≈  " + "    ·    ".join(parts))
+            lbl.configure(text="≈  " + "    ·    ".join(parts))
         else:
-            lbl.config(text="(Divine / Chaos equivalents shown once prices load)")
+            lbl.configure(text="(Divine / Chaos equivalents shown once prices load)")
 
     # ══════════════════════════════════════════════════════════════════════════
     #  CATEGORIES PAGE
@@ -840,22 +841,9 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         tk.Label(tbar, text="c", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(2, 4))
         btn(tbar, "Apply", self._apply_chaos_filter).pack(side="left", padx=(0, 8))
 
-        # Sort by price
-        tk.Frame(tbar, bg=BORDER, width=1).pack(side="left", padx=6, fill="y")
-        tk.Label(tbar, text="Sort:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(0, 3))
-        sort_cb = ttk.Combobox(tbar, textvariable=self._items_sort_var, state="readonly",
-                               width=11, values=["High → Low", "Low → High"])
-        sort_cb.pack(side="left")
-        sort_cb.bind("<<ComboboxSelected>>", self._on_items_sort_change)
-
-        # Row 2 — presets (left), value unit + refresh (right)
+        # Row 2 — value unit + refresh (right)
         tbar2 = tk.Frame(right, bg=BG)
         tbar2.pack(fill="x", padx=10, pady=(0, 4))
-        tk.Label(tbar2, text="Preset:", bg=BG, fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(0, 4))
-        btn(tbar2, "Save",   self._preset_save).pack(side="left", padx=(0, 3))
-        btn(tbar2, "Load",   self._preset_load).pack(side="left", padx=(0, 3))
-        btn(tbar2, "Export", self._preset_export).pack(side="left", padx=(0, 3))
-        btn(tbar2, "Import", self._preset_import).pack(side="left")
 
         # Refresh = rightmost; pack it first so side="right" anchors it to the edge
         self._refresh_btn = btn(tbar2, "↻ Refresh", self._refresh_cat_prices)
@@ -961,11 +949,11 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         def _enter(e=None):
             if self._active_cat != key:
                 bg = _CHOV
-                frame.config(bg=bg); lbl.config(bg=bg); badge.config(bg=bg)
+                frame.configure(bg=bg); lbl.configure(bg=bg); badge.configure(bg=bg)
         def _leave(e=None):
             if self._active_cat != key:
                 bg = _CBTN
-                frame.config(bg=bg); lbl.config(bg=bg); badge.config(bg=bg)
+                frame.configure(bg=bg); lbl.configure(bg=bg); badge.configure(bg=bg)
         def _click(e=None):
             self._show_cat(key)
 
@@ -987,22 +975,22 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         # Deselect previous
         if self._active_cat and self._active_cat in self._cat_sidebar_btns:
             old = self._cat_sidebar_btns[self._active_cat]
-            old.config(bg=_CBTN)
+            old.configure(bg=_CBTN)
             for c in old.winfo_children():
-                c.config(bg=_CBTN)
+                c.configure(bg=_CBTN)
                 if isinstance(c, tk.Label):
-                    c.config(fg=TEXT_DIM)
+                    c.configure(fg=TEXT_DIM)
 
         self._active_cat = key
 
         # Highlight selected button
         if key in self._cat_sidebar_btns:
             bf = self._cat_sidebar_btns[key]
-            bf.config(bg=_CSEL)
+            bf.configure(bg=_CSEL)
             for c in bf.winfo_children():
-                c.config(bg=_CSEL)
+                c.configure(bg=_CSEL)
                 if isinstance(c, tk.Label):
-                    c.config(fg=_CSFG)
+                    c.configure(fg=_CSFG)
 
         if key == "_gear":
             self._cat_grid_outer.pack_forget()
@@ -1023,7 +1011,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 self._populate_cat_grid(key, payload)
             else:
                 self._clear_cat_grid()
-                self._cat_loading_lbl.config(text=f"Loading {lbl_text}…")
+                self._cat_loading_lbl.configure(text=f"Loading {lbl_text}…")
                 self._cat_loading_lbl.place(relx=0.5, rely=0.4, anchor="center")
                 self._cat_count_var.set("Fetching from poe.ninja…")
                 threading.Thread(target=self._load_cat_async,
@@ -1036,12 +1024,12 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         league = self._selected_league() or "Mercenaries"
         with gen._CACHE_LOCK:
             gen._PAYLOAD_CACHE.pop((league, key), None)
-        self._refresh_btn.config(state="disabled", text="Refreshing…")
+        self._refresh_btn.configure(state="disabled", text="Refreshing…")
         self._show_cat(key)
 
     def _refresh_btn_ready(self):
         if hasattr(self, "_refresh_btn"):
-            self._refresh_btn.config(state="normal", text="↻ Refresh")
+            self._refresh_btn.configure(state="normal", text="↻ Refresh")
 
     def _load_cat_async(self, key):
         entry_ = next((e for e in gen.EXCHANGE_CATEGORIES if e[0] == key), None)
@@ -1122,12 +1110,12 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         if not hasattr(self, "_cat_sidebar_hdr"):
             return
         if done >= total and total > 0:
-            self._cat_sidebar_hdr.config(text="CATEGORIES  ✓", fg=TEXT_OK)
+            self._cat_sidebar_hdr.configure(text="CATEGORIES  ✓", fg=TEXT_OK)
         elif total > 0:
-            self._cat_sidebar_hdr.config(
+            self._cat_sidebar_hdr.configure(
                 text=f"CATEGORIES  {done}/{total}", fg=TEXT_WARN)
         else:
-            self._cat_sidebar_hdr.config(text="CATEGORIES", fg=GOLD)
+            self._cat_sidebar_hdr.configure(text="CATEGORIES", fg=GOLD)
 
     # ── Item grid population ──────────────────────────────────────────────────
 
@@ -1189,7 +1177,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             rows.sort(key=_exp_sort)
         else:
             # Price sort, direction from the Items toolbar (High→Low default).
-            rows.sort(key=lambda r: r[2], reverse=self.cfg.get("items_sort_desc", True))
+            rows.sort(key=lambda r: -r[2])   # price High -> Low (default, no UI control)
 
         # Save previous prices for trend arrows, then cache new prices
         self._cat_prev_prices[key] = {
@@ -1433,17 +1421,17 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self.clipboard_append(rule)
         # Brief visual flash on the card
         orig_bg = frame.cget("bg")
-        frame.config(bg="#1e3a2a")
+        frame.configure(bg="#1e3a2a")
         for w in frame.winfo_children():
             try:
-                w.config(bg="#1e3a2a")
+                w.configure(bg="#1e3a2a")
             except Exception:
                 pass
         def _restore():
-            frame.config(bg=orig_bg)
+            frame.configure(bg=orig_bg)
             for w in frame.winfo_children():
                 try:
-                    w.config(bg=orig_bg)
+                    w.configure(bg=orig_bg)
                 except Exception:
                     pass
         self.after(350, _restore)
@@ -1469,15 +1457,15 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
         frame._enabled = enabled
         bg, fg, bdr, dot_txt, dot_fg = self._card_colors(frame._cat_key, frame._ex, enabled)
-        frame.config(bg=bg, highlightbackground=bdr)
-        frame._name_lbl.config(bg=bg, fg=fg)
-        frame._icon_lbl.config(bg=bg)
-        frame._val_lbl.config(bg=bg)
-        frame._dot_lbl.config(bg=bg, text=dot_txt, fg=dot_fg)
+        frame.configure(bg=bg, highlightbackground=bdr)
+        frame._name_lbl.configure(bg=bg, fg=fg)
+        frame._icon_lbl.configure(bg=bg)
+        frame._val_lbl.configure(bg=bg)
+        frame._dot_lbl.configure(bg=bg, text=dot_txt, fg=dot_fg)
         if getattr(frame, "_arrow_lbl", None):
-            frame._arrow_lbl.config(bg=bg)
+            frame._arrow_lbl.configure(bg=bg)
         if getattr(frame, "_spark_cv", None):
-            frame._spark_cv.config(bg=bg)
+            frame._spark_cv.configure(bg=bg)
 
         self._update_cat_count(key)
         self.after(0, self._save_states_now)
@@ -1500,14 +1488,14 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             enabled = sum(1 for c in cards if c._enabled)
             total   = len(cards)
             color   = TEXT_OK if enabled == total else (TEXT_WARN if enabled > 0 else TEXT_ERR)
-            badge.config(text=f"{enabled}/{total}", fg=color)
+            badge.configure(text=f"{enabled}/{total}", fg=color)
         else:
             # Not rendered yet — check if data is cached and ready to go
             league = self._selected_league() or "Mercenaries"
             if gen._cache_get(league, key) is not None:
-                badge.config(text="●", fg=GOLD)   # cached, click to render
+                badge.configure(text="●", fg=GOLD)   # cached, click to render
             else:
-                badge.config(text="", fg="#555568")  # not fetched yet
+                badge.configure(text="", fg="#555568")  # not fetched yet
 
     # ── Price unit switching ──────────────────────────────────────────────────
 
@@ -1517,7 +1505,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         if banner is None:
             return
         if offline:
-            banner.config(text="⚠  poe.ninja was unreachable — this pickit used cached prices. "
+            banner.configure(text="⚠  poe.ninja was unreachable — this pickit used cached prices. "
                                "They may be out of date. Try Force Refresh when the site is back up.")
             banner.pack(fill="x", padx=10, pady=(10, 0), before=self.progress_lbl)
         else:
@@ -1578,14 +1566,14 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         if not key or key == "_gear":
             return
         for card in self._cat_cards.get(key, []) + self._cat_cards.get("_search", []):
-            card._val_lbl.config(text=self._fmt_price(card._chaos, card._ex, card._div))
+            card._val_lbl.configure(text=self._fmt_price(card._chaos, card._ex, card._div))
 
     def _update_price_unit_btns(self):
         for unit, b in self._price_unit_btns.items():
             if unit == self._price_unit:
-                b.config(bg=GOLD, fg="#111")
+                b.configure(bg=GOLD, fg="#111")
             else:
-                b.config(bg=BG3, fg=TEXT_DIM)
+                b.configure(bg=BG3, fg=TEXT_DIM)
 
     # ── Search / enable-all / disable-all ────────────────────────────────────
 
@@ -1687,24 +1675,24 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             bg = _CON; fg = _CTXON; bdr = _CONB; dot = ""; dfg = GOLD
             for card in self._cat_cards.get(key, []):
                 card._enabled = True
-                card.config(bg=bg, highlightbackground=bdr)
-                card._name_lbl.config(bg=bg, fg=fg)
-                card._icon_lbl.config(bg=bg)
-                card._val_lbl.config(bg=bg)
-                card._dot_lbl.config(bg=bg, text=dot, fg=dfg)
-                if getattr(card, "_spark_cv", None): card._spark_cv.config(bg=bg)
+                card.configure(bg=bg, highlightbackground=bdr)
+                card._name_lbl.configure(bg=bg, fg=fg)
+                card._icon_lbl.configure(bg=bg)
+                card._val_lbl.configure(bg=bg)
+                card._dot_lbl.configure(bg=bg, text=dot, fg=dfg)
+                if getattr(card, "_spark_cv", None): card._spark_cv.configure(bg=bg)
         else:
             if key not in self._item_states:
                 self._item_states[key] = {}
             bg = _COFF; fg = _CTXOF; bdr = _COFB; dot = "✗"; dfg = _CTXOF
             for card in self._cat_cards.get(key, []):
                 card._enabled = False
-                card.config(bg=bg, highlightbackground=bdr)
-                card._name_lbl.config(bg=bg, fg=fg)
-                card._icon_lbl.config(bg=bg)
-                card._val_lbl.config(bg=bg)
-                card._dot_lbl.config(bg=bg, text=dot, fg=dfg)
-                if getattr(card, "_spark_cv", None): card._spark_cv.config(bg=bg)
+                card.configure(bg=bg, highlightbackground=bdr)
+                card._name_lbl.configure(bg=bg, fg=fg)
+                card._icon_lbl.configure(bg=bg)
+                card._val_lbl.configure(bg=bg)
+                card._dot_lbl.configure(bg=bg, text=dot, fg=dfg)
+                if getattr(card, "_spark_cv", None): card._spark_cv.configure(bg=bg)
                 self._item_states[key][card._name] = {"enabled": False}
 
         self._update_cat_count(key)
@@ -1718,12 +1706,12 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self._item_states.pop(key, None)
         for card in self._cat_cards.get(key, []):
             card._enabled = True
-            card.config(bg=_CON, highlightbackground=_CONB)
-            card._name_lbl.config(bg=_CON, fg=_CTXON)
-            card._icon_lbl.config(bg=_CON)
-            card._val_lbl.config(bg=_CON)
-            card._dot_lbl.config(bg=_CON, text="", fg=GOLD)
-            if getattr(card, "_spark_cv", None): card._spark_cv.config(bg=_CON)
+            card.configure(bg=_CON, highlightbackground=_CONB)
+            card._name_lbl.configure(bg=_CON, fg=_CTXON)
+            card._icon_lbl.configure(bg=_CON)
+            card._val_lbl.configure(bg=_CON)
+            card._dot_lbl.configure(bg=_CON, text="", fg=GOLD)
+            if getattr(card, "_spark_cv", None): card._spark_cv.configure(bg=_CON)
         self._update_cat_count(key)
         self.after(0, self._save_states_now)
 
@@ -1749,16 +1737,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             chaos = ex / chaos_ex_val if chaos_ex_val else ex
             prices[name] = chaos
         return prices
-
-    def _on_items_sort_change(self, evt=None):
-        """Re-sort the open category grid when the price-sort direction changes."""
-        self.cfg["items_sort_desc"] = (self._items_sort_var.get() == "High → Low")
-        save_config(self.cfg)
-        key = self._active_cat
-        if key and key != "_gear":
-            payload = gen._cache_get(self._selected_league() or "Mercenaries", key)
-            if payload and not isinstance(payload, Exception):
-                self._populate_cat_grid(key, payload)
 
     def _apply_chaos_filter(self):
         """Disable all items below the min chaos threshold across all loaded categories."""
@@ -2076,10 +2054,11 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                         for item_name in fallback_map.get(title, []):
                             self._wiki_icon_cache[item_name] = url
 
-            # Fallback to poe.ninja for anything still not resolved
+            # poe.ninja's image CDN 404s, so it's no longer a usable fallback —
+            # mark anything the wiki couldn't resolve as empty (skipped, no re-query).
             for n in to_fetch:
                 if n not in self._wiki_icon_cache:
-                    self._wiki_icon_cache[n] = ninja_by_name.get(n, "")
+                    self._wiki_icon_cache[n] = ""
 
             try:
                 with open(WIKI_CACHE_FILE, "w", encoding="utf-8") as f:
@@ -2087,11 +2066,11 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             except Exception:
                 pass
 
-        # Fetch images: wiki URL if resolved, else poe.ninja fallback (bounded pool)
+        # Fetch images from the resolved poe2wiki URLs (bounded pool).
         to_load = [
-            (name, self._wiki_icon_cache.get(name) or ninja_by_name.get(name, ""))
+            (name, self._wiki_icon_cache.get(name, ""))
             for name in names
-            if self._wiki_icon_cache.get(name) or ninja_by_name.get(name, "")
+            if self._wiki_icon_cache.get(name)
         ]
         if to_load:
             def _load_all(items=to_load, key=cat_key):
@@ -2132,7 +2111,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                     factor = max(1, max(w, h) // 36)
                     if factor > 1:
                         photo = photo.subsample(factor, factor)
-                card._icon_lbl.config(image=photo,
+                card._icon_lbl.configure(image=photo,
                                       width=photo.width(), height=photo.height())
                 card._icon_lbl._ph = photo
             except Exception:
@@ -2144,279 +2123,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
     def _save_states_now(self):
         self.cfg["item_states"] = self._item_states
         save_config(self.cfg)
-
-    # ── Preset system ─────────────────────────────────────────────────────────
-
-    def _preset_stats(self, states: dict) -> str:
-        total_items = sum(
-            len([n for n, s in v.items() if isinstance(s, dict) and not s.get("enabled", True)])
-            for v in states.values() if isinstance(v, dict)
-        )
-        total_cats = sum(1 for v in states.values() if isinstance(v, dict) and v)
-        if total_items == 0:
-            return "All items enabled"
-        return f"{total_items} item{'s' if total_items != 1 else ''} disabled across {total_cats} categor{'ies' if total_cats != 1 else 'y'}"
-
-    def _preset_meta_dialog(self, title: str, default_name: str = ""):
-        dlg = tk.Toplevel(self)
-        dlg.title(title)
-        dlg.configure(bg=BG)
-        dlg.grab_set()
-        dlg.resizable(False, False)
-        result = [None]
-
-        tk.Label(dlg, text="Preset name *", bg=BG, fg=TEXT, font=FONT).pack(anchor="w", padx=16, pady=(12, 2))
-        name_var = tk.StringVar(value=default_name)
-        name_ent = tk.Entry(dlg, textvariable=name_var, bg=BG3, fg=TEXT, insertbackground=TEXT,
-                            font=FONT, width=38, relief="flat")
-        name_ent.pack(padx=16, pady=(0, 8), fill="x")
-
-        tk.Label(dlg, text="Author (optional)", bg=BG, fg=TEXT, font=FONT).pack(anchor="w", padx=16, pady=(0, 2))
-        author_var = tk.StringVar()
-        tk.Entry(dlg, textvariable=author_var, bg=BG3, fg=TEXT, insertbackground=TEXT,
-                 font=FONT, width=38, relief="flat").pack(padx=16, pady=(0, 8), fill="x")
-
-        tk.Label(dlg, text="Description (optional)", bg=BG, fg=TEXT, font=FONT).pack(anchor="w", padx=16, pady=(0, 2))
-        desc_box = tk.Text(dlg, bg=BG3, fg=TEXT, insertbackground=TEXT, font=FONT,
-                           width=38, height=4, relief="flat", wrap="word")
-        desc_box.pack(padx=16, pady=(0, 12), fill="x")
-
-        def _ok():
-            n = name_var.get().strip()
-            if not n:
-                messagebox.showwarning("Name required", "Please enter a preset name.", parent=dlg)
-                return
-            result[0] = (n, author_var.get().strip(), desc_box.get("1.0", "end").strip())
-            dlg.destroy()
-
-        bf = tk.Frame(dlg, bg=BG)
-        bf.pack(fill="x", padx=16, pady=(0, 12))
-        btn(bf, "OK",     _ok).pack(side="left", padx=(0, 6))
-        btn(bf, "Cancel", dlg.destroy).pack(side="left")
-        name_ent.focus_set()
-        dlg.bind("<Return>", lambda e: _ok())
-        dlg.wait_window()
-        return result[0]
-
-    def _preset_save(self):
-        info = self._preset_meta_dialog("Save Preset")
-        if not info:
-            return
-        name, author, desc = info
-        data = {
-            "_meta": {
-                "name":        name,
-                "author":      author,
-                "description": desc,
-                "created":     datetime.datetime.now().isoformat(),
-                "league":      self._selected_league() or "",
-                "version":     VERSION,
-            },
-            "item_states": self._item_states,
-        }
-        path = os.path.join(PRESETS_DIR, re.sub(r'[^\w\-. ]', '_', name) + ".json")
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-        messagebox.showinfo("Saved", f"Preset '{name}' saved.", parent=self)
-
-    def _preset_load(self):
-        files = [f for f in os.listdir(PRESETS_DIR) if f.endswith(".json")]
-        if not files:
-            messagebox.showinfo("No Presets",
-                "No saved presets found.\nUse 'Save Preset' or 'Import' first.", parent=self)
-            return
-        dlg = tk.Toplevel(self)
-        dlg.title("Load Preset")
-        dlg.configure(bg=BG)
-        dlg.grab_set()
-        dlg.resizable(False, False)
-
-        main_f = tk.Frame(dlg, bg=BG)
-        main_f.pack(fill="both", expand=True, padx=16, pady=12)
-
-        left = tk.Frame(main_f, bg=BG)
-        left.pack(side="left", fill="y")
-        tk.Label(left, text="Presets", bg=BG, fg=GOLD, font=FONT_BOLD).pack(anchor="w", pady=(0, 4))
-        lb = tk.Listbox(left, bg=BG3, fg=TEXT, selectbackground=GOLD, selectforeground="#111",
-                        font=FONT, width=26, height=min(max(len(files), 4), 12), relief="flat", borderwidth=0)
-        for f in files:
-            lb.insert("end", "  " + f[:-5])
-        lb.pack(fill="y")
-
-        right = tk.Frame(main_f, bg=BG2, padx=14, pady=10)
-        right.pack(side="left", fill="both", expand=True, padx=(10, 0))
-
-        lbl_name   = tk.Label(right, text="", bg=BG2, fg=GOLD,  font=FONT_BOLD, anchor="w", wraplength=230)
-        lbl_author = tk.Label(right, text="", bg=BG2, fg=TEXT,  font=FONT,      anchor="w")
-        lbl_league = tk.Label(right, text="", bg=BG2, fg="#aaa", font=FONT,     anchor="w")
-        lbl_date   = tk.Label(right, text="", bg=BG2, fg="#888", font=FONT,     anchor="w")
-        lbl_stats  = tk.Label(right, text="", bg=BG2, fg="#ccc", font=FONT,     anchor="w", wraplength=230)
-        lbl_desc   = tk.Label(right, text="", bg=BG2, fg=TEXT,  font=FONT,      anchor="w",
-                              wraplength=230, justify="left")
-        for w in (lbl_name, lbl_author, lbl_league, lbl_date, lbl_stats, lbl_desc):
-            w.pack(anchor="w", pady=1)
-
-        def _refresh_detail(evt=None):
-            sel = lb.curselection()
-            if not sel:
-                return
-            try:
-                with open(os.path.join(PRESETS_DIR, files[sel[0]]), encoding="utf-8") as fp:
-                    d = json.load(fp)
-                meta = d.get("_meta", {})
-                s    = d.get("item_states", {})
-                lbl_name.config(text=meta.get("name", files[sel[0]][:-5]))
-                lbl_author.config(text=f"by {meta['author']}" if meta.get("author") else "")
-                lbl_league.config(text=f"League: {meta['league']}" if meta.get("league") else "")
-                raw = meta.get("created", "")
-                if raw:
-                    try:
-                        lbl_date.config(text=datetime.datetime.fromisoformat(raw).strftime("%Y-%m-%d %H:%M"))
-                    except Exception:
-                        lbl_date.config(text=raw[:16])
-                else:
-                    lbl_date.config(text="")
-                lbl_stats.config(text=self._preset_stats(s))
-                lbl_desc.config(text=meta.get("description", ""))
-            except Exception:
-                lbl_name.config(text=files[sel[0]][:-5])
-                for w in (lbl_author, lbl_league, lbl_date, lbl_stats, lbl_desc):
-                    w.config(text="")
-
-        lb.bind("<<ListboxSelect>>", _refresh_detail)
-        lb.selection_set(0)
-        _refresh_detail()
-
-        def _apply():
-            sel = lb.curselection()
-            if not sel:
-                return
-            try:
-                with open(os.path.join(PRESETS_DIR, files[sel[0]]), encoding="utf-8") as fp:
-                    d = json.load(fp)
-                self._item_states = d.get("item_states", d)
-                self.cfg["item_states"] = self._item_states
-                save_config(self.cfg)
-                dlg.destroy()
-                key = self._active_cat
-                if key and key != "_gear":
-                    payload = gen._cache_get(self._selected_league() or "Mercenaries", key)
-                    if payload:
-                        self._populate_cat_grid(key, payload)
-            except Exception as e:
-                messagebox.showerror("Error", str(e), parent=dlg)
-
-        bf = tk.Frame(dlg, bg=BG)
-        bf.pack(fill="x", padx=16, pady=(4, 12))
-        btn(bf, "Load",   _apply).pack(side="left", padx=(0, 6))
-        btn(bf, "Cancel", dlg.destroy).pack(side="left")
-
-    def _preset_export(self):
-        info = self._preset_meta_dialog("Export Preset",
-                                        default_name=self._selected_league() or "my_preset")
-        if not info:
-            return
-        name, author, desc = info
-        path = filedialog.asksaveasfilename(
-            defaultextension=".json",
-            initialfile=re.sub(r'[^\w\-. ]', '_', name) + ".json",
-            filetypes=[("JSON preset", "*.json"), ("All files", "*.*")],
-            title="Export Preset", parent=self)
-        if not path:
-            return
-        data = {
-            "_meta": {
-                "name":        name,
-                "author":      author,
-                "description": desc,
-                "created":     datetime.datetime.now().isoformat(),
-                "league":      self._selected_league() or "",
-                "version":     VERSION,
-            },
-            "item_states": self._item_states,
-        }
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-        messagebox.showinfo("Exported", f"Preset exported to:\n{path}", parent=self)
-
-    def _preset_import(self):
-        path = filedialog.askopenfilename(
-            filetypes=[("JSON preset", "*.json"), ("All files", "*.*")],
-            title="Import Preset", parent=self)
-        if not path:
-            return
-        try:
-            with open(path, encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception as e:
-            messagebox.showerror("Import Failed", f"Could not read file:\n{e}", parent=self)
-            return
-
-        meta   = data.get("_meta", {})
-        states = data.get("item_states", data)
-
-        dlg = tk.Toplevel(self)
-        dlg.title("Import Preset")
-        dlg.configure(bg=BG)
-        dlg.grab_set()
-        dlg.resizable(False, False)
-
-        tk.Label(dlg, text="Import this preset?", bg=BG, fg=GOLD,
-                 font=FONT_BOLD, padx=16, pady=10).pack(anchor="w")
-
-        info_f = tk.Frame(dlg, bg=BG2, padx=14, pady=10)
-        info_f.pack(fill="x", padx=16, pady=(0, 10))
-
-        def _row(label, value):
-            if not value:
-                return
-            f = tk.Frame(info_f, bg=BG2)
-            f.pack(fill="x", pady=1)
-            tk.Label(f, text=label, bg=BG2, fg="#888", font=FONT, width=10, anchor="w").pack(side="left")
-            tk.Label(f, text=value, bg=BG2, fg=TEXT, font=FONT, anchor="w",
-                     wraplength=250, justify="left").pack(side="left", fill="x")
-
-        _row("Name:",   meta.get("name", os.path.splitext(os.path.basename(path))[0]))
-        _row("Author:", meta.get("author", ""))
-        _row("League:", meta.get("league", ""))
-        raw = meta.get("created", "")
-        if raw:
-            try:
-                _row("Created:", datetime.datetime.fromisoformat(raw).strftime("%Y-%m-%d %H:%M"))
-            except Exception:
-                _row("Created:", raw[:16])
-        _row("Items:",  self._preset_stats(states))
-        _row("Notes:",  meta.get("description", ""))
-
-        applied = [False]
-
-        def _apply():
-            try:
-                dest = os.path.join(PRESETS_DIR, os.path.basename(path))
-                if not os.path.exists(dest):
-                    shutil.copy2(path, dest)
-                self._item_states = states
-                self.cfg["item_states"] = states
-                save_config(self.cfg)
-                applied[0] = True
-                dlg.destroy()
-            except Exception as e:
-                messagebox.showerror("Import Failed", str(e), parent=dlg)
-
-        bf = tk.Frame(dlg, bg=BG)
-        bf.pack(fill="x", padx=16, pady=(0, 12))
-        btn(bf, "Apply",  _apply).pack(side="left", padx=(0, 6))
-        btn(bf, "Cancel", dlg.destroy).pack(side="left")
-        dlg.wait_window()
-
-        if applied[0]:
-            key = self._active_cat
-            if key and key != "_gear":
-                payload = gen._cache_get(self._selected_league() or "Mercenaries", key)
-                if payload:
-                    self._populate_cat_grid(key, payload)
-            messagebox.showinfo("Imported",
-                f"Preset '{meta.get('name', 'preset')}' applied.", parent=self)
 
     # ── Gear & Bases panel (existing controls) ────────────────────────────────
 
@@ -2549,7 +2255,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
     def _render_preview(self, lines):
         t = self.preview_text
         ypos = t.yview()[0]
-        t.config(state="normal")
+        t.configure(state="normal")
         t.delete("1.0", "end")
         active = commented = 0
         for line in lines:
@@ -2564,7 +2270,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             else:
                 tag = ""
             t.insert("end", line + "\n", tag)
-        t.config(state="disabled")
+        t.configure(state="disabled")
         t.yview_moveto(ypos)
         self.preview_count_var.set(f"{active} active rules  ·  {commented} commented out")
 
@@ -2583,7 +2289,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         errs  = validation.get("errors", [])   if validation else []
         warns = validation.get("warnings", []) if validation else []
         if not errs and not warns:
-            self._val_hdr.config(text="✓ Validation passed — no issues found", fg=TEXT_OK)
+            self._val_hdr.configure(text="✓ Validation passed — no issues found", fg=TEXT_OK)
             self._val_detail.pack_forget()
             return
         parts = []
@@ -2591,15 +2297,15 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             parts.append(f"{len(errs)} error{'s' if len(errs) != 1 else ''}")
         if warns:
             parts.append(f"{len(warns)} warning{'s' if len(warns) != 1 else ''}")
-        self._val_hdr.config(text="⚠ Validation: " + "  ·  ".join(parts),
+        self._val_hdr.configure(text="⚠ Validation: " + "  ·  ".join(parts),
                              fg=TEXT_ERR if errs else TEXT_WARN)
-        self._val_text.config(state="normal")
+        self._val_text.configure(state="normal")
         self._val_text.delete("1.0", "end")
         for ln, msg in errs:
             self._val_text.insert("end", f"Line {ln}: {msg}\n", "err")
         for ln, msg in warns:
             self._val_text.insert("end", f"Line {ln}: {msg}\n", "warn")
-        self._val_text.config(state="disabled")
+        self._val_text.configure(state="disabled")
         self._val_detail.pack(fill="x", padx=6, pady=(0, 6))
 
     def _revalidate(self):
@@ -2758,33 +2464,23 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         checkbtn(secf, "Also copy loot filter to PoE2 folder after generate", self.copy_filter_var
                  ).pack(anchor="w", padx=10, pady=(0, 4))
 
-        # Schedule
-        sec2 = self._section_frame(inner, "Auto-Schedule")
-        label(sec2, "Re-generate the pickit automatically every hour in the background so prices stay "
-                    "fresh. Turn this off if you'd rather only generate manually.",
-              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 4))
+        # Automation & safety — the behaviour toggles grouped together, each with a
+        # short note directly beneath it (toggle first, explanation second).
+        sec2 = self._section_frame(inner, "Automation & Safety")
         checkbtn(sec2, "Auto-generate every hour while the app is open", self.auto_schedule_var
-                 ).pack(anchor="w", padx=10, pady=(0, 8))
-
-        # Backups
-        sec3 = self._section_frame(inner, "Backups")
-        label(sec3, "Keeps numbered copies of your previous pickit files before overwriting. "
-                    "Lets you roll back to an earlier version if needed. Set to 0 to disable backups.",
-              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 4))
-        bf2 = tk.Frame(sec3, bg=BG2)
+                 ).pack(anchor="w", padx=10, pady=(8, 0))
+        label(sec2, "Re-generates the pickit hourly in the background so prices stay fresh.",
+              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=34, pady=(0, 8))
+        checkbtn(sec2, "Confirm before overwriting a recent pickit", self.confirm_ovw_var
+                 ).pack(anchor="w", padx=10, pady=(0, 0))
+        label(sec2, "Asks before overwriting a pickit you generated in the last couple of minutes.",
+              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=34, pady=(0, 8))
+        bf2 = tk.Frame(sec2, bg=BG2)
         bf2.pack(fill="x", padx=10, pady=(0, 10))
-        label(bf2, "Keep", fg=TEXT_DIM, bg=BG2).pack(side="left")
+        label(bf2, "Keep backups:", fg=TEXT_DIM, bg=BG2).pack(side="left")
         self._make_slider(bf2, self.backup_count_var, from_=0, to=20, resolution=1,
-                          fmt="{:.0f} backups", width=220).pack(side="left", padx=(10, 4))
+                          fmt="{:.0f} backups", width=200).pack(side="left", padx=(10, 4))
         label(bf2, "(0 = disabled)", fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(side="left", padx=(6, 0))
-
-        # Overwrite protection
-        sec5 = self._section_frame(inner, "Overwrite Protection")
-        label(sec5, "Ask for confirmation before overwriting a pickit you generated in the last couple "
-                    "of minutes — prevents accidents if you click Generate twice.",
-              fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 4))
-        checkbtn(sec5, "Confirm before overwriting a recent pickit", self.confirm_ovw_var
-                 ).pack(anchor="w", padx=10, pady=(0, 10))
 
         # Config file location
         sec6 = self._section_frame(inner, "Config File")
@@ -2886,16 +2582,16 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
     def _dlog(self, msg, tag=""):
         def _do():
-            self.debug_text.config(state="normal")
+            self.debug_text.configure(state="normal")
             self.debug_text.insert("end", msg + "\n", tag)
             self.debug_text.see("end")
-            self.debug_text.config(state="disabled")
+            self.debug_text.configure(state="disabled")
         self.after(0, _do)
 
     def _debug_clear(self):
-        self.debug_text.config(state="normal")
+        self.debug_text.configure(state="normal")
         self.debug_text.delete("1.0", "end")
-        self.debug_text.config(state="disabled")
+        self.debug_text.configure(state="disabled")
 
     def _run_diagnostics(self):
         self._debug_clear()
@@ -3049,7 +2745,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             return (0,)
 
     def _show_update_banner(self, remote: str):
-        self._update_lbl.config(
+        self._update_lbl.configure(
             text=f"⬆  Update available: v{remote}  —  click here to download  (you have v{VERSION})"
         )
         try:
@@ -3124,7 +2820,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                             f.write(chunk)
                             done += len(chunk)
                             if total:
-                                self.after(0, lambda d=done, t=total: status.config(
+                                self.after(0, lambda d=done, t=total: status.configure(
                                     text=f"{d*100//t}%   ({d//1048576} / {t//1048576} MB)"))
                 if os.path.getsize(dest) < 5_000_000:
                     raise RuntimeError("downloaded file looks incomplete")
@@ -3193,7 +2889,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
     def _fetch_leagues_async(self):
         self.league_var.set(self.league_var.get() or "Loading…")
-        self.league_cb.config(state="disabled")
+        self.league_cb.configure(state="disabled")
         threading.Thread(target=self._fetch_leagues, daemon=True).start()
 
     def _fetch_leagues(self):
@@ -3205,11 +2901,11 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         except Exception as e:
             self.after(0, lambda msg=str(e): self._log(f"Could not fetch leagues: {msg}", "err"))
             self.after(0, lambda: self.league_var.set(self.cfg.get("league") or ""))
-            self.after(0, lambda: self.league_cb.config(state="normal"))
+            self.after(0, lambda: self.league_cb.configure(state="normal"))
 
     def _populate_leagues(self, names):
         self.league_cb["values"] = names
-        self.league_cb.config(state="normal")
+        self.league_cb.configure(state="normal")
         saved = self.cfg.get("league", "")
         matched = False
         if saved:
@@ -3291,19 +2987,19 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             return
         ts = datetime.datetime.now().strftime("%H:%M:%S")
         def _do():
-            self.log_text.config(state="normal")
+            self.log_text.configure(state="normal")
             self.log_text.insert("end", f"[{ts}] ", "ts")
             self.log_text.insert("end", msg + "\n", tag)
             self.log_text.see("end")
-            self.log_text.config(state="disabled")
+            self.log_text.configure(state="disabled")
         self.after(0, _do)
 
     def _log_clear(self):
         if getattr(self, "log_text", None) is None:
             return
-        self.log_text.config(state="normal")
+        self.log_text.configure(state="normal")
         self.log_text.delete("1.0", "end")
-        self.log_text.config(state="disabled")
+        self.log_text.configure(state="disabled")
 
     def _log_copy(self):
         if getattr(self, "log_text", None) is None:
@@ -3379,14 +3075,14 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
     def _schedule_tick(self):
         if not self.cfg.get("auto_schedule", True):
-            self.schedule_lbl.config(text="⏱ Auto: off")
+            self.schedule_lbl.configure(text="⏱ Auto: off")
         elif not self._running:
             now = time.time()
             if now - self._last_run_time >= 3600:
                 self._start_generate(silent=True)
             remaining = int(3600 - (now - self._last_run_time))
             h, m = divmod(max(remaining, 0) // 60, 60)
-            self.schedule_lbl.config(text=f"⏱ Next: {h}h {m}m")
+            self.schedule_lbl.configure(text=f"⏱ Next: {h}h {m}m")
         self._schedule_after = self.after(30_000, self._schedule_tick)
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -3458,7 +3154,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self.force_btn.configure(state="disabled")
         self.open_ipd_btn.configure(state="disabled")
         self.open_filter_btn.configure(state="disabled")
-        self.status_lbl.config(text="Generating…", fg=TEXT_WARN)
+        self.status_lbl.configure(text="Generating…", fg=TEXT_WARN)
         self.progress_var.set("Starting…")
 
         # Snapshot all Tk variables here on the main thread so the worker never
@@ -3853,6 +3549,8 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             }
             _craftbase_lines = gen.build_craft_base_rules(_craftbase_disabled)
             if _craftbase_lines:
+                output_lines.append("")
+                output_lines.append("")
                 output_lines.extend(_craftbase_lines)
                 _cb_count = sum(1 for l in _craftbase_lines if l.startswith("[Type]"))
                 self._log(f"  ✓ Craft bases: {_cb_count} Normal ilvl-82 rules", "ok")
@@ -3873,7 +3571,10 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                                                       min_level=min_lvl,
                                                       progress_callback=_base_prog)
                     output_lines.append("")
-                    output_lines.append(gen.header_major("Base Types"))
+                    output_lines.append("")
+                    output_lines.append(gen.header_major("Gear Base Types (game data)"))
+                    output_lines.append("//  Exceptional gear base types pulled from game data.")
+                    output_lines.append("//  Separate from the Craft Bases section above.")
                     output_lines.append("")
                     output_lines.extend(base_lines)
                     output_lines.append("")
@@ -4103,7 +3804,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             self.open_ipd_btn.configure(state="normal")
             self.open_filter_btn.configure(state="normal")
             self._show_gen_summary()
-        self.status_lbl.config(
+        self.status_lbl.configure(
             text=f"Last run: {datetime.datetime.now().strftime('%H:%M:%S')}",
             fg=TEXT_OK if success else TEXT_ERR)
 
@@ -4118,9 +3819,9 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         cat_ok   = s.get("cat_ok", 0)
         cat_fail = s.get("cat_fail", 0)
 
-        self._sum_vars["duration"].config(text=f"Generated in {dur}")
-        self._sum_vars["rules"].config(text=f"{active:,} active rules")
-        self._sum_vars["fsize"].config(text=f"{fsize} KB")
+        self._sum_vars["duration"].configure(text=f"Generated in {dur}")
+        self._sum_vars["rules"].configure(text=f"{active:,} active rules")
+        self._sum_vars["fsize"].configure(text=f"{fsize} KB")
 
         if top:
             dr = s.get("divine_rate", 0)
@@ -4128,14 +3829,14 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             top_parts = []
             for name, ex_val in top[:3]:
                 top_parts.append(f"{name}  {self._fmt_val_multi(ex_val, dr, cx, sep=' / ')}")
-            self._sum_top_lbl.config(text="      ·      ".join(top_parts))
+            self._sum_top_lbl.configure(text="      ·      ".join(top_parts))
         else:
-            self._sum_top_lbl.config(text="No items above threshold")
+            self._sum_top_lbl.configure(text="No items above threshold")
 
         cat_note = f"{cat_ok} categories"
         if cat_fail:
             cat_note += f"  ·  {cat_fail} failed"
-        self._sum_cats_lbl.config(text=cat_note)
+        self._sum_cats_lbl.configure(text=cat_note)
 
         # row 3: validation status, what-changed, and price movers
         for w in self._sum_alerts_frame.winfo_children():
