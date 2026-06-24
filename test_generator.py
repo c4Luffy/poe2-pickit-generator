@@ -221,3 +221,67 @@ def test_validate_pickit_catches_ilvl_before_hash():
     assert any("ItemLevel" in m for _, m in flagged), (
         "Validator did not flag [ItemLevel] before # — consider adding this check"
     )
+
+
+# ── Round 2: CHANCE_BASES, ALWAYS_PICK_RUNES, validator, accessory bases ─────
+
+def test_all_chance_bases_are_valid_equipment_bases():
+    """Every base in CHANCE_BASES must be in VALID_EQUIPMENT_BASES."""
+    invalid = [(cat, base, tgt) for cat, base, tgt in gen.CHANCE_BASES
+               if base not in gen.VALID_EQUIPMENT_BASES]
+    assert not invalid, (
+        f"CHANCE_BASES entries not in VALID_EQUIPMENT_BASES:\n"
+        + "\n".join(f"  [{c}] {b!r} -> {t}" for c, b, t in invalid)
+    )
+
+
+def test_accessory_bases_recognised_as_valid():
+    """Key accessory bases (rings, amulets) must be valid for the validator."""
+    for base in ("Gold Ring", "Solar Amulet", "Heavy Belt", "Utility Belt", "Ornate Belt"):
+        assert base in gen.VALID_EQUIPMENT_BASES, f"{base!r} missing from VALID_EQUIPMENT_BASES"
+
+
+def test_always_pick_runes_not_empty():
+    """ALWAYS_PICK_RUNES must cover both Emergent and standard runes."""
+    assert len(gen.ALWAYS_PICK_RUNES) >= 9
+    assert "Emergent Vigour" in gen.ALWAYS_PICK_RUNES
+    assert "Iron Rune" in gen.ALWAYS_PICK_RUNES
+    assert "Destined Rune" in gen.ALWAYS_PICK_RUNES
+
+
+def test_validate_flags_missing_hash_separator():
+    """A rule with [StashItem] but no # should be an error."""
+    bad = '[Type] == "Chaos Orb" [StashItem] == "true"'
+    result = gen.validate_pickit([bad])
+    assert any("separator" in m.lower() or "#" in m for _, m in result["errors"]), (
+        f"Validator did not flag missing # separator. errors={result['errors']}"
+    )
+
+
+def test_item_name_corrections_no_redundant_none_entries():
+    """Items in ITEM_NAME_SKIP should not also have None in ITEM_NAME_CORRECTIONS."""
+    redundant = [k for k, v in gen.ITEM_NAME_CORRECTIONS.items()
+                 if v is None and k in gen.ITEM_NAME_SKIP]
+    assert not redundant, f"Redundant None corrections (already in ITEM_NAME_SKIP): {redundant}"
+
+
+def test_loot_filter_header_documents_unique_name_limitation():
+    """The generated .filter must warn about [UniqueName] not being replicable."""
+    out = "\n".join(gen.build_loot_filter(['[Type] == "Chaos Orb" # [StashItem] == "true"']))
+    assert "UniqueName" in out, "Loot filter missing [UniqueName] limitation comment"
+
+
+def test_chance_bases_no_duplicates():
+    """CHANCE_BASES must not list the same base type twice."""
+    bases = [b for _, b, _ in gen.CHANCE_BASES]
+    duplicates = {b for b in bases if bases.count(b) > 1}
+    assert not duplicates, f"Duplicate entries in CHANCE_BASES: {duplicates}"
+
+
+def test_new_bases_generate_gear_rules():
+    """Newly added bases (Tattered Robe, Cultist Crown, etc.) must appear in build_base_rules."""
+    new_bases = ["Tattered Robe", "Cultist Crown", "Fine Bracers", "Spiral Wraps",
+                 "Braced Sabatons", "Heavy Belt", "Utility Belt", "Ornate Belt", "Omen Sceptre"]
+    rules_text = "\n".join(gen.build_base_rules())
+    for base in new_bases:
+        assert f'"{base}"' in rules_text, f"{base!r} missing from build_base_rules output"

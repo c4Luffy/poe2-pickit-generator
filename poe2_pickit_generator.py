@@ -79,10 +79,10 @@ ITEM_NAME_CORRECTIONS: dict = {
     # poe.ninja name             → correct in-game base type
     # Add new entries here as mismatches are discovered.
     # Format: "poe.ninja display name": "ExiledBot base type name"
+    # Map None to silently skip an item (items already in ITEM_NAME_SKIP
+    # don't need a None entry here — they're already excluded).
     "Stamped Wombgift":          "Signet Wombgift",      # renamed in 0.2.0
     "Pressurised Wombgift":      "Ornate Wombgift",      # renamed in 0.2.0
-    "Necrotic Catalyst":         None,                   # skip — invalid base
-    "Refined Necrotic Catalyst": None,                   # skip — invalid base
 }
 
 # Items returned by poe.ninja that have no valid in-game base type and should
@@ -103,10 +103,21 @@ ALWAYS_PICK_CURRENCY = [
 
 # Runes not tracked by poe.ninja — always pick up regardless of threshold
 ALWAYS_PICK_RUNES = [
+    # Emergent runes (not tracked by poe.ninja)
     "Emergent Vigour",
     "Emergent Possibility",
     "Emergent Protection",
     "Emergent Instinct",
+    # Standard runes (not always tracked; always pick to be safe)
+    "Iron Rune",
+    "Glacial Rune",
+    "Arcane Rune",
+    "Dire Rune",
+    "Honed Rune",
+    "Jagged Rune",
+    "Phrecia Rune",
+    "Skullbreaker Rune",
+    "Destined Rune",
 ]
 
 
@@ -125,7 +136,7 @@ WAYSTONE_FALLBACK_RULES = [
 
 _BASE_TYPES_BY_CATEGORY: dict = {
     "Body Armours": (
-        ("Abyssal Cuirass", 3), ("Arcane Raiment", 3), ("Armoured Vest", 3),
+        ("Tattered Robe", 3), ("Abyssal Cuirass", 3), ("Arcane Raiment", 3), ("Armoured Vest", 3),
         ("Assassin Garb", 3), ("Austere Garb", 3), ("Ceremonial Robe", 3),
         ("Conjurer Mantle", 3), ("Conqueror Plate", 3), ("Corsair Coat", 3),
         ("Corvus Mantle", 3), ("Dastard Armour", 3), ("Death Mail", 3),
@@ -144,7 +155,7 @@ _BASE_TYPES_BY_CATEGORY: dict = {
         ("Wyrmscale Coat", 3), ("Zenith Vestments", 3),
     ),
     "Helmets": (
-        ("Ancestral Tiara", 2), ("Archon Crown", 2), ("Armoured Cap", 2),
+        ("Cultist Crown", 2), ("Ancestral Tiara", 2), ("Archon Crown", 2), ("Armoured Cap", 2),
         ("Brigand Mask", 2), ("Champion Helm", 2), ("Cryptic Crown", 2),
         ("Cryptic Helm", 2), ("Death Mask", 2), ("Desert Cap", 2),
         ("Divine Crown", 2), ("Druidic Crown", 2), ("Faridun Mask", 2),
@@ -157,7 +168,7 @@ _BASE_TYPES_BY_CATEGORY: dict = {
         ("Woven Cap", 2),
     ),
     "Gloves": (
-        ("Adherent Cuffs", 2), ("Ancient Cuffs", 2), ("Adorned Gloves", 2),
+        ("Fine Bracers", 2), ("Spiral Wraps", 2), ("Adherent Cuffs", 2), ("Ancient Cuffs", 2), ("Adorned Gloves", 2),
         ("Barbed Bracers", 2), ("Blacksteel Gauntlets", 2), ("Bound Cuffs", 2),
         ("Commander Gauntlets", 2), ("Cultist Gauntlets", 2),
         ("Elegant Wraps", 2), ("Engraved Bracers", 2), ("Gleaming Cuffs", 2),
@@ -170,7 +181,7 @@ _BASE_TYPES_BY_CATEGORY: dict = {
         ("Vaal Mitts", 2), ("Vaal Wraps", 2), ("War Wraps", 2),
     ),
     "Boots": (
-        ("Apostle Leggings", 2), ("Blacksteel Sabatons", 2), ("Bladed Shoes", 2),
+        ("Braced Sabatons", 2), ("Apostle Leggings", 2), ("Blacksteel Sabatons", 2), ("Bladed Shoes", 2),
         ("Bold Sabatons", 2), ("Bound Sandals", 2), ("Bulwark Greaves", 2),
         ("Cavalry Boots", 2), ("Charmed Shoes", 2), ("Cinched Boots", 2),
         ("Cryptic Leggings", 2), ("Daggerfoot Shoes", 2), ("Dragonscale Boots", 2),
@@ -246,9 +257,9 @@ _BASE_TYPES_BY_CATEGORY: dict = {
     "One Hand Axes":  (("Dread Hatchet", 2),),
     "Two Hand Axes":  (("Vile Greataxe", 3),),
     "Two Hand Swords":(("Ultra Greatsword", 3),),
-    "Sceptres":       (("Hallowed Sceptre", 2),),
+    "Sceptres":       (("Hallowed Sceptre", 2), ("Omen Sceptre", 2),),
     "Flails":         (("Abyssal Flail", 2),),
-    "Belts":          (("Fine Belt", 0),),
+    "Belts":          (("Fine Belt", 0), ("Heavy Belt", 0), ("Utility Belt", 0), ("Ornate Belt", 0),),
 }
 
 # Runeforged / Runemastered variants not yet in game data files.
@@ -305,9 +316,23 @@ def _quote_ipd(name: str) -> str:
 #    • maintained lists of names Exiled Bot rejects / deprecates
 #  The maintained lists are easy to extend as new cases surface.
 
+# Accessories (rings, amulets) don't have socket/quality gate rules so they
+# aren't in _BASE_TYPES_BY_CATEGORY, but they appear in CHANCE_BASES and need
+# to be accepted by the validator.
+_ACCESSORY_BASES: frozenset = frozenset({
+    # Rings
+    "Gold Ring", "Iron Ring", "Ruby Ring", "Topaz Ring", "Sapphire Ring",
+    "Two-Stone Ring", "Prismatic Ring", "Unset Ring",
+    # Amulets
+    "Coral Amulet", "Paua Amulet", "Amber Amulet", "Jade Amulet",
+    "Lapis Amulet", "Gold Amulet", "Agate Amulet", "Citrine Amulet",
+    "Turquoise Amulet", "Onyx Amulet", "Solar Amulet",
+})
+
 VALID_EQUIPMENT_BASES: frozenset = (
     frozenset(name for entries in _BASE_TYPES_BY_CATEGORY.values() for name, _ in entries)
     | frozenset(name for name, _ in _RUNEFORGED_BASES)
+    | _ACCESSORY_BASES
 )
 
 # Names Exiled Bot rejects outright (validation error). Seeded with the cases we
@@ -341,6 +366,9 @@ def validate_pickit(lines) -> dict:
             continue  # blank line, header, or commented-out (disabled) rule
         if "#" not in line and "[StashItem]" not in line:
             continue  # not a rule line
+        if "[StashItem]" in line and "#" not in line:
+            errors.append((i, "Rule has [StashItem] but is missing the # separator"))
+            continue
 
         if line.count('"') % 2 != 0:
             errors.append((i, "Unbalanced quotes in rule"))
@@ -763,6 +791,8 @@ def build_loot_filter(ipd_lines, generated_iso: Optional[str] = None) -> list:
         "# Path of Exile 2 Filter - Generated from IPD",
         "# IMPORTANT: Shows items based on PICKUP conditions (before #)",
         "# Bot will pick these up and decide what to keep after identification",
+        "# NOTE: [UniqueName] filters cannot be replicated here — unique items",
+        "#       are shown by base type only. Value filtering stays in the .ipd.",
         f"# Generated on: {generated_iso}",
         "",
     ]
