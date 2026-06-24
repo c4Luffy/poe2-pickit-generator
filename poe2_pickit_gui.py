@@ -175,7 +175,7 @@ def load_config():
         # the old default (75) never filtered. Bump it to the endgame default (82)
         # so high-ilvl crafting bases are kept and low-level white junk isn't.
         if cfg.get("base_min_level") == 75:
-            cfg["base_min_level"] = 82
+            cfg["base_min_level"] = gen.CRAFT_BASE_MIN_ILVL
         return cfg
     except Exception:
         return dict(DEFAULT_CONFIG)
@@ -2558,6 +2558,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             ).pack(side="left", padx=(6, 0))
         btn(btn_f, "Show config", self._debug_show_config).pack(side="left", padx=(6, 0))
         btn(btn_f, "Open debug log", lambda: self._open_file_path(LOG_PATH)).pack(side="left", padx=(6, 0))
+        btn(btn_f, "Prune cache", self._prune_cache_ui).pack(side="left", padx=(6, 0))
         btn(btn_f, "Clear", self._debug_clear).pack(side="left", padx=(6, 0))
 
         sep(page).pack(fill="x", padx=16)
@@ -2575,6 +2576,17 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             self.debug_text.see("end")
             self.debug_text.configure(state="disabled")
         self.after(0, _do)
+
+    def _prune_cache_ui(self):
+        """Delete disk-cache files older than 60 days and show result."""
+        try:
+            removed = gen.prune_disk_cache(max_age_days=60)
+            msg = (f"Pruned {removed} stale cache file(s)."
+                   if removed else "Nothing to prune — all cache files are recent.")
+            self._dlog(f"[Prune] {msg}", "ok" if removed else "dim")
+            log_info(f"Manual prune: {removed} file(s) removed")
+        except Exception as e:
+            self._dlog(f"[Prune] Error: {e}", "err")
 
     def _debug_clear(self):
         self.debug_text.configure(state="normal")
