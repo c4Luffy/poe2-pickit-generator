@@ -626,7 +626,7 @@ CHANCE_BASES: list = [
     ("Body Armours", "Conqueror Plate",  "Kaom's Heart"),
     ("Body Armours", "Grand Regalia",    "Morior Invictus"),
     ("Body Armours", "Tattered Robe",    "Ghostwrithe"),
-    ("Body Armours", "Zodiac Leather",   "Hyrri's Ire"),
+    ("Body Armours", "Armoured Vest",    "Hyrri's Ire"),
     ("Helmets",      "Magus Tiara",      "Indigon"),
     ("Helmets",      "Cultist Crown",    "Crown of the Pale King"),
     ("Gloves",       "Fine Bracers",     "Maligaro's Virtuosity"),
