@@ -451,12 +451,12 @@ _CRAFT_BEST_BASES: dict = {
                       ("Sekhema Sandals", "INT"),      ("Blacksteel Sabatons", "STR/DEX"),
                       ("Cryptic Leggings", "STR/INT"), ("Daggerfoot Shoes", "DEX/INT")],
     "Foci":          [("Tasalian Focus", "INT")],
-    "Spears":        [("Grand Spear", "")],
-    "Quarterstaves": [("Aegis Quarterstaff", ""), ("Sinister Quarterstaff", "")],
-    "Crossbows":     [("Siege Crossbow", "")],
-    "Bows":          [("Fanatic Bow", "")],
-    "Staves":        [("Permafrost Staff", "")],
-    "Wands":         [("Dueling Wand", "")],
+    "Spears":        [("Grand Spear", "STR/DEX")],
+    "Quarterstaves": [("Aegis Quarterstaff", "DEX/INT"), ("Sinister Quarterstaff", "DEX/INT")],
+    "Crossbows":     [("Siege Crossbow", "STR/DEX")],
+    "Bows":          [("Fanatic Bow", "DEX")],
+    "Staves":        [("Permafrost Staff", "INT")],
+    "Wands":         [("Dueling Wand", "INT")],
 }
 
 # Flat base_name -> defence_type lookup (used for the Craft Bases card labels).
