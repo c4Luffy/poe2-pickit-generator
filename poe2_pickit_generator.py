@@ -889,6 +889,30 @@ def clear_cache():
     with _CACHE_LOCK:
         _PAYLOAD_CACHE.clear()
 
+def prune_disk_cache(max_age_days: int = 60) -> int:
+    """Delete disk-cache files older than *max_age_days*. Returns count deleted.
+
+    Call on startup to stop stale league files accumulating across seasons.
+    """
+    if not _DISK_CACHE_DIR:
+        return 0
+    cutoff = time.time() - max_age_days * 86400
+    removed = 0
+    try:
+        for fname in os.listdir(_DISK_CACHE_DIR):
+            if not fname.endswith(".json"):
+                continue
+            fpath = os.path.join(_DISK_CACHE_DIR, fname)
+            try:
+                if os.path.getmtime(fpath) < cutoff:
+                    os.remove(fpath)
+                    removed += 1
+            except OSError:
+                pass
+    except OSError:
+        pass
+    return removed
+
 
 # ── Disk cache (survives restarts → powers offline mode) ─────────────────────
 

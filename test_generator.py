@@ -328,3 +328,53 @@ def test_validate_pickit_passes_on_static_tablet_rules():
     lines = gen.STATIC_TABLET_RULES.strip().splitlines()
     result = gen.validate_pickit(lines)
     assert result["errors"] == [], f"Static tablet rules validation errors: {result['errors']}"
+
+
+# ── Round 4: cache pruning, min_ilvl wiring, craft rules with custom ilvl ─────
+
+def test_prune_disk_cache_exists():
+    """prune_disk_cache must be a callable in the generator module."""
+    assert callable(gen.prune_disk_cache)
+
+
+def test_prune_disk_cache_no_dir_returns_zero():
+    """prune_disk_cache with no dir set must return 0 without crashing."""
+    original = gen._DISK_CACHE_DIR
+    gen._DISK_CACHE_DIR = ""
+    result = gen.prune_disk_cache()
+    gen._DISK_CACHE_DIR = original
+    assert result == 0
+
+
+def test_prune_disk_cache_removes_old_files(tmp_path):
+    """prune_disk_cache must delete JSON files older than max_age_days."""
+    import os, time as _time
+    gen.set_disk_cache_dir(str(tmp_path))
+    # Create a fake stale cache file (mtime set to 90 days ago)
+    stale = tmp_path / "old_league__currency.json"
+    stale.write_text('{"ts": 0, "payload": {}}')
+    os.utime(stale, (0, 0))  # epoch = very old
+    removed = gen.prune_disk_cache(max_age_days=60)
+    assert removed == 1
+    assert not stale.exists()
+    gen.set_disk_cache_dir("")  # reset
+
+
+def test_prune_disk_cache_keeps_recent_files(tmp_path):
+    """prune_disk_cache must NOT delete files younger than max_age_days."""
+    gen.set_disk_cache_dir(str(tmp_path))
+    recent = tmp_path / "new_league__currency.json"
+    recent.write_text('{"ts": 0, "payload": {}}')
+    # mtime is now (just created) — should survive pruning
+    removed = gen.prune_disk_cache(max_age_days=60)
+    assert removed == 0
+    assert recent.exists()
+    gen.set_disk_cache_dir("")
+
+
+def test_craft_base_rules_custom_ilvl_in_rule():
+    """build_craft_base_rules(min_ilvl=75) must emit rules with ilvl 75 after #."""
+    rules = [l for l in gen.build_craft_base_rules(min_ilvl=75) if "[StashItem]" in l]
+    for rule in rules:
+        after = rule.split("#", 1)[1]
+        assert '[ItemLevel] >= "75"' in after, f"ilvl 75 missing from action block: {rule}"

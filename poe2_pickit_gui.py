@@ -114,6 +114,15 @@ log_info(f"=== app start (v{'?'}) cfg_dir={_cfg_dir} ===")
 # restarts and can be reused when poe.ninja is unreachable.
 gen.set_disk_cache_dir(PRICE_CACHE_DIR)
 
+# Prune cache files older than 60 days on startup so stale league data
+# from previous seasons doesn't accumulate indefinitely.
+try:
+    _pruned = gen.prune_disk_cache(max_age_days=60)
+    if _pruned:
+        log_info(f"prune_disk_cache: removed {_pruned} stale file(s)")
+except Exception:
+    pass
+
 
 def _default_poe2_filter_dir() -> str:
     """Best-guess location of the PoE2 client loot-filter folder."""
@@ -3526,13 +3535,14 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 name for name, st in snapshot.get("item_states", {}).get("_craftbase", {}).items()
                 if not st.get("enabled", True)
             }
-            _craftbase_lines = gen.build_craft_base_rules(_craftbase_disabled)
+            _craft_ilvl  = int(snapshot.get("base_min_level", gen.CRAFT_BASE_MIN_ILVL))
+            _craftbase_lines = gen.build_craft_base_rules(_craftbase_disabled, min_ilvl=_craft_ilvl)
             if _craftbase_lines:
                 output_lines.append("")
                 output_lines.append("")
                 output_lines.extend(_craftbase_lines)
                 _cb_count = sum(1 for l in _craftbase_lines if l.startswith("[Type]"))
-                self._log(f"  ✓ Craft bases: {_cb_count} Normal ilvl-82 rules", "ok")
+                self._log(f"  ✓ Craft bases: {_cb_count} Normal ilvl-{_craft_ilvl}+ rules", "ok")
 
             # ── Base types (optional) ─────────────────────────────────────────
             if snapshot.get("include_bases"):
