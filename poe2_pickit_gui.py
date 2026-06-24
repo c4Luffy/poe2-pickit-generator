@@ -76,6 +76,40 @@ WIKI_CACHE_FILE  = os.path.join(_cfg_dir, "wiki_icon_cache.json")
 for _d in (_cfg_dir, OUTPUT_DIR, ICON_DIR):
     os.makedirs(_d, exist_ok=True)
 
+# ── Debug log ─────────────────────────────────────────────────────────────────
+# The GUI swallows many background errors (icon fetches, network, file I/O) so the
+# UI never crashes — but that also hid real bugs (e.g. the v2.6.0 icon crash). This
+# rotating file log gives those silenced exceptions a breadcrumb. Open it from the
+# Debug tab. Call log_exc("context") from inside an `except` block.
+import logging
+from logging.handlers import RotatingFileHandler
+
+LOG_PATH = os.path.join(_cfg_dir, "debug.log")
+logger = logging.getLogger("pickit")
+if not logger.handlers:
+    logger.setLevel(logging.INFO)
+    try:
+        _lh = RotatingFileHandler(LOG_PATH, maxBytes=512 * 1024, backupCount=2, encoding="utf-8")
+        _lh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+        logger.addHandler(_lh)
+    except Exception:
+        logger.addHandler(logging.NullHandler())
+
+def log_exc(context: str = ""):
+    """Log the currently-handled exception (call from inside an `except`)."""
+    try:
+        logger.exception("EXC %s", context)
+    except Exception:
+        pass
+
+def log_info(msg: str):
+    try:
+        logger.info(msg)
+    except Exception:
+        pass
+
+log_info(f"=== app start (v{'?'}) cfg_dir={_cfg_dir} ===")
+
 # Point the generator's offline cache at a local folder so prices survive
 # restarts and can be reused when poe.ninja is unreachable.
 gen.set_disk_cache_dir(PRICE_CACHE_DIR)
@@ -155,7 +189,7 @@ from tab_craft_bases import CraftBasesTab
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.6.5"
+VERSION       = "2.6.6"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -164,6 +198,7 @@ RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
 class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
     def __init__(self):
         super().__init__()
+        log_info(f"PickitApp init (v{VERSION})")
         self.cfg = load_config()
 
         # ── DPI scale factor ──────────────────────────────────────────────────
@@ -1072,7 +1107,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 try:
                     fut.result()
                 except Exception:
-                    pass
+                    log_exc(f"preload {key}")
                 self._preload_done_count += 1
                 # Update badge and header on the main thread
                 self.after(0, lambda k=key: self._on_preload_cat_ready(k))
@@ -1275,9 +1310,9 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self._cat_canvas.configure(scrollregion=self._cat_canvas.bbox("all"))
         self._cat_canvas.yview_moveto(0)
 
-        # Load icons in background via wiki (with poe.ninja fallback)
-        threading.Thread(target=self._resolve_wiki_icons,
-                         args=(key, rows), daemon=True).start()
+        # Load icons in background via wiki (errors logged, never silently lost)
+        threading.Thread(target=self._guarded,
+                         args=(self._resolve_wiki_icons, key, rows), daemon=True).start()
 
     # ── Item card widget ──────────────────────────────────────────────────────
 
@@ -1937,6 +1972,21 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 pass
         return found
 
+    def report_callback_exception(self, exc, val, tb):
+        """Tk calls this for any uncaught error in an event/after callback. Default
+        prints to stderr (lost under pythonw/the EXE); log it so it leaves a trace.
+        This is the net that would have caught the v2.6.0 icon crash immediately."""
+        logger.error("Tk callback exception", exc_info=(exc, val, tb))
+
+    @staticmethod
+    def _guarded(fn, *args):
+        """Run fn(*args) in a worker thread, logging any exception instead of
+        letting it vanish (raw threads have no report_callback_exception)."""
+        try:
+            fn(*args)
+        except Exception:
+            log_exc(f"thread {getattr(fn, '__name__', fn)}")
+
     def _resolve_wiki_icons(self, cat_key, rows):
         """Background thread: batch-query poe2wiki.net for icon URLs, then fetch images.
 
@@ -2019,7 +2069,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             if os.path.exists(path):
                 self.after(0, lambda p=path: self._apply_icon(key, name, p))
         except Exception:
-            pass
+            log_exc(f"fetch_icon {name}")
 
     def _apply_icon(self, key, name, path):
         """Main thread: set icon on matching card."""
@@ -2040,7 +2090,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                                       width=photo.width(), height=photo.height())
                 card._icon_lbl._ph = photo
             except Exception:
-                pass
+                log_exc(f"apply_icon {name}")
             break
 
     # ── State persistence ─────────────────────────────────────────────────────
@@ -2056,8 +2106,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         inner, c = self._scrollable(parent)
         self._cat_gear_canvas = c
 
-        vcmd = (self.register(lambda v: v == "" or bool(re.fullmatch(r"-?\d*\.?\d*", v))), "%P")
-
         def cat_group(grp_label, cats, unique=False, desc=""):
             lf = tk.Frame(inner, bg=BG)
             lf.pack(fill="x", pady=(12, 0))
@@ -2071,20 +2119,12 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 row = tk.Frame(inner, bg=row_bg,
                                highlightthickness=1, highlightbackground=BORDER)
                 row.pack(fill="x", padx=16, pady=2)
-                cb = tk.Checkbutton(row, text=lbl_text, variable=self.cat_enabled[key],
-                    bg=row_bg, fg=TEXT_INFO if unique else TEXT,
-                    selectcolor=BG3, activebackground=row_bg,
-                    activeforeground=TEXT, font=FONT, anchor="w", padx=10, pady=6)
-                cb.pack(side="left")
+                checkbtn(row, lbl_text, self.cat_enabled[key]).pack(
+                    side="left", padx=10, pady=6)
                 tf = tk.Frame(row, bg=row_bg)
                 tf.pack(side="right", padx=8)
                 label(tf, "ex  (−1 = global)", fg=TEXT_DIM, font=FONT_SM, bg=row_bg).pack(side="right")
-                tk.Entry(tf, textvariable=self.cat_thresh[key], width=7,
-                    bg=BG3, fg=TEXT, insertbackground=GOLD,
-                    relief="flat", bd=0, font=FONT,
-                    highlightthickness=1, highlightbackground=BORDER,
-                    validate="key", validatecommand=vcmd
-                ).pack(side="right", padx=(0, 4), ipady=4)
+                entry(tf, self.cat_thresh[key], width=6).pack(side="right", padx=(0, 4))
                 label(tf, "threshold:", fg=TEXT_DIM, font=FONT_SM, bg=row_bg).pack(
                     side="right", padx=(0, 4))
 
@@ -2495,6 +2535,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             lambda: threading.Thread(target=self._api_test_worker, daemon=True).start()
             ).pack(side="left", padx=(6, 0))
         btn(btn_f, "Show config", self._debug_show_config).pack(side="left", padx=(6, 0))
+        btn(btn_f, "Open debug log", lambda: self._open_file_path(LOG_PATH)).pack(side="left", padx=(6, 0))
         btn(btn_f, "Clear", self._debug_clear).pack(side="left", padx=(6, 0))
 
         sep(page).pack(fill="x", padx=16)
@@ -3713,6 +3754,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             self.after(0, _apply_cfg)
 
         except Exception as e:
+            log_exc("generate")
             self._log(f"Error: {e}", "err")
             self._log(traceback.format_exc(), "dim")
         finally:
