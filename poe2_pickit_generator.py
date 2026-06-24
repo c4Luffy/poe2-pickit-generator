@@ -1272,7 +1272,7 @@ def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: Opt
             f'&& [StashItem] == "true" // ExValue = {exalt_value:.2f}'
         )
         rows.append((exalt_value, rule if exalt_value >= threshold else f"//{rule}"))
-    rows.sort(key=lambda r: -r[0])
+    rows.sort(key=lambda r: -r[0], reverse=True)
     return [rule for _, rule in rows]
 
 
@@ -1364,12 +1364,15 @@ def main():
     parser.add_argument("--league",          default=None,              help="Exact league name. Omit to auto-detect.")
     parser.add_argument("--min-exalt",       type=float, default=MIN_EXALT, help="Threshold below which items are commented out")
     parser.add_argument("--output",          default="poe2_pickit.txt", help="Output file path")
+    parser.add_argument("--version",         action="version",
+                        version=f"%(prog)s {open('version.txt').read().strip() if os.path.exists('version.txt') else '?'}",
+                        help="Show version and exit")
     parser.add_argument("--list-leagues",    action="store_true",       help="Print live leagues and exit")
     parser.add_argument("--check-endpoints", action="store_true",       help="Test all poe.ninja category endpoints and print results")
     parser.add_argument("--variant",         choices=("all","currency","exchange","uniques","maps"), default="all")
     parser.add_argument("--include-bases",   action="store_true",       help="Build endgame base type rules from game data and append to output")
     parser.add_argument("--base-quality",    type=int, default=28,      help="Min quality %% for base-type rules (default 28)")
-    parser.add_argument("--base-min-level",  type=int, default=75,      help="Min required level for base-type rules (default 75)")
+    parser.add_argument("--base-min-level",  type=int, default=CRAFT_BASE_MIN_ILVL, help=f"Min required level for base-type rules (default {CRAFT_BASE_MIN_ILVL})")
     args = parser.parse_args()
     min_exalt = args.min_exalt
 

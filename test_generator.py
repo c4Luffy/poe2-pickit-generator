@@ -378,3 +378,30 @@ def test_craft_base_rules_custom_ilvl_in_rule():
     for rule in rules:
         after = rule.split("#", 1)[1]
         assert '[ItemLevel] >= "75"' in after, f"ilvl 75 missing from action block: {rule}"
+
+
+# ── Round 6: CLI flags, sort order, base-level default ───────────────────────
+
+def test_cli_version_flag():
+    """python poe2_pickit_generator.py --version must print version and exit 0."""
+    import subprocess
+    r = subprocess.run(
+        ["python", "poe2_pickit_generator.py", "--version"],
+        capture_output=True, text=True
+    )
+    assert r.returncode == 0
+    with open("version.txt") as f:
+        ver = f.read().strip()
+    assert ver in (r.stdout + r.stderr), f"Version {ver!r} not in --version output"
+
+
+def test_base_min_level_cli_default_matches_constant():
+    """--base-min-level CLI default must equal CRAFT_BASE_MIN_ILVL, not hardcoded 75."""
+    import re
+    with open("poe2_pickit_generator.py") as f:
+        src = f.read()
+    m = re.search(r'add_argument.*?base-min-level.*?default=(\w+)', src)
+    assert m, "--base-min-level argument not found"
+    assert m.group(1) == "CRAFT_BASE_MIN_ILVL", (
+        f"--base-min-level default is {m.group(1)!r}, expected 'CRAFT_BASE_MIN_ILVL'"
+    )
