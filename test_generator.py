@@ -303,11 +303,14 @@ def test_version_file_matches_gui():
     )
 
 
-def test_requirements_no_stale_customtkinter():
-    """customtkinter is not used in the GUI — must not be in requirements.txt."""
+def test_requirements_has_customtkinter():
+    """customtkinter is used in ui_common.py (btn, entry, checkbtn widgets) —
+    must be present and pinned in requirements.txt."""
     with open("requirements.txt") as f:
         reqs = f.read()
-    assert "customtkinter" not in reqs, "Stale customtkinter dep in requirements.txt"
+    assert "customtkinter" in reqs, "customtkinter missing from requirements.txt"
+    # Should be pinned to exact version (== not >=) due to API breakage between versions
+    assert "customtkinter==" in reqs, "customtkinter should be pinned with == in requirements.txt"
 
 
 def test_craft_base_rules_appear_in_loot_filter():
@@ -405,3 +408,73 @@ def test_base_min_level_cli_default_matches_constant():
     assert m.group(1) == "CRAFT_BASE_MIN_ILVL", (
         f"--base-min-level default is {m.group(1)!r}, expected 'CRAFT_BASE_MIN_ILVL'"
     )
+
+
+# ── Round 6: hardcoded constants, GUI consistency ─────────────────────────────
+
+def test_gui_base_min_level_references_constant_not_literal():
+    """GUI must use gen.CRAFT_BASE_MIN_ILVL not hardcoded 82 for base_min_level."""
+    import re
+    with open("poe2_pickit_gui.py") as f:
+        gui = f.read()
+    # Should have no bare ", 82)" as base_min_level default — must use constant
+    bad = re.findall(r'base_min_level.*?,\s*82\)', gui)
+    assert not bad, f"Hardcoded 82 found in base_min_level context: {bad}"
+
+
+def test_requirements_has_pillow():
+    """Pillow is required for icon loading — must be in requirements.txt."""
+    with open("requirements.txt") as f:
+        reqs = f.read()
+    assert "Pillow" in reqs, "Pillow missing from requirements.txt"
+
+
+def test_prune_disk_cache_function_exists():
+    """prune_disk_cache must exist for GUI and CLI to call."""
+    assert callable(gen.prune_disk_cache)
+
+
+def test_prune_disk_cache_no_dir_returns_zero():
+    """prune_disk_cache with no dir set must return 0 without crashing."""
+    original = gen._DISK_CACHE_DIR
+    gen._DISK_CACHE_DIR = ""
+    result = gen.prune_disk_cache()
+    gen._DISK_CACHE_DIR = original
+    assert result == 0
+
+
+def test_prune_disk_cache_removes_old_files(tmp_path):
+    """prune_disk_cache must delete JSON files older than max_age_days."""
+    import os
+    gen.set_disk_cache_dir(str(tmp_path))
+    stale = tmp_path / "old_league__currency.json"
+    stale.write_text('{"ts": 0, "payload": {}}')
+    os.utime(stale, (0, 0))  # epoch = very old
+    removed = gen.prune_disk_cache(max_age_days=60)
+    assert removed == 1
+    assert not stale.exists()
+    gen.set_disk_cache_dir("")
+
+
+def test_prune_disk_cache_keeps_recent_files(tmp_path):
+    """prune_disk_cache must NOT delete files younger than max_age_days."""
+    gen.set_disk_cache_dir(str(tmp_path))
+    recent = tmp_path / "new_league__currency.json"
+    recent.write_text('{"ts": 0, "payload": {}}')
+    removed = gen.prune_disk_cache(max_age_days=60)
+    assert removed == 0
+    assert recent.exists()
+    gen.set_disk_cache_dir("")
+
+
+def test_all_new_bases_have_correct_ilvl_placement():
+    """All newly added bases must have [ItemLevel] after # in build_base_rules."""
+    new_bases = ["Fine Bracers", "Spiral Wraps", "Braced Sabatons", "Cultist Crown",
+                 "Tattered Robe", "Omen Sceptre"]
+    rules = gen.build_base_rules()
+    for base in new_bases:
+        base_rules = [r for r in rules if f'"{base}"' in r and "[StashItem]" in r]
+        assert base_rules, f"No rules generated for {base!r}"
+        for rule in base_rules:
+            before = rule.split("#", 1)[0]
+            assert "[ItemLevel]" not in before, f"[ItemLevel] before # for {base}: {rule}"

@@ -154,7 +154,7 @@ DEFAULT_CONFIG = {
     "auto_schedule": True,
     "include_bases": True,
     "base_quality": 28,
-    "base_min_level": 82,
+    "base_min_level": gen.CRAFT_BASE_MIN_ILVL,
     "item_states":  {},
     "cat_prev_prices": {},
     "last_gen_prices": {},
@@ -288,7 +288,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
         self.include_bases_var  = tk.BooleanVar(value=True)
         self.base_quality_var   = tk.IntVar(value=self.cfg.get("base_quality", 28))
-        self.base_min_level_var = tk.IntVar(value=self.cfg.get("base_min_level", 82))
+        self.base_min_level_var = tk.IntVar(value=self.cfg.get("base_min_level", gen.CRAFT_BASE_MIN_ILVL))
 
         self._divine_rate_var = tk.StringVar(value="—")
 
@@ -2524,7 +2524,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             self.auto_schedule_var.set(True)
             self.include_bases_var.set(True)
             self.base_quality_var.set(self.cfg.get("base_quality", 28))
-            self.base_min_level_var.set(self.cfg.get("base_min_level", 82))
+            self.base_min_level_var.set(self.cfg.get("base_min_level", gen.CRAFT_BASE_MIN_ILVL))
             for key in ALL_CATEGORY_KEYS:
                 self.cat_enabled[key].set(True)
                 self.cat_thresh[key].set(-1.0)
@@ -3567,7 +3567,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                                self.progress_var.set(s))
                     self._log(f"  [{idx}/{total}] {title}", "dim")
                 try:
-                    min_lvl   = int(snapshot.get("base_min_level", 82))
+                    min_lvl   = int(snapshot.get("base_min_level", gen.CRAFT_BASE_MIN_ILVL))
                     base_lines = gen.build_base_rules(min_quality=min_q,
                                                       min_level=min_lvl,
                                                       progress_callback=_base_prog)
