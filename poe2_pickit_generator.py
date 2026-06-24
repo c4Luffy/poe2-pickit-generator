@@ -610,26 +610,30 @@ STATIC_SPECIAL_WAYSTONE_RULES = """\
 """
 
 # Structured list of chance orb bases — used by the GUI tab and build_chance_base_rules().
-# Each entry: (category_label, base_type, target_unique)
+# Each entry: (category_label, base_type, target_unique).  Bases verified against
+# poe2db / the PoE2 wiki for the current patch (0.5).  Accessories come first: they
+# sit in multi-unique pools, so even a "missed" chance often still hits a valuable
+# unique — the most currency-efficient targets.  The rest are high-value single
+# targets (low odds, but iconic chase items).
 CHANCE_BASES: list = [
-    ("Belts",        "Heavy Belt",        "Headhunter"),
-    ("Belts",        "Utility Belt",      "Mageblood"),
-    ("Belts",        "Fine Belt",         "Ingenuity / Darkness Enthroned"),
-    ("Body Armours", "Glorious Plate",    "Kaom's Heart"),
-    ("Body Armours", "Warlord Cuirass",   "Morior Invictus"),
-    ("Body Armours", "Assassin Garb",     "Hyrri's Ire"),
-    ("Body Armours", "Flowing Raiment",   "Ghostwrithe"),
-    ("Body Armours", "Sacramental Robe",  "Soul Mantle"),
-    ("Helmets",      "Archon Crown",      "Indigon"),
-    ("Helmets",      "Grand Visage",      "Crown of the Pale King"),
-    ("Gloves",       "Vaal Gloves",       "Hateforge"),
-    ("Gloves",       "Elegant Wraps",     "Maligaro's Virtuosity"),
-    ("Gloves",       "Ornate Gauntlets",  "Hand of Wisdom and Action"),
-    ("Boots",        "Dragonscale Boots", "Darkray Vectors"),
-    ("Boots",        "Embroidered Boots", "Shadows and Dust"),
-    ("Weapons",      "Heavy Bow",         "Quill Rain"),
-    ("Weapons",      "Fanatic Bow",       "Lioneye's Glare"),
-    ("Weapons",      "Hallowed Sceptre",  "Font of Power"),
+    # ── Accessories — best value (multi-unique pools) ──
+    ("Rings",        "Gold Ring",        "Ventor's Gamble / Andvarius / Perandus Seal"),
+    ("Belts",        "Heavy Belt",       "Headhunter"),
+    ("Belts",        "Utility Belt",     "Mageblood / Ingenuity"),
+    ("Belts",        "Ornate Belt",      "Ryslatha's Coil"),
+    ("Amulets",      "Solar Amulet",     "Fireflower"),
+    # ── High-value chase uniques (single target) ──
+    ("Body Armours", "Conqueror Plate",  "Kaom's Heart"),
+    ("Body Armours", "Grand Regalia",    "Morior Invictus"),
+    ("Body Armours", "Tattered Robe",    "Ghostwrithe"),
+    ("Body Armours", "Zodiac Leather",   "Hyrri's Ire"),
+    ("Helmets",      "Magus Tiara",      "Indigon"),
+    ("Helmets",      "Cultist Crown",    "Crown of the Pale King"),
+    ("Gloves",       "Fine Bracers",     "Maligaro's Virtuosity"),
+    ("Gloves",       "Spiral Wraps",     "Hand of Wisdom and Action"),
+    ("Boots",        "Braced Sabatons",  "Darkray Vectors"),
+    ("Weapons",      "Heavy Bow",        "Lioneye's Glare"),
+    ("Weapons",      "Omen Sceptre",     "Font of Power"),
 ]
 
 
