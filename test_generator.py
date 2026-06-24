@@ -285,3 +285,46 @@ def test_new_bases_generate_gear_rules():
     rules_text = "\n".join(gen.build_base_rules())
     for base in new_bases:
         assert f'"{base}"' in rules_text, f"{base!r} missing from build_base_rules output"
+
+
+# ── Round 3: version sync, requirements, craft base loot filter ───────────────
+
+def test_version_file_matches_gui():
+    """version.txt and GUI VERSION constant must match."""
+    import re
+    with open("version.txt") as f:
+        ver_file = f.read().strip()
+    with open("poe2_pickit_gui.py") as f:
+        gui = f.read()
+    m = re.search(r'VERSION\s*=\s*"([^"]+)"', gui)
+    assert m, "VERSION constant not found in poe2_pickit_gui.py"
+    assert ver_file == m.group(1), (
+        f"version.txt={ver_file!r} but GUI VERSION={m.group(1)!r}"
+    )
+
+
+def test_requirements_no_stale_customtkinter():
+    """customtkinter is not used in the GUI — must not be in requirements.txt."""
+    with open("requirements.txt") as f:
+        reqs = f.read()
+    assert "customtkinter" not in reqs, "Stale customtkinter dep in requirements.txt"
+
+
+def test_craft_base_rules_appear_in_loot_filter():
+    """Normal-rarity craft bases must show up in the generated .filter."""
+    craft_lines = gen.build_craft_base_rules()
+    lf_text = "\n".join(gen.build_loot_filter(craft_lines))
+    assert "Rarity = Normal" in lf_text, "Craft base Normal rules missing from loot filter"
+
+
+def test_validate_pickit_passes_on_chance_base_rules():
+    """build_chance_base_rules output must pass validation with zero errors."""
+    result = gen.validate_pickit(gen.build_chance_base_rules())
+    assert result["errors"] == [], f"Chance base rules have validation errors: {result['errors']}"
+
+
+def test_validate_pickit_passes_on_static_tablet_rules():
+    """STATIC_TABLET_RULES must pass validation with zero errors."""
+    lines = gen.STATIC_TABLET_RULES.strip().splitlines()
+    result = gen.validate_pickit(lines)
+    assert result["errors"] == [], f"Static tablet rules validation errors: {result['errors']}"
