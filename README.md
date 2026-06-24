@@ -1,5 +1,7 @@
 # ExileBot 2 Pickit Generator
 
+![CI](https://github.com/c4Luffy/poe2-pickit-generator/actions/workflows/ci.yml/badge.svg)
+
 Generate `.ipd` pickit rules for **Exiled Bot 2** using live **Path of Exile 2** economy prices from [poe.ninja](https://poe.ninja) — and a matching **in-game loot filter** (`.filter`) on every run.
 
 > **Download:** grab the latest `.exe` from the [Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases) — no Python needed.
@@ -66,7 +68,7 @@ python poe2_pickit_gui.py
 
 | Tab | What it does |
 |---|---|
-| **Generate** | Select league, pick a profile, run generation, view stats, price moves and log |
+| **Generate** | Select league, pick a profile, set **Unique** and **Exchange & Gear** minimum value floors (in Exalt), run generation, view stats, price moves and log |
 | **Items** | Turn individual items ON/OFF — click a card to exclude it; cards are sorted by price High → Low |
 | **Chance Bases** | Toggle Normal-rarity bases to Orb-of-Chance into target uniques |
 | **Craft Bases** | Toggle the best blank (Normal) bases to pick up for crafting at item level 82 — armour slots cover all 6 defence types, each card tagged STR/DEX/INT or a hybrid |
@@ -141,6 +143,25 @@ right here in this repo.
 </details>
 
 ---
+
+## Development
+
+### Running tests
+
+```
+pip install pytest requests
+python -m pytest test_generator.py -v
+```
+
+Tests cover rule generation, loot-filter export, static validation, craft bases,
+chance bases, and data integrity (37 tests, Python 3.10–3.12).
+
+CI runs automatically on every push via GitHub Actions.
+
+### Contributing
+
+Found a bad item name or a poe.ninja mismatch?  Add it to `ITEM_NAME_CORRECTIONS`
+in `poe2_pickit_generator.py`.  New base types go in `_BASE_TYPES_BY_CATEGORY`.
 
 ## License
 
