@@ -672,6 +672,19 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self.min_exalt_unique_var.trace_add("write", self._on_unique_floor_change)
         self.after(300, self._update_unique_conv)
 
+        # ── Exchange / non-unique gear value floor ───────────────────────────
+        secg = self._section_frame(inner, "Exchange & Gear — Minimum Value")
+        label(secg, "Only pick up exchange items (essences, fragments, etc.) and non-unique "
+                    "gear bases worth at least this much in Exalt. Set to 0 to pick up everything.",
+              fg=TEXT_DIM, font=FONT_SM, bg=BG2, wraplength=820, justify="left").pack(
+                  anchor="w", padx=10, pady=(8, 2))
+        grow = tk.Frame(secg, bg=BG2)
+        grow.pack(fill="x", padx=10, pady=(2, 10))
+        self._make_slider(grow, self.min_exalt_gear_var,
+                          from_=0, to=500, resolution=5,
+                          fmt="{:.0f} ex", width=int(320 * self._ui_scale)).pack(side="left")
+        self.min_exalt_gear_var.trace_add("write", self._clamp_threshold_gear)
+
         # ── Action buttons ───────────────────────────────────────────────────
         btn_f = tk.Frame(inner, bg=BG)
         btn_f.pack(fill="x", padx=10, pady=(14, 0))

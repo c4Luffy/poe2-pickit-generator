@@ -171,3 +171,53 @@ def test_craft_bases_respect_disabled():
 def test_divine_value_from_exalt():
     assert gen.divine_value_from_exalt(200.0, 100.0) == 2.0
     assert gen.divine_value_from_exalt(5.0, 0.0) == 0.0   # no divide-by-zero
+
+
+# ── NEW: ItemLevel placement regression tests ────────────────────────────────
+# ExileBot 2 evaluates conditions BEFORE # on the ground (pre-pickup),
+# and conditions AFTER # after picking up. [ItemLevel] is only readable
+# post-pickup, so it MUST live after the # separator.
+
+def test_craft_base_ilvl_is_after_hash():
+    """[ItemLevel] must appear in the action block (after #), not the filter block."""
+    rules = [l for l in gen.build_craft_base_rules() if "[StashItem]" in l]
+    assert rules, "No craft base rules generated"
+    for rule in rules:
+        before, after = rule.split("#", 1)
+        assert "[ItemLevel]" not in before, (
+            f"[ItemLevel] is in the pre-pickup filter (BEFORE #) — bug!\n  {rule}"
+        )
+        assert "[ItemLevel]" in after, (
+            f"[ItemLevel] missing from action block (AFTER #)\n  {rule}"
+        )
+
+
+def test_build_base_rules_ilvl_is_after_hash():
+    """Same check for endgame gear bases from build_base_rules()."""
+    rules = [l for l in gen.build_base_rules() if "[ItemLevel]" in l]
+    assert rules, "No base rules with [ItemLevel] found"
+    for rule in rules:
+        before, after = rule.split("#", 1)
+        assert "[ItemLevel]" not in before, (
+            f"[ItemLevel] in pre-pickup filter (BEFORE #) in base rule:\n  {rule}"
+        )
+
+
+def test_craft_base_custom_ilvl_reflected_in_action_block():
+    """A custom min_ilvl value must appear after # not before."""
+    rules = [l for l in gen.build_craft_base_rules(min_ilvl=75) if "[StashItem]" in l]
+    for rule in rules:
+        before, after = rule.split("#", 1)
+        assert '[ItemLevel] >= "75"' not in before
+        assert '[ItemLevel] >= "75"' in after
+
+
+def test_validate_pickit_catches_ilvl_before_hash():
+    """Validator should warn/error on [ItemLevel] appearing before #."""
+    bad = '[Type] == "Glorious Plate" && [Rarity] == "Normal" && [ItemLevel] >= "82" # [StashItem] == "true"'
+    result = gen.validate_pickit([bad])
+    # After fix the validator should flag this pattern
+    flagged = result["errors"] + result["warnings"]
+    assert any("ItemLevel" in m for _, m in flagged), (
+        "Validator did not flag [ItemLevel] before # — consider adding this check"
+    )

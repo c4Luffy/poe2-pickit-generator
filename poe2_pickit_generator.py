@@ -75,7 +75,15 @@ PICK_ALL_CATEGORIES = {"lineage_support_gems", "currency"}
 
 # poe.ninja sometimes returns names that don't match in-game base types.
 # Map the poe.ninja name → correct in-game name here.
-ITEM_NAME_CORRECTIONS: dict = {}
+ITEM_NAME_CORRECTIONS: dict = {
+    # poe.ninja name             → correct in-game base type
+    # Add new entries here as mismatches are discovered.
+    # Format: "poe.ninja display name": "ExiledBot base type name"
+    "Stamped Wombgift":          "Signet Wombgift",      # renamed in 0.2.0
+    "Pressurised Wombgift":      "Ornate Wombgift",      # renamed in 0.2.0
+    "Necrotic Catalyst":         None,                   # skip — invalid base
+    "Refined Necrotic Catalyst": None,                   # skip — invalid base
+}
 
 # Items returned by poe.ninja that have no valid in-game base type and should
 # be skipped entirely rather than written to the pickit. (Exiled Bot's pickit
@@ -344,6 +352,13 @@ def validate_pickit(lines) -> dict:
             errors.append((i, "Rule has no [StashItem] action"))
             continue
 
+        # [ItemLevel] is only readable after pickup — must appear AFTER the #
+        # separator. Flag as a warning if found in the condition block (before #).
+        if "[ItemLevel]" in line and "#" in line:
+            pre_hash = line.split("#", 1)[0]
+            if "[ItemLevel]" in pre_hash:
+                warnings.append((i, "[ItemLevel] appears before # — move it to the action block after #"))
+
         m  = _VAL_TYPE_RE.search(line)
         mu = _VAL_UNIQUE_RE.search(line)
         tname = m.group(1).replace('\\"', '"') if m else None
@@ -397,9 +412,9 @@ def build_base_rules(min_quality: int = 28, min_level: int = 82, progress_callba
         cat_rules: set = set()
         for name, sock in entries:
             safe = _quote_ipd(name)
-            cat_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" && [ItemLevel] >= "{min_level}" # [StashItem] == "true"')
+            cat_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" # [ItemLevel] >= "{min_level}" && [StashItem] == "true"')
             if sock > 0:
-                cat_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" && [ItemLevel] >= "{min_level}" # [StashItem] == "true"')
+                cat_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" # [ItemLevel] >= "{min_level}" && [StashItem] == "true"')
         all_lines.extend(sorted(cat_rules))
         all_lines.append("")
 
@@ -411,9 +426,9 @@ def build_base_rules(min_quality: int = 28, min_level: int = 82, progress_callba
     rf_rules: set = set()
     for name, sock in _RUNEFORGED_BASES:
         safe = _quote_ipd(name)
-        rf_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" && [ItemLevel] >= "{min_level}" # [StashItem] == "true"')
+        rf_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" # [ItemLevel] >= "{min_level}" && [StashItem] == "true"')
         if sock > 0:
-            rf_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" && [ItemLevel] >= "{min_level}" # [StashItem] == "true"')
+            rf_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" # [ItemLevel] >= "{min_level}" && [StashItem] == "true"')
     all_lines.extend(sorted(rf_rules))
     all_lines.append("")
 
@@ -487,7 +502,7 @@ def build_craft_base_rules(disabled=None, min_ilvl: int = CRAFT_BASE_MIN_ILVL) -
             safe = _quote_ipd(name)
             body.append(
                 f'[Type] == "{safe}" && [Rarity] == "Normal" '
-                f'&& [ItemLevel] >= "{min_ilvl}" # [StashItem] == "true"'
+                f'# [ItemLevel] >= "{min_ilvl}" && [StashItem] == "true"'
             )
         body.append("")
     if not body:
@@ -1102,6 +1117,8 @@ def build_exchange_lines(
         if item["name"] in ITEM_NAME_SKIP:
             continue
         name = ITEM_NAME_CORRECTIONS.get(item["name"], item["name"])
+        if name is None:  # corrections dict maps to None = skip this item
+            continue
         if enabled_names is not None and name not in enabled_names:
             continue
         primary_value = float(line.get("primaryValue") or 0.0)
@@ -1254,6 +1271,8 @@ def collect_exchange_report_rows(label: str, payload: dict, divine_rate_exalts: 
         if item["name"] in ITEM_NAME_SKIP:
             continue
         name = ITEM_NAME_CORRECTIONS.get(item["name"], item["name"])
+        if name is None:  # corrections dict maps to None = skip this item
+            continue
         pv   = float(line.get("primaryValue") or 0.0)
         ev   = pv * rate if rate else pv
         included = pick_all or ev >= threshold
