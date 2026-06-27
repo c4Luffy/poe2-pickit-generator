@@ -17,6 +17,7 @@ from PySide6.QtWidgets import QApplication
 
 from src.app import MainWindow
 from src.core.logger import logger
+from src.core.settings import settings
 from src.core.theme_manager import ThemeManager
 
 
@@ -24,8 +25,10 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("ExileBot 2 Pickit — Qt")
 
-    # JSON-driven theming: load + apply the dark theme as the app-wide stylesheet.
-    theme = ThemeManager(app, default="dark")
+    # JSON-driven theming: restore the user's saved theme as the app-wide
+    # stylesheet, and persist any later change (from the top bar or Settings).
+    theme = ThemeManager(app, default=settings.get("theme", "dark"))
+    theme.theme_changed.connect(lambda name: settings.set("theme", name))
     theme.apply()
     logger.info("Application started (theme=%s).", theme.name)
 

@@ -10,12 +10,15 @@ import os
 
 from PySide6.QtCore import Qt, QThread
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFrame, QGridLayout,
-                               QHBoxLayout, QLabel, QLineEdit, QPushButton,
-                               QSlider, QTextEdit, QVBoxLayout, QWidget)
+                               QHBoxLayout, QInputDialog, QLabel, QLineEdit,
+                               QPushButton, QSlider, QTextEdit, QVBoxLayout,
+                               QWidget)
 
 from src.core.app_state import set_current_league
 from src.core.engine import OUTPUT_DIR
 from src.core.logger import logger
+from src.core.settings import settings
+from src.core.signals import bus
 from src.core.workers import GenerateWorker, LeagueWorker
 from src.ui.widgets.linear_progress import LinearProgress
 
@@ -42,12 +45,17 @@ class GenerateView(QWidget):
     def __init__(self, parent=None, auto_fetch: bool = True) -> None:
         super().__init__(parent)
         self._leagues: list = []
+        self._desired_league = ""   # league to (re)select once leagues load
         self._gen_thread: QThread | None = None
         self._gen_worker: GenerateWorker | None = None
         self._lg_thread: QThread | None = None
         self._lg_worker: LeagueWorker | None = None
         self._build()
-        if auto_fetch:
+        self._refresh_profiles()
+        self._apply_profile(settings.active_profile())
+        bus.profiles_changed.connect(self._refresh_profiles)
+        bus.active_profile_changed.connect(self._on_active_profile_changed)
+        if auto_fetch and settings.get("auto_fetch_leagues", True):
             self._fetch_leagues()
 
     # ---- layout ----
@@ -62,6 +70,28 @@ class GenerateView(QWidget):
         sub.setObjectName("Subtitle")
         root.addWidget(title)
         root.addWidget(sub)
+
+        # Profile bar: pick a saved config bundle, or save the current one.
+        prof_row = QHBoxLayout()
+        prof_row.setSpacing(8)
+        prof_lbl = QLabel("Profile")
+        prof_lbl.setObjectName("Metric")
+        self.profile_cb = QComboBox()
+        self.profile_cb.setMinimumWidth(180)
+        self.profile_cb.currentIndexChanged.connect(self._on_profile_picked)
+        save_btn = QPushButton("Save")
+        save_btn.clicked.connect(self._save_profile)
+        saveas_btn = QPushButton("Save As…")
+        saveas_btn.clicked.connect(self._save_profile_as)
+        del_btn = QPushButton("Delete")
+        del_btn.clicked.connect(self._delete_profile)
+        prof_row.addWidget(prof_lbl)
+        prof_row.addWidget(self.profile_cb)
+        prof_row.addWidget(save_btn)
+        prof_row.addWidget(saveas_btn)
+        prof_row.addWidget(del_btn)
+        prof_row.addStretch(1)
+        root.addLayout(prof_row)
 
         cfg = QFrame()
         cfg.setObjectName("Card")
@@ -167,14 +197,28 @@ class GenerateView(QWidget):
 
     def _on_leagues(self, leagues: list) -> None:
         self._leagues = leagues
+        self.league_cb.blockSignals(True)
         self.league_cb.clear()
         for name, _slug, display in leagues:
             self.league_cb.addItem(display, name)
-        if leagues:
-            set_current_league(leagues[0][0])
+        self.league_cb.blockSignals(False)
+        # Restore the active profile's league if it's still live, else fall back.
+        desired = self._desired_league or (leagues[0][0] if leagues else "")
+        self._select_league(desired)
+        set_current_league(self._selected_league())
         self.refresh_btn.setEnabled(True)
         self.status.setText(f"Loaded {len(leagues)} leagues.")
         logger.info("Loaded %d leagues.", len(leagues))
+
+    def _select_league(self, name: str) -> None:
+        """Select ``name`` by matching the league list, else set it as free text."""
+        if not name:
+            return
+        for i, (lname, _slug, _disp) in enumerate(self._leagues):
+            if lname == name:
+                self.league_cb.setCurrentIndex(i)
+                return
+        self.league_cb.setCurrentText(name)
 
     def _on_league_fail(self, msg: str) -> None:
         self.refresh_btn.setEnabled(True)
@@ -186,6 +230,75 @@ class GenerateView(QWidget):
         if 0 <= idx < len(self._leagues):
             return self._leagues[idx][0]
         return self.league_cb.currentText().strip()
+
+    # ---- profiles ----
+    def _refresh_profiles(self) -> None:
+        """Repopulate the dropdown from the store, selecting the active profile.
+
+        Guarded with ``blockSignals`` so programmatic repopulation doesn't fire
+        ``_on_profile_picked`` (which would re-activate / re-apply needlessly).
+        """
+        self.profile_cb.blockSignals(True)
+        self.profile_cb.clear()
+        self.profile_cb.addItems(settings.profile_names())
+        idx = self.profile_cb.findText(settings.active_profile_name())
+        if idx >= 0:
+            self.profile_cb.setCurrentIndex(idx)
+        self.profile_cb.blockSignals(False)
+
+    def _apply_profile(self, prof: dict) -> None:
+        """Push a profile's values onto the config controls."""
+        self._desired_league = prof.get("league", "") or ""
+        self._select_league(self._desired_league)
+        self.unique_slider.setValue(int(prof.get("unique_floor", 0) or 0))
+        self.gear_slider.setValue(int(prof.get("gear_floor", 0) or 0))
+        self.output_edit.setText(prof.get("output_name") or "poe2_pickit")
+        self.bases_chk.setChecked(bool(prof.get("include_bases", True)))
+
+    def _collect_config(self) -> dict:
+        """Read the current control values into a profile dict."""
+        return {
+            "league": self._selected_league(),
+            "unique_floor": self.unique_slider.value(),
+            "gear_floor": self.gear_slider.value(),
+            "output_name": self.output_edit.text().strip() or "poe2_pickit",
+            "include_bases": self.bases_chk.isChecked(),
+        }
+
+    def _on_profile_picked(self, _index: int) -> None:
+        name = self.profile_cb.currentText()
+        if name:
+            settings.set_active(name)  # → active_profile_changed → _apply_profile
+
+    def _on_active_profile_changed(self, name: str) -> None:
+        """React to an activation from anywhere (this view or Settings)."""
+        idx = self.profile_cb.findText(name)
+        if idx >= 0 and idx != self.profile_cb.currentIndex():
+            self.profile_cb.blockSignals(True)
+            self.profile_cb.setCurrentIndex(idx)
+            self.profile_cb.blockSignals(False)
+        self._apply_profile(settings.active_profile())
+
+    def _save_profile(self) -> None:
+        name = settings.active_profile_name()
+        settings.save_profile(name, self._collect_config())
+        self.status.setText(f"Saved profile '{name}'.")
+
+    def _save_profile_as(self) -> None:
+        name, ok = QInputDialog.getText(self, "Save Profile As", "Profile name:")
+        name = name.strip()
+        if not (ok and name):
+            return
+        settings.save_profile(name, self._collect_config())
+        settings.set_active(name)
+        self.status.setText(f"Saved profile '{name}'.")
+
+    def _delete_profile(self) -> None:
+        name = settings.active_profile_name()
+        if settings.delete_profile(name):
+            self.status.setText(f"Deleted profile '{name}'.")
+        else:
+            self.status.setText("Can't delete the only profile.")
 
     # ---- generate ----
     def _start_generate(self) -> None:

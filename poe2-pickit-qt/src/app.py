@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (QGraphicsOpacityEffect, QHBoxLayout, QLabel,
 from src.components.dashboard import Dashboard
 from src.components.generate_view import GenerateView
 from src.components.items_view import ItemsView
+from src.components.settings_view import SettingsView
 from src.core.logger import logger
 from src.core.theme_manager import ThemeManager
 from src.ui.widgets.sidebar import Sidebar
@@ -23,7 +24,7 @@ _NAV = [
     ("dashboard", "Dashboard", "▣", Dashboard),
     ("generate", "Generate", "⚡", GenerateView),
     ("items", "Items", "▤", ItemsView),
-    ("settings", "Settings", "⚙", None),
+    ("settings", "Settings", "⚙", SettingsView),
     ("debug", "Debug", "❖", None),
 ]
 
@@ -61,7 +62,12 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         self._pages: dict[str, int] = {}
         for key, label, icon, factory in _NAV:
-            widget = factory() if factory is not None else _Placeholder(label)
+            if factory is SettingsView:
+                widget = SettingsView(theme)        # needs the theme manager
+            elif factory is not None:
+                widget = factory()
+            else:
+                widget = _Placeholder(label)
             self._pages[key] = self.stack.addWidget(widget)
             self.sidebar.add_item(key, label, icon)
         self.sidebar.navigated.connect(self._navigate)

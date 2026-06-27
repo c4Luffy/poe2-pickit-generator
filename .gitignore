@@ -19,6 +19,7 @@ output/
 # Local config (contains personal paths/settings)
 pickit_gui_config.json
 item_states.json
+settings.json
 
 # Backup files
 *_backup_*.ipd
