@@ -14,12 +14,18 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication
 
-_STYLES_DIR = Path(__file__).resolve().parents[1] / "styles"
+# In a PyInstaller build the styles are bundled under _MEIPASS/src/styles; in dev
+# they sit next to this package.
+if getattr(sys, "frozen", False):
+    _STYLES_DIR = Path(getattr(sys, "_MEIPASS")) / "src" / "styles"
+else:
+    _STYLES_DIR = Path(__file__).resolve().parents[1] / "styles"
 _THEMES_DIR = _STYLES_DIR / "themes"
 _TEMPLATE = _STYLES_DIR / "app.qss.template"
 _TOKEN_RE = re.compile(r"\{\{\s*([\w.]+)\s*\}\}")

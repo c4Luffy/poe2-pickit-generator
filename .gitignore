@@ -11,6 +11,8 @@ build_log.txt
 build/
 dist/
 *.spec
+# ...except the Qt build spec, which is committed on purpose:
+!poe2-pickit-qt/ExileBot2PickitQt.spec
 
 # Generated output (personal, not shared)
 pickit_output/

@@ -20,6 +20,7 @@ from src.components.items_view import ItemsView
 from src.components.settings_view import SettingsView
 from src.core.logger import logger
 from src.core.theme_manager import ThemeManager
+from src.core.version import APP_NAME, VERSION
 from src.ui.widgets.sidebar import Sidebar
 
 # Page registry: (key, label, icon, factory). Placeholders are filled in later phases.
@@ -55,7 +56,7 @@ class MainWindow(QMainWindow):
     def __init__(self, theme: ThemeManager) -> None:
         super().__init__()
         self._theme = theme
-        self.setWindowTitle("ExileBot 2 Pickit — Qt prototype")
+        self.setWindowTitle(f"{APP_NAME}  v{VERSION}")
 
         central = QWidget()
         central.setObjectName("Root")
