@@ -145,8 +145,9 @@ class ItemsView(QWidget):
     # ---- grid ----
     def _populate(self, key: str, rows: list) -> None:
         self._clear_grid()
-        for i, (name, ex_value) in enumerate(rows):
-            card = ItemCard(key, name, ex_value, item_state.is_enabled(key, name))
+        for i, (name, ex_value, points, up) in enumerate(rows):
+            card = ItemCard(key, name, ex_value, item_state.is_enabled(key, name),
+                            points=points, up=up)
             card.toggled.connect(self._on_toggle)
             self.grid.addWidget(card, i // _NCOLS, i % _NCOLS)
             self._cards.append(card)

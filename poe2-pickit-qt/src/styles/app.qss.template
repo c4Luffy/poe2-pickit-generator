@@ -226,6 +226,13 @@ CircularProgress {
     qproperty-textColor: {{colors.text}};
 }
 
+/* ---- Custom-painted price-trend sparkline ---- */
+Sparkline {
+    qproperty-upColor: {{colors.success}};
+    qproperty-downColor: {{colors.danger}};
+    background: transparent;
+}
+
 /* ---- Scrollbars ---- */
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
 QScrollBar::handle:vertical {

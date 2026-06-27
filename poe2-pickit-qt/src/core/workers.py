@@ -27,11 +27,25 @@ def _rule_name(line: str) -> str:
     return m.group(1) if m else "?"
 
 
-def extract_rows(payload: dict) -> list[tuple[str, float]]:
-    """Return [(display_name, exalt_value), ...] sorted High → Low from a payload."""
+def _sparkline(line: dict) -> tuple[tuple, bool]:
+    """Return (trend_points, is_up) for a payload line.
+
+    poe.ninja spells the field two ways — ``sparkline`` on currency overviews and
+    ``sparkLine`` on item/unique overviews — with a low-confidence fallback. Points
+    are the 7-day relative price series; trend direction comes from totalChange.
+    """
+    spark = line.get("sparkline") or line.get("sparkLine") \
+        or line.get("lowConfidenceSparkline") or {}
+    points = tuple(x for x in (spark.get("data") or []) if x is not None)
+    up = float(spark.get("totalChange") or 0.0) >= 0
+    return points, up
+
+
+def extract_rows(payload: dict) -> list[tuple[str, float, tuple, bool]]:
+    """Return [(name, exalt_value, trend_points, is_up), ...] High → Low."""
     rate = gen.exalted_rate(payload)
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
-    rows: list[tuple[str, float]] = []
+    rows: list[tuple[str, float, tuple, bool]] = []
     for line in payload.get("lines", []):
         item = items_by_id.get(line.get("id"))
         if not item or not item.get("name"):
@@ -43,7 +57,8 @@ def extract_rows(payload: dict) -> list[tuple[str, float]]:
         if name is None:
             continue
         pv = float(line.get("primaryValue") or 0.0)
-        rows.append((name, pv * rate if rate else pv))
+        points, up = _sparkline(line)
+        rows.append((name, pv * rate if rate else pv, points, up))
     rows.sort(key=lambda r: -r[1])
     return rows
 

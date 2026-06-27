@@ -9,6 +9,8 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel
 
+from src.ui.widgets.sparkline import Sparkline
+
 
 def _fmt_ex(ex: float) -> str:
     if ex >= 1000:
@@ -22,7 +24,7 @@ class ItemCard(QFrame):
     toggled = Signal(str, str, bool)  # (cat, name, enabled)
 
     def __init__(self, cat: str, name: str, ex_value: float, enabled: bool,
-                 parent=None) -> None:
+                 points: tuple = (), up: bool = True, parent=None) -> None:
         super().__init__(parent)
         self.cat = cat
         self.name = name
@@ -45,6 +47,10 @@ class ItemCard(QFrame):
 
         lay.addWidget(self._name, 1)
         lay.addWidget(self._price)
+        # Price-trend sparkline (no item icons, by design).
+        self._spark = Sparkline(points, up) if len(points) >= 2 else None
+        if self._spark is not None:
+            lay.addWidget(self._spark)
         lay.addWidget(self._dot)
 
     def mousePressEvent(self, event) -> None:
