@@ -348,7 +348,11 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         # Last generate summary stats (populated after each run)
         self._last_gen_stats: dict = {}
 
-        # Wiki icon URL cache
+        # Wiki icon URL cache. Guarded by a lock because several
+        # _resolve_wiki_icons worker threads can run at once — without it, one
+        # thread's json.dump could iterate the dict while another mutates it
+        # ("dictionary changed size during iteration").
+        self._wiki_cache_lock = threading.Lock()
         self._wiki_icon_cache = {}
         if os.path.exists(WIKI_CACHE_FILE):
             try:
@@ -1144,8 +1148,8 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                     fut.result()
                 except Exception:
                     log_exc(f"preload {key}")
-                self._preload_done_count += 1
-                # Update badge and header on the main thread
+                # Count + badge/header update both happen on the main thread, so the
+                # counter is never touched off-thread (no race with the reset above).
                 self.after(0, lambda k=key: self._on_preload_cat_ready(k))
 
         # All done
@@ -1153,6 +1157,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
     def _on_preload_cat_ready(self, key: str):
         """Called on main thread when one category's data arrives."""
+        self._preload_done_count += 1
         self._update_sidebar_badge(key)
         self._preload_update_hdr()
         # If this is the tab the user is already looking at (still showing spinner),
@@ -2043,9 +2048,10 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 file_to_items.setdefault(title, []).append(n)
 
             found = self._batch_wiki_query(file_to_items)
-            for title, url in found.items():
-                for item_name in file_to_items.get(title, []):
-                    self._wiki_icon_cache[item_name] = url
+            with self._wiki_cache_lock:
+                for title, url in found.items():
+                    for item_name in file_to_items.get(title, []):
+                        self._wiki_icon_cache[item_name] = url
 
             # Pass 2 (currency only): for Greater/Perfect items still not resolved,
             # try stripping the tier prefix and reuse the base item's icon
@@ -2060,21 +2066,22 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                         title = f"File:{base} inventory icon.png"
                         fallback_map.setdefault(title, []).append(n)
                     found2 = self._batch_wiki_query(fallback_map)
-                    for title, url in found2.items():
-                        for item_name in fallback_map.get(title, []):
-                            self._wiki_icon_cache[item_name] = url
+                    with self._wiki_cache_lock:
+                        for title, url in found2.items():
+                            for item_name in fallback_map.get(title, []):
+                                self._wiki_icon_cache[item_name] = url
 
             # poe.ninja's image CDN 404s, so it's no longer a usable fallback —
             # mark anything the wiki couldn't resolve as empty (skipped, no re-query).
-            for n in to_fetch:
-                if n not in self._wiki_icon_cache:
-                    self._wiki_icon_cache[n] = ""
-
-            try:
-                with open(WIKI_CACHE_FILE, "w", encoding="utf-8") as f:
-                    json.dump(self._wiki_icon_cache, f, indent=2)
-            except Exception:
-                pass
+            with self._wiki_cache_lock:
+                for n in to_fetch:
+                    if n not in self._wiki_icon_cache:
+                        self._wiki_icon_cache[n] = ""
+                try:
+                    with open(WIKI_CACHE_FILE, "w", encoding="utf-8") as f:
+                        json.dump(self._wiki_icon_cache, f, indent=2)
+                except Exception:
+                    pass
 
         # Fetch images from the resolved poe2wiki URLs (bounded pool).
         to_load = [
@@ -3803,7 +3810,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                         continue
                     name = gen.ITEM_NAME_CORRECTIONS.get(raw_name, raw_name)
                     pv   = float(line.get("primaryValue") or 0.0)
-                    ex   = pv * (rate or divine_rate_exalts)
+                    ex   = pv * rate if rate else pv   # same convention as build_exchange_lines
                     cur_prices[name] = ex
                 new_gen_prices[key] = cur_prices
 
