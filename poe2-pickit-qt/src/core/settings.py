@@ -20,7 +20,7 @@ import json
 import os
 from pathlib import Path
 
-from src.core.engine import APP_DIR
+from src.core.engine import APP_DIR, gen
 from src.core.signals import bus
 
 _PATH = APP_DIR / "settings.json"
@@ -46,6 +46,8 @@ PROFILE_DEFAULTS: dict = {
     "gear_floor": 0,
     "output_name": "poe2_pickit",
     "include_bases": True,
+    "base_quality": 28,                      # min quality % for gear base rules
+    "base_min_level": gen.CRAFT_BASE_MIN_ILVL,  # min item level for base rules
 }
 
 _DEFAULT_PROFILE_NAME = "Default"

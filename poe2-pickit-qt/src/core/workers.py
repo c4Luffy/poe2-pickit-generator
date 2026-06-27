@@ -202,6 +202,8 @@ class GenerateWorker(QObject):
         output_base: str,
         include_bases: bool = True,
         backup_count: int = 0,
+        base_quality: int = 28,
+        base_min_level: int = gen.CRAFT_BASE_MIN_ILVL,
     ) -> None:
         super().__init__()
         self.league = league
@@ -210,6 +212,8 @@ class GenerateWorker(QObject):
         self.output_base = output_base
         self.include_bases = include_bases
         self.backup_count = backup_count
+        self.base_quality = base_quality
+        self.base_min_level = base_min_level
 
     def run(self) -> None:  # noqa: C901  (linear pipeline, intentionally flat)
         try:
@@ -304,12 +308,14 @@ class GenerateWorker(QObject):
             out += gen.build_chance_base_rules(
                 disabled_bases=base_state.disabled_for("chance"))
             out += gen.build_craft_base_rules(
-                disabled=base_state.disabled_for("craft"))
+                disabled=base_state.disabled_for("craft"),
+                min_ilvl=self.base_min_level)
 
             if self.include_bases:
                 self.progress.emit("Building gear base types…", 84)
                 out += ["", gen.header_major("Gear Base Types (game data)"), ""]
-                out += gen.build_base_rules()
+                out += gen.build_base_rules(
+                    min_quality=self.base_quality, min_level=self.base_min_level)
 
             self.progress.emit("Validating & writing files…", 92)
             validation = gen.validate_pickit(out)

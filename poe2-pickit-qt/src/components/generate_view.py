@@ -12,8 +12,8 @@ import time
 from PySide6.QtCore import Qt, QThread, QTimer
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFrame, QGridLayout,
                                QHBoxLayout, QInputDialog, QLabel, QLineEdit,
-                               QMessageBox, QPushButton, QSlider, QTextEdit,
-                               QVBoxLayout, QWidget)
+                               QMessageBox, QPushButton, QSlider, QSpinBox,
+                               QTextEdit, QVBoxLayout, QWidget)
 
 from src.core.app_state import set_current_league
 from src.core.deploy import deploy_outputs
@@ -139,6 +139,19 @@ class GenerateView(QWidget):
         self.bases_chk = QCheckBox("Include endgame gear base types")
         self.bases_chk.setChecked(True)
         grid.addWidget(self.bases_chk, 4, 1, 1, 2)
+
+        grid.addWidget(QLabel("Base quality / min ilvl"), 5, 0)
+        brow = QHBoxLayout()
+        self.quality_spin = QSpinBox()
+        self.quality_spin.setRange(0, 30)
+        self.quality_spin.setSuffix("% quality")
+        self.minlvl_spin = QSpinBox()
+        self.minlvl_spin.setRange(1, 100)
+        self.minlvl_spin.setPrefix("ilvl ")
+        brow.addWidget(self.quality_spin)
+        brow.addWidget(self.minlvl_spin)
+        brow.addStretch(1)
+        grid.addLayout(brow, 5, 1, 1, 2)
         root.addWidget(cfg)
 
         actions = QHBoxLayout()
@@ -266,6 +279,8 @@ class GenerateView(QWidget):
         self.gear_slider.setValue(int(prof.get("gear_floor", 0) or 0))
         self.output_edit.setText(prof.get("output_name") or "poe2_pickit")
         self.bases_chk.setChecked(bool(prof.get("include_bases", True)))
+        self.quality_spin.setValue(int(prof.get("base_quality", 28) or 0))
+        self.minlvl_spin.setValue(int(prof.get("base_min_level", 82) or 1))
 
     def _collect_config(self) -> dict:
         """Read the current control values into a profile dict."""
@@ -275,6 +290,8 @@ class GenerateView(QWidget):
             "gear_floor": self.gear_slider.value(),
             "output_name": self.output_edit.text().strip() or "poe2_pickit",
             "include_bases": self.bases_chk.isChecked(),
+            "base_quality": self.quality_spin.value(),
+            "base_min_level": self.minlvl_spin.value(),
         }
 
     def _on_profile_picked(self, _index: int) -> None:
@@ -376,6 +393,8 @@ class GenerateView(QWidget):
             self.output_edit.text().strip() or "poe2_pickit",
             self.bases_chk.isChecked(),
             backup_count=int(settings.get("backup_count", 0) or 0),
+            base_quality=self.quality_spin.value(),
+            base_min_level=self.minlvl_spin.value(),
         )
         self._gen_worker.moveToThread(self._gen_thread)
         self._gen_thread.started.connect(self._gen_worker.run)
