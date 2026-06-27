@@ -351,7 +351,7 @@ def test_prune_disk_cache_no_dir_returns_zero():
 
 def test_prune_disk_cache_removes_old_files(tmp_path):
     """prune_disk_cache must delete JSON files older than max_age_days."""
-    import os, time as _time
+    import os
     gen.set_disk_cache_dir(str(tmp_path))
     # Create a fake stale cache file (mtime set to 90 days ago)
     stale = tmp_path / "old_league__currency.json"

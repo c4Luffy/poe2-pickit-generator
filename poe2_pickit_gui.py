@@ -2032,7 +2032,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         For gems: strip '(Level X)' so all levels share one wiki file.
         """
         names = [r[0] for r in rows]
-        ninja_by_name = {r[0]: r[4] for r in rows}
 
         to_fetch = [n for n in names if n not in self._wiki_icon_cache]
         if to_fetch:
@@ -2356,13 +2355,18 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self._refresh_history_ui()
 
     def _add_history_entry(self, entry_dict):
-        h = self.cfg.get("history", [])
-        h.append(entry_dict)
-        if len(h) > 50:
-            h = h[-50:]
-        self.cfg["history"] = h
-        save_config(self.cfg)
-        self.after(0, self._refresh_history_ui)
+        # Called from the generate worker thread — marshal the cfg mutation + save
+        # onto the main thread so it can't race a concurrent save_config (which could
+        # corrupt the JSON or raise "dictionary changed size during iteration").
+        def _apply():
+            h = self.cfg.get("history", [])
+            h.append(entry_dict)
+            if len(h) > 50:
+                h = h[-50:]
+            self.cfg["history"] = h
+            save_config(self.cfg)
+            self._refresh_history_ui()
+        self.after(0, _apply)
 
     def _refresh_history_ui(self):
         h = self.cfg.get("history", [])
@@ -2921,7 +2925,10 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 ":done\r\n"
                 'del "%~f0"\r\n'
             )
-            with open(bat, "w", encoding="ascii", errors="ignore") as f:
+            # Write as the OEM codepage (what cmd.exe reads .bat files in) so install
+            # paths with non-ASCII characters survive instead of being mangled by
+            # ascii+errors="ignore", which silently broke the copy/relaunch.
+            with open(bat, "w", encoding="oem") as f:
                 f.write(script)
             log_info(f"update: launching swap helper {bat}")
             DETACHED = 0x00000008 | 0x00000200   # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
@@ -3497,7 +3504,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 cat_thresh = snapshot["cat_thresh"].get(key, -1.0)
                 if not isinstance(cat_thresh, (int, float)):
                     cat_thresh = -1.0
-                global_min = min_exalt_unique if is_unique else min_exalt
+                global_min = min_exalt_unique if is_unique else min_exalt_gear
                 effective_min = cat_thresh if cat_thresh >= 0 else global_min
 
                 payload = all_payloads.get(key)
