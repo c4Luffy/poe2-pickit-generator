@@ -13,6 +13,7 @@ import time
 
 from PySide6.QtCore import QObject, Signal
 
+from src.core.base_state import base_state
 from src.core.engine import OUTPUT_DIR, gen
 from src.core.item_state import item_state
 
@@ -195,8 +196,10 @@ class GenerateWorker(QObject):
             out += gen.STATIC_TABLET_RULES.splitlines()
             out += gen.STATIC_WOMBGIFT_RULES.splitlines()
             out += gen.STATIC_SPECIAL_WAYSTONE_RULES.splitlines()
-            out += gen.build_chance_base_rules()
-            out += gen.build_craft_base_rules()
+            out += gen.build_chance_base_rules(
+                disabled_bases=base_state.disabled_for("chance"))
+            out += gen.build_craft_base_rules(
+                disabled=base_state.disabled_for("craft"))
 
             if self.include_bases:
                 self.progress.emit("Building gear base types…", 84)

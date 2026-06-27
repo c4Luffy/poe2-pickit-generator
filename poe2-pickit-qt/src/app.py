@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (QGraphicsOpacityEffect, QHBoxLayout, QLabel,
                                QMainWindow, QPushButton, QStackedWidget,
                                QVBoxLayout, QWidget)
 
+from src.components.bases_view import BasesView
 from src.components.dashboard import Dashboard
 from src.components.generate_view import GenerateView
 from src.components.items_view import ItemsView
@@ -24,6 +25,8 @@ _NAV = [
     ("dashboard", "Dashboard", "▣", Dashboard),
     ("generate", "Generate", "⚡", GenerateView),
     ("items", "Items", "▤", ItemsView),
+    ("chance", "Chance", "◈", BasesView),
+    ("craft", "Craft", "⚒", BasesView),
     ("settings", "Settings", "⚙", SettingsView),
     ("debug", "Debug", "❖", None),
 ]
@@ -64,6 +67,8 @@ class MainWindow(QMainWindow):
         for key, label, icon, factory in _NAV:
             if factory is SettingsView:
                 widget = SettingsView(theme)        # needs the theme manager
+            elif factory is BasesView:
+                widget = BasesView(key)             # kind = nav key ("chance"/"craft")
             elif factory is not None:
                 widget = factory()
             else:
