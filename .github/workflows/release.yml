@@ -1,0 +1,43 @@
+name: Release
+
+# Build the Windows EXE and publish a GitHub Release automatically whenever a
+# version tag (e.g. v2.6.8) is pushed. Uses the built-in GITHUB_TOKEN — no local
+# `gh auth` or stored credentials needed. The asset is named exactly
+# ExileBot2PickitGenerator.exe so the in-app auto-updater's download URL
+# (releases/download/<tag>/ExileBot2PickitGenerator.exe) resolves correctly.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests Pillow customtkinter pyinstaller
+
+      - name: Build EXE
+        run: >
+          pyinstaller --onefile --windowed --name ExileBot2PickitGenerator
+          --collect-data certifi
+          --hidden-import certifi --hidden-import charset_normalizer --hidden-import urllib3
+          --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageTk --hidden-import PIL.ImageDraw
+          --collect-all customtkinter
+          --noconfirm poe2_pickit_gui.py
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create ${{ github.ref_name }} dist/ExileBot2PickitGenerator.exe --title ${{ github.ref_name }} --generate-notes
