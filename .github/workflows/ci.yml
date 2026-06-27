@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: pip install requests pytest
 
+      - name: Byte-compile all modules (catches GUI syntax errors CI never imports)
+        run: python -m py_compile poe2_pickit_generator.py poe2_pickit_gui.py ui_common.py tab_chance_bases.py tab_craft_bases.py
+
       - name: Run tests
         run: python -m pytest test_generator.py -v
 

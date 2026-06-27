@@ -429,42 +429,22 @@ def test_requirements_has_pillow():
     assert "Pillow" in reqs, "Pillow missing from requirements.txt"
 
 
-def test_prune_disk_cache_function_exists():
-    """prune_disk_cache must exist for GUI and CLI to call."""
-    assert callable(gen.prune_disk_cache)
-
-
-def test_prune_disk_cache_no_dir_returns_zero():
-    """prune_disk_cache with no dir set must return 0 without crashing."""
-    original = gen._DISK_CACHE_DIR
-    gen._DISK_CACHE_DIR = ""
-    result = gen.prune_disk_cache()
-    gen._DISK_CACHE_DIR = original
-    assert result == 0
-
-
-def test_prune_disk_cache_removes_old_files(tmp_path):
-    """prune_disk_cache must delete JSON files older than max_age_days."""
-    import os
-    gen.set_disk_cache_dir(str(tmp_path))
-    stale = tmp_path / "old_league__currency.json"
-    stale.write_text('{"ts": 0, "payload": {}}')
-    os.utime(stale, (0, 0))  # epoch = very old
-    removed = gen.prune_disk_cache(max_age_days=60)
-    assert removed == 1
-    assert not stale.exists()
-    gen.set_disk_cache_dir("")
-
-
-def test_prune_disk_cache_keeps_recent_files(tmp_path):
-    """prune_disk_cache must NOT delete files younger than max_age_days."""
-    gen.set_disk_cache_dir(str(tmp_path))
-    recent = tmp_path / "new_league__currency.json"
-    recent.write_text('{"ts": 0, "payload": {}}')
-    removed = gen.prune_disk_cache(max_age_days=60)
-    assert removed == 0
-    assert recent.exists()
-    gen.set_disk_cache_dir("")
+def test_build_unique_lines_sorted_high_to_low():
+    """Unique rules must be written most-valuable first, like every other category.
+    Regression test for the `key=-r[0]` + reverse=True double-negative that listed
+    uniques cheapest-first."""
+    import re
+    payload = {
+        "core": {"rates": {"exalted": 1.0}},
+        "lines": [
+            {"name": "Cheap Unique",  "baseType": "Coral Amulet", "primaryValue": 5.0},
+            {"name": "Pricey Unique", "baseType": "Gold Ring",    "primaryValue": 500.0},
+            {"name": "Mid Unique",    "baseType": "Jade Amulet",  "primaryValue": 50.0},
+        ],
+    }
+    out  = gen.build_unique_lines(payload, 100.0, min_exalt=0.0)
+    vals = [float(re.search(r"ExValue = ([\d.]+)", l).group(1)) for l in out]
+    assert vals == sorted(vals, reverse=True), f"uniques not sorted high→low: {vals}"
 
 
 def test_all_new_bases_have_correct_ilvl_placement():

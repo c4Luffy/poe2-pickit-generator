@@ -203,6 +203,15 @@ GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
 
+# Built-in icon URLs (official PoE CDN) for items poe2wiki can't resolve via the
+# usual "File:<name> inventory icon.png" lookup, so they still show an icon in the
+# app. Seeded into the wiki icon cache on startup — only fills blanks, so a real
+# resolved/cached URL always wins. Add new "item name": "url" entries as needed.
+BUILTIN_ICON_URLS = {
+    "Simulacrum": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvTWFwcy9EZWxpcml1bUZyYWdtZW50Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/9298d81279/DeliriumFragment.png",
+    "Against Darkness": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvTWFwcy9Ud2lsaWdodE9yZGVyUmVsaXF1YXJ5S2V5U2FuY3R1bTIiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/a9e91de8f5/TwilightOrderReliquaryKeySanctum2.png",
+}
+
 
 class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
     def __init__(self):
@@ -352,6 +361,11 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self._wiki_icon_cache = {
             n: u for n, u in self._wiki_icon_cache.items() if u and "poe.ninja" not in u
         }
+        # Seed built-in icon URLs for items poe2wiki can't resolve (e.g. Simulacrum).
+        # Only fill blanks so a real resolved/cached URL always takes precedence.
+        for _n, _u in BUILTIN_ICON_URLS.items():
+            if not self._wiki_icon_cache.get(_n):
+                self._wiki_icon_cache[_n] = _u
 
     # ── UI skeleton ───────────────────────────────────────────────────────────
 
@@ -2779,6 +2793,9 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
         url = (f"https://github.com/{GITHUB_REPO}/releases/download/"
                f"v{remote}/ExileBot2PickitGenerator.exe")
+        log_info(f"update: starting download of v{remote} from {url}")
+
+        self._update_cancelled = False
 
         dlg = tk.Toplevel(self)
         dlg.title("Updating…")
@@ -2788,7 +2805,10 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         tk.Label(dlg, text=f"Downloading v{remote}…", bg=BG, fg=TEXT,
                  font=FONT, padx=28, pady=(18, 4)).pack()
         status = tk.Label(dlg, text="Connecting…", bg=BG, fg=TEXT_DIM, font=FONT_SM)
-        status.pack(padx=28, pady=(0, 18))
+        status.pack(padx=28, pady=(0, 8))
+        # A Cancel button + close-to-cancel guarantee the user is never trapped on
+        # "Updating…" if the download stalls or the release asset isn't published.
+        btn(dlg, "Cancel", lambda: self._cancel_update(dlg, status)).pack(pady=(0, 16))
         # Force the dialog to actually render + sit on top (it was showing blank).
         dlg.update_idletasks()
         try:
@@ -2802,19 +2822,24 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             dlg.attributes("-topmost", True)
         except Exception:
             pass
+        dlg.protocol("WM_DELETE_WINDOW", lambda: self._cancel_update(dlg, status))
         dlg.update()
 
         def _worker():
             try:
                 dest = os.path.join(tempfile.gettempdir(),
                                     f"ExileBot2PickitGenerator_v{remote}.exe")
-                with requests.get(url, stream=True, timeout=60,
+                # (connect, read) timeouts: a stalled download aborts after 60s of
+                # no bytes instead of hanging on "Updating…" forever.
+                with requests.get(url, stream=True, timeout=(15, 60),
                                   headers={"User-Agent": f"poe2-pickit/{VERSION}"}) as r:
                     r.raise_for_status()
                     total = int(r.headers.get("Content-Length", 0))
                     done = 0
                     with open(dest, "wb") as f:
                         for chunk in r.iter_content(chunk_size=262144):
+                            if self._update_cancelled:
+                                raise RuntimeError("cancelled")
                             if not chunk:
                                 continue
                             f.write(chunk)
@@ -2822,13 +2847,35 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                             if total:
                                 self.after(0, lambda d=done, t=total: status.configure(
                                     text=f"{d*100//t}%   ({d//1048576} / {t//1048576} MB)"))
+                            else:
+                                self.after(0, lambda d=done: status.configure(
+                                    text=f"{d//1048576} MB"))
+                if self._update_cancelled:
+                    raise RuntimeError("cancelled")
                 if os.path.getsize(dest) < 5_000_000:
-                    raise RuntimeError("downloaded file looks incomplete")
+                    raise RuntimeError(
+                        f"download incomplete — the v{remote} release asset may not be "
+                        "published on GitHub yet")
+                log_info(f"update: download ok ({os.path.getsize(dest)} bytes)")
                 self.after(0, lambda: self._apply_update_swap(dest, dlg))
             except Exception as exc:
+                if self._update_cancelled:
+                    log_info("update: cancelled by user")
+                    self.after(0, dlg.destroy)
+                    return
+                log_exc("update download")
                 self.after(0, lambda e=str(exc): self._update_failed(e, dlg))
 
         threading.Thread(target=_worker, daemon=True).start()
+
+    def _cancel_update(self, dlg, status=None):
+        """Abort an in-progress update download and close the dialog."""
+        self._update_cancelled = True
+        if status is not None:
+            try:
+                status.configure(text="Cancelling…")
+            except Exception:
+                pass
 
     def _apply_update_swap(self, new_exe: str, dlg):
         """Spawn a detached helper that waits for us to exit, overwrites the EXE,
@@ -2837,21 +2884,46 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             cur = sys.executable
             pid = os.getpid()
             bat = os.path.join(tempfile.gettempdir(), "poe2_pickit_update.bat")
+            log = os.path.join(_cfg_dir, "update.log")
+            # Sleep with `ping`, not `timeout`: `timeout` reads from the console and
+            # fails immediately in a DETACHED_PROCESS (no console), turning the wait
+            # loop into a busy-spin. The copy is retried because Windows Defender can
+            # briefly lock a freshly downloaded EXE; if it never frees, fall back to
+            # opening the releases page so the user isn't left on a stale version.
             script = (
                 "@echo off\r\n"
+                "setlocal\r\n"
+                f'set "LOG={log}"\r\n'
+                'echo [update] helper started >> "%LOG%"\r\n'
                 ":waitloop\r\n"
                 f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL\r\n'
                 "if not errorlevel 1 (\r\n"
-                "  timeout /t 1 /nobreak >NUL\r\n"
+                "  ping -n 2 127.0.0.1 >NUL\r\n"
                 "  goto waitloop\r\n"
                 ")\r\n"
-                "timeout /t 1 /nobreak >NUL\r\n"          # let the OS release the EXE lock
-                f'copy /Y "{new_exe}" "{cur}" >NUL\r\n'
+                "ping -n 2 127.0.0.1 >NUL\r\n"          # let the OS release the EXE lock
+                "set /a tries=0\r\n"
+                ":copyloop\r\n"
+                f'copy /Y "{new_exe}" "{cur}" >NUL 2>&1\r\n'
+                "if not errorlevel 1 goto copied\r\n"
+                "set /a tries+=1\r\n"
+                'echo [update] copy attempt %tries% failed >> "%LOG%"\r\n'
+                "if %tries% GEQ 10 goto giveup\r\n"
+                "ping -n 3 127.0.0.1 >NUL\r\n"
+                "goto copyloop\r\n"
+                ":copied\r\n"
+                'echo [update] copy ok - relaunching >> "%LOG%"\r\n'
                 f'start "" "{cur}"\r\n'
+                "goto done\r\n"
+                ":giveup\r\n"
+                'echo [update] copy failed - opening releases page >> "%LOG%"\r\n'
+                f'start "" "{RELEASES_URL}"\r\n'
+                ":done\r\n"
                 'del "%~f0"\r\n'
             )
             with open(bat, "w", encoding="ascii", errors="ignore") as f:
                 f.write(script)
+            log_info(f"update: launching swap helper {bat}")
             DETACHED = 0x00000008 | 0x00000200   # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
             subprocess.Popen(["cmd", "/c", bat], creationflags=DETACHED, close_fds=True)
             try:
@@ -2870,6 +2942,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 pass
             os._exit(0)
         except Exception as exc:
+            log_exc("update swap")
             self._update_failed(str(exc), dlg)
 
     def _update_failed(self, msg: str, dlg):

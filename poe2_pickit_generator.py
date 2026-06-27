@@ -1272,7 +1272,9 @@ def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: Opt
             f'&& [StashItem] == "true" // ExValue = {exalt_value:.2f}'
         )
         rows.append((exalt_value, rule if exalt_value >= threshold else f"//{rule}"))
-    rows.sort(key=lambda r: -r[0], reverse=True)
+    # Sort by value, highest first — matches every other category. (Previously
+    # `key=-r[0]` *with* reverse=True cancelled out, listing uniques cheapest-first.)
+    rows.sort(key=lambda r: r[0], reverse=True)
     return [rule for _, rule in rows]
 
 

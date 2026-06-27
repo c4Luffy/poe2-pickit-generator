@@ -56,4 +56,5 @@ desktop.ini
 
 # Logs and temp
 *.log
+*.log.*
 *.tmp
