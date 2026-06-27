@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (QGraphicsOpacityEffect, QHBoxLayout, QLabel,
 
 from src.components.dashboard import Dashboard
 from src.components.generate_view import GenerateView
+from src.components.items_view import ItemsView
 from src.core.logger import logger
 from src.core.theme_manager import ThemeManager
 from src.ui.widgets.sidebar import Sidebar
@@ -21,7 +22,7 @@ from src.ui.widgets.sidebar import Sidebar
 _NAV = [
     ("dashboard", "Dashboard", "▣", Dashboard),
     ("generate", "Generate", "⚡", GenerateView),
-    ("items", "Items", "▤", None),
+    ("items", "Items", "▤", ItemsView),
     ("settings", "Settings", "⚙", None),
     ("debug", "Debug", "❖", None),
 ]

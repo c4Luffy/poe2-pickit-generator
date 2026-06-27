@@ -185,6 +185,40 @@ QProgressBar#Linear::chunk {
     selection-background-color: {{colors.selection}};
 }
 
+/* ---- Items: category list ---- */
+#CatList {
+    background: {{colors.bg_alt}};
+    border: 1px solid {{colors.border}};
+    border-radius: {{metrics.radius_sm}}px;
+    outline: none;
+    padding: 4px;
+}
+#CatList::item {
+    padding: 9px 12px;
+    border-radius: {{metrics.radius_sm}}px;
+    color: {{colors.text_dim}};
+}
+#CatList::item:hover { background: {{colors.surface_hover}}; color: {{colors.text}}; }
+#CatList::item:selected {
+    background: {{colors.selection}};
+    color: {{colors.primary}};
+}
+
+/* ---- Items: item card (click to exclude) ---- */
+#ItemCard {
+    background: {{colors.surface}};
+    border: 1px solid {{colors.border}};
+    border-radius: {{metrics.radius_sm}}px;
+}
+#ItemCard:hover { border: 1px solid {{colors.primary}}; }
+#ItemCard[enabled="false"] {
+    background: {{colors.bg}};
+    border: 1px solid {{colors.border}};
+}
+#ItemName  { color: {{colors.text}}; font-weight: 600; background: transparent; }
+#ItemPrice { color: {{colors.primary}}; font-size: 12px; background: transparent; }
+#Dot       { color: {{colors.danger}}; font-weight: 800; font-size: 13px; background: transparent; }
+
 /* ---- Custom-painted circular progress, coloured purely via QSS ---- */
 CircularProgress {
     qproperty-progressColor: {{colors.primary}};

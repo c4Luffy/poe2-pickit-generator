@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFrame, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QSlider, QTextEdit, QVBoxLayout, QWidget)
 
+from src.core.app_state import set_current_league
 from src.core.engine import OUTPUT_DIR
 from src.core.logger import logger
 from src.core.workers import GenerateWorker, LeagueWorker
@@ -73,6 +74,8 @@ class GenerateView(QWidget):
         grid.addWidget(QLabel("League"), 0, 0)
         self.league_cb = QComboBox()
         self.league_cb.setEditable(True)
+        self.league_cb.currentIndexChanged.connect(
+            lambda: set_current_league(self._selected_league()))
         grid.addWidget(self.league_cb, 0, 1)
         self.refresh_btn = QPushButton("↻")
         self.refresh_btn.setFixedWidth(40)
@@ -167,6 +170,8 @@ class GenerateView(QWidget):
         self.league_cb.clear()
         for name, _slug, display in leagues:
             self.league_cb.addItem(display, name)
+        if leagues:
+            set_current_league(leagues[0][0])
         self.refresh_btn.setEnabled(True)
         self.status.setText(f"Loaded {len(leagues)} leagues.")
         logger.info("Loaded %d leagues.", len(leagues))

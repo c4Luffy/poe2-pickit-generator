@@ -13,6 +13,7 @@ class SignalBus(QObject):
     nav_changed = Signal(str)            # a sidebar item was selected (page key)
     theme_toggle_requested = Signal()    # someone asked to switch dark/light
     task_progress = Signal(str, float)   # (task key, percent 0..100)
+    league_changed = Signal(str)         # the active league changed
 
 
 # Process-wide singleton — `from src.core.signals import bus`.
