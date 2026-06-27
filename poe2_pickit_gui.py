@@ -209,7 +209,12 @@ RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
 # resolved/cached URL always wins. Add new "item name": "url" entries as needed.
 BUILTIN_ICON_URLS = {
     "Simulacrum": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvTWFwcy9EZWxpcml1bUZyYWdtZW50Iiwic2NhbGUiOjEsInJlYWxtIjoicG9lMiJ9XQ/9298d81279/DeliriumFragment.png",
-    "Against Darkness": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvTWFwcy9Ud2lsaWdodE9yZGVyUmVsaXF1YXJ5S2V5U2FuY3R1bTIiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/a9e91de8f5/TwilightOrderReliquaryKeySanctum2.png",
+    # Zarokh's Reliquary Key — appears under both a short and a full name in
+    # poe.ninja data; key both so the icon resolves either way.
+    "Against the Darkness": "https://web.poecdn.com/gen/image/WzI4LDE0LHsiZiI6IjJESXRlbXMvTWFwcy9Ud2lsaWdodE9yZGVyUmVsaXF1YXJ5S2V5U2FuY3R1bTIiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/67f96bbfc0/TwilightOrderReliquaryKeySanctum2.png",
+    "Zarokh's Reliquary Key: Against the Darkness": "https://web.poecdn.com/gen/image/WzI4LDE0LHsiZiI6IjJESXRlbXMvTWFwcy9Ud2lsaWdodE9yZGVyUmVsaXF1YXJ5S2V5U2FuY3R1bTIiLCJzY2FsZSI6MSwicmVhbG0iOiJwb2UyIn1d/67f96bbfc0/TwilightOrderReliquaryKeySanctum2.png",
+    # Lineage support gem (poe2db art MorrigansRefuge). Note the accented "ó".
+    "Mórrigan's Insight": "https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9OZXcvTmV3U3VwcG9ydC9MaW5lYWdlL01vcnJpZ2Fuc1JlZnVnZSIsInNjYWxlIjoxLCJyZWFsbSI6InBvZTIifV0/38291028f0/MorrigansRefuge.png",
 }
 
 
