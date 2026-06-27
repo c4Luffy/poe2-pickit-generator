@@ -6,7 +6,7 @@ shell stays free of business logic.
 """
 from __future__ import annotations
 
-from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer
 from PySide6.QtWidgets import (QGraphicsOpacityEffect, QHBoxLayout, QLabel,
                                QMainWindow, QPushButton, QStackedWidget,
                                QVBoxLayout, QWidget)
@@ -18,6 +18,7 @@ from src.components.generate_view import GenerateView
 from src.components.history_view import HistoryView
 from src.components.items_view import ItemsView
 from src.components.settings_view import SettingsView
+from src.core.engine import FROZEN
 from src.core.logger import logger
 from src.core.theme_manager import ThemeManager
 from src.core.version import APP_NAME, VERSION
@@ -68,9 +69,11 @@ class MainWindow(QMainWindow):
         self.sidebar = Sidebar()
         self.stack = QStackedWidget()
         self._pages: dict[str, int] = {}
+        self._settings_view: SettingsView | None = None
         for key, label, icon, factory in _NAV:
             if factory is SettingsView:
                 widget = SettingsView(theme)        # needs the theme manager
+                self._settings_view = widget
             elif factory is BasesView:
                 widget = BasesView(key)             # kind = nav key ("chance"/"craft")
             elif factory is not None:
@@ -106,6 +109,12 @@ class MainWindow(QMainWindow):
         root.addWidget(self.sidebar)
         root.addWidget(content, 1)
         self.setCentralWidget(central)
+
+        # Auto-check for updates shortly after launch (frozen builds only — in dev
+        # there's nothing to swap in).
+        if FROZEN and self._settings_view is not None:
+            QTimer.singleShot(
+                1500, lambda: self._settings_view.check_for_updates(auto=True))
 
     def _navigate(self, key: str) -> None:
         if key in self._pages:

@@ -14,19 +14,22 @@ Pure presentation over the ``settings`` store and the ``ThemeManager``:
 from __future__ import annotations
 
 import os
+import webbrowser
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFrame,
                                QHBoxLayout, QInputDialog, QLabel, QLineEdit,
-                               QListWidget, QListWidgetItem, QPushButton,
-                               QSpinBox, QVBoxLayout, QWidget)
+                               QListWidget, QListWidgetItem, QMessageBox,
+                               QPushButton, QSpinBox, QVBoxLayout, QWidget)
 
-from src.core.engine import APP_DIR
+from src.core import updater
+from src.core.engine import APP_DIR, FROZEN
 from src.core.logger import logger
 from src.core.settings import settings
 from src.core.signals import bus
 from src.core.theme_manager import ThemeManager
+from src.core.version import VERSION
 
 
 def _dim(text: str) -> QLabel:
@@ -53,6 +56,11 @@ class SettingsView(QWidget):
         super().__init__(parent)
         self._theme = theme
         self._syncing_theme = False
+        self._upd_auto = False
+        self._upd_check_thread: QThread | None = None
+        self._upd_check_worker = None
+        self._dl_thread: QThread | None = None
+        self._dl_worker = None
 
         root = QVBoxLayout(self)
         root.setContentsMargins(24, 24, 24, 24)
@@ -70,6 +78,7 @@ class SettingsView(QWidget):
         root.addWidget(self._automation_card())
         root.addWidget(self._startup_card())
         root.addWidget(self._profiles_card(), 1)
+        root.addWidget(self._updates_card())
         root.addWidget(self._data_card())
 
         bus.profiles_changed.connect(self._refresh_profiles)
@@ -261,6 +270,78 @@ class SettingsView(QWidget):
             self.profile_status.setText(f"Deleted '{name}'.")
         else:
             self.profile_status.setText("Can't delete the only profile.")
+
+    # ---- updates ----
+    def _updates_card(self) -> QFrame:
+        frame, inner = _card("Updates")
+        row = QHBoxLayout()
+        row.addWidget(QLabel(f"Current version: v{VERSION}"))
+        row.addStretch(1)
+        self._check_btn = QPushButton("Check for updates")
+        self._check_btn.clicked.connect(lambda: self.check_for_updates(auto=False))
+        row.addWidget(self._check_btn)
+        inner.addLayout(row)
+        self._upd_status = _dim("")
+        inner.addWidget(self._upd_status)
+        return frame
+
+    def check_for_updates(self, auto: bool = False) -> None:
+        """Start a version check. ``auto`` (startup) stays quiet unless newer."""
+        if self._upd_check_thread is not None and self._upd_check_thread.isRunning():
+            return
+        self._upd_auto = auto
+        self._check_btn.setEnabled(False)
+        self._upd_status.setText("Checking…")
+        self._upd_check_thread, self._upd_check_worker = updater.start_check(
+            self, self._on_update_result, self._on_update_failed)
+
+    def _on_update_result(self, remote: str, newer: bool) -> None:
+        self._check_btn.setEnabled(True)
+        if not newer:
+            if not self._upd_auto:
+                self._upd_status.setText(f"You're up to date (v{VERSION}).")
+            return
+        self._upd_status.setText(f"Update available: v{remote} (you have v{VERSION}).")
+        ans = QMessageBox.question(
+            self, "Update available",
+            f"Version v{remote} is available — you have v{VERSION}.\n\n"
+            f"Download and install it now?")
+        if ans == QMessageBox.StandardButton.Yes:
+            self._install(remote)
+
+    def _on_update_failed(self, msg: str) -> None:
+        self._check_btn.setEnabled(True)
+        if not self._upd_auto:
+            self._upd_status.setText(f"Update check failed: {msg}")
+        logger.warning("Update check failed: %s", msg)
+
+    def _install(self, remote: str) -> None:
+        if not FROZEN:
+            webbrowser.open(updater.RELEASES_URL)
+            self._upd_status.setText("Dev build — opened the releases page in your browser.")
+            return
+        self._check_btn.setEnabled(False)
+        self._upd_status.setText(f"Downloading v{remote}… 0%")
+        self._dl_thread = QThread(self)
+        self._dl_worker = updater.DownloadWorker(remote)
+        self._dl_worker.moveToThread(self._dl_thread)
+        self._dl_thread.started.connect(self._dl_worker.run)
+        self._dl_worker.progress.connect(
+            lambda p: self._upd_status.setText(f"Downloading v{remote}… {p}%"))
+        self._dl_worker.done.connect(self._on_download_done)
+        self._dl_worker.failed.connect(self._on_download_failed)
+        self._dl_worker.done.connect(self._dl_thread.quit)
+        self._dl_worker.failed.connect(self._dl_thread.quit)
+        self._dl_thread.start()
+
+    def _on_download_done(self, path: str) -> None:
+        self._upd_status.setText("Installing update — the app will restart…")
+        updater.swap_and_relaunch(path)  # writes the helper + hard-exits
+
+    def _on_download_failed(self, msg: str) -> None:
+        self._check_btn.setEnabled(True)
+        self._upd_status.setText(f"Update failed: {msg}")
+        logger.error("Update failed: %s", msg)
 
     # ---- data ----
     def _data_card(self) -> QFrame:
