@@ -11,8 +11,6 @@ build_log.txt
 build/
 dist/
 *.spec
-# ...except the Qt build spec, which is committed on purpose:
-!poe2-pickit-qt/ExileBot2PickitQt.spec
 
 # Generated output (personal, not shared)
 pickit_output/
@@ -20,10 +18,6 @@ output/
 
 # Local config (contains personal paths/settings)
 pickit_gui_config.json
-item_states.json
-settings.json
-base_states.json
-history.json
 
 # Backup files
 *_backup_*.ipd
