@@ -10,6 +10,11 @@ import logging
 
 from PySide6.QtCore import QObject, Signal
 
+from src.core.engine import APP_DIR
+
+# Persisted log file (next to the app / .exe). Opened from the Debug page.
+LOG_PATH = APP_DIR / "pickit_qt.log"
+
 
 class LogBridge(QObject):
     message = Signal(str, str)  # (level_name, formatted_message)
@@ -44,3 +49,11 @@ if not logger.handlers:
     _qt = _QtHandler(log_bridge)
     _qt.setFormatter(_fmt)
     logger.addHandler(_qt)
+
+    try:
+        _file = logging.FileHandler(LOG_PATH, encoding="utf-8")
+        _file.setFormatter(logging.Formatter(
+            "%(asctime)s  %(levelname)-7s  %(message)s", "%Y-%m-%d %H:%M:%S"))
+        logger.addHandler(_file)
+    except Exception:  # noqa: BLE001  (never let logging setup crash startup)
+        pass

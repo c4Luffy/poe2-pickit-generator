@@ -100,6 +100,10 @@ class Settings:
         except Exception:
             pass
 
+    def snapshot(self) -> dict:
+        """A deep copy of all settings — for the Debug 'Show config' dump."""
+        return copy.deepcopy(self._data)
+
     # ---- app preferences ----
     def get(self, key: str, default=None):
         return self._data.get(key, default)

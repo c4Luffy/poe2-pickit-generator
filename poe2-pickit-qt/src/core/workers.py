@@ -86,6 +86,93 @@ class CategoryWorker(QObject):
             self.failed.emit(self.cat_key, str(exc))
 
 
+class DebugWorker(QObject):
+    """Runs the Debug-page diagnostics or full API endpoint test off-thread,
+    streaming coloured log lines back to the view."""
+
+    line = Signal(str, str)   # (level, message); level ∈ header/ok/err/warn/info/dim
+    done = Signal()
+
+    def __init__(self, mode: str, league: str = "") -> None:
+        super().__init__()
+        self.mode = mode          # "diag" | "api"
+        self.league = league
+
+    def run(self) -> None:
+        try:
+            if self.mode == "api":
+                self._api_test()
+            else:
+                self._diagnostics()
+        except Exception as exc:  # noqa: BLE001
+            self.line.emit("err", f"Unexpected error: {exc}")
+        finally:
+            self.done.emit()
+
+    def _diagnostics(self) -> None:
+        import importlib
+        import platform
+        import sys
+        d = self.line.emit
+
+        d("header", "── Python environment")
+        d("info", f"  Python   : {sys.version.split()[0]}")
+        d("info", f"  Platform : {platform.platform()}")
+        frozen = getattr(sys, "frozen", False)
+        d("info", f"  Frozen   : {frozen}  ({'PyInstaller EXE' if frozen else '.py script'})")
+        d("dim", "")
+
+        d("header", "── Module checks")
+        for mod in ("PySide6", "requests", "poe2_pickit_generator"):
+            try:
+                m = importlib.import_module(mod)
+                d("ok", f"  ✓  {mod:<26} {getattr(m, '__version__', 'n/a')}")
+            except Exception as exc:  # noqa: BLE001
+                d("err", f"  ✗  {mod:<26} MISSING — {exc}")
+        d("dim", "")
+
+        d("header", "── Generator module")
+        try:
+            d("info", f"  BASE_URL        : {gen.BASE_URL}")
+            d("info", f"  INDEX_STATE_URL : {gen.INDEX_STATE_URL}")
+            d("info", f"  MIN_EXALT       : {gen.MIN_EXALT}")
+            d("info", f"  Exchange cats   : {len(gen.EXCHANGE_CATEGORIES)}")
+            d("info", f"  Unique cats     : {len(gen.UNIQUE_CATEGORIES)}")
+            d("ok", "  ✓  Generator module healthy")
+        except Exception as exc:  # noqa: BLE001
+            d("err", f"  ✗  {exc}")
+        d("dim", "")
+
+        d("header", "── poe.ninja connectivity")
+        try:
+            t0 = time.time()
+            data = gen.fetch_json(gen.INDEX_STATE_URL, {})
+            d("ok", f"  ✓  reachable ({(time.time() - t0) * 1000:.0f} ms)")
+            leagues = data.get("economyLeagues", [])
+            names = ", ".join(lg.get("name", "?") for lg in leagues) or "none"
+            d("dim", f"     active leagues: {names}")
+        except Exception as exc:  # noqa: BLE001
+            d("err", f"  ✗  FAILED — generation will fall back to cache: {exc}")
+
+    def _api_test(self) -> None:
+        league = self.league or gen.detect_current_league()
+        self.line.emit("header", f"── API endpoint test  (league: {league})")
+        total = 0
+        for key, ninja, label, is_unique in gen.ALL_CATEGORIES:
+            try:
+                t0 = time.time()
+                payload = gen.fetch_category(league, key, ninja, is_unique)
+                rows = len(payload.get("lines", []))
+                total += rows
+                self.line.emit("ok", f"  ✓  {label:<26} {rows:>4} rows  "
+                                     f"({(time.time() - t0) * 1000:.0f} ms)")
+            except Exception as exc:  # noqa: BLE001
+                self.line.emit("err", f"  ✗  {label:<26} FAILED — {exc}")
+        self.line.emit("dim", "")
+        self.line.emit("header",
+                       f"Total: {total} rows across {len(gen.ALL_CATEGORIES)} endpoints")
+
+
 class LeagueWorker(QObject):
     """Fetches the live league list from poe.ninja."""
 
