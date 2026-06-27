@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFrame, QGridLayout,
                                QWidget)
 
 from src.core.app_state import set_current_league
+from src.core.deploy import deploy_outputs
 from src.core.engine import OUTPUT_DIR
 from src.core.history import history
 from src.core.logger import logger
@@ -353,8 +354,17 @@ class GenerateView(QWidget):
         )
         self.preview.setPlainText("\n".join(stats["lines"][:800]))
         self._record_history(stats)
+        self._deploy(stats)
         logger.info("Generation finished: %d active rules in %.1fs.",
                     stats["active"], stats["duration"])
+
+    def _deploy(self, stats: dict) -> None:
+        """Copy the outputs to the bot/game folders per Settings, and log results."""
+        _LOG = {"ok": logger.info, "warn": logger.warning, "err": logger.error}
+        for level, msg in deploy_outputs(stats.get("ipd", ""), stats.get("filter", "")):
+            _LOG.get(level, logger.info)(msg)
+            if level != "ok":
+                self.status.setText(f"⚠ {msg}")
 
     def _record_history(self, stats: dict) -> None:
         """Persist a compact record of this run (everything but the line dump)."""

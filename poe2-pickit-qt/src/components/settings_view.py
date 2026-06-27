@@ -14,18 +14,26 @@ Pure presentation over the ``settings`` store and the ``ThemeManager``:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFrame, QHBoxLayout,
-                               QInputDialog, QLabel, QListWidget,
-                               QListWidgetItem, QPushButton, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFrame,
+                               QHBoxLayout, QInputDialog, QLabel, QLineEdit,
+                               QListWidget, QListWidgetItem, QPushButton,
+                               QVBoxLayout, QWidget)
 
 from src.core.engine import APP_DIR
 from src.core.logger import logger
 from src.core.settings import settings
 from src.core.signals import bus
 from src.core.theme_manager import ThemeManager
+
+
+def _dim(text: str) -> QLabel:
+    lbl = QLabel(text)
+    lbl.setObjectName("Subtitle")
+    lbl.setWordWrap(True)
+    return lbl
 
 
 def _card(title: str) -> tuple[QFrame, QVBoxLayout]:
@@ -58,6 +66,7 @@ class SettingsView(QWidget):
         root.addWidget(sub)
 
         root.addWidget(self._appearance_card())
+        root.addWidget(self._bot_card())
         root.addWidget(self._startup_card())
         root.addWidget(self._profiles_card(), 1)
         root.addWidget(self._data_card())
@@ -94,6 +103,48 @@ class SettingsView(QWidget):
             self._syncing_theme = True
             self.theme_cb.setCurrentIndex(idx)
             self._syncing_theme = False
+
+    # ---- bot integration ----
+    def _bot_card(self) -> QFrame:
+        frame, inner = _card("Bot Integration")
+        inner.addWidget(_dim("Deploy the generated files automatically after each "
+                             "run. Stable file names, so hourly/auto runs overwrite "
+                             "one file instead of piling up copies."))
+
+        inner.addWidget(QLabel("Exiled Bot 2 pickit folder"))
+        inner.addLayout(self._folder_row("bot_folder", "Select Exiled Bot pickit folder"))
+        self._auto_copy_chk = QCheckBox("Auto-copy .ipd to bot folder after generate")
+        self._auto_copy_chk.setChecked(bool(settings.get("auto_copy_ipd")))
+        self._auto_copy_chk.toggled.connect(
+            lambda on: settings.set("auto_copy_ipd", bool(on)))
+        inner.addWidget(self._auto_copy_chk)
+
+        inner.addWidget(QLabel("Path of Exile 2 folder"))
+        inner.addLayout(self._folder_row("poe2_filter_dir", "Select Path of Exile 2 folder"))
+        self._copy_filter_chk = QCheckBox("Also copy loot filter to PoE2 folder after generate")
+        self._copy_filter_chk.setChecked(bool(settings.get("copy_filter_to_game")))
+        self._copy_filter_chk.toggled.connect(
+            lambda on: settings.set("copy_filter_to_game", bool(on)))
+        inner.addWidget(self._copy_filter_chk)
+        return frame
+
+    def _folder_row(self, key: str, title: str) -> QHBoxLayout:
+        edit = QLineEdit(settings.get(key, "") or "")
+        edit.editingFinished.connect(lambda: settings.set(key, edit.text().strip()))
+
+        def pick() -> None:
+            start = edit.text().strip() or str(Path.home())
+            chosen = QFileDialog.getExistingDirectory(self, title, start)
+            if chosen:
+                edit.setText(chosen)
+                settings.set(key, chosen)
+
+        browse = QPushButton("Browse…")
+        browse.clicked.connect(pick)
+        row = QHBoxLayout()
+        row.addWidget(edit, 1)
+        row.addWidget(browse)
+        return row
 
     # ---- startup ----
     def _startup_card(self) -> QFrame:

@@ -17,12 +17,27 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 from pathlib import Path
 
 from src.core.engine import APP_DIR
 from src.core.signals import bus
 
 _PATH = APP_DIR / "settings.json"
+
+
+def default_game_filter_dir() -> str:
+    """Best-guess location of the PoE2 client loot-filter folder (mirrors the
+    old app's heuristic)."""
+    home = os.path.expanduser("~")
+    candidates = [
+        os.path.join(home, "Documents", "My Games", "Path of Exile 2"),
+        os.path.join(home, "OneDrive", "Documents", "My Games", "Path of Exile 2"),
+    ]
+    for c in candidates:
+        if os.path.isdir(c):
+            return c
+    return candidates[0]
 
 # A profile = these fields. Anything missing is filled from here on load.
 PROFILE_DEFAULTS: dict = {
@@ -39,6 +54,11 @@ _DEFAULT_PROFILE_NAME = "Default"
 _APP_DEFAULTS: dict = {
     "theme": "dark",
     "auto_fetch_leagues": True,
+    # Bot integration — where generated files get deployed after a run.
+    "bot_folder": "",                 # Exiled Bot 2 pickit folder
+    "auto_copy_ipd": False,           # copy <name>.ipd there after generate
+    "poe2_filter_dir": default_game_filter_dir(),  # PoE2 client folder
+    "copy_filter_to_game": False,     # copy <name>.filter there after generate
 }
 
 
