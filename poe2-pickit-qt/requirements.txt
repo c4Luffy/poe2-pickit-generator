@@ -1,0 +1,4 @@
+# Phase 1 prototype dependencies
+PySide6>=6.6
+# Optional — real CPU/RAM in the System Monitor. Without it, values are simulated.
+psutil>=5.9
