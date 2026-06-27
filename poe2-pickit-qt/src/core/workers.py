@@ -13,6 +13,7 @@ import time
 
 from PySide6.QtCore import QObject, Signal
 
+from src.core.backup import rotate_backup
 from src.core.base_state import base_state
 from src.core.engine import OUTPUT_DIR, gen
 from src.core.item_state import item_state
@@ -200,6 +201,7 @@ class GenerateWorker(QObject):
         gear_floor: float,
         output_base: str,
         include_bases: bool = True,
+        backup_count: int = 0,
     ) -> None:
         super().__init__()
         self.league = league
@@ -207,6 +209,7 @@ class GenerateWorker(QObject):
         self.gear_floor = gear_floor
         self.output_base = output_base
         self.include_bases = include_bases
+        self.backup_count = backup_count
 
     def run(self) -> None:  # noqa: C901  (linear pipeline, intentionally flat)
         try:
@@ -315,6 +318,7 @@ class GenerateWorker(QObject):
                                 os.path.basename(self.output_base) or "poe2_pickit")
             ipd_path = base + ".ipd"
             filter_path = base + ".filter"
+            rotate_backup(ipd_path, self.backup_count)  # back up the old .ipd first
             with open(ipd_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(out))
             with open(filter_path, "w", encoding="utf-8") as f:

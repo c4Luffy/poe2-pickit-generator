@@ -20,7 +20,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QFrame,
                                QHBoxLayout, QInputDialog, QLabel, QLineEdit,
                                QListWidget, QListWidgetItem, QPushButton,
-                               QVBoxLayout, QWidget)
+                               QSpinBox, QVBoxLayout, QWidget)
 
 from src.core.engine import APP_DIR
 from src.core.logger import logger
@@ -67,6 +67,7 @@ class SettingsView(QWidget):
 
         root.addWidget(self._appearance_card())
         root.addWidget(self._bot_card())
+        root.addWidget(self._automation_card())
         root.addWidget(self._startup_card())
         root.addWidget(self._profiles_card(), 1)
         root.addWidget(self._data_card())
@@ -145,6 +146,38 @@ class SettingsView(QWidget):
         row.addWidget(edit, 1)
         row.addWidget(browse)
         return row
+
+    # ---- automation & safety ----
+    def _automation_card(self) -> QFrame:
+        frame, inner = _card("Automation & Safety")
+
+        self._auto_sched_chk = QCheckBox("Auto-generate every hour while the app is open")
+        self._auto_sched_chk.setChecked(bool(settings.get("auto_schedule")))
+        self._auto_sched_chk.toggled.connect(
+            lambda on: settings.set("auto_schedule", bool(on)))
+        inner.addWidget(self._auto_sched_chk)
+        inner.addWidget(_dim("Re-generates hourly in the background so prices stay fresh "
+                             "(runs in place, no overwrite prompt)."))
+
+        self._confirm_ovw_chk = QCheckBox("Confirm before overwriting a recent pickit")
+        self._confirm_ovw_chk.setChecked(bool(settings.get("confirm_overwrite")))
+        self._confirm_ovw_chk.toggled.connect(
+            lambda on: settings.set("confirm_overwrite", bool(on)))
+        inner.addWidget(self._confirm_ovw_chk)
+
+        row = QHBoxLayout()
+        row.addWidget(QLabel("Keep backups:"))
+        self._backup_spin = QSpinBox()
+        self._backup_spin.setRange(0, 20)
+        self._backup_spin.setValue(int(settings.get("backup_count", 0) or 0))
+        self._backup_spin.setSuffix(" backups")
+        self._backup_spin.valueChanged.connect(
+            lambda v: settings.set("backup_count", int(v)))
+        row.addWidget(self._backup_spin)
+        row.addWidget(_dim("(0 = disabled)"))
+        row.addStretch(1)
+        inner.addLayout(row)
+        return frame
 
     # ---- startup ----
     def _startup_card(self) -> QFrame:

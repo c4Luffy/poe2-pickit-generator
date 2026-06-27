@@ -7,12 +7,13 @@ signals it emits. No engine logic lives here.
 from __future__ import annotations
 
 import os
+import time
 
-from PySide6.QtCore import Qt, QThread
+from PySide6.QtCore import Qt, QThread, QTimer
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFrame, QGridLayout,
                                QHBoxLayout, QInputDialog, QLabel, QLineEdit,
-                               QPushButton, QSlider, QTextEdit, QVBoxLayout,
-                               QWidget)
+                               QMessageBox, QPushButton, QSlider, QTextEdit,
+                               QVBoxLayout, QWidget)
 
 from src.core.app_state import set_current_league
 from src.core.deploy import deploy_outputs
@@ -52,11 +53,20 @@ class GenerateView(QWidget):
         self._gen_worker: GenerateWorker | None = None
         self._lg_thread: QThread | None = None
         self._lg_worker: LeagueWorker | None = None
+        self._auto_run = False   # set when a run is triggered by the hourly timer
         self._build()
         self._refresh_profiles()
         self._apply_profile(settings.active_profile())
         bus.profiles_changed.connect(self._refresh_profiles)
         bus.active_profile_changed.connect(self._on_active_profile_changed)
+        bus.settings_changed.connect(self._on_settings_changed)
+
+        # Hourly auto-generate (Automation & Safety setting).
+        self._schedule_timer = QTimer(self)
+        self._schedule_timer.setInterval(60 * 60 * 1000)  # 1 hour
+        self._schedule_timer.timeout.connect(self._auto_generate)
+        self._apply_schedule()
+
         if auto_fetch and settings.get("auto_fetch_leagues", True):
             self._fetch_leagues()
 
@@ -302,14 +312,54 @@ class GenerateView(QWidget):
         else:
             self.status.setText("Can't delete the only profile.")
 
+    # ---- automation ----
+    def _on_settings_changed(self, key: str) -> None:
+        if key == "auto_schedule":
+            self._apply_schedule()
+
+    def _apply_schedule(self) -> None:
+        if settings.get("auto_schedule"):
+            if not self._schedule_timer.isActive():
+                self._schedule_timer.start()
+            logger.info("Hourly auto-generate is ON.")
+        else:
+            self._schedule_timer.stop()
+
+    def _auto_generate(self) -> None:
+        """Hourly timer entry point — runs unattended (no overwrite prompt)."""
+        self._auto_run = True
+        self._start_generate()
+
+    def _recent_pickit_exists(self, window: int = 120) -> bool:
+        name = self.output_edit.text().strip() or "poe2_pickit"
+        path = os.path.join(str(OUTPUT_DIR), name + ".ipd")
+        try:
+            return os.path.exists(path) and (time.time() - os.path.getmtime(path)) < window
+        except OSError:
+            return False
+
     # ---- generate ----
     def _start_generate(self) -> None:
         if self._gen_thread is not None and self._gen_thread.isRunning():
             return
+        auto = self._auto_run
+        self._auto_run = False
         league = self._selected_league()
         if not league:
             self.status.setText("Pick a league first.")
             return
+
+        # Confirm before clobbering a pickit generated moments ago (skip for
+        # unattended hourly runs, which intentionally refresh in place).
+        if (not auto and settings.get("confirm_overwrite")
+                and self._recent_pickit_exists()):
+            ans = QMessageBox.question(
+                self, "Overwrite recent pickit?",
+                "You generated this pickit less than 2 minutes ago. Overwrite it?")
+            if ans != QMessageBox.StandardButton.Yes:
+                self.status.setText("Generation cancelled.")
+                return
+
         try:
             unique_floor = float(self.unique_slider.value())
             gear_floor = float(self.gear_slider.value())
@@ -325,6 +375,7 @@ class GenerateView(QWidget):
             league, unique_floor, gear_floor,
             self.output_edit.text().strip() or "poe2_pickit",
             self.bases_chk.isChecked(),
+            backup_count=int(settings.get("backup_count", 0) or 0),
         )
         self._gen_worker.moveToThread(self._gen_thread)
         self._gen_thread.started.connect(self._gen_worker.run)

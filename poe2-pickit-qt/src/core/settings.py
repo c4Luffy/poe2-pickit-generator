@@ -59,6 +59,10 @@ _APP_DEFAULTS: dict = {
     "auto_copy_ipd": False,           # copy <name>.ipd there after generate
     "poe2_filter_dir": default_game_filter_dir(),  # PoE2 client folder
     "copy_filter_to_game": False,     # copy <name>.filter there after generate
+    # Automation & safety.
+    "auto_schedule": False,           # auto-generate every hour while open
+    "confirm_overwrite": True,        # confirm before overwriting a recent pickit
+    "backup_count": 5,                # keep N timestamped .ipd backups (0 = off)
 }
 
 
@@ -113,6 +117,7 @@ class Settings:
             return
         self._data[key] = value
         self.save()
+        bus.settings_changed.emit(key)
 
     # ---- profiles ----
     def profile_names(self) -> list[str]:

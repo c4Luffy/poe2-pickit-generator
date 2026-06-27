@@ -17,6 +17,7 @@ class SignalBus(QObject):
     profiles_changed = Signal()          # the set/contents of saved profiles changed
     active_profile_changed = Signal(str) # a different profile became active (name)
     history_changed = Signal()           # a run was recorded / history was cleared
+    settings_changed = Signal(str)       # an app preference changed (the key)
 
 
 # Process-wide singleton — `from src.core.signals import bus`.
