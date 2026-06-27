@@ -225,6 +225,11 @@ class GenerateWorker(QObject):
 
             self.progress.emit("Done", 100)
             self.finished.emit({
+                "ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "league": league,
+                "unique_floor": self.unique_floor,
+                "gear_floor": self.gear_floor,
+                "include_bases": self.include_bases,
                 "active": active,
                 "commented": commented,
                 "divine": divine,

@@ -21,6 +21,7 @@ pickit_gui_config.json
 item_states.json
 settings.json
 base_states.json
+history.json
 
 # Backup files
 *_backup_*.ipd

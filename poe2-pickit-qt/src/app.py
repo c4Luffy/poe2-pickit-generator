@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (QGraphicsOpacityEffect, QHBoxLayout, QLabel,
 from src.components.bases_view import BasesView
 from src.components.dashboard import Dashboard
 from src.components.generate_view import GenerateView
+from src.components.history_view import HistoryView
 from src.components.items_view import ItemsView
 from src.components.settings_view import SettingsView
 from src.core.logger import logger
@@ -27,6 +28,7 @@ _NAV = [
     ("items", "Items", "▤", ItemsView),
     ("chance", "Chance", "◈", BasesView),
     ("craft", "Craft", "⚒", BasesView),
+    ("history", "History", "≣", HistoryView),
     ("settings", "Settings", "⚙", SettingsView),
     ("debug", "Debug", "❖", None),
 ]

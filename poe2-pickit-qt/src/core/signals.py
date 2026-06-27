@@ -16,6 +16,7 @@ class SignalBus(QObject):
     league_changed = Signal(str)         # the active league changed
     profiles_changed = Signal()          # the set/contents of saved profiles changed
     active_profile_changed = Signal(str) # a different profile became active (name)
+    history_changed = Signal()           # a run was recorded / history was cleared
 
 
 # Process-wide singleton — `from src.core.signals import bus`.

@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFrame, QGridLayout,
 
 from src.core.app_state import set_current_league
 from src.core.engine import OUTPUT_DIR
+from src.core.history import history
 from src.core.logger import logger
 from src.core.settings import settings
 from src.core.signals import bus
@@ -351,8 +352,18 @@ class GenerateView(QWidget):
             f"saved to {os.path.basename(stats['ipd'])}"
         )
         self.preview.setPlainText("\n".join(stats["lines"][:800]))
+        self._record_history(stats)
         logger.info("Generation finished: %d active rules in %.1fs.",
                     stats["active"], stats["duration"])
+
+    def _record_history(self, stats: dict) -> None:
+        """Persist a compact record of this run (everything but the line dump)."""
+        record = {k: stats[k] for k in (
+            "ts", "league", "unique_floor", "gear_floor", "include_bases",
+            "active", "commented", "divine", "top_name", "duration",
+            "errors", "warnings", "ipd", "filter") if k in stats}
+        record["profile"] = settings.active_profile_name()
+        history.add(record)
 
     def _on_failed(self, msg: str) -> None:
         self.generate_btn.setEnabled(True)
