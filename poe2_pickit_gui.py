@@ -199,7 +199,7 @@ from tab_craft_bases import CraftBasesTab
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.6.14"
+VERSION       = "2.6.15"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -2120,10 +2120,19 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             log_exc(f"fetch_icon {name}")
 
     def _apply_icon(self, key, name, path):
-        """Main thread: set icon on matching card."""
+        """Main thread: set icon on matching card.
+
+        Icons download on background threads, so by the time one arrives the card's
+        label may already be destroyed (the user navigated away or the grid was
+        rebuilt). That's an expected race — skip it quietly rather than letting
+        ``.configure()`` raise a TclError and spam the debug log.
+        """
         for card in self._cat_cards.get(key, []):
             if card._name != name:
                 continue
+            lbl = getattr(card, "_icon_lbl", None)
+            if lbl is None or not lbl.winfo_exists():
+                break   # card/grid was rebuilt before the icon finished downloading
             try:
                 if _HAS_PIL:
                     img   = Image.open(path).resize((36, 36), Image.LANCZOS)
@@ -2134,9 +2143,8 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                     factor = max(1, max(w, h) // 36)
                     if factor > 1:
                         photo = photo.subsample(factor, factor)
-                card._icon_lbl.configure(image=photo,
-                                      width=photo.width(), height=photo.height())
-                card._icon_lbl._ph = photo
+                lbl.configure(image=photo, width=photo.width(), height=photo.height())
+                lbl._ph = photo
             except Exception:
                 log_exc(f"apply_icon {name}")
             break
@@ -2183,18 +2191,18 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         # Base Types
         lf_b = tk.Frame(inner, bg=BG)
         lf_b.pack(fill="x", pady=(16, 0))
-        label(lf_b, "Base Types  (Game Data)", fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(16, 8))
+        label(lf_b, "Exceptional Base Types  (Game Data)", fg=TEXT_DIM, font=FONT_SM).pack(side="left", padx=(16, 8))
         sep(lf_b).pack(side="left", fill="x", expand=True, padx=(0, 16), pady=3)
 
         sec_b = tk.Frame(inner, bg=BG2, highlightthickness=1, highlightbackground=BORDER)
         sec_b.pack(fill="x", padx=16, pady=(2, 12))
 
         label(sec_b,
-              "Adds endgame base type rules (245 bases across 25 categories) sourced from game data — "
+              "Adds exceptional base type rules (245 bases across 25 categories) sourced from game data — "
               "weapons, armour, off-hands, plus Runeforged/Runemastered variants.  Instant, no network call.",
               fg=TEXT_DIM, font=FONT_SM, bg=BG2).pack(anchor="w", padx=10, pady=(8, 4))
 
-        checkbtn(sec_b, "Include endgame base types in pickit",
+        checkbtn(sec_b, "Include exceptional base types in pickit",
                  self.include_bases_var).pack(anchor="w", padx=10, pady=(0, 4))
 
         qrow = tk.Frame(sec_b, bg=BG2)
