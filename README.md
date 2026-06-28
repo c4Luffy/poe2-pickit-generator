@@ -26,7 +26,7 @@ Builds an `.ipd` pickit **and** a matching in-game `.filter` on every run, using
 - 🎯 **Pick by value** — set Exalt floors for uniques and exchange/gear; everything else is auto-included
 - 🧰 **Two outputs, every run** — the bot `.ipd` *and* a matching in-game `.filter`
 - 🖱️ **Click to exclude** — toggle any item on/off from a searchable card grid
-- 💎 **Chance & Craft bases** — curated Orb-of-Chance targets and the best blank ilvl-82 craft bases
+- 💎 **Chance & Craft bases** — curated Orb-of-Chance targets, plus the best blank craft bases with a **per-base item level** you set yourself
 - 👤 **Profiles** — save setups like *Farmer* / *Boss runner* and switch instantly
 - 🔄 **Auto-everything** — hourly background regen, auto-copy to bot/game folders, and self-updating
 - 📦 **Offline-safe** — caches prices so it still works when poe.ninja is down
@@ -86,7 +86,7 @@ and hides everything else.
 | **Generate** | Pick league & profile, set **Unique** and **Exchange & Gear** value floors (in Exalt), run generation, and view stats, price moves & log |
 | **Items** | Turn individual items ON/OFF — click a card to exclude it; sorted by price High → Low |
 | **Chance Bases** | Toggle Normal-rarity bases to Orb-of-Chance into target uniques |
-| **Craft Bases** | Toggle the best blank (Normal) bases for crafting at item level 82 — armour slots cover all 6 defence types, each tagged STR/DEX/INT or a hybrid |
+| **Craft Bases** | Toggle the best blank (Normal) bases for crafting and **set the item level per base** — what you set on a card is exactly what the bot requires. Armour slots cover all 6 defence types, each tagged STR/DEX/INT or a hybrid |
 | **Preview** | Syntax-highlighted view of the generated `.ipd` |
 | **History** | Log of all past generate runs |
 | **Settings** | Bot folder, auto-copy, loot-filter export, backups |
@@ -116,7 +116,18 @@ Everything is picked by default — use the **Items** tab to exclude what you do
 | **Waystones** | All tiers and rarities (always picked) |
 | **Uniques** | Weapons / Armours / Accessories / Flasks / Charms / Jewels / Relics — via poe.ninja |
 | **Gear Base Types** | Exceptional gear bases from game data (item level 82), all categories — kept separate from Craft Bases |
-| **Craft Bases** | Best Normal (blank) base at ilvl 82 for **all 6 defence types** per armour slot (STR / DEX / INT + STR-DEX, STR-INT, DEX-INT hybrids) plus top bases per weapon type — 39 bases, managed in the **Craft Bases** tab |
+| **Craft Bases** | Best Normal (blank) base for **all 6 defence types** per armour slot (STR / DEX / INT + STR-DEX, STR-INT, DEX-INT hybrids) plus top bases per weapon type — 39 bases with a **per-base item level** (default 82; 75 for accessories), managed in the **Craft Bases** tab |
+
+---
+
+## 🆕 What's New
+
+**v2.6.14**
+- 🛠️ **Craft Bases item level is now exact** — the level shown on each Craft Bases card is precisely what the bot enforces. *(Previously a card could show ilvl 82 while the generated `.ipd` quietly used a lower global value, so the bot picked up lower-level bases.)*
+- 🏹 Added **Obliterator Bow** to the curated craft bases.
+- 🧪 **Healthier internals** — the rule-assembly pipeline was extracted into a pure, fully-tested module (77 tests + lint in CI). No behaviour change for users; just safer to build on.
+
+See the **[Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases)** for the full history.
 
 ---
 
@@ -129,6 +140,7 @@ Everything is picked by default — use the **Items** tab to exclude what you do
 - Price arrows **▲▼** appear after a refresh when a price moved more than **3%**
 - **Price alerts** flag items that moved more than **20%** since the last run (▲/▼ with old → new price)
 - **Open .ipd / Open .filter** buttons open the last generated files instantly
+- In **Craft Bases**, the **ilvl** box on each card is what the bot enforces — tune it per base (82 for endgame gear, 75 for accessories, lower if you want more drops)
 - The app **auto-generates every hour** in the background
 
 ---
