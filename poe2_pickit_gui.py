@@ -783,7 +783,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                                      highlightbackground=GOLD)
         # row 1: main stat line
         r1 = tk.Frame(self._gen_summary, bg=BG2)
-        r1.pack(fill="x", padx=12, pady=(8, 2))
+        r1.pack(fill="x", padx=16, pady=(14, 4))
         self._sum_vars = {}
         for key, default in (
             ("check",    "✓"),
@@ -795,17 +795,17 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         ):
             fg = TEXT_OK if key == "check" else (TEXT_DIM if key.startswith("dot") else TEXT)
             lbl = tk.Label(r1, text=default, bg=BG2, fg=fg,
-                           font=FONT_BOLD if key == "check" else FONT_SM)
+                           font=("Segoe UI", 14, "bold"))
             lbl.pack(side="left")
             self._sum_vars[key] = lbl
         # row 2: top item line
         r2 = tk.Frame(self._gen_summary, bg=BG2)
-        r2.pack(fill="x", padx=12, pady=(0, 6))
-        tk.Label(r2, text="⚡", bg=BG2, fg=GOLD, font=FONT_SM).pack(side="left")
-        self._sum_top_lbl = tk.Label(r2, text="", bg=BG2, fg=GOLD, font=FONT_SM)
+        r2.pack(fill="x", padx=16, pady=(0, 12))
+        tk.Label(r2, text="⚡", bg=BG2, fg=GOLD, font=("Segoe UI", 12)).pack(side="left")
+        self._sum_top_lbl = tk.Label(r2, text="", bg=BG2, fg=GOLD, font=("Segoe UI", 12))
         self._sum_top_lbl.pack(side="left", padx=(4, 0))
-        tk.Label(r2, text="  ·  ", bg=BG2, fg=TEXT_DIM, font=FONT_SM).pack(side="left")
-        self._sum_cats_lbl = tk.Label(r2, text="", bg=BG2, fg=TEXT_DIM, font=FONT_SM)
+        tk.Label(r2, text="  ·  ", bg=BG2, fg=TEXT_DIM, font=("Segoe UI", 12)).pack(side="left")
+        self._sum_cats_lbl = tk.Label(r2, text="", bg=BG2, fg=TEXT_DIM, font=("Segoe UI", 12))
         self._sum_cats_lbl.pack(side="left")
         # row 3: biggest price movers (populated dynamically, hidden if none)
         self._sum_alerts_frame = tk.Frame(self._gen_summary, bg=BG2)
@@ -3927,17 +3927,17 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
         alerts = getattr(self, "_price_alerts", [])
         if rows or alerts:
-            self._sum_alerts_frame.pack(fill="x", padx=12, pady=(0, 8))
+            self._sum_alerts_frame.pack(fill="x", padx=16, pady=(0, 12))
             for text, clr in rows:
                 tk.Label(self._sum_alerts_frame, text=text, bg=BG2, fg=clr,
-                         font=FONT_SM, anchor="w").pack(anchor="w")
+                         font=("Segoe UI", 12), anchor="w").pack(anchor="w", pady=1)
             if alerts:
                 tk.Label(self._sum_alerts_frame, text="Price moves:", bg=BG2,
-                         fg=TEXT_DIM, font=FONT_SM).pack(anchor="w", pady=(4, 0))
+                         fg=TEXT_DIM, font=("Segoe UI", 12)).pack(anchor="w", pady=(4, 0))
                 for a in alerts[:5]:
                     clr = TEXT_OK if a.startswith("▲") else TEXT_ERR
                     tk.Label(self._sum_alerts_frame, text=a, bg=BG2, fg=clr,
-                             font=FONT_SM, anchor="w").pack(anchor="w", padx=(8, 0))
+                             font=("Segoe UI", 12), anchor="w").pack(anchor="w", padx=(8, 0))
         else:
             self._sum_alerts_frame.pack_forget()
 
