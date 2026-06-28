@@ -116,7 +116,7 @@ Everything is picked by default — use the **Items** tab to exclude what you do
 | **Waystones** | All tiers and rarities (always picked) |
 | **Uniques** | Weapons / Armours / Accessories / Flasks / Charms / Jewels / Relics — via poe.ninja |
 | **Gear Base Types** | Exceptional gear bases from game data (item level 82), all categories — kept separate from Craft Bases |
-| **Craft Bases** | Best Normal (blank) base at ilvl 82 for **all 6 defence types** per armour slot (STR / DEX / INT + STR-DEX, STR-INT, DEX-INT hybrids) plus one top base per weapon type — 31 bases, managed in the **Craft Bases** tab |
+| **Craft Bases** | Best Normal (blank) base at ilvl 82 for **all 6 defence types** per armour slot (STR / DEX / INT + STR-DEX, STR-INT, DEX-INT hybrids) plus top bases per weapon type — 39 bases, managed in the **Craft Bases** tab |
 
 ---
 
