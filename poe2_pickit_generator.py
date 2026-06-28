@@ -497,7 +497,7 @@ _CRAFT_BEST_BASES: dict = {
     "Spears":        [("Grand Spear", "STR/DEX")],
     "Quarterstaves": [("Aegis Quarterstaff", "DEX/INT"), ("Sinister Quarterstaff", "DEX/INT")],
     "Crossbows":     [("Siege Crossbow", "STR/DEX")],
-    "Bows":          [("Fanatic Bow", "DEX")],
+    "Bows":          [("Fanatic Bow", "DEX"), ("Warmonger Bow", "DEX")],
     "Staves":        [("Permafrost Staff", "INT")],
     "Wands":         [("Dueling Wand", "INT")],
     # Accessories — high-value Normal bases worth crafting on from item level 75.
