@@ -212,6 +212,22 @@ def test_craft_base_custom_ilvl_reflected_in_action_block():
         assert '[ItemLevel] >= "75"' in after
 
 
+def test_craft_base_ilvl_overrides_per_base():
+    """A user per-base ilvl override wins; other bases keep their own default."""
+    out = gen.build_craft_base_rules(min_ilvl=82, ilvl_overrides={"Dueling Wand": 90})
+    assert '[ItemLevel] >= "90"' in next(l for l in out if '"Dueling Wand"' in l)
+    # non-overridden armour keeps the global default
+    assert '[ItemLevel] >= "82"' in next(l for l in out if '"Warlord Cuirass"' in l)
+    # built-in accessory default still applies when the user hasn't overridden it
+    assert '[ItemLevel] >= "75"' in next(l for l in out if '"Stellar Amulet"' in l)
+
+
+def test_craft_base_default_ilvl_helper():
+    assert gen.craft_base_default_ilvl("Stellar Amulet", 82) == 75   # accessory override
+    assert gen.craft_base_default_ilvl("Warlord Cuirass", 82) == 82  # falls back to global
+    assert gen.craft_base_default_ilvl("Warlord Cuirass", 70) == 70
+
+
 def test_validate_pickit_catches_ilvl_before_hash():
     """Validator should warn/error on [ItemLevel] appearing before #."""
     bad = '[Type] == "Glorious Plate" && [Rarity] == "Normal" && [ItemLevel] >= "82" # [StashItem] == "true"'

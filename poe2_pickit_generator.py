@@ -526,10 +526,21 @@ def craft_base_defence(name: str) -> str:
     return _CRAFT_BASE_DEFENCE.get(name, "")
 
 
-def build_craft_base_rules(disabled=None, min_ilvl: int = CRAFT_BASE_MIN_ILVL) -> list:
-    """Return pickit lines that pick Normal-rarity bases at item level >= min_ilvl
-    — ideal blank bases for crafting. Skips any base names in ``disabled``."""
+def craft_base_default_ilvl(name: str, global_min: int = CRAFT_BASE_MIN_ILVL) -> int:
+    """Default item level for a craft base: the built-in per-base override (e.g. 75
+    for accessories) if one exists, otherwise the global minimum (default 82)."""
+    return _CRAFT_BASE_ILVL_OVERRIDES.get(name, global_min)
+
+
+def build_craft_base_rules(disabled=None, min_ilvl: int = CRAFT_BASE_MIN_ILVL,
+                           ilvl_overrides: dict = None) -> list:
+    """Return pickit lines that pick Normal-rarity bases at item level >= their
+    per-base level — ideal blank bases for crafting. Skips names in ``disabled``.
+
+    Per-base item level precedence: ``ilvl_overrides[name]`` (user-set in the GUI)
+    → the built-in accessory default → ``min_ilvl`` (the global default)."""
     skip = set(disabled) if disabled else set()
+    overrides = ilvl_overrides or {}
     body: list = []
     for cat, names in craft_base_categories():
         active = [n for n in names if n not in skip]
@@ -538,7 +549,7 @@ def build_craft_base_rules(disabled=None, min_ilvl: int = CRAFT_BASE_MIN_ILVL) -
         body.append(f"// -- {cat} " + "-" * max(0, 73 - len(cat)))
         for name in active:
             safe = _quote_ipd(name)
-            ilvl = _CRAFT_BASE_ILVL_OVERRIDES.get(name, min_ilvl)
+            ilvl = overrides.get(name, _CRAFT_BASE_ILVL_OVERRIDES.get(name, min_ilvl))
             body.append(
                 f'[Type] == "{safe}" && [Rarity] == "Normal" '
                 f'# [ItemLevel] >= "{ilvl}" && [StashItem] == "true"'

@@ -24,7 +24,7 @@ class CraftBasesTab:
                  bg=BG2, fg=GOLD, font=("Segoe UI", 12, "bold"),
                  padx=16, pady=8).pack(side="left")
         tk.Label(hdr_bar,
-                 text="Pick Normal-rarity bases at item level 82 — blank bases worth crafting on.",
+                 text="Normal blank bases worth crafting on — set the item level per base.",
                  bg=BG2, fg=TEXT_DIM, font=FONT_SM, padx=4).pack(side="left")
         tk.Label(hdr_bar, textvariable=self._craftbase_count_var,
                  bg=BG2, fg=TEXT_DIM, font=FONT_SM, padx=8).pack(side="right", padx=8)
@@ -97,42 +97,86 @@ class CraftBasesTab:
 
         self._update_craftbase_count()
 
+    def _craftbase_ilvl_for(self, name):
+        """Item level to show for a base: the user's saved override, else the
+        built-in default (75 for accessories, otherwise the global min level)."""
+        st = self._item_states.get("_craftbase", {}).get(name, {})
+        if "ilvl" in st:
+            return st["ilvl"]
+        try:
+            gmin = int(self.base_min_level_var.get())
+        except (tk.TclError, ValueError):
+            gmin = gen.CRAFT_BASE_MIN_ILVL
+        return gen.craft_base_default_ilvl(name, gmin)
+
+    def _on_craftbase_ilvl(self, name, var):
+        """Validate + persist a per-base item level typed into a card's box."""
+        try:
+            val = max(1, min(100, int(float(var.get()))))
+        except (ValueError, tk.TclError):
+            val = self._craftbase_ilvl_for(name)
+        var.set(str(val))
+        states = self._item_states.setdefault("_craftbase", {})
+        states.setdefault(name, {})["ilvl"] = val
+        self.after(0, self._save_states_now)
+
     def _make_craftbase_card(self, name, enabled, parent):
         bg  = _CON  if enabled else _COFF
         fg  = _CTXON if enabled else _CTXOF
         bdr = _CONB if enabled else _COFB
         dot = ""    if enabled else "✗"
 
-        frame = tk.Frame(parent, bg=bg, cursor="hand2",
-                         highlightthickness=1, highlightbackground=bdr)
+        frame = tk.Frame(parent, bg=bg, highlightthickness=1, highlightbackground=bdr)
         frame._name    = name
         frame._enabled = enabled
 
-        name_lbl = tk.Label(frame, text=name, bg=bg, fg=fg,
+        name_lbl = tk.Label(frame, text=name, bg=bg, fg=fg, cursor="hand2",
                             font=("Segoe UI", 10, "bold"), anchor="w", padx=12, pady=7)
         name_lbl.pack(side="left", fill="x", expand=True)
         frame._name_lbl = name_lbl
 
-        _dt      = gen.craft_base_defence(name)
-        _tag_txt = f"{_dt} · ilvl 82+" if _dt else "Normal · ilvl 82+"
-        tag_lbl = tk.Label(frame, text=_tag_txt, bg=bg,
-                           fg=TEXT_DIM if enabled else _CTXOF,
-                           font=("Segoe UI", 9), padx=10)
-        tag_lbl.pack(side="right")
-        frame._tag_lbl = tag_lbl
-
-        dot_lbl = tk.Label(frame, text=dot, bg=bg,
-                           fg=_CTXOF, font=("Segoe UI", 11), padx=4)
+        # exclusion mark (far right)
+        dot_lbl = tk.Label(frame, text=dot, bg=bg, fg=_CTXOF,
+                           font=("Segoe UI", 11), padx=4, cursor="hand2")
         dot_lbl.pack(side="right")
         frame._dot_lbl = dot_lbl
+
+        # per-base item-level box — type any level 1–100, saved per base
+        ivar = tk.StringVar(value=str(self._craftbase_ilvl_for(name)))
+        frame._ilvl_var = ivar
+        spin = tk.Spinbox(frame, from_=1, to=100, width=4, textvariable=ivar,
+                          justify="center", font=("Segoe UI", 10),
+                          bg=BG3, fg=TEXT, buttonbackground=BG3, insertbackground=TEXT,
+                          relief="flat", highlightthickness=1, highlightbackground=BORDER,
+                          command=lambda n=name, v=ivar: self._on_craftbase_ilvl(n, v))
+        spin.pack(side="right", padx=(0, 6), pady=4)
+        spin.bind("<FocusOut>", lambda e, n=name, v=ivar: self._on_craftbase_ilvl(n, v))
+        spin.bind("<Return>",   lambda e, n=name, v=ivar: self._on_craftbase_ilvl(n, v))
+        frame._ilvl_spin = spin
+        ilvl_lbl = tk.Label(frame, text="ilvl", bg=bg, fg=TEXT_DIM,
+                            font=("Segoe UI", 9))
+        ilvl_lbl.pack(side="right", padx=(8, 2))
+        frame._ilvl_lbl = ilvl_lbl
+
+        # defence-type tag (armour only; accessories/weapons blank)
+        _dt = gen.craft_base_defence(name)
+        dt_lbl = None
+        if _dt:
+            dt_lbl = tk.Label(frame, text=_dt, bg=bg,
+                              fg=TEXT_DIM if enabled else _CTXOF,
+                              font=("Segoe UI", 9), padx=6)
+            dt_lbl.pack(side="right")
+        frame._dt_lbl = dt_lbl
 
         def _click(e=None, f=frame):
             self._toggle_craftbase_card(f)
         def _scroll(e, c=self._craftbase_canvas):
             c.yview_scroll(-3 if e.delta > 0 else 3, "units")
 
-        for w in (frame, name_lbl, tag_lbl, dot_lbl):
-            w.bind("<Button-1>",   _click)
+        clickable = [frame, name_lbl, dot_lbl, ilvl_lbl] + ([dt_lbl] if dt_lbl else [])
+        for w in clickable:
+            w.bind("<Button-1>", _click)
+        for w in clickable + [spin]:
             w.bind("<MouseWheel>", _scroll)
             w.bind("<Button-4>",   lambda e, c=self._craftbase_canvas: c.yview_scroll(-3, "units"))
             w.bind("<Button-5>",   lambda e, c=self._craftbase_canvas: c.yview_scroll( 3, "units"))
@@ -140,16 +184,16 @@ class CraftBasesTab:
         return frame
 
     def _toggle_craftbase_card(self, frame):
-        name = frame._name
-        if "_craftbase" not in self._item_states:
-            self._item_states["_craftbase"] = {}
-        currently_disabled = not self._item_states["_craftbase"].get(name, {}).get("enabled", True)
-        if currently_disabled:
-            self._item_states["_craftbase"].pop(name, None)
-            enabled = True
+        name   = frame._name
+        states = self._item_states.setdefault("_craftbase", {})
+        entry  = states.setdefault(name, {})
+        enabled = not entry.get("enabled", True)
+        if enabled:
+            entry.pop("enabled", None)      # enabled is the default; keep any ilvl
+            if not entry:
+                states.pop(name, None)
         else:
-            self._item_states["_craftbase"][name] = {"enabled": False}
-            enabled = False
+            entry["enabled"] = False
 
         frame._enabled = enabled
         bg  = _CON  if enabled else _COFF
@@ -157,21 +201,26 @@ class CraftBasesTab:
         bdr = _CONB if enabled else _COFB
         frame.config(bg=bg, highlightbackground=bdr)
         frame._name_lbl.config(bg=bg, fg=fg)
-        frame._tag_lbl.config(bg=bg, fg=TEXT_DIM if enabled else _CTXOF)
+        frame._ilvl_lbl.config(bg=bg)
+        if frame._dt_lbl is not None:
+            frame._dt_lbl.config(bg=bg, fg=TEXT_DIM if enabled else _CTXOF)
         frame._dot_lbl.config(bg=bg, text="" if enabled else "✗")
 
         self._update_craftbase_count()
         self.after(0, self._save_states_now)
 
     def _craftbase_set_all(self, enabled_val):
-        if "_craftbase" not in self._item_states:
-            self._item_states["_craftbase"] = {}
+        states = self._item_states.setdefault("_craftbase", {})
         if enabled_val:
-            self._item_states["_craftbase"].clear()
+            # clear disabled flags but keep any per-base ilvl overrides
+            for nm in list(states):
+                states[nm].pop("enabled", None)
+                if not states[nm]:
+                    states.pop(nm, None)
         else:
             for _cat, names in gen.craft_base_categories():
                 for name in names:
-                    self._item_states["_craftbase"][name] = {"enabled": False}
+                    states.setdefault(name, {})["enabled"] = False
         self._populate_craftbase_grid()
         self.after(0, self._save_states_now)
 

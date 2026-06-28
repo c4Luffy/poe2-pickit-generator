@@ -3596,13 +3596,15 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             }
             output_lines.extend(gen.build_chance_base_rules(_chance_disabled))
 
-            # ── Craft bases (Normal, item level 82) ───────────────────────────
+            # ── Craft bases (Normal blank bases; per-base item level) ─────────
+            _cb_states = snapshot.get("item_states", {}).get("_craftbase", {})
             _craftbase_disabled = {
-                name for name, st in snapshot.get("item_states", {}).get("_craftbase", {}).items()
-                if not st.get("enabled", True)
+                name for name, st in _cb_states.items() if not st.get("enabled", True)
             }
+            _craftbase_ilvl = {name: st["ilvl"] for name, st in _cb_states.items() if "ilvl" in st}
             _craft_ilvl  = int(snapshot.get("base_min_level", gen.CRAFT_BASE_MIN_ILVL))
-            _craftbase_lines = gen.build_craft_base_rules(_craftbase_disabled, min_ilvl=_craft_ilvl)
+            _craftbase_lines = gen.build_craft_base_rules(
+                _craftbase_disabled, min_ilvl=_craft_ilvl, ilvl_overrides=_craftbase_ilvl)
             if _craftbase_lines:
                 output_lines.append("")
                 output_lines.append("")
