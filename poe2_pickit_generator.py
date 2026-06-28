@@ -326,7 +326,7 @@ _ACCESSORY_BASES: frozenset = frozenset({
     # Amulets
     "Coral Amulet", "Paua Amulet", "Amber Amulet", "Jade Amulet",
     "Lapis Amulet", "Gold Amulet", "Agate Amulet", "Citrine Amulet",
-    "Turquoise Amulet", "Onyx Amulet", "Solar Amulet",
+    "Turquoise Amulet", "Onyx Amulet", "Solar Amulet", "Stellar Amulet",
 })
 
 VALID_EQUIPMENT_BASES: frozenset = (
@@ -500,10 +500,20 @@ _CRAFT_BEST_BASES: dict = {
     "Bows":          [("Fanatic Bow", "DEX")],
     "Staves":        [("Permafrost Staff", "INT")],
     "Wands":         [("Dueling Wand", "INT")],
+    # Accessories — high-value Normal bases worth crafting on from item level 75.
+    "Amulets":       [("Stellar Amulet", ""), ("Gold Amulet", ""), ("Solar Amulet", "")],
+    "Rings":         [("Gold Ring", ""), ("Prismatic Ring", "")],
 }
 
 # Flat base_name -> defence_type lookup (used for the Craft Bases card labels).
 _CRAFT_BASE_DEFENCE = {n: dt for items in _CRAFT_BEST_BASES.values() for n, dt in items}
+
+# Per-base minimum item level overrides — accessories are worth crafting on from a
+# lower ilvl than armour, so they're not gated by the global min (default 82).
+_CRAFT_BASE_ILVL_OVERRIDES: dict = {
+    "Stellar Amulet": 75, "Gold Amulet": 75, "Solar Amulet": 75,
+    "Gold Ring": 75, "Prismatic Ring": 75,
+}
 
 
 def craft_base_categories() -> list:
@@ -528,9 +538,10 @@ def build_craft_base_rules(disabled=None, min_ilvl: int = CRAFT_BASE_MIN_ILVL) -
         body.append(f"// -- {cat} " + "-" * max(0, 73 - len(cat)))
         for name in active:
             safe = _quote_ipd(name)
+            ilvl = _CRAFT_BASE_ILVL_OVERRIDES.get(name, min_ilvl)
             body.append(
                 f'[Type] == "{safe}" && [Rarity] == "Normal" '
-                f'# [ItemLevel] >= "{min_ilvl}" && [StashItem] == "true"'
+                f'# [ItemLevel] >= "{ilvl}" && [StashItem] == "true"'
             )
         body.append("")
     if not body:
