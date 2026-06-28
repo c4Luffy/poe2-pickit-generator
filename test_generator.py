@@ -246,7 +246,7 @@ def test_all_chance_bases_are_valid_equipment_bases():
     invalid = [(cat, base, tgt) for cat, base, tgt in gen.CHANCE_BASES
                if base not in gen.VALID_EQUIPMENT_BASES]
     assert not invalid, (
-        f"CHANCE_BASES entries not in VALID_EQUIPMENT_BASES:\n"
+        "CHANCE_BASES entries not in VALID_EQUIPMENT_BASES:\n"
         + "\n".join(f"  [{c}] {b!r} -> {t}" for c, b, t in invalid)
     )
 
@@ -308,9 +308,9 @@ def test_new_bases_generate_gear_rules():
 def test_version_file_matches_gui():
     """version.txt and GUI VERSION constant must match."""
     import re
-    with open("version.txt") as f:
+    with open("version.txt", encoding="utf-8") as f:
         ver_file = f.read().strip()
-    with open("poe2_pickit_gui.py") as f:
+    with open("poe2_pickit_gui.py", encoding="utf-8") as f:
         gui = f.read()
     m = re.search(r'VERSION\s*=\s*"([^"]+)"', gui)
     assert m, "VERSION constant not found in poe2_pickit_gui.py"
@@ -322,7 +322,7 @@ def test_version_file_matches_gui():
 def test_requirements_has_customtkinter():
     """customtkinter is used in ui_common.py (btn, entry, checkbtn widgets) —
     must be present and pinned in requirements.txt."""
-    with open("requirements.txt") as f:
+    with open("requirements.txt", encoding="utf-8") as f:
         reqs = f.read()
     assert "customtkinter" in reqs, "customtkinter missing from requirements.txt"
     # Should be pinned to exact version (== not >=) due to API breakage between versions
@@ -409,7 +409,7 @@ def test_cli_version_flag():
         capture_output=True, text=True
     )
     assert r.returncode == 0
-    with open("version.txt") as f:
+    with open("version.txt", encoding="utf-8") as f:
         ver = f.read().strip()
     assert ver in (r.stdout + r.stderr), f"Version {ver!r} not in --version output"
 
@@ -417,7 +417,7 @@ def test_cli_version_flag():
 def test_base_min_level_cli_default_matches_constant():
     """--base-min-level CLI default must equal CRAFT_BASE_MIN_ILVL, not hardcoded 75."""
     import re
-    with open("poe2_pickit_generator.py") as f:
+    with open("poe2_pickit_generator.py", encoding="utf-8") as f:
         src = f.read()
     m = re.search(r'add_argument.*?base-min-level.*?default=(\w+)', src)
     assert m, "--base-min-level argument not found"
@@ -431,7 +431,7 @@ def test_base_min_level_cli_default_matches_constant():
 def test_gui_base_min_level_references_constant_not_literal():
     """GUI must use gen.CRAFT_BASE_MIN_ILVL not hardcoded 82 for base_min_level."""
     import re
-    with open("poe2_pickit_gui.py") as f:
+    with open("poe2_pickit_gui.py", encoding="utf-8") as f:
         gui = f.read()
     # Should have no bare ", 82)" as base_min_level default — must use constant
     bad = re.findall(r'base_min_level.*?,\s*82\)', gui)
@@ -440,7 +440,7 @@ def test_gui_base_min_level_references_constant_not_literal():
 
 def test_requirements_has_pillow():
     """Pillow is required for icon loading — must be in requirements.txt."""
-    with open("requirements.txt") as f:
+    with open("requirements.txt", encoding="utf-8") as f:
         reqs = f.read()
     assert "Pillow" in reqs, "Pillow missing from requirements.txt"
 

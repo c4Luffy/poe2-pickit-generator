@@ -27,7 +27,6 @@ import re
 import sys
 import threading
 import time
-from typing import List, Optional, Set
 import requests
 
 BASE_URL = "https://poe.ninja/poe2/api/economy"
@@ -769,7 +768,7 @@ def _lf_show_blocks(names, extra_lines, chunk: int = _LF_CHUNK) -> list:
     return out
 
 
-def build_loot_filter(ipd_lines, generated_iso: Optional[str] = None) -> list:
+def build_loot_filter(ipd_lines, generated_iso: str | None = None) -> list:
     """Parse generated .ipd rule lines and return PoE2 client loot-filter lines."""
     if generated_iso is None:
         generated_iso = time.strftime("%Y-%m-%dT%H:%M:%S")
@@ -1015,7 +1014,7 @@ def fetch_category(league: str, key: str, ninja_type: str, is_unique: bool) -> d
 
 def fetch_all_payloads(league: str, categories: list, *, max_workers: int = 5,
                        use_cache: bool = True, offline_fallback: bool = True,
-                       stale_out: Optional[set] = None) -> dict:
+                       stale_out: set | None = None) -> dict:
     """Fetch all category payloads in parallel.
 
     Returns {key: payload} for successes and {key: Exception} for failures.
@@ -1090,7 +1089,7 @@ def _essence_tier_key(name: str):
 
 
 def format_rule(name: str, exalt_value: float, _divine_value: float, header: str = "Type",
-                min_exalt: Optional[float] = None, ritual_threshold: Optional[float] = None) -> str:
+                min_exalt: float | None = None, ritual_threshold: float | None = None) -> str:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
     action = '[StashItem] == "true"'
     if ritual_threshold is not None and exalt_value < ritual_threshold:
@@ -1103,11 +1102,11 @@ def build_exchange_lines(
     payload: dict,
     divine_rate_exalts: float,
     pick_all: bool = False,
-    min_exalt: Optional[float] = None,
+    min_exalt: float | None = None,
     tier_sort: bool = False,
-    enabled_names: Optional[Set[str]] = None,
-    always_names: Optional[List[str]] = None,
-    ritual_threshold: Optional[float] = None,
+    enabled_names: set[str] | None = None,
+    always_names: list[str] | None = None,
+    ritual_threshold: float | None = None,
 ) -> list:
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
@@ -1160,8 +1159,8 @@ def build_exchange_lines(
     return result
 
 
-def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: Optional[float] = None,
-                          enabled_names: Optional[set] = None) -> list:
+def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: float | None = None,
+                          enabled_names: set | None = None) -> list:
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
@@ -1202,7 +1201,7 @@ def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: O
     return output
 
 
-def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: Optional[float] = None) -> list:
+def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: float | None = None) -> list:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
     rate = exalted_rate(payload)
     rows = []
@@ -1262,7 +1261,7 @@ def make_report_row(category_label: str, name: str, base_type: str,
 
 
 def collect_exchange_report_rows(label: str, payload: dict, divine_rate_exalts: float,
-                                  pick_all: bool = False, min_exalt: Optional[float] = None) -> list:
+                                  pick_all: bool = False, min_exalt: float | None = None) -> list:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
@@ -1283,7 +1282,7 @@ def collect_exchange_report_rows(label: str, payload: dict, divine_rate_exalts: 
     return rows
 
 
-def collect_unique_report_rows(label: str, payload: dict, divine_rate_exalts: float, min_exalt: Optional[float] = None) -> list:
+def collect_unique_report_rows(label: str, payload: dict, divine_rate_exalts: float, min_exalt: float | None = None) -> list:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
     rate = exalted_rate(payload)
     seen = set()

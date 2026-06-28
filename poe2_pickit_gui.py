@@ -33,6 +33,7 @@ if getattr(sys, 'frozen', False):
 
 try:
     import poe2_pickit_generator as gen
+    import pickit_assembly as asm
 except ImportError:
     _r = tk.Tk(); _r.withdraw()
     messagebox.showerror("Missing file",
@@ -167,7 +168,7 @@ DEFAULT_CONFIG = {
 
 def load_config():
     try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
             data = json.load(f)
         cfg = dict(DEFAULT_CONFIG)
         cfg.update(data)
@@ -3167,26 +3168,8 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
     # ══════════════════════════════════════════════════════════════════════════
     #  Rule helpers
     # ══════════════════════════════════════════════════════════════════════════
-
-    @staticmethod
-    def _extract_rule_name(line):
-        um = re.search(r'\[UniqueName\] == "([^"]+)"', line)
-        if um:
-            return um.group(1)
-        nm = re.search(r'"([^"]+)"', line)
-        return nm.group(1) if nm else None
-
-    def _active_rule_ids(self, lines):
-        """Identities of active (non-commented) rules — UniqueName if present,
-        else the Type name — used to diff one pickit against another."""
-        ids = set()
-        for l in lines:
-            if not l or l.startswith("//") or "[StashItem]" not in l:
-                continue
-            n = self._extract_rule_name(l)
-            if n:
-                ids.add(n)
-        return ids
+    #  Rule identity/diff helpers live in pickit_assembly (asm.extract_rule_name /
+    #  asm.active_rule_ids) so they can be unit-tested without the GUI.
 
     @staticmethod
     def _fmt_val_multi(ex, divine_rate, chaos_ex, sep="  ·  "):
@@ -3202,6 +3185,26 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
     # ══════════════════════════════════════════════════════════════════════════
     #  GENERATE
     # ══════════════════════════════════════════════════════════════════════════
+
+    def _effective_craftbase_ilvls(self) -> dict:
+        """The item level each *visible* Craft Bases card is currently showing.
+
+        A craft spinbox inherits its starting value from the global 'Min item
+        level' box but only persists a per-base override once the user edits it.
+        Generation used to fall back to the global for any un-edited base, so the
+        .ipd could emit a different ilvl than the Craft tab displayed (tab shows
+        82, file says 79). Reading the live spinbox values here makes the tab
+        authoritative: we generate exactly what the user sees. Returns {} when the
+        tab has never been opened (no cards built yet), leaving the old global
+        fallback in place.
+        """
+        out: dict = {}
+        for card in getattr(self, "_craftbase_cards", []):
+            try:
+                out[card._name] = max(1, min(100, int(float(card._ilvl_var.get()))))
+            except (AttributeError, ValueError, tk.TclError):
+                continue
+        return out
 
     def _start_generate(self, silent: bool = False):
         if self._running:
@@ -3262,6 +3265,18 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             "base_min_level":  self.base_min_level_var.get(),
             "item_states":     dict(self._item_states),
         }
+        # Make the Craft Bases tab authoritative: bake the ilvl each craft card is
+        # actually showing into the snapshot as a per-base override, so the .ipd
+        # matches the tab even for bases the user never edited (see
+        # _effective_craftbase_ilvls). Deep-copy the _craftbase sub-dict so we never
+        # mutate the live item_states off the main thread.
+        _eff_craft = self._effective_craftbase_ilvls()
+        if _eff_craft:
+            _cb = {n: dict(st) for n, st in snapshot["item_states"].get("_craftbase", {}).items()}
+            for _name, _lvl in _eff_craft.items():
+                _cb.setdefault(_name, {})["ilvl"] = _lvl
+            snapshot["item_states"] = dict(snapshot["item_states"])
+            snapshot["item_states"]["_craftbase"] = _cb
         for k, v in self.cat_thresh.items():
             try:
                 snapshot["cat_thresh"][k] = v.get()
@@ -3335,110 +3350,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
             _gen_ts  = datetime.datetime.now()
             _gen_id  = _gen_ts.strftime('%Y%m%d_%H%M%S')
-            output_lines = [
-                "/" * gen._W,
-                "//" + f"  EXILEBOT 2  |  PICKIT  |  ID: {_gen_id}".center(gen._W - 4) + "//",
-                "/" * gen._W,
-                f"// League    : {league}",
-                f"// Generated : {_gen_ts.strftime('%Y-%m-%d %H:%M:%S')}",
-                f"// Pickit ID : {_gen_id}",
-                f"// Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_unique:.0f} ex  (unique gear)",
-                "/" * gen._W, "",
-                # ── Configuration guide ───────────────────────────────────────
-                "//",
-                "// Exiled Bot 2 Pickit - Configuration Guide for Path of Exile 2",
-                "//",
-                "// This file defines which items your bot should pick up, identify, keep, or salvage.",
-                "//",
-                "// Important File:",
-                "// - ModsList.html in the main bot folder contains all available mods",
-                "//   (Use expressions from the right column, like local_minimum_added_physical_damage)",
-                "//",
-                "// Special Computed Values:",
-                "// ----------------------",
-                "// [TotalResistances] - Sums all resistance values on an item",
-                '//   Example: [Category] == "Helmet" # [TotalResistances] > "50" && [StashItem] == "true"',
-                "//",
-                "// Defensive Calculations:",
-                "// ---------------------",
-                "// [ComputedArmour]       - Final armour value after all modifiers",
-                "// [ComputedEvasion]      - Final evasion value after all modifiers",
-                "// [ComputedEnergyShield] - Final ES value after all modifiers",
-                "//",
-                "// Damage Calculations:",
-                "// ------------------",
-                "// [DPS]         - Total weapon DPS (physical + elemental)",
-                "// [ElementalDPS]  - Only elemental portion of weapon DPS",
-                "// [PhysicalDPS]   - Only physical portion of weapon DPS",
-                "//",
-                "// Spell Damage Totals:",
-                "// ------------------",
-                "// [TotalSpellElementalDamage]  - Combined spell + elemental damage (%)",
-                "// [TotalFireSpellDamage]       - Fire spell damage including general spell damage (%)",
-                "// [TotalColdSpellDamage]       - Cold spell damage including general spell damage (%)",
-                "// [TotalLightningSpellDamage]  - Lightning spell damage including general spell damage (%)",
-                "//",
-                "// Gems:",
-                "// ----",
-                "// [GemLevel] - Current level of the gem",
-                '// Example: [Type] == "Uncut Support Gem" && [GemLevel] == "3" # [StashItem] == "true"',
-                "//",
-                "// UniqueName:",
-                "// ----------",
-                "// Matches specific unique items by their exact name",
-                '// Example: [Type] == "Heavy Belt" && [Rarity] == "Unique" # [UniqueName] == "Headhunter" && [StashItem] == "true"',
-                "//",
-                "// ItemTier:",
-                "// --------",
-                "// Represents the tier of the item base type (higher is better)",
-                '// Example: [Category] == "Ring" && [ItemTier] >= "2" # [StashItem] == "true"',
-                "//",
-                "// Quality:",
-                "// -------",
-                "// The quality percentage of an item (0-20 for most items)",
-                '// Example: [Quality] >= "15" # [StashItem] == "true"',
-                "//",
-                "// WaystoneTier:",
-                "// ------------",
-                "// The tier of a waystone (1-16 at the moment)",
-                '// Example: [Category] == "Waystone" && [WaystoneTier] >= "10" # [StashItem] == "true"',
-                "//",
-                "// Basic Syntax:",
-                "// -----------",
-                "// Each line: [What to Check] Operator \"Value\"",
-                "//",
-                "// Operators: == != > >= < <=",
-                "// Combine:   && (AND)  || (OR)  () (group)",
-                "//",
-                "// Available Categories:",
-                '// Equipment : "BodyArmour", "Gloves", "Boots", "Belt", "Helmet", "Ring", "Amulet"',
-                '// Weapons   : "Weapon", "1Handed", "2Handed", "OffHand"',
-                '// Others    : "Flask", "Waystone", "Gem"',
-                "//",
-                "// WeaponCategory:",
-                '// 1H : "Claw","Dagger","Wand","OneHandSword","OneHandAxe","OneHandMace","Sceptre","Spear","Flail"',
-                '// 2H : "Bow","Staff","TwoHandSword","TwoHandAxe","TwoHandMace","Quarterstaff","Crossbow","Trap"',
-                '// OH : "Quiver","Shield","Focus"',
-                "//",
-                "// Rarity Values:  \"Normal\", \"Magic\", \"Rare\", \"Unique\"",
-                "//",
-                "// Special Flags:",
-                '// [StashItem]    == "true"  - Put item in stash',
-                '// [StashUnid]    == "true"  - Stash without identifying',
-                '// [Salvage]      == "true"  - Mark for salvaging',
-                '// [IgnoreRitual] == "true"  - Ignore item from ritual rewards',
-                "//",
-                "// Rule split with #:",
-                "// Before # = checked BEFORE identifying",
-                "// After  # = checked AFTER  identifying",
-                '// Example: [Rarity] == "Rare" # [TotalResistances] > "50" && [StashItem] == "true"',
-                "//",
-                "// Local vs Global Modifiers:",
-                "// local_* mods (local_attack_speed_+%) affect only the item itself",
-                "// regular mods (attack_speed_+%)       affect your entire character",
-                "//",
-                "/" * gen._W, "",
-            ]
+            output_lines = asm.build_header_lines(league, _gen_ts, _gen_id, min_exalt, min_exalt_unique)
             self._log(f"Pickit ID : {_gen_id}", "info")
 
             self._log("Fetching currency rates…", "dim")
@@ -3457,17 +3369,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                               f"({self._fmt_age(age)} old)", "warn")
                 else:
                     raise   # no network and no cache → nothing we can do
-            items_by_id      = {i["id"]: i for i in currency_payload.get("items", [])}
-            rate             = gen.exalted_rate(currency_payload)
-            divine_rate_exalts = 1.0
-            _divine_found = False
-            for line in currency_payload.get("lines", []):
-                item = items_by_id.get(line.get("id"))
-                if item and item.get("name") == "Divine Orb":
-                    pv = float(line.get("primaryValue") or 0.0)
-                    divine_rate_exalts = pv * rate if rate else pv
-                    _divine_found = True
-                    break
+            divine_rate_exalts, _divine_found, rate = asm.compute_divine_rate(currency_payload)
 
             if not _divine_found:
                 self._log("  ⚠ Divine Orb not found — divine conversion unavailable", "warn")
@@ -3492,7 +3394,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             if stale_keys:
                 offline_mode = True
 
-            for cat_idx, (key, ninja_type, label_text, is_unique) in enumerate(categories, 1):
+            for cat_idx, (key, _ninja_type, label_text, is_unique) in enumerate(categories, 1):
                 _seg_i = cat_idx - 1
                 self.after(0, lambda s=f"Building {cat_idx}/{total_cats}: {label_text}":
                            self.progress_var.set(s))
@@ -3500,11 +3402,8 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
 
                 # Per-category threshold takes priority; fall back to the
                 # appropriate global (gear vs currency) when not set (-1).
-                cat_thresh = snapshot["cat_thresh"].get(key, -1.0)
-                if not isinstance(cat_thresh, (int, float)):
-                    cat_thresh = -1.0
-                global_min = min_exalt_unique if is_unique else min_exalt_gear
-                effective_min = cat_thresh if cat_thresh >= 0 else global_min
+                effective_min = asm.effective_min(snapshot, key, is_unique,
+                                                  min_exalt_gear, min_exalt_unique)
 
                 payload = all_payloads.get(key)
 
@@ -3523,39 +3422,13 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                     continue
 
                 try:
-                    # Build enabled_names from per-item states.
-                    # Disabled items are excluded; everything else follows the threshold.
+                    # Items-tab on/off state → which names to keep (None = use threshold).
                     _cat_states = snapshot.get("item_states", {}).get(key, {})
-                    if _cat_states and not is_unique:
-                        _items_in_payload = {
-                            gen.ITEM_NAME_CORRECTIONS.get(i["name"], i["name"])
-                            for i in payload.get("items", []) if i.get("name")
-                        }
-                        _disabled = {n for n, s in _cat_states.items()
-                                     if not s.get("enabled", True)}
-                        enabled_names = _items_in_payload - _disabled
-                    else:
-                        enabled_names = None  # all items → use threshold (default)
+                    enabled_names = asm.enabled_names_for(key, is_unique, payload, _cat_states)
 
-                    if is_unique:
-                        lines = gen.build_unique_lines(payload, divine_rate_exalts, min_exalt=effective_min)
-                    elif key == "uncut_gems":
-                        lines = gen.build_uncut_gem_lines(payload, divine_rate_exalts, min_exalt=effective_min,
-                                                          enabled_names=enabled_names)
-                    elif key == "waystones":
-                        lines = gen.build_waystone_lines()
-                    else:
-                        pick_all  = key in gen.PICK_ALL_CATEGORIES
-                        tier_sort = (key == "essences")
-                        always    = gen.ALWAYS_PICK_CURRENCY if key == "currency" else (gen.ALWAYS_PICK_RUNES if key == "runes" else None)
-                        ritual_th = min_exalt_gear if key == "omens" else None
-                        lines = gen.build_exchange_lines(payload, divine_rate_exalts,
-                                                         pick_all=pick_all,
-                                                         min_exalt=effective_min,
-                                                         tier_sort=tier_sort,
-                                                         enabled_names=enabled_names,
-                                                         always_names=always,
-                                                         ritual_threshold=ritual_th)
+                    lines = asm.build_category_lines(key, is_unique, payload,
+                                                     divine_rate_exalts, effective_min,
+                                                     min_exalt_gear, enabled_names)
 
                     output_lines += [gen.header_sub(label_text), ""]
                     output_lines += lines if lines else [f"// poe.ninja returned no rows for {label_text}"]
@@ -3566,14 +3439,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                     self.after(0, lambda i=_seg_i: self._seg_bar.set_segment(i, "ok"))
                     _cat_ok += 1
 
-                    for l in lines:
-                        if l.startswith("//") or "[StashItem]" not in l:
-                            continue
-                        name = self._extract_rule_name(l)
-                        vm   = re.search(r'ExValue = ([\d.]+)', l)
-                        if name and vm:
-                            v = float(vm.group(1))
-                            top_items.append((name, v))
+                    top_items.extend(asm.top_items_from_lines(lines))
 
                 except Exception as e:
                     output_lines += [gen.header_sub(label_text), f"// Processing failed: {e}", ""]
@@ -3590,26 +3456,14 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             output_lines.extend(gen.STATIC_WOMBGIFT_RULES.splitlines())
             output_lines.extend(gen.STATIC_SPECIAL_WAYSTONE_RULES.splitlines())
 
-            _chance_disabled = {
-                base for base, st in snapshot.get("item_states", {}).get("_chance", {}).items()
-                if not st.get("enabled", True)
-            }
-            output_lines.extend(gen.build_chance_base_rules(_chance_disabled))
+            output_lines.extend(gen.build_chance_base_rules(asm.chance_base_disabled(snapshot)))
 
             # ── Craft bases (Normal blank bases; per-base item level) ─────────
-            _cb_states = snapshot.get("item_states", {}).get("_craftbase", {})
-            _craftbase_disabled = {
-                name for name, st in _cb_states.items() if not st.get("enabled", True)
-            }
-            _craftbase_ilvl = {name: st["ilvl"] for name, st in _cb_states.items() if "ilvl" in st}
-            _craft_ilvl  = int(snapshot.get("base_min_level", gen.CRAFT_BASE_MIN_ILVL))
-            _craftbase_lines = gen.build_craft_base_rules(
-                _craftbase_disabled, min_ilvl=_craft_ilvl, ilvl_overrides=_craftbase_ilvl)
+            _craftbase_lines, _cb_count, _craft_ilvl = asm.craft_base_section(snapshot)
             if _craftbase_lines:
                 output_lines.append("")
                 output_lines.append("")
                 output_lines.extend(_craftbase_lines)
-                _cb_count = sum(1 for l in _craftbase_lines if l.startswith("[Type]"))
                 self._log(f"  ✓ Craft bases: {_cb_count} Normal ilvl-{_craft_ilvl}+ rules", "ok")
 
             # ── Base types (optional) ─────────────────────────────────────────
@@ -3653,13 +3507,13 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             if os.path.isfile(ipd_path):
                 try:
                     with open(ipd_path, encoding="utf-8") as _pf:
-                        _old_ids = self._active_rule_ids(_pf.read().splitlines())
+                        _old_ids = asm.active_rule_ids(_pf.read().splitlines())
                     _diff_prev = True
                 except OSError:
                     _old_ids, _diff_prev = set(), False
             else:
                 _old_ids, _diff_prev = set(), False
-            _new_ids = self._active_rule_ids(output_lines)
+            _new_ids = asm.active_rule_ids(output_lines)
             _added   = sorted(_new_ids - _old_ids)
             _removed = sorted(_old_ids - _new_ids)
 
@@ -3757,50 +3611,10 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             self.after(0, lambda om=offline_mode: self._set_api_banner(om))
 
             # ── Price alerts ──────────────────────────────────────────────────
-            ALERT_THRESHOLD = 0.20   # 20% move triggers an alert
-            prev_league     = self._last_gen_prices.get(league, {})
-            new_gen_prices: dict = {}
-            chaos_ex_val    = self._get_chaos_ex_value(league)
-            alerts: list[tuple[float, str]] = []   # (abs_delta, display_string)
-
-            for key, _, _label_text, _is_unique in categories:
-                payload = all_payloads.get(key)
-                if not payload or isinstance(payload, Exception):
-                    continue
-                rate        = gen.exalted_rate(payload)
-                items_by_id = {i["id"]: i for i in payload.get("items", [])}
-                cur_prices: dict = {}
-                for line in payload.get("lines", []):
-                    item = items_by_id.get(line.get("id"))
-                    if not item or not item.get("name"):
-                        continue
-                    raw_name = item["name"]
-                    if raw_name in gen.ITEM_NAME_SKIP:
-                        continue
-                    name = gen.ITEM_NAME_CORRECTIONS.get(raw_name, raw_name)
-                    pv   = float(line.get("primaryValue") or 0.0)
-                    ex   = pv * rate if rate else pv   # same convention as build_exchange_lines
-                    cur_prices[name] = ex
-                new_gen_prices[key] = cur_prices
-
-                prev_cat = prev_league.get(key, {})
-                for name, ex_now in cur_prices.items():
-                    ex_prev = prev_cat.get(name)
-                    if ex_prev is None or ex_prev <= 0 or ex_now <= 0:
-                        continue
-                    delta = (ex_now - ex_prev) / ex_prev
-                    if abs(delta) < ALERT_THRESHOLD:
-                        continue
-                    chaos_now  = ex_now  / chaos_ex_val if chaos_ex_val else ex_now
-                    chaos_prev = ex_prev / chaos_ex_val if chaos_ex_val else ex_prev
-                    # Skip near-worthless items — they round to "0c → 0c" and just
-                    # spam the panel with meaningless huge percentages.
-                    if max(chaos_now, chaos_prev) < 1.0:
-                        continue
-                    sign  = "+" if delta > 0 else ""
-                    arrow = "▲" if delta > 0 else "▼"
-                    text = f"{arrow} {name}: {chaos_prev:.0f}c → {chaos_now:.0f}c  ({sign}{delta*100:.0f}%)"
-                    alerts.append((abs(delta), text))
+            prev_league  = self._last_gen_prices.get(league, {})
+            chaos_ex_val = self._get_chaos_ex_value(league)
+            new_gen_prices, alerts = asm.compute_price_alerts(
+                categories, all_payloads, prev_league, chaos_ex_val, threshold=0.20)
 
             # Keep only the current league's baseline so the config file doesn't
             # accumulate a full price snapshot for every league ever generated.

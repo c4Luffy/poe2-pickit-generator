@@ -1,0 +1,26 @@
+# Tooling config for the ExileBot 2 Pickit Generator.
+# (The project ships as a single PyInstaller .exe; this file is dev-only — it does
+#  not change how the app is built or run.)
+
+[tool.pytest.ini_options]
+addopts = "-q"
+python_files = ["test_*.py"]
+
+[tool.ruff]
+# Match the codebase's existing line lengths (the rule tables are intentionally wide).
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+# Conservative, high-signal rules only — this is a working app, not a style reset.
+#   E9  syntax errors        F   pyflakes (undefined names, unused imports)
+#   B   common bugs          UP  obvious modernizations
+select = ["E9", "F", "B", "UP"]
+ignore = [
+    "F403",  # `from ui_common import *` is an intentional toolkit re-export
+    "F405",  # names possibly from the star-import above
+    "B008",  # function calls in argument defaults (Tk widget idioms)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"poe2_pickit_gui.py" = ["E722"]   # a few broad excepts guard the UI on purpose

@@ -170,13 +170,23 @@ python poe2_pickit_gui.py
 **Run the tests**
 
 ```bash
-pip install pytest requests
-python -m pytest test_generator.py -v
+pip install pytest requests ruff
+python -m pytest -v
+ruff check .
 ```
 
-Tests cover rule generation, loot-filter export, static validation, craft bases, chance bases,
-and data integrity (48 tests, Python 3.10–3.12). CI runs automatically on every push, and tagged
-releases (`vX.Y.Z`) auto-build the `.exe` and publish a GitHub Release.
+Tests cover rule generation, loot-filter export, static validation, craft/chance bases,
+data integrity, and the full assembly pipeline (77 tests, Python 3.10–3.12). CI runs tests +
+lint on every push, and tagged releases (`vX.Y.Z`) auto-build the `.exe` and publish a GitHub Release.
+
+**Project layout**
+
+| Module | Responsibility |
+|---|---|
+| `poe2_pickit_generator.py` | Pure rule builders + the poe.ninja API client (also a standalone CLI) |
+| `pickit_assembly.py` | Pure pickit-assembly: turns fetched payloads + a settings snapshot into `.ipd` lines (no Tk/network/IO) |
+| `poe2_pickit_gui.py` | The Tkinter app — fetching, threading, file output, and UI; delegates rule assembly to the two modules above |
+| `ui_common.py`, `tab_*.py` | Shared widget toolkit and the per-tab mixins |
 
 **Contributing**
 

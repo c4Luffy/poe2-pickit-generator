@@ -22,13 +22,16 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install requests pytest
+        run: pip install requests pytest "ruff==0.15.20"
 
       - name: Byte-compile all modules (catches GUI syntax errors CI never imports)
-        run: python -m py_compile poe2_pickit_generator.py poe2_pickit_gui.py ui_common.py tab_chance_bases.py tab_craft_bases.py
+        run: python -m py_compile poe2_pickit_generator.py pickit_assembly.py poe2_pickit_gui.py ui_common.py tab_chance_bases.py tab_craft_bases.py
+
+      - name: Lint (high-signal rules only — see pyproject.toml)
+        run: python -m ruff check .
 
       - name: Run tests
-        run: python -m pytest test_generator.py -v
+        run: python -m pytest -v
 
       - name: Validate [ItemLevel] placement in all generated rules
         run: |
