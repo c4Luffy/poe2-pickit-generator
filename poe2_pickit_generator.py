@@ -571,7 +571,6 @@ def header_minor(title: str) -> str:
     return f"//{inner}{dashes} //"
 
 
-
 STATIC_TABLET_RULES = """\
 /////////////////////////////////////////////////////////////////////////////////////
 //                                                                                 //
@@ -817,19 +816,6 @@ def build_loot_filter(ipd_lines, generated_iso: Optional[str] = None) -> list:
     return out
 
 
-# Scout (poe2scout.com) — unique item categories supplementing poe.ninja.
-# Fetched at generate time; silently skipped if the API is unavailable.
-SCOUT_CATEGORIES = [
-    ("scout_accessories", "accessory", "Scout: Accessories", True),
-    ("scout_armour",      "armour",    "Scout: Armour",      True),
-    ("scout_jewels",      "jewel",     "Scout: Jewels",      True),
-    ("scout_weapons",     "weapon",    "Scout: Weapons",     True),
-    ("scout_sanctum",     "sanctum",   "Scout: Sanctum",     True),
-    ("scout_maps",        "map",       "Scout: Maps",        True),
-]
-SCOUT_BASE_URL = "https://poe2scout.com/api/items/unique/{cat}?page=1&perPage=250&league={league}&search=&referenceCurrency=exalted"
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 #  API helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -973,44 +959,6 @@ def cache_info() -> dict:
     }
 
 
-# ── Scout (poe2scout.com) helpers ─────────────────────────────────────────────
-
-def fetch_scout_payload(cat_slug: str, league: str) -> Optional[dict]:
-    """Fetch unique items from poe2scout.com for one category.
-    Returns None (silently) if the API is unavailable or returns no data."""
-    try:
-        from urllib.parse import quote as _quote
-        url = SCOUT_BASE_URL.format(cat=cat_slug, league=_quote(league))
-        r = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=12)
-        if r.status_code != 200:
-            return None
-        data = r.json()
-        items = data.get("items", data.get("data", []))
-        if not items:
-            return None
-        return {"items": items}
-    except Exception:
-        return None
-
-
-def build_scout_lines(
-    items: list,
-    divine_rate_exalts: float,
-    min_exalt: Optional[float] = None,
-) -> list:
-    """Convert poe2scout.com unique items into pickit rules."""
-    rows = []
-    for item in items:
-        name      = item.get("name", "")
-        ex_value  = float(item.get("exaltedValue") or item.get("value") or 0)
-        div_value = divine_value_from_exalt(ex_value, divine_rate_exalts)
-        if not name:
-            continue
-        rows.append((name, ex_value, div_value))
-    rows.sort(key=lambda r: -r[1])
-    return [format_rule(name, ev, dv, min_exalt=min_exalt) for name, ev, dv in rows]
-
-
 # ── API helpers ───────────────────────────────────────────────────────────────
 
 def fetch_live_leagues() -> list:
@@ -1089,28 +1037,6 @@ def fetch_all_payloads(league: str, categories: list, *, max_workers: int = 5,
                         stale_out.add(key)
                 else:
                     results[key] = e
-
-    return results
-
-
-def fetch_all_scout_payloads(league: str) -> dict:
-    """Fetch all Scout (poe2scout.com) category payloads in parallel.
-    Returns {key: payload_dict} for any that succeed, silently omits failures."""
-    results: dict = {}
-
-    def _fetch(item):
-        key, cat_slug = item[0], item[1]
-        return key, fetch_scout_payload(cat_slug, league)
-
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = [(cat[0], executor.submit(_fetch, cat)) for cat in SCOUT_CATEGORIES]
-        for key, future in futures:
-            try:
-                _, payload = future.result()
-                if payload:
-                    results[key] = payload
-            except Exception:
-                pass
 
     return results
 
@@ -1276,7 +1202,6 @@ def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: Opt
     # `key=-r[0]` *with* reverse=True cancelled out, listing uniques cheapest-first.)
     rows.sort(key=lambda r: r[0], reverse=True)
     return [rule for _, rule in rows]
-
 
 
 def build_waystone_lines() -> list:

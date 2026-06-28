@@ -22,7 +22,7 @@ if errorlevel 1 (
 echo.
 echo [2/5] Installing packages...
 python -m pip install --upgrade pip --quiet
-python -m pip install requests Pillow customtkinter pyinstaller
+python -m pip install -r requirements.txt pyinstaller
 if errorlevel 1 (
     echo.
     echo ERROR: pip install failed. See above.

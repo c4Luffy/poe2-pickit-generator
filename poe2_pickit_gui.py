@@ -2657,7 +2657,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             d(f"  MIN_EXALT       : {gen.MIN_EXALT}", "info")
             d(f"  Exchange cats   : {len(gen.EXCHANGE_CATEGORIES)}", "info")
             d(f"  Unique cats     : {len(gen.UNIQUE_CATEGORIES)}", "info")
-            d(f"  Scout cats      : {len(gen.SCOUT_CATEGORIES)}", "info")
             d("  ✓  Generator module healthy", "ok")
         except Exception as e:
             d(f"  ✗  {e}", "err")
@@ -2673,18 +2672,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             d(f"     active leagues: {', '.join(lg.get('name', '?') for lg in leagues) or 'none'}", "dim")
         except Exception as e:
             d(f"  ✗  poe.ninja      FAILED — will use cached prices if available: {e}", "err")
-        # poe2scout — optional (extra unique prices); skipped silently if down.
-        try:
-            from urllib.parse import quote as _q
-            _lg = self.cfg.get("league") or "Mercenaries"   # dict read (thread-safe)
-            t0 = time.time()
-            r = requests.get(gen.SCOUT_BASE_URL.format(cat="accessory", league=_q(_lg)),
-                             headers={"User-Agent": gen.USER_AGENT}, timeout=10)
-            ok = r.status_code == 200
-            d(f"  {'✓' if ok else '⚠'}  poe2scout.com  {'reachable' if ok else 'HTTP '+str(r.status_code)} "
-              f"({(time.time()-t0)*1000:.0f} ms)  [optional]", "ok" if ok else "warn")
-        except Exception as e:
-            d(f"  ⚠  poe2scout.com  unreachable [optional — extra uniques skipped]: {e}", "warn")
         # poe2wiki — optional (item icons); icons fall back to poe.ninja if down.
         try:
             t0 = time.time()
@@ -3299,10 +3286,10 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             self.min_exalt_unique_var.set(snapshot["min_exalt_unique"])
             self._log("Unique threshold invalid — reset to saved value.", "warn")
 
-        # Init segmented bar — one segment per category + scout + maybe bases
+        # Init segmented bar — one segment per category + maybe bases
         _n_main = sum(1 for c in gen.ALL_CATEGORIES
                       if snapshot["cat_enabled"].get(c[0], True))
-        _n_segs = _n_main + 1 + (1 if snapshot.get("include_bases") else 0)
+        _n_segs = _n_main + (1 if snapshot.get("include_bases") else 0)
         self._seg_bar.init_segments(_n_segs)
         self._seg_bar.pack(fill="x", padx=10, pady=(4, 0))
         self._last_gen_stats = {}
@@ -3599,31 +3586,6 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             top_item  = top_items[0] if top_items else ("", 0.0)
 
 
-            # ── Scout (poe2scout.com) unique items ────────────────────────────
-            self._log("Fetching Scout prices (poe2scout.com)…", "dim")
-            _scout_seg = total_cats   # segment index for scout batch
-            self.after(0, lambda i=_scout_seg: self._seg_bar.set_segment(i, "active"))
-            self.after(0, lambda: self.progress_var.set("Fetching Scout prices…"))
-            scout_payloads = gen.fetch_all_scout_payloads(league)
-            if scout_payloads:
-                output_lines += [gen.header_major("Scout Unique Items"), ""]
-                for key, cat_slug, label_text, _ in gen.SCOUT_CATEGORIES:
-                    payload_items = scout_payloads.get(key)
-                    if not payload_items:
-                        continue
-                    lines = gen.build_scout_lines(
-                        payload_items.get("items", []),
-                        divine_rate_exalts,
-                        min_exalt=min_exalt_unique,
-                    )
-                    active = [l for l in lines if "[StashItem]" in l]
-                    output_lines += [gen.header_sub(label_text), ""] + lines + [""]
-                    self._log(f"  ✓ {label_text}: {len(active)} active", "ok")
-                self.after(0, lambda i=_scout_seg: self._seg_bar.set_segment(i, "ok"))
-            else:
-                self._log("  Scout API unavailable for this league — skipped", "dim")
-                self.after(0, lambda i=_scout_seg: self._seg_bar.set_segment(i, "err"))
-
             output_lines.extend(gen.STATIC_TABLET_RULES.splitlines())
             output_lines.extend(gen.STATIC_WOMBGIFT_RULES.splitlines())
             output_lines.extend(gen.STATIC_SPECIAL_WAYSTONE_RULES.splitlines())
@@ -3651,7 +3613,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             # ── Base types (optional) ─────────────────────────────────────────
             if snapshot.get("include_bases"):
                 min_q = int(snapshot.get("base_quality", 28))
-                _base_seg = total_cats + 1
+                _base_seg = total_cats
                 self.after(0, lambda i=_base_seg: self._seg_bar.set_segment(i, "active"))
                 self._log("Building base type rules from game data…", "dim")
                 def _base_prog(idx, total, title):
