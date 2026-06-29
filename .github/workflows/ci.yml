@@ -52,3 +52,49 @@ jobs:
 
           print("All [ItemLevel] placements OK")
           EOF
+
+  build:
+    name: Build EXE (smoke test)
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests Pillow customtkinter pyinstaller
+
+      # NOTE: keep these flags in sync with .github/workflows/release.yml so CI
+      # actually exercises the build that ships. This job only verifies the build
+      # succeeds — it never publishes a release (that's release.yml, on tags).
+      - name: Build EXE (same flags as the release build)
+        run: >
+          pyinstaller --onefile --windowed --name ExileBot2PickitGenerator
+          --icon appicon.ico --add-data "appicon.ico;."
+          --collect-data certifi
+          --hidden-import certifi --hidden-import charset_normalizer --hidden-import urllib3
+          --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageTk --hidden-import PIL.ImageDraw
+          --exclude-module unittest --exclude-module pydoc --exclude-module doctest
+          --exclude-module lib2to3 --exclude-module test --exclude-module tkinter.test
+          --exclude-module numpy --exclude-module pandas --exclude-module matplotlib --exclude-module scipy
+          --collect-all customtkinter
+          --noconfirm poe2_pickit_gui.py
+
+      - name: Verify the EXE was produced
+        run: |
+          if (-not (Test-Path dist/ExileBot2PickitGenerator.exe)) {
+            Write-Error "Build did not produce ExileBot2PickitGenerator.exe"; exit 1
+          }
+          $size = (Get-Item dist/ExileBot2PickitGenerator.exe).Length
+          Write-Host ("Built ExileBot2PickitGenerator.exe — {0:N0} bytes ({1:N1} MB)" -f $size, ($size/1MB))
+
+      - name: Upload EXE artifact (for pre-release testing)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ExileBot2PickitGenerator-${{ github.sha }}
+          path: dist/ExileBot2PickitGenerator.exe
+          retention-days: 14
