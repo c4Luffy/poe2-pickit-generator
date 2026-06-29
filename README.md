@@ -122,6 +122,10 @@ Everything is picked by default — use the **Items** tab to exclude what you do
 
 ## 🆕 What's New
 
+**v2.6.16**
+- 🤖 **New app icon** — the ExileBot mascot is now the application icon: the downloaded `.exe`'s icon in Explorer, plus the window's titlebar and taskbar icon.
+- ⚡ **Snappier Items tab** — item cards now load in the background in small batches instead of all at once, so opening a big category no longer briefly freezes the app. No visual change.
+
 **v2.6.15**
 - 🏷️ The endgame gear-base section is now labelled **"Exceptional Base Types"** in the app, so it's clear what that area is.
 - 🖼️ Fixed an icon-loading race that could spam the debug log with harmless `TclError`s when you switched tabs while item icons were still downloading.

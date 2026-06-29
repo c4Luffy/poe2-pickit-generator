@@ -199,7 +199,7 @@ from tab_craft_bases import CraftBasesTab
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.6.15"
+VERSION       = "2.6.16"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -241,6 +241,16 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         setup_styles(self, scale)
 
         self.title(f"ExileBot 2 Pickit Generator  v{VERSION}")
+        # App icon (titlebar + taskbar). Bundled into the .exe via --add-data;
+        # when run from source it sits next to this script.
+        try:
+            _icon_dir = getattr(sys, "_MEIPASS",
+                                os.path.dirname(os.path.abspath(__file__)))
+            _icon = os.path.join(_icon_dir, "appicon.ico")
+            if os.path.exists(_icon):
+                self.iconbitmap(default=_icon)
+        except Exception:
+            log_exc("set window icon")
         self.configure(bg=BG)
         self.resizable(True, True)
 
@@ -1193,6 +1203,17 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
     # ── Item grid population ──────────────────────────────────────────────────
 
     def _clear_cat_grid(self):
+        # Invalidate any in-flight chunked render (bump the generation counter) so
+        # its queued ticks stop adding cards to the grid we're about to rebuild,
+        # then drop its pending callback before destroying the old widgets.
+        self._cat_render_seq = getattr(self, "_cat_render_seq", 0) + 1
+        aid = getattr(self, "_cat_render_after", None)
+        if aid is not None:
+            try:
+                self.after_cancel(aid)
+            except Exception:
+                pass
+            self._cat_render_after = None
         for w in self._cat_grid_frame.winfo_children():
             w.destroy()
 
@@ -1268,7 +1289,11 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         NCOLS = 3
         self._cat_cards[key] = []
 
-        # For sectioned categories (uncut gems / expedition): insert section headers
+        # ── Build a placement plan (grid positions only, no widgets yet) ──────
+        # Widgets are created lazily in background chunks below, so opening a big
+        # category (e.g. Gear & Bases, ~200 items) never freezes the UI. Each
+        # entry is ("header", text, grid_row) or ("card", row_tuple, grid_row, col).
+        placements = []
         if key == "uncut_gems":
             _GEM_LABELS = {"Support": "Uncut Support Gems",
                            "Spirit":  "Uncut Spirit Gems",
@@ -1277,7 +1302,8 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             grid_row = 0
             col = 0
             current_type = None
-            for name, chaos, ex, _div_r, icon_url, sparkline in rows:
+            for row in rows:
+                name = row[0]
                 gem_type = None
                 for t in _GEM_TYPE_ORDER:
                     if f"Uncut {t} Gem" in name:
@@ -1287,22 +1313,10 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                     if col != 0:
                         grid_row += 1
                         col = 0
-                    hdr = tk.Frame(self._cat_grid_frame, bg="#16141a")
-                    tk.Label(hdr, text=_GEM_LABELS.get(gem_type, gem_type),
-                             bg="#16141a", fg=GOLD,
-                             font=("Segoe UI", 9, "bold"),
-                             padx=8, pady=5, anchor="w").pack(fill="x")
-                    hdr.grid(in_=self._cat_grid_frame, row=grid_row, column=0,
-                             columnspan=3, padx=3, pady=(10, 2), sticky="ew")
+                    placements.append(("header", _GEM_LABELS.get(gem_type, gem_type), grid_row))
                     grid_row += 1
                     current_type = gem_type
-                div_val = ex / _div_r if _div_r else 0.0
-                enabled = states.get(name, {}).get("enabled", True)
-                trend   = self._price_trend(key, name, ex)
-                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend, sparkline)
-                card.grid(in_=self._cat_grid_frame, row=grid_row, column=col,
-                          padx=3, pady=3, sticky="ew")
-                self._cat_cards[key].append(card)
+                placements.append(("card", row, grid_row, col))
                 col += 1
                 if col >= NCOLS:
                     col = 0
@@ -1311,55 +1325,72 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             grid_row = 0
             col = 0
             shown_flux_hdr = False
-            for name, chaos, ex, _div_r, icon_url, sparkline in rows:
-                is_flux = "Thaumaturgic Flux" in name
-                if is_flux and not shown_flux_hdr:
+            for row in rows:
+                if "Thaumaturgic Flux" in row[0] and not shown_flux_hdr:
                     if col != 0:
                         grid_row += 1
                         col = 0
-                    hdr = tk.Frame(self._cat_grid_frame, bg="#16141a")
-                    tk.Label(hdr, text="Thaumaturgic Flux",
-                             bg="#16141a", fg=GOLD,
-                             font=("Segoe UI", 9, "bold"),
-                             padx=8, pady=5, anchor="w").pack(fill="x")
-                    hdr.grid(in_=self._cat_grid_frame, row=grid_row, column=0,
-                             columnspan=3, padx=3, pady=(10, 2), sticky="ew")
+                    placements.append(("header", "Thaumaturgic Flux", grid_row))
                     grid_row += 1
                     shown_flux_hdr = True
-                div_val = ex / _div_r if _div_r else 0.0
-                enabled = states.get(name, {}).get("enabled", True)
-                trend   = self._price_trend(key, name, ex)
-                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend, sparkline)
-                card.grid(in_=self._cat_grid_frame, row=grid_row, column=col,
-                          padx=3, pady=3, sticky="ew")
-                self._cat_cards[key].append(card)
+                placements.append(("card", row, grid_row, col))
                 col += 1
                 if col >= NCOLS:
                     col = 0
                     grid_row += 1
         else:
-            for i, (name, chaos, ex, _div_r, icon_url, sparkline) in enumerate(rows):
-                div_val = ex / _div_r if _div_r else 0.0
-                enabled = states.get(name, {}).get("enabled", True)
+            for i, row in enumerate(rows):
                 r_, c_ = divmod(i, NCOLS)
-                trend   = self._price_trend(key, name, ex)
-                card = self._make_item_card(key, name, chaos, ex, div_val, icon_url, enabled, trend, sparkline)
-                card.grid(in_=self._cat_grid_frame, row=r_, column=c_,
-                          padx=3, pady=3, sticky="ew")
-                self._cat_cards[key].append(card)
+                placements.append(("card", row, r_, c_))
 
         for c_ in range(NCOLS):
             self._cat_grid_frame.columnconfigure(c_, weight=1, uniform="catcol")
 
         self._cat_last_fetched[key] = datetime.datetime.now().strftime("%H:%M")
-        self._update_cat_count(key)
-        self._refresh_btn_ready()
-        self._cat_canvas.configure(scrollregion=self._cat_canvas.bbox("all"))
         self._cat_canvas.yview_moveto(0)
 
-        # Load icons in background via wiki (errors logged, never silently lost)
-        threading.Thread(target=self._guarded,
-                         args=(self._resolve_wiki_icons, key, rows), daemon=True).start()
+        # ── Render the placements in background chunks (first chunk now, rest via
+        #    after() so the UI stays responsive). seq guards against a category
+        #    switch / search starting a newer render mid-flight (see _clear_cat_grid).
+        seq   = self._cat_render_seq
+        CHUNK = 24
+
+        def _render_chunk(start=0):
+            if seq != self._cat_render_seq or self._active_cat != key:
+                return  # superseded by a newer populate/search/clear — abort
+            end = min(start + CHUNK, len(placements))
+            for p in placements[start:end]:
+                if p[0] == "header":
+                    _, text, grow = p
+                    hdr = tk.Frame(self._cat_grid_frame, bg="#16141a")
+                    tk.Label(hdr, text=text, bg="#16141a", fg=GOLD,
+                             font=("Segoe UI", 9, "bold"),
+                             padx=8, pady=5, anchor="w").pack(fill="x")
+                    hdr.grid(in_=self._cat_grid_frame, row=grow, column=0,
+                             columnspan=3, padx=3, pady=(10, 2), sticky="ew")
+                else:
+                    _, (name, chaos, ex, _div_r, icon_url, sparkline), grow, gcol = p
+                    div_val = ex / _div_r if _div_r else 0.0
+                    enabled = states.get(name, {}).get("enabled", True)
+                    trend   = self._price_trend(key, name, ex)
+                    card = self._make_item_card(key, name, chaos, ex, div_val,
+                                                icon_url, enabled, trend, sparkline)
+                    card.grid(in_=self._cat_grid_frame, row=grow, column=gcol,
+                              padx=3, pady=3, sticky="ew")
+                    self._cat_cards[key].append(card)
+            self._cat_canvas.configure(scrollregion=self._cat_canvas.bbox("all"))
+            if end < len(placements):
+                self._cat_render_after = self.after(1, lambda: _render_chunk(end))
+            else:
+                # All cards built — finalize counts and start icon loading now that
+                # every card exists for _apply_icon to find by name.
+                self._cat_render_after = None
+                self._update_cat_count(key)
+                self._refresh_btn_ready()
+                threading.Thread(target=self._guarded,
+                                 args=(self._resolve_wiki_icons, key, rows), daemon=True).start()
+
+        _render_chunk(0)
 
     # ── Item card widget ──────────────────────────────────────────────────────
 

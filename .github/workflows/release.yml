@@ -31,6 +31,7 @@ jobs:
       - name: Build EXE
         run: >
           pyinstaller --onefile --windowed --name ExileBot2PickitGenerator
+          --icon appicon.ico --add-data "appicon.ico;."
           --collect-data certifi
           --hidden-import certifi --hidden-import charset_normalizer --hidden-import urllib3
           --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageTk --hidden-import PIL.ImageDraw
