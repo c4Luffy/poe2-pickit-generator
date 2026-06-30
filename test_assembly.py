@@ -138,6 +138,87 @@ def test_build_category_lines_waystones_ignores_payload():
     assert lines == gen.build_waystone_lines()
 
 
+# ── build_rare_gear_rules (WeightedSum per slot) ──────────────────────────────
+
+def test_rare_gear_empty_by_default():
+    assert asm.build_rare_gear_rules({}) == []
+    assert asm.build_rare_gear_rules({"rare_gear": {}}) == []
+
+
+def test_rare_gear_enabled_slot_uses_preset_and_threshold():
+    # Magic included by default; custom threshold honored; uses the BodyArmour preset.
+    snap = {"rare_gear": {"BodyArmour": {"enabled": True, "threshold": 400}}}
+    lines = asm.build_rare_gear_rules(snap)
+    assert len(lines) == 1
+    rule = lines[0]
+    assert rule.startswith('[Category] == "BodyArmour" && ([Rarity] == "Rare" || [Rarity] == "Magic") #')
+    assert '[WeightedSum(' in rule and '>= "400"' in rule and rule.endswith('[StashItem] == "true"')
+    # WeightedSum reads identified mods → after the #; uses real preset mods.
+    before, after = rule.split("#", 1)
+    assert "WeightedSum" not in before
+    assert "base_maximum_life:1" in after
+
+
+def test_rare_gear_default_threshold_when_unset():
+    snap = {"rare_gear": {"Amulet": {"enabled": True}}}      # no threshold → preset default
+    rule = asm.build_rare_gear_rules(snap)[0]
+    default_th = gen.WEIGHTED_SUM_PRESETS["Amulet"][0]
+    assert f'>= "{default_th}"' in rule
+
+
+def test_rare_gear_weapon_uses_weaponcategory_selector():
+    snap = {"rare_gear": {"Shield": {"enabled": True, "threshold": 260}}}
+    rule = asm.build_rare_gear_rules(snap)[0]
+    assert rule.startswith('[WeaponCategory] == "Shield"')
+
+
+def test_rare_gear_rare_only_when_magic_off():
+    snap = {"rare_gear_magic": False,
+            "rare_gear": {"Ring": {"enabled": True, "threshold": 320}}}
+    rule = asm.build_rare_gear_rules(snap)[0]
+    assert '[Rarity] == "Rare"' in rule and "Magic" not in rule
+
+
+def test_rare_gear_disabled_slot_omitted():
+    snap = {"rare_gear": {"Helmet": {"enabled": False, "threshold": 300}}}
+    assert asm.build_rare_gear_rules(snap) == []
+
+
+def test_rare_gear_bad_threshold_falls_back_to_default():
+    snap = {"rare_gear": {"Ring": {"enabled": True, "threshold": "abc"}}}
+    rule = asm.build_rare_gear_rules(snap)[0]
+    default_th = gen.WEIGHTED_SUM_PRESETS["Ring"][0]
+    assert f'>= "{default_th}"' in rule
+
+
+# ── build_weighted_sum_rule (Phase 2 validation slice) ────────────────────────
+
+def test_weighted_sum_term_format():
+    # Bot format: stat_id:weight
+    assert asm.weighted_sum_term("base_maximum_life", 1.2) == "base_maximum_life:1.2"
+    assert asm.weighted_sum_term("base_fire_damage_resistance_%", 1) == "base_fire_damage_resistance_%:1"
+
+
+def test_build_weighted_sum_rule():
+    rule = asm.build_weighted_sum_rule(
+        '[Category] == "BodyArmour"',
+        [("base_maximum_life", 1.2), ("base_resist_all_elements_%", 5)],
+        390)
+    assert rule == (
+        '[Category] == "BodyArmour" && [Rarity] == "Rare" '
+        '# [WeightedSum(base_maximum_life:1.2,base_resist_all_elements_%:5)] >= "390" '
+        '&& [StashItem] == "true"')
+    # [WeightedSum(...)] reads identified mods → must live AFTER the #.
+    before, after = rule.split("#", 1)
+    assert "WeightedSum" not in before and "WeightedSum" in after
+
+
+def test_build_weighted_sum_rule_include_magic():
+    rule = asm.build_weighted_sum_rule('[Category] == "Ring"',
+                                       [("base_maximum_life", 1)], 100, include_magic=True)
+    assert '([Rarity] == "Rare" || [Rarity] == "Magic")' in rule
+
+
 # ── top_items_from_lines ─────────────────────────────────────────────────────
 
 def test_top_items_from_lines_reads_exvalue():

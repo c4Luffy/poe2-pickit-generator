@@ -278,6 +278,66 @@ def craft_base_section(snapshot: dict) -> tuple[list[str], int, int]:
     return lines, count, floor
 
 
+# ── Rare gear (pick up rares scored by computed values) ───────────────────────
+
+def build_rare_gear_rules(snapshot: dict) -> list[str]:
+    """WeightedSum pickup rules for the enabled equipment slots.
+
+    Reads snapshot['rare_gear'] = {token: {enabled, threshold}} and emits one rule
+    per enabled slot, using that slot's bot-derived mod-weight preset
+    (gen.WEIGHTED_SUM_PRESETS). Magic items are matched alongside Rare when
+    snapshot['rare_gear_magic'] (default True). Returns [] when nothing is enabled —
+    so by default this section adds nothing to the .ipd."""
+    cfg = snapshot.get("rare_gear", {})
+    if not isinstance(cfg, dict):
+        return []
+    include_magic = bool(snapshot.get("rare_gear_magic", True))
+    lines: list[str] = []
+    for token, _disp, _kind in gen.RARE_GEAR_SLOTS:
+        slot = cfg.get(token)
+        if not isinstance(slot, dict) or not slot.get("enabled"):
+            continue
+        preset = gen.WEIGHTED_SUM_PRESETS.get(token)
+        if not preset or not preset[1]:
+            continue
+        def_threshold, mods = preset
+        try:
+            threshold = float(slot.get("threshold", def_threshold))
+        except (TypeError, ValueError):
+            threshold = def_threshold
+        threshold = int(threshold) if float(threshold).is_integer() else threshold
+        lines.append(build_weighted_sum_rule(
+            gen.rare_gear_selector(token), mods, threshold, include_magic=include_magic))
+    return lines
+
+
+# ── Weighted-sum mod scoring (Phase 2 — validation slice) ─────────────────────
+
+def weighted_sum_term(stat_id: str, weight) -> str:
+    """One WeightedSum term in the bot's real format: ``stat_id:weight``
+    (e.g. ``base_maximum_life:1.2``). Verified against the bot's own pickit files."""
+    return f"{stat_id}:{float(weight):g}"
+
+
+def build_weighted_sum_rule(selector: str, mods, threshold,
+                            include_magic: bool = False) -> str:
+    """Build one WeightedSum pickit rule, matching the bot's exact syntax:
+
+        <selector> && [Rarity] == "Rare" # [WeightedSum(stat:wt,stat:wt,...)] >= "N" && [StashItem] == "true"
+
+    selector: the pre-# selection clause, e.g. '[Category] == "BodyArmour"' or
+              '[WeaponCategory] == "Shield" && [ItemTier] >= "3"'.
+    mods: iterable of (stat_id, weight) pairs.
+    [WeightedSum(...)] reads identified mods, so it lives AFTER the #; the threshold
+    is quoted — both verified against the bot's default pickit files."""
+    terms = [weighted_sum_term(*m) for m in mods]
+    rarity = ('([Rarity] == "Rare" || [Rarity] == "Magic")'
+              if include_magic else '[Rarity] == "Rare"')
+    th = f"{threshold:g}" if isinstance(threshold, (int, float)) else str(threshold)
+    return (f'{selector} && {rarity} '
+            f'# [WeightedSum({",".join(terms)})] >= "{th}" && [StashItem] == "true"')
+
+
 # ── Price-move alerts ─────────────────────────────────────────────────────────
 
 def compute_price_alerts(categories, all_payloads: dict,

@@ -191,15 +191,16 @@ def save_config(cfg):
 from ui_common import *   # shared UI toolkit (colours, fonts, widgets, _SegBar, sparkline)
 from tab_chance_bases import ChanceBasesTab
 from tab_craft_bases import CraftBasesTab
+from tab_rare_gear import RareGearTab
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  Main Application
 # ══════════════════════════════════════════════════════════════════════════════
 
-TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Preview", "History", "Settings", "Debug"]
+TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Rare Gear", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.6.16"
+VERSION       = "2.6.17"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
 VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
@@ -219,7 +220,7 @@ BUILTIN_ICON_URLS = {
 }
 
 
-class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
+class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, RareGearTab):
     def __init__(self):
         super().__init__()
         log_info(f"PickitApp init (v{VERSION})")
@@ -353,6 +354,13 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
         self._craftbase_canvas    = None
         self._craftbase_frame     = None
 
+        # Rare Gear tab state (computed-value floors per equipment slot)
+        self._rare_gear           = dict(self.cfg.get("rare_gear", {}))
+        self._rare_gear_magic     = bool(self.cfg.get("rare_gear_magic", True))  # also match Magic
+        self._rare_gear_vars      = {}
+        self._rare_gear_count_var = tk.StringVar(value="")
+        self._raregear_canvas     = None
+
         # Sidebar badge labels {cat_key: tk.Label}
         self._cat_sidebar_badges: dict = {}
 
@@ -442,12 +450,13 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             self._build_categories_page,
             self._build_chance_page,
             self._build_craftbase_page,
+            self._build_raregear_page,
             self._build_preview_page,
             self._build_history_page,
             self._build_settings_page,
             self._build_debug_page,
         ]
-        _eager = {0, 1, 4, 5}   # Generate, Items, Preview, History
+        _eager = {0, 1, 5, 6}   # Generate, Items, Preview, History
         self._pages = []
         self._tab_built = []
         for i, builder in enumerate(self._tab_builders):
@@ -3303,6 +3312,8 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
             "base_quality":    self.base_quality_var.get(),
             "base_min_level":  self.base_min_level_var.get(),
             "item_states":     dict(self._item_states),
+            "rare_gear":       dict(self._rare_gear),
+            "rare_gear_magic": self._rare_gear_magic,
         }
         # Make the Craft Bases tab authoritative: bake the ilvl each craft card is
         # actually showing into the snapshot as a per-base override, so the .ipd
@@ -3504,6 +3515,15 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab):
                 output_lines.append("")
                 output_lines.extend(_craftbase_lines)
                 self._log(f"  ✓ Craft bases: {_cb_count} Normal ilvl-{_craft_ilvl}+ rules", "ok")
+
+            # ── Rare gear (pick up rares scored by computed values) ───────────
+            _rare_lines = asm.build_rare_gear_rules(snapshot)
+            if _rare_lines:
+                output_lines.append("")
+                output_lines.append("")
+                output_lines.append(gen.header_sub("Rare Gear (by stats)"))
+                output_lines.extend(_rare_lines)
+                self._log(f"  ✓ Rare gear: {len(_rare_lines)} slot rule(s)", "ok")
 
             # ── Base types (optional) ─────────────────────────────────────────
             if snapshot.get("include_bases"):

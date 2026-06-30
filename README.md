@@ -122,6 +122,10 @@ Everything is picked by default — use the **Items** tab to exclude what you do
 
 ## 🆕 What's New
 
+**v2.6.17**
+- 🛡️ **New Rare Gear tab** — automatically keep rares **and** magic items worth picking, scored by their mods (the bot's **WeightedSum**). 13 slots (armour, jewellery, weapons) come pre-loaded with the bot's own mod-weight presets — just tick a slot and tune **one number** (its score threshold). Hover the **ⓘ** on any slot to see exactly what it scores. Everything is **off by default**.
+- 📦 **Slightly smaller download** — the build now drops unused modules.
+
 **v2.6.16**
 - 🤖 **New app icon** — the ExileBot mascot is now the application icon: the downloaded `.exe`'s icon in Explorer, plus the window's titlebar and taskbar icon.
 - ⚡ **Snappier Items tab** — item cards now load in the background in small batches instead of all at once, so opening a big category no longer briefly freezes the app. No visual change.

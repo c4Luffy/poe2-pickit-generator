@@ -72,6 +72,51 @@ ALL_CATEGORIES = EXCHANGE_CATEGORIES + UNIQUE_CATEGORIES
 #   • Currency: picked by selection, never value-filtered.
 PICK_ALL_CATEGORIES = {"lineage_support_gems", "currency"}
 
+# ── Rare Gear: pick up rares/magic by WeightedSum mod scoring ──────────────────
+# Each enabled slot emits one rule of the bot's verified shape:
+#   <selector> && [Rarity] == "Rare" # [WeightedSum(stat:wt,...)] >= "N" && [StashItem] == "true"
+# The mod:weight presets below are extracted from the bot's OWN default pickit
+# (Configuration/default/Pickit/*.ipd), so a base of any defence type — incl. the
+# str/dex/int hybrids — scores on whatever mods it rolled. One rule per slot.
+# (category_token, display_name, selector_kind)  selector_kind: "Category" | "WeaponCategory"
+RARE_GEAR_SLOTS = [
+    ("BodyArmour", "Body Armour", "Category"),
+    ("Helmet",     "Helmet",      "Category"),
+    ("Gloves",     "Gloves",      "Category"),
+    ("Boots",      "Boots",       "Category"),
+    ("Belt",       "Belt",        "Category"),
+    ("Amulet",     "Amulet",      "Category"),
+    ("Ring",       "Ring",        "Category"),
+    ("Jewel",      "Jewel",       "Category"),
+    ("Wand",       "Wand",        "WeaponCategory"),
+    ("Sceptre",    "Sceptre",     "WeaponCategory"),
+    ("Focus",      "Focus",       "WeaponCategory"),
+    ("Quiver",     "Quiver",      "WeaponCategory"),
+    ("Shield",     "Shield",      "WeaponCategory"),
+]
+
+# token -> (default_threshold, [(stat_id, weight), ...]) — from the bot's own pickit.
+WEIGHTED_SUM_PRESETS = {
+    "BodyArmour": (445, [('base_maximum_life', 1), ('base_fire_damage_resistance_%', 1), ('base_lightning_damage_resistance_%', 1), ('base_cold_damage_resistance_%', 1), ('additional_dexterity', 1), ('local_evasion_rating_+%', 0.5), ('local_base_evasion_rating', 0.3), ('base_spirit_from_equipment', 1.5), ('base_deflection_rating_%_of_evasion_rating', 3.5)]),
+    "Helmet": (300, [('local_base_evasion_rating', 0.2), ('local_evasion_rating_+%', 0.5), ('local_base_physical_damage_reduction_rating', 0.2), ('local_physical_damage_reduction_rating_+%', 0.5), ('local_evasion_and_energy_shield_+%', 0.5), ('base_maximum_life', 1), ('additional_strength', 1.5), ('additional_dexterity', 1.5), ('base_fire_damage_resistance_%', 2), ('base_lightning_damage_resistance_%', 2), ('base_chaos_damage_resistance_%', 3.5), ('base_cold_damage_resistance_%', 2), ('additional_intelligence', 1.5), ('base_maximum_mana', 0.1), ('critical_strike_chance_+%', 2), ('base_item_found_rarity_+%', 2), ('base_deflection_rating_%_of_evasion_rating', 2), ('armour_%_applies_to_fire_cold_lightning_damage', 2)]),
+    "Gloves": (284, [('attack_maximum_added_physical_damage', 6.2), ('attack_maximum_added_cold_damage', 5.35), ('attack_maximum_added_fire_damage', 4.4), ('attack_maximum_added_lightning_damage', 2.78), ('base_cold_damage_resistance_%', 1), ('base_fire_damage_resistance_%', 1), ('base_lightning_damage_resistance_%', 1), ('base_chaos_damage_resistance_%', 1.4), ('base_maximum_life', 1), ('base_item_found_rarity_+%', 2), ('attack_speed_+%', 12.5), ('melee_skill_gem_level_+', 90), ('base_critical_strike_multiplier_+', 5.8), ('base_deflection_rating_%_of_evasion_rating', 5), ('armour_%_applies_to_fire_cold_lightning_damage', 1.8)]),
+    "Boots": (281, [('base_chaos_damage_resistance_%', 4.5), ('base_movement_velocity_+%', 8), ('base_cold_damage_resistance_%', 2), ('base_fire_damage_resistance_%', 2), ('base_lightning_damage_resistance_%', 2), ('base_maximum_mana', 0.25), ('additional_intelligence', 1.8), ('additional_strength', 1.8), ('additional_dexterity', 1.8), ('base_item_found_rarity_+%', 2.5), ('base_maximum_life', 1), ('base_deflection_rating_%_of_evasion_rating', 2), ('armour_%_applies_to_fire_cold_lightning_damage', 1)]),
+    "Belt": (220, [('base_maximum_mana', 1), ('mana_regeneration_rate_+%', 1), ('local_base_physical_damage_reduction_rating', 0.1), ('base_cold_damage_resistance_%', 2), ('base_lightning_damage_resistance_%', 2), ('base_fire_damage_resistance_%', 2), ('base_resist_all_elements_%', 6), ('base_chaos_damage_resistance_%', 3.5)]),
+    "Amulet": (125, [('base_item_found_rarity_+%', 3), ('additional_all_attributes', 2), ('additional_intelligence', 2), ('additional_dexterity', 0.5), ('additional_strength', 0.5), ('base_maximum_energy_shield', 0.8), ('maximum_energy_shield_+%', 0.8), ('base_spirit_from_equipment', 3.78), ('minion_skill_gem_level_+', 150), ('base_maximum_mana', 1), ('base_fire_damage_resistance_%', 2), ('base_lightning_damage_resistance_%', 2), ('base_cold_damage_resistance_%', 2), ('base_chaos_damage_resistance_%', 3), ('base_cast_speed_+%', 4), ('mana_regeneration_rate_+%', 2.4), ('maximum_mana_+%', 25), ('base_resist_all_elements_%', 6), ('spell_skill_gem_level_+', 150), ('projectile_skill_gem_level_+', 150), ('spell_damage_+%', 1.5), ('damage_taken_goes_to_mana_%', 3)]),
+    "Ring": (320, [('base_maximum_life', 1), ('attack_minimum_added_physical_damage', 6.84), ('attack_maximum_added_cold_damage', 5.9), ('attack_maximum_added_fire_damage', 4.86), ('attack_maximum_added_lightning_damage', 3.08), ('additional_intelligence', 6.63), ('additional_strength', 6.63), ('additional_dexterity', 6.63), ('additional_all_attributes', 19.89), ('base_fire_damage_resistance_%', 2.92), ('base_chaos_damage_resistance_%', 5.47), ('base_cold_damage_resistance_%', 2.92), ('base_lightning_damage_resistance_%', 2.92), ('base_resist_all_elements_%', 8.76), ('base_item_found_rarity_+%', 2.4), ('accuracy_rating', 0.6)]),
+    "Jewel": (33, [('shock_effect_+%', 2), ('ailment_effect_+%', 2), ('maximum_energy_shield_+%', 2), ('projectile_speed_+%', 2.5), ('triggered_spell_spell_damage_+%', 1), ('projectile_damage_+%', 2), ('elemental_damage_+%', 2), ('lightning_damage_+%', 2), ('spell_damage_+%', 2), ('energy_shield_recharge_rate_+%', 0.5), ('energy_shield_delay_-%', 0.5)]),
+    "Wand": (800, [('spell_damage_+%', 3), ('lightning_damage_+%', 3), ('base_cast_speed_+%', 7), ('spell_critical_strike_chance_+%', 3), ('base_spell_critical_strike_multiplier_+', 2.5), ('mana_regeneration_rate_+%', 1.8), ('additional_intelligence', 2), ('base_maximum_mana', 1), ('non_skill_base_all_damage_%_to_gain_as_lightning', 3), ('non_skill_base_all_damage_%_to_gain_as_fire', 2), ('non_skill_base_all_damage_%_to_gain_as_cold', 2), ('lightning_spell_skill_gem_level_+', 150)]),
+    "Sceptre": (360, [('allies_in_presence_cast_speed_+%', 3), ('allies_in_presence_critical_strike_chance_+%', 4), ('allies_in_presence_critical_strike_multiplier_+', 4), ('allies_in_presence_attack_speed_+%', 3), ('minion_skill_gem_level_+', 55), ('minion_maximum_life_+%', 2)]),
+    "Focus": (350, [('base_spell_critical_strike_multiplier_+', 3), ('spell_critical_strike_chance_+%', 3), ('base_cast_speed_+%', 7), ('mana_regeneration_rate_+%', 2.5), ('base_maximum_mana', 1), ('spell_damage_+%', 3), ('lightning_damage_+%', 3), ('fire_damage_+%', 0.5), ('cold_damage_+%', 0.5), ('additional_intelligence', 2)]),
+    "Quiver": (70, [('attack_speed_+%', 3), ('accuracy_rating', 0.04), ('base_projectile_speed_+%', 0.5), ('additional_dexterity', 0.2), ('attack_critical_strike_chance_+%', 1), ('attack_critical_strike_multiplier_+', 0.7), ('damage_+%_with_bow_skills', 1.2)]),
+    "Shield": (260, [('local_block_chance_+%', 0.2), ('base_physical_damage_reduction_rating', 0.3), ('local_physical_damage_reduction_rating_+%', 0.2), ('local_armour_and_energy_shield_+%', 0.2), ('local_armour_and_evasion_+%', 0.2), ('base_maximum_life', 1), ('base_fire_damage_resistance_%', 2), ('base_cold_damage_resistance_%', 2), ('base_lightning_damage_resistance_%', 2), ('base_maximum_cold_damage_resistance_%', 15), ('base_maximum_fire_damage_resistance_%', 15), ('base_maximum_lightning_damage_resistance_%', 15), ('base_resist_all_elements_%', 6)]),
+}
+
+# Selector clause for a slot token, e.g. '[Category] == "BodyArmour"'.
+def rare_gear_selector(token: str) -> str:
+    kind = next((k for t, _d, k in RARE_GEAR_SLOTS if t == token), "Category")
+    return f'[{kind}] == "{token}"'
+
 # poe.ninja sometimes returns names that don't match in-game base types.
 # Map the poe.ninja name → correct in-game name here.
 ITEM_NAME_CORRECTIONS: dict = {
