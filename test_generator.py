@@ -305,17 +305,23 @@ def test_new_bases_generate_gear_rules():
 
 # ── Round 3: version sync, requirements, craft base loot filter ───────────────
 
-def test_version_file_matches_gui():
-    """version.txt and GUI VERSION constant must match."""
+def test_version_file_not_ahead_of_gui():
+    """version.txt tracks the latest *published release*, so it may lag the GUI
+    VERSION while unreleased work sits on main — but it must never run ahead.
+    (release.yml enforces exact tag == version.txt == VERSION at release time.)"""
     import re
+
+    def vt(v):
+        return tuple(int(x) for x in v.strip().lstrip("v").split("."))
+
     with open("version.txt", encoding="utf-8") as f:
         ver_file = f.read().strip()
     with open("poe2_pickit_gui.py", encoding="utf-8") as f:
         gui = f.read()
     m = re.search(r'VERSION\s*=\s*"([^"]+)"', gui)
     assert m, "VERSION constant not found in poe2_pickit_gui.py"
-    assert ver_file == m.group(1), (
-        f"version.txt={ver_file!r} but GUI VERSION={m.group(1)!r}"
+    assert vt(ver_file) <= vt(m.group(1)), (
+        f"version.txt={ver_file!r} is AHEAD of GUI VERSION={m.group(1)!r}"
     )
 
 

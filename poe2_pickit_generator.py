@@ -95,6 +95,21 @@ RARE_GEAR_SLOTS = [
     ("Shield",     "Shield",      "WeaponCategory"),
 ]
 
+# The bot's own thresholds above are hoover-tier lenient (written for a bot that
+# sells everything it grabs). To keep only genuinely good gear, the GUI offers
+# one-click strictness presets that bulk-set every slot's threshold to
+# default × factor. "Strict" is the recommended anti-clutter setting.
+RARE_GEAR_STRICTNESS = [
+    ("Loose",       0.75),
+    ("Bot default", 1.0),
+    ("Strict",      1.5),
+    ("Very strict", 2.0),
+]
+
+# Rares below this item level are campaign junk — don't stash them. [ItemLevel]
+# is only readable after identify, so this is enforced post-# (see assembly).
+RARE_GEAR_MIN_ILVL_DEFAULT = 65
+
 # token -> (default_threshold, [(stat_id, weight), ...]) — from the bot's own pickit.
 WEIGHTED_SUM_PRESETS = {
     "BodyArmour": (445, [('base_maximum_life', 1), ('base_fire_damage_resistance_%', 1), ('base_lightning_damage_resistance_%', 1), ('base_cold_damage_resistance_%', 1), ('additional_dexterity', 1), ('local_evasion_rating_+%', 0.5), ('local_base_evasion_rating', 0.3), ('base_spirit_from_equipment', 1.5), ('base_deflection_rating_%_of_evasion_rating', 3.5)]),
@@ -116,6 +131,16 @@ WEIGHTED_SUM_PRESETS = {
 def rare_gear_selector(token: str) -> str:
     kind = next((k for t, _d, k in RARE_GEAR_SLOTS if t == token), "Category")
     return f'[{kind}] == "{token}"'
+
+
+def cfg_int(d: dict, key: str, default: int) -> int:
+    """Non-negative int from a config/snapshot dict; bad/missing → default.
+    Single canonical copy — ui_common and pickit_assembly alias this."""
+    try:
+        v = int(float(d.get(key, default)))
+    except (TypeError, ValueError):
+        v = default
+    return max(0, v)
 
 # poe.ninja sometimes returns names that don't match in-game base types.
 # Map the poe.ninja name → correct in-game name here.

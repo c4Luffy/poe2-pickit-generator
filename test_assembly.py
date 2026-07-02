@@ -146,12 +146,12 @@ def test_rare_gear_empty_by_default():
 
 
 def test_rare_gear_enabled_slot_uses_preset_and_threshold():
-    # Magic included by default; custom threshold honored; uses the BodyArmour preset.
+    # Rare-only by default; custom threshold honored; uses the BodyArmour preset.
     snap = {"rare_gear": {"BodyArmour": {"enabled": True, "threshold": 400}}}
     lines = asm.build_rare_gear_rules(snap)
     assert len(lines) == 1
     rule = lines[0]
-    assert rule.startswith('[Category] == "BodyArmour" && ([Rarity] == "Rare" || [Rarity] == "Magic") #')
+    assert rule.startswith('[Category] == "BodyArmour" && [Rarity] == "Rare" #')
     assert '[WeightedSum(' in rule and '>= "400"' in rule and rule.endswith('[StashItem] == "true"')
     # WeightedSum reads identified mods → after the #; uses real preset mods.
     before, after = rule.split("#", 1)
@@ -172,11 +172,303 @@ def test_rare_gear_weapon_uses_weaponcategory_selector():
     assert rule.startswith('[WeaponCategory] == "Shield"')
 
 
-def test_rare_gear_rare_only_when_magic_off():
-    snap = {"rare_gear_magic": False,
+def test_rare_gear_rare_only_by_default():
+    # Magic is opt-in: absent OR explicit False → Rare-only rule.
+    for snap in ({"rare_gear": {"Ring": {"enabled": True, "threshold": 320}}},
+                 {"rare_gear_magic": False,
+                  "rare_gear": {"Ring": {"enabled": True, "threshold": 320}}}):
+        rule = asm.build_rare_gear_rules(snap)[0]
+        assert '[Rarity] == "Rare"' in rule and "Magic" not in rule
+
+
+def test_rare_gear_magic_included_when_enabled():
+    snap = {"rare_gear_magic": True,
             "rare_gear": {"Ring": {"enabled": True, "threshold": 320}}}
     rule = asm.build_rare_gear_rules(snap)[0]
-    assert '[Rarity] == "Rare"' in rule and "Magic" not in rule
+    assert '([Rarity] == "Rare" || [Rarity] == "Magic")' in rule
+
+
+def test_rare_gear_min_ilvl_default_post_hash():
+    # Default gate: [ItemLevel] >= "65" — after the # (ilvl reads post-identify).
+    snap = {"rare_gear": {"Helmet": {"enabled": True}}}
+    rule = asm.build_rare_gear_rules(snap)[0]
+    before, after = rule.split("#", 1)
+    assert "[ItemLevel]" not in before
+    assert f'[ItemLevel] >= "{gen.RARE_GEAR_MIN_ILVL_DEFAULT}"' in after
+
+
+def test_rare_gear_min_ilvl_custom_and_off():
+    base = {"rare_gear": {"Helmet": {"enabled": True}}}
+    rule = asm.build_rare_gear_rules({**base, "rare_gear_min_ilvl": 79})[0]
+    assert '[ItemLevel] >= "79"' in rule
+    rule = asm.build_rare_gear_rules({**base, "rare_gear_min_ilvl": 0})[0]
+    assert "[ItemLevel]" not in rule
+
+
+def test_rare_gear_min_tier_pre_hash_and_jewel_exempt():
+    snap = {"rare_gear_min_tier": 3,
+            "rare_gear": {"Boots": {"enabled": True}, "Jewel": {"enabled": True}}}
+    rules = asm.build_rare_gear_rules(snap)
+    boots = next(r for r in rules if '"Boots"' in r)
+    jewel = next(r for r in rules if '"Jewel"' in r)
+    assert '[ItemTier] >= "3"' in boots.split("#", 1)[0]   # pre-# → gates pickup
+    assert "[ItemTier]" not in jewel                        # jewels have no base tier
+    # 0 / bad value → no tier clause
+    for off in (0, "abc"):
+        rule = asm.build_rare_gear_rules(
+            {"rare_gear_min_tier": off,
+             "rare_gear": {"Boots": {"enabled": True}}})[0]
+        assert "[ItemTier]" not in rule
+
+
+def test_rare_gear_bad_min_ilvl_falls_back_to_default():
+    snap = {"rare_gear_min_ilvl": "abc",
+            "rare_gear": {"Helmet": {"enabled": True}}}
+    rule = asm.build_rare_gear_rules(snap)[0]
+    assert f'[ItemLevel] >= "{gen.RARE_GEAR_MIN_ILVL_DEFAULT}"' in rule
+
+
+# ── build_rare_gear_pro_rules (Per-base mode) ─────────────────────────────────
+
+import rare_gear_catalog as rgc
+import rare_gear_templates as rgt
+
+
+def _pro_snap(sections=None, jewels=None):
+    return {"rare_gear_pro": {"sections": sections or {}, "jewels": jewels or {}}}
+
+
+def test_pro_empty_by_default():
+    assert asm.build_rare_gear_pro_rules({}) == []
+    assert asm.build_rare_gear_pro_rules(_pro_snap()) == []
+
+
+def test_pro_section_emits_one_full_rule_per_base():
+    key = asm.pro_section_key("Boots", "armour_es", "high")
+    lines = asm.build_rare_gear_pro_rules(_pro_snap({key: {"on": True, "thr": 480, "ps": False}}))
+    bases = rgc.CATALOG["Boots"]["armour_es"]["high"]
+    rules = [l for l in lines if l.startswith("[Type]")]
+    assert len(rules) == len(bases) and len(bases) >= 4
+    assert "Faithful Leggings" in " ".join(rules)
+    for r in rules:
+        assert '[ItemTier] >= "2"' in r          # high-bracket default tier gate
+        assert '[Rarity] == "Rare"' in r
+        assert '>= "480"' in r and r.endswith('[StashItem] == "true"')
+        assert "local_energy_shield" in r        # ES combo scores ES mods
+        # WeightedSum after the #, selector before it
+        before, after = r.split("#", 1)
+        assert "WeightedSum" not in before and "WeightedSum" in after
+
+
+def test_pro_prefix_suffix_rules_derived():
+    key = asm.pro_section_key("Boots", "armour_es", "high")
+    lines = asm.build_rare_gear_pro_rules(_pro_snap({key: {"on": True, "thr": 480}}))  # ps defaults on
+    n_bases = len(rgc.CATALOG["Boots"]["armour_es"]["high"])
+    assert "//PREFIXES" in lines and "//SUFFIXES" in lines
+    assert sum(1 for l in lines if l.startswith("[Type]")) == n_bases * 3
+    assert any('>= "290"' in l for l in lines)   # 480*0.60=288 → 290
+    assert any('>= "265"' in l for l in lines)   # 480*0.55=264 → 265
+
+
+def test_pro_magic_rule_when_enabled():
+    key = asm.pro_section_key("Boots", "evasion", "high")
+    lines = asm.build_rare_gear_pro_rules(
+        _pro_snap({key: {"on": True, "ps": False, "magic": True}}))
+    magic = [l for l in lines if '[Rarity] == "Magic"' in l]
+    assert magic and all("base_movement_velocity_+%" in l and '>= "87"' in l for l in magic)
+
+
+def test_pro_no_ps_split_for_preset_families():
+    key = asm.pro_section_key("Staves", "all", "high")
+    lines = asm.build_rare_gear_pro_rules(_pro_snap({key: {"on": True, "ps": True}}))
+    assert "//PREFIXES" not in lines             # staff template has no P/S split
+    assert any(l.startswith("[Type]") for l in lines)
+
+
+def test_pro_jewel_archetype_and_single():
+    lines = asm.build_rare_gear_pro_rules(_pro_snap(jewels={
+        "caster": {"on": True, "thr": 20},
+        "movespeed": {"on": True},
+    }))
+    caster = [l for l in lines if "maximum_energy_shield_+%" in l]
+    assert len(caster) == 1
+    assert caster[0].count("WeightedSum") == 2 and caster[0].count('>= "20"') == 2
+    assert '[Rarity] == "Magic"' in caster[0]
+    singles = [l for l in lines if "[base_movement_velocity_+%]" in l]
+    assert len(singles) == 2                     # Magic + Rare
+    assert all('>= "1"' in l for l in singles)
+
+
+def test_pro_disabled_and_unknown_sections_ignored():
+    key = asm.pro_section_key("Boots", "armour", "high")
+    assert asm.build_rare_gear_pro_rules(_pro_snap({key: {"on": False}})) == []
+    assert asm.build_rare_gear_pro_rules(_pro_snap({"Nope|x|high": {"on": True}})) == []
+
+
+def test_pro_catalog_covers_all_template_families():
+    # Every catalog family must resolve to a template for at least one combo.
+    for family, groups in rgc.CATALOG.items():
+        assert any(rgt.get_template(family, c) for c in groups), family
+
+
+def test_pro_catalog_no_name_in_multiple_brackets():
+    # [Type] matches by display name only; a name straddling brackets would let
+    # a looser low/mid rule override the user's stricter endgame tuning.
+    for family, groups in rgc.CATALOG.items():
+        for combo, brackets in groups.items():
+            seen = set()
+            for br in ("low", "mid", "high"):
+                for name in brackets.get(br, []):
+                    assert name not in seen, (family, combo, br, name)
+                    seen.add(name)
+
+
+def test_pro_magic_fallback_for_families_without_single_mod_rule():
+    key = asm.pro_section_key("Gloves", "armour", "high")
+    lines = asm.build_rare_gear_pro_rules(
+        _pro_snap({key: {"on": True, "thr": 420, "ps": False, "magic": True}}))
+    magic = [l for l in lines if '[Rarity] == "Magic"' in l]
+    assert magic and all('>= "170"' in l for l in magic)   # 420*0.40=168 → 170
+
+
+def test_pro_body_armour_uses_transcribed_weights_and_ratios():
+    key = asm.pro_section_key("BodyArmours", "es", "high")
+    lines = asm.build_rare_gear_pro_rules(_pro_snap({key: {"on": True}}))
+    full = next(l for l in lines if l.startswith("[Type]"))
+    assert "local_energy_shield:1.04" in full and '>= "390"' in full
+    assert any('>= "195"' in l for l in lines)   # explicit prefix threshold
+    assert any('>= "255"' in l for l in lines)   # explicit suffix threshold
+
+
+def test_pro_amulet_archetype_rules():
+    lines = asm.build_rare_gear_pro_rules(
+        _pro_snap() | {"rare_gear_pro": {"amulets": {"es_caster": {"on": True},
+                                                     "magic": {"on": True}}}})
+    full = [l for l in lines if l.startswith("[Type]") and '"Rare"' in l
+            and "maximum_mana_+%" in l]
+    assert len(full) == len(rgc.AMULET_BASES) and all('>= "390"' in l for l in full)
+    assert "//PREFIXES" in lines and "//SUFFIXES" in lines
+    gems = [l for l in lines if '"Magic"' in l and "spell_skill_gem_level" in l]
+    assert len(gems) == len(rgc.AMULET_BASES) and all('>= "70"' in l for l in gems)
+    assert any('[Category] == "Amulet"' in l and '[base_item_found_rarity_+%] >= "50"' in l
+               for l in lines)
+
+
+def test_pro_belt_rules():
+    lines = asm.build_rare_gear_pro_rules(
+        {"rare_gear_pro": {"belts": {"on": True, "magic": True}}})
+    assert sum(1 for l in lines if '>= "300"' in l) == len(rgc.BELT_BASES)   # prefixes
+    assert sum(1 for l in lines if '>= "210"' in l) == len(rgc.BELT_BASES)   # suffixes
+    assert sum(1 for l in lines if '>= "180"' in l) == len(rgc.BELT_BASES)   # magic
+
+
+def test_pro_ring_archetypes_legacy_master_switch():
+    # Old configs: single on/off means "every archetype at preset thresholds".
+    lines = asm.build_rare_gear_pro_rules(
+        {"rare_gear_pro": {"rings": {"on": True, "magic": True}}})
+    rare = [l for l in lines if l.startswith("[Type]") and '"Rare"' in l]
+    assert len(rare) == len(rgt.RING_ARCHETYPES) * len(rgc.RING_BASES)
+    assert any('>= "426"' in l for l in rare)          # caster archetype threshold
+    magic = [l for l in lines if l.startswith("[Type]") and '"Magic"' in l]
+    assert len(magic) == len(rgc.RING_BASES) and all('>= "180"' in l for l in magic)
+    assert sum(1 for l in lines if '[Category] == "Ring"' in l
+               and '[base_item_found_rarity_+%] >= "50"' in l) == 2
+
+
+def test_pro_ring_archetypes_individual_selection():
+    # New configs: per-archetype on/off with an editable threshold each.
+    lines = asm.build_rare_gear_pro_rules(
+        {"rare_gear_pro": {"rings": {"on": True, "magic": False, "archetypes": {
+            "caster": {"on": True, "thr": 500},
+            "melee": {"on": False, "thr": 360},
+        }}}})
+    rules = [l for l in lines if l.startswith("[Type]")]
+    assert len(rules) == len(rgc.RING_BASES)           # only the caster archetype
+    assert all('>= "500"' in l and '"Rare"' in l for l in rules)
+    assert not any('"Magic"' in l for l in lines)
+    # magic works without any archetype enabled
+    lines = asm.build_rare_gear_pro_rules(
+        {"rare_gear_pro": {"rings": {"magic": True, "archetypes": {}}}})
+    assert sum(1 for l in lines if '"Magic"' in l) == len(rgc.RING_BASES) + 1
+
+
+def test_pro_jewel_multi_rarity_archetype():
+    lines = asm.build_rare_gear_pro_rules(
+        {"rare_gear_pro": {"jewels": {"minions": {"on": True}}}})
+    assert sum(1 for l in lines if '[Rarity] == "Rare"' in l) == 1
+    assert sum(1 for l in lines if '[Rarity] == "Magic"' in l) == 1
+    assert all("minion_damage_+%" in l for l in lines if l.startswith("[Category]"))
+
+
+def test_pro_shield_block_gate_and_weights():
+    # Shields and bucklers share the block-gated pool from the user's pickit.
+    for family in ("Shields", "Bucklers"):
+        combo = next(c for c, b in rgc.CATALOG[family].items() if b.get("high"))
+        key = asm.pro_section_key(family, combo, "high")
+        lines = asm.build_rare_gear_pro_rules(_pro_snap({key: {"on": True}}))
+        rules = [l for l in lines if l.startswith("[Type]")]
+        assert rules, family
+        for r in rules:
+            assert '[ItemTier] >= "3"' in r                       # his endgame tier
+            assert '# [local_block_chance_+%] >= "1" && [WeightedSum(' in r
+            assert "local_block_chance_+%:0.2" in r
+            assert "base_maximum_cold_damage_resistance_%:15" in r
+            assert '>= "260"' in r
+        assert "//PREFIXES" not in lines                          # no P/S split
+
+
+def test_pro_shield_magic_fallback_keeps_gate():
+    combo = next(c for c, b in rgc.CATALOG["Shields"].items() if b.get("high"))
+    key = asm.pro_section_key("Shields", combo, "high")
+    lines = asm.build_rare_gear_pro_rules(_pro_snap({key: {"on": True, "magic": True}}))
+    magic = [l for l in lines if '[Rarity] == "Magic"' in l]
+    assert magic                                                  # 260*0.40=104 → 105
+    assert all('[local_block_chance_+%] >= "1"' in l and '>= "105"' in l for l in magic)
+
+
+def test_pro_jewel_bow_endgame_dual_thresholds():
+    lines = asm.build_rare_gear_pro_rules(
+        {"rare_gear_pro": {"jewels": {"bow_endgame": {"on": True}}}})
+    rules = [l for l in lines if l.startswith("[Category]")]
+    assert len(rules) == 2                                        # Rare + Magic
+    for r in rules:
+        assert '>= "34"' in r and '>= "33"' in r                  # 34/33 pair
+        assert "base_reduce_enemy_lightning_resistance_%:3.5" in r
+        assert "base_chance_to_pierce_%:2" in r
+
+
+def test_pro_jewel_es_chaos_archetype():
+    lines = asm.build_rare_gear_pro_rules(
+        {"rare_gear_pro": {"jewels": {"es_chaos": {"on": True}}}})
+    rules = [l for l in lines if l.startswith("[Category]")]
+    assert len(rules) == 2
+    assert all("chaos_damage_+%:2" in l and l.count('>= "35"') == 2 for l in rules)
+
+
+def test_pro_expert_rules_verbatim():
+    text = ('// my focus ladder\n'
+            '[WeaponCategory] == "Focus" && [ItemTier] >= "5" && [Rarity] == "Rare" # '
+            '[WeightedSum(base_maximum_mana:1,spell_damage_+%:2)] >= "420" && '
+            '[StashItem] == "true"\n'
+            '\n'
+            '[WeaponCategory] == "Spear" && [ItemTier] >= "4" && [Rarity] == "Rare" # '
+            '[PhysicalDPS] >= "350" && [StashItem] == "true"\n')
+    lines = asm.build_rare_gear_pro_rules(
+        {"rare_gear_pro": {"expert": {"on": True, "text": text}}})
+    assert "// my focus ladder" in lines
+    # every non-blank input line survives byte-for-byte, in order
+    body = [l for l in text.splitlines()]
+    idx = lines.index("// my focus ladder")
+    assert lines[idx:idx + len(body)] == [l.rstrip() for l in body]
+
+
+def test_pro_expert_rules_off_or_empty():
+    assert asm.build_rare_gear_pro_rules(
+        {"rare_gear_pro": {"expert": {"on": False, "text": '[X] # [Y]'}}}) == []
+    assert asm.build_rare_gear_pro_rules(
+        {"rare_gear_pro": {"expert": {"on": True, "text": "  \n\n"}}}) == []
+    assert asm.build_rare_gear_pro_rules(
+        {"rare_gear_pro": {"expert": "nonsense"}}) == []
 
 
 def test_rare_gear_disabled_slot_omitted():
@@ -217,6 +509,15 @@ def test_build_weighted_sum_rule_include_magic():
     rule = asm.build_weighted_sum_rule('[Category] == "Ring"',
                                        [("base_maximum_life", 1)], 100, include_magic=True)
     assert '([Rarity] == "Rare" || [Rarity] == "Magic")' in rule
+
+
+def test_build_weighted_sum_rule_min_ilvl():
+    rule = asm.build_weighted_sum_rule('[Category] == "Ring"',
+                                       [("base_maximum_life", 1)], 100, min_ilvl=65)
+    assert rule == (
+        '[Category] == "Ring" && [Rarity] == "Rare" '
+        '# [ItemLevel] >= "65" && [WeightedSum(base_maximum_life:1)] >= "100" '
+        '&& [StashItem] == "true"')
 
 
 # ── top_items_from_lines ─────────────────────────────────────────────────────

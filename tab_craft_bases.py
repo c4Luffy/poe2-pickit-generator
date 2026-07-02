@@ -118,7 +118,7 @@ class CraftBasesTab:
         var.set(str(val))
         states = self._item_states.setdefault("_craftbase", {})
         states.setdefault(name, {})["ilvl"] = val
-        self.after(0, self._save_states_now)
+        self._save_states_soon()
 
     def _make_craftbase_card(self, name, enabled, parent):
         bg  = _CON  if enabled else _COFF
@@ -207,7 +207,7 @@ class CraftBasesTab:
         frame._dot_lbl.config(bg=bg, text="" if enabled else "✗")
 
         self._update_craftbase_count()
-        self.after(0, self._save_states_now)
+        self._save_states_soon()
 
     def _craftbase_set_all(self, enabled_val):
         states = self._item_states.setdefault("_craftbase", {})
@@ -222,7 +222,7 @@ class CraftBasesTab:
                 for name in names:
                     states.setdefault(name, {})["enabled"] = False
         self._populate_craftbase_grid()
-        self.after(0, self._save_states_now)
+        self._save_states_soon()
 
     def _update_craftbase_count(self):
         enabled = sum(1 for c in self._craftbase_cards if c._enabled)

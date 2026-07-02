@@ -27,6 +27,8 @@ Builds an `.ipd` pickit **and** a matching in-game `.filter` on every run, using
 - 🧰 **Two outputs, every run** — the bot `.ipd` *and* a matching in-game `.filter`
 - 🖱️ **Click to exclude** — toggle any item on/off from a searchable card grid
 - 💎 **Chance & Craft bases** — curated Orb-of-Chance targets, plus the best blank craft bases with a **per-base item level** you set yourself
+- 🛡️ **Rare Gear by mods** — keep rares scored by the bot's **WeightedSum**, with one-click **strictness presets** and junk gates (min item level / min base tier) so your stash only gets the good stuff
+- 🧬 **Per-base Rare Gear (Pro)** — hand-written-pickit quality, generated: one rule **per base type**, split by slot × defence type × Low/Mid/High base bracket, with auto prefix/suffix rules and jewel build archetypes — 765 bases across 18 gear families
 - 👤 **Profiles** — save setups like *Farmer* / *Boss runner* and switch instantly
 - 🔄 **Auto-everything** — hourly background regen, auto-copy to bot/game folders, and self-updating
 - 📦 **Offline-safe** — caches prices so it still works when poe.ninja is down
@@ -121,6 +123,25 @@ Everything is picked by default — use the **Items** tab to exclude what you do
 ---
 
 ## 🆕 What's New
+
+**v2.6.18**
+- 🧬 **New Per-base mode on the Rare Gear tab** — a *Simple / Per-base* switch at the top:
+  - **Per-base** generates one rule per base type (like a hand-tuned community pickit): every slot splits by **defence type** (Armour / Evasion / ES / hybrids) and by base bracket — **Low** (campaign), **Mid** (cruel), **High** (endgame) — 764 bases across 18 gear families, including **all weapons** (bows, crossbows, quarterstaffs, maces, spears, flails, wands, sceptres, staves, foci, quivers, shields, bucklers).
+  - Tick a bracket and tune **one number**; **P/S** also emits prefix-only and suffix-only rules at 60% / 55% of it (catches items with one great half). Optional single-mod **Magic** pickups (movement-speed boots, high phys% bows…).
+  - **Jewellery too**: Amulets get five build archetypes (ES caster, stat stacker, blood magic, life caster, projectile) over all 16 bases; Belts get per-base prefix/suffix rules; Rings get **ten build archetypes, each with its own tunable threshold**.
+  - **Bulk controls** — *Enable all High (endgame)* ticks every slot's endgame bracket in one click (the usual map-farming setup); *Disable all* resets the whole mode. The counter shows the **exact number of rules** your current selection will generate.
+  - **Shields & bucklers** use the community pickit's block-gated scoring — a rule only keeps a shield that actually rolled **% block chance**, then scores block / phys reduction / hybrid defences / life / resists / max-res in one weighted sum.
+  - **Jewels**: ten build archetypes (ES/caster in cold, fire, lightning and chaos flavours, bow + endgame bow, quarterstaff + endgame quarterstaff, minions/curses — both-halves scoring, most matched at Rare *and* Magic) plus always-keep movement-speed / quiver-effect jewels.
+  - **Magic tier everywhere** — every section has a Magic toggle: transcribed single-mod rules where known (movement-speed boots, phys% bows, gem-level amulets), otherwise the section's mods scored at 40% of your threshold.
+  - **Expert rules** — paste (or *Import .ipd file…*) your own hand-written rules and they're appended to the pickit **exactly as written**. Perfect for things no generator can express: graduated threshold ladders, `ComputedArmour`/`ComputedEvasion`/`ComputedEnergyShield` rules, `PhysicalDPS`/`ElementalDPS` weapon rules, per-base Magic jewellery…
+  - Base lists are extracted from game data (`build_rare_gear_catalog.py`) — a new league is one script run away.
+  - **Simple** mode (the 13-slot list) stays the default; your existing settings are untouched.
+- 🧹 **Rare Gear de-clutter** — the tab no longer stashes half the game:
+  - **Strictness presets** — one click (`Loose / Bot default / Strict / Very strict`) sets every slot's threshold to a multiple of the bot's default (Strict = 1.5×, recommended). The numbers update in place so you can still fine-tune per slot.
+  - **Min item level** (default **65**) — campaign junk never reaches your stash; only items of at least this ilvl are kept.
+  - **Min base tier** (off by default; the bot's own rules use 3) — low-tier bases aren't even picked up, saving inventory trips too.
+  - **Magic items are now opt-in** — the "Also keep Magic" box starts unticked (a single big mod let too many Magic items through).
+- 🧽 **Polish** — mouse-wheel scrolling is consistent everywhere on the tab (it used to double-speed over some areas); bulk actions write the config once instead of once per row; tooltips can no longer get stuck on screen; the update check now looks at the latest **published release** instead of the source tree, so it can never offer a download that doesn't exist yet.
 
 **v2.6.17**
 - 🛡️ **New Rare Gear tab** — automatically keep rares **and** magic items worth picking, scored by their mods (the bot's **WeightedSum**). 13 slots (armour, jewellery, weapons) come pre-loaded with the bot's own mod-weight presets — just tick a slot and tune **one number** (its score threshold). Hover the **ⓘ** on any slot to see exactly what it scores. Everything is **off by default**.

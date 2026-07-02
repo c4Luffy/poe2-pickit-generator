@@ -20,6 +20,8 @@ import datetime
 import re
 
 import poe2_pickit_generator as gen
+import rare_gear_catalog as rgc
+import rare_gear_templates as rgt
 
 _EXVALUE_RE = re.compile(r"ExValue = ([\d.]+)")
 _UNIQUE_NAME_RE = re.compile(r'\[UniqueName\] == "([^"]+)"')
@@ -280,18 +282,31 @@ def craft_base_section(snapshot: dict) -> tuple[list[str], int, int]:
 
 # ── Rare gear (pick up rares scored by computed values) ───────────────────────
 
+# Non-negative int setting from the snapshot; bad values → default.
+_rare_gear_int = gen.cfg_int
+
+
 def build_rare_gear_rules(snapshot: dict) -> list[str]:
     """WeightedSum pickup rules for the enabled equipment slots.
 
     Reads snapshot['rare_gear'] = {token: {enabled, threshold}} and emits one rule
     per enabled slot, using that slot's bot-derived mod-weight preset
-    (gen.WEIGHTED_SUM_PRESETS). Magic items are matched alongside Rare when
-    snapshot['rare_gear_magic'] (default True). Returns [] when nothing is enabled —
-    so by default this section adds nothing to the .ipd."""
+    (gen.WEIGHTED_SUM_PRESETS). Returns [] when nothing is enabled — so by default
+    this section adds nothing to the .ipd.
+
+    Anti-clutter settings (all from the snapshot):
+    - rare_gear_magic (default False): also match Magic items alongside Rare.
+    - rare_gear_min_ilvl (default gen.RARE_GEAR_MIN_ILVL_DEFAULT): only stash
+      items of at least this item level (post-#; ilvl is read after identify).
+      0 disables the check.
+    - rare_gear_min_tier (default 0 = off): only pick up bases of at least this
+      [ItemTier] (pre-#, so low-tier bases aren't even picked up)."""
     cfg = snapshot.get("rare_gear", {})
     if not isinstance(cfg, dict):
         return []
-    include_magic = bool(snapshot.get("rare_gear_magic", True))
+    include_magic = bool(snapshot.get("rare_gear_magic", False))
+    min_ilvl = _rare_gear_int(snapshot, "rare_gear_min_ilvl", gen.RARE_GEAR_MIN_ILVL_DEFAULT)
+    min_tier = _rare_gear_int(snapshot, "rare_gear_min_tier", 0)
     lines: list[str] = []
     for token, _disp, _kind in gen.RARE_GEAR_SLOTS:
         slot = cfg.get(token)
@@ -306,8 +321,242 @@ def build_rare_gear_rules(snapshot: dict) -> list[str]:
         except (TypeError, ValueError):
             threshold = def_threshold
         threshold = int(threshold) if float(threshold).is_integer() else threshold
+        selector = gen.rare_gear_selector(token)
+        if min_tier > 0 and token != "Jewel":   # jewels have no base tier
+            selector += f' && [ItemTier] >= "{min_tier}"'
         lines.append(build_weighted_sum_rule(
-            gen.rare_gear_selector(token), mods, threshold, include_magic=include_magic))
+            selector, mods, threshold,
+            include_magic=include_magic, min_ilvl=min_ilvl))
+    return lines
+
+
+# ── Rare gear Per-base mode (one [Type] rule per base, tiered brackets) ───────
+
+_COMBO_LABELS = {
+    "armour": "Armour", "evasion": "Evasion", "es": "Energy Shield",
+    "armour_evasion": "Armour + Evasion", "armour_es": "Armour + ES",
+    "evasion_es": "Evasion + ES", "tri": "Str/Dex/Int", "all": "",
+}
+_BRACKET_LABELS = {"low": "Low (campaign)", "mid": "Mid (cruel)", "high": "High (endgame)"}
+
+
+def _round5(x: float) -> int:
+    return max(5, int(round(x / 5.0)) * 5)
+
+
+def _pro_rule(name: str, tier: int, rarity: str, mods, thr, pre: str | None = None) -> str:
+    terms = ",".join(weighted_sum_term(*m) for m in mods)
+    gate = f"{pre} && " if pre else ""
+    return (f'[Type] == "{name}" && [ItemTier] >= "{int(tier)}" && [Rarity] == "{rarity}" '
+            f'# {gate}[WeightedSum({terms})] >= "{thr:g}" && [StashItem] == "true"')
+
+
+def pro_section_key(family: str, combo: str, bracket: str) -> str:
+    return f"{family}|{combo}|{bracket}"
+
+
+def build_rare_gear_pro_rules(snapshot: dict) -> list[str]:
+    """Per-base WeightedSum rules — the Rare Gear tab's Per-base (Pro) mode.
+
+    Reads snapshot['rare_gear_pro'] = {
+        'sections': {'Family|combo|bracket': {'on', 'thr', 'tier', 'ps', 'magic'}},
+        'jewels':   {'<archetype>': {'on', 'thr'}, '<single>': {'on'}},
+        'expert':   {'on', 'text'},   # hand-written rules appended verbatim
+    } and emits, per enabled section: one full rule per base in the bracket,
+    plus auto-derived prefix-only (~60%) / suffix-only (~55%) rules when the
+    family supports the split ('ps', default on), plus a single-mod Magic rule
+    when 'magic' is set and the family has one. Everything defaults to off."""
+    cfg = snapshot.get("rare_gear_pro")
+    if not isinstance(cfg, dict):
+        return []
+    sections = cfg.get("sections", {}) if isinstance(cfg.get("sections"), dict) else {}
+    lines: list[str] = []
+
+    for family, groups in rgc.CATALOG.items():
+        for combo, brackets in groups.items():
+            tmpl = rgt.get_template(family, combo)
+            if not tmpl:
+                continue
+            for bracket in ("low", "mid", "high"):
+                s = sections.get(pro_section_key(family, combo, bracket))
+                if not isinstance(s, dict) or not s.get("on"):
+                    continue
+                bases = brackets.get(bracket) or []
+                if not bases:
+                    continue
+                try:
+                    thr = float(s.get("thr", tmpl["thr"]))
+                except (TypeError, ValueError):
+                    thr = float(tmpl["thr"])
+                thr = int(thr) if thr.is_integer() else thr
+                try:
+                    tier = int(s.get("tier", tmpl["tier"][bracket]))
+                except (TypeError, ValueError):
+                    tier = tmpl["tier"][bracket]
+
+                label = " — ".join(x for x in (
+                    rgc.FAMILY_LABELS.get(family, family),
+                    _COMBO_LABELS.get(combo, combo),
+                    _BRACKET_LABELS[bracket]) if x)
+                pre = tmpl.get("pre")
+                lines += ["", gen.header_minor(label)]
+                for name in bases:
+                    lines.append(_pro_rule(name, tier, "Rare", tmpl["full"], thr, pre))
+                if s.get("ps", True) and tmpl.get("prefix") and tmpl.get("suffix"):
+                    lines.append("//PREFIXES")
+                    p_thr = _round5(thr * tmpl.get("p_pct", rgt.PREFIX_PCT))
+                    for name in bases:
+                        lines.append(_pro_rule(name, tier, "Rare", tmpl["prefix"], p_thr, pre))
+                    lines.append("//SUFFIXES")
+                    s_thr = _round5(thr * tmpl.get("s_pct", rgt.SUFFIX_PCT))
+                    for name in bases:
+                        lines.append(_pro_rule(name, tier, "Rare", tmpl["suffix"], s_thr, pre))
+                if s.get("magic"):
+                    lines.append("//MAGIC")
+                    if tmpl.get("magic"):
+                        stat, weight, m_thr = tmpl["magic"]
+                        m_mods = [(stat, weight)]
+                    else:
+                        # no transcribed single-mod rule → score the full mod set
+                        # at a fraction of the threshold (Magic has ≤ 2 mods)
+                        m_mods, m_thr = tmpl["full"], _round5(thr * rgt.MAGIC_FALLBACK_PCT)
+                    for name in bases:
+                        lines.append(_pro_rule(name, tier, "Magic", m_mods, m_thr, pre))
+
+    jewels = cfg.get("jewels", {}) if isinstance(cfg.get("jewels"), dict) else {}
+    jewel_lines: list[str] = []
+    for arch in rgt.JEWEL_ARCHETYPES:
+        key, label, def_thr, body = arch[:4]
+        rarities = arch[4] if len(arch) > 4 else ("Magic",)
+        j = jewels.get(key)
+        if not isinstance(j, dict) or not j.get("on"):
+            continue
+        try:
+            thr = int(float(j.get("thr", def_thr)))
+        except (TypeError, ValueError):
+            thr = def_thr
+        jewel_lines.append(f"// {label}")
+        for rarity in rarities:
+            jewel_lines.append(f'[Category] == "Jewel" && [Rarity] == "{rarity}" '
+                               f'# {body.format(thr=thr)} && [StashItem] == "true"')
+    for key, label, stat in rgt.JEWEL_SINGLES:
+        j = jewels.get(key)
+        if not isinstance(j, dict) or not j.get("on"):
+            continue
+        jewel_lines.append(f"// {label}")
+        for rarity in ("Magic", "Rare"):
+            jewel_lines.append(f'[Category] == "Jewel" && [Rarity] == "{rarity}" '
+                               f'# [{stat}] >= "1" && [StashItem] == "true"')
+    if jewel_lines:
+        lines += ["", gen.header_minor("Jewels")] + jewel_lines
+
+    # Amulets: build archetypes over every amulet base (+ Magic amulet rules).
+    amulets = cfg.get("amulets", {}) if isinstance(cfg.get("amulets"), dict) else {}
+    amu_lines: list[str] = []
+    for arch in rgt.AMULET_ARCHETYPES:
+        a = amulets.get(arch["key"])
+        if not isinstance(a, dict) or not a.get("on"):
+            continue
+        try:
+            thr = float(a.get("thr", arch["thr"]))
+        except (TypeError, ValueError):
+            thr = float(arch["thr"])
+        thr = int(thr) if thr.is_integer() else thr
+        amu_lines.append(f"// {arch['label']}")
+        for name in rgc.AMULET_BASES:
+            amu_lines.append(_pro_rule(name, 1, "Rare", arch["full"], thr))
+        if a.get("ps", True) and arch.get("prefix"):
+            amu_lines.append("//PREFIXES")
+            p_thr = _round5(thr * arch.get("p_thr", arch["thr"] * 0.6) / arch["thr"])
+            for name in rgc.AMULET_BASES:
+                amu_lines.append(_pro_rule(name, 1, "Rare", arch["prefix"], p_thr))
+        if a.get("ps", True) and arch.get("suffix"):
+            amu_lines.append("//SUFFIXES")
+            s_thr = _round5(thr * arch.get("s_thr", arch["thr"] * 0.55) / arch["thr"])
+            for name in rgc.AMULET_BASES:
+                amu_lines.append(_pro_rule(name, 1, "Rare", arch["suffix"], s_thr))
+    m = amulets.get("magic")
+    if isinstance(m, dict) and m.get("on"):
+        gems, g_thr = rgt.AMULET_MAGIC_GEMS
+        amu_lines.append("// Magic amulets (skill gem levels / rarity)")
+        for name in rgc.AMULET_BASES:
+            amu_lines.append(_pro_rule(name, 1, "Magic", gems, g_thr))
+        stat, r_thr = rgt.AMULET_MAGIC_RARITY
+        amu_lines.append(f'[Category] == "Amulet" && [Rarity] == "Magic" '
+                         f'# [{stat}] >= "{r_thr}" && [StashItem] == "true"')
+    if amu_lines:
+        lines += ["", gen.header_minor("Amulets")] + amu_lines
+
+    # Belts: one prefix rule + one suffix rule per base (+ optional Magic rule).
+    belts = cfg.get("belts", {}) if isinstance(cfg.get("belts"), dict) else {}
+    if belts.get("on"):
+        bt = rgt.BELT_TEMPLATE
+        try:
+            thr = int(float(belts.get("thr", bt["thr"])))
+        except (TypeError, ValueError):
+            thr = bt["thr"]
+        lines += ["", gen.header_minor("Belts"), "//PREFIXES"]
+        for name in rgc.BELT_BASES:
+            lines.append(_pro_rule(name, bt["tier"], "Rare", bt["prefix"], thr))
+        lines.append("//SUFFIXES")
+        s_thr = _round5(thr * bt["s_pct"])
+        for name in rgc.BELT_BASES:
+            lines.append(_pro_rule(name, bt["tier"], "Rare", bt["suffix"], s_thr))
+        if belts.get("magic"):
+            m_mods, m_thr, m_tier = bt["magic"]
+            lines.append("//MAGIC")
+            for name in rgc.BELT_BASES:
+                lines.append(_pro_rule(name, m_tier, "Magic", m_mods, m_thr))
+
+    # Rings: build archetypes over every ring base (from the user's pickit).
+    # New configs carry rings['archetypes'] = {key: {'on', 'thr'}}; legacy
+    # configs only have the single 'on' switch, which means "all, preset thr".
+    rings = cfg.get("rings", {}) if isinstance(cfg.get("rings"), dict) else {}
+    arch_cfg = rings.get("archetypes") if isinstance(rings.get("archetypes"), dict) else None
+    if arch_cfg is None:
+        enabled = list(rgt.RING_ARCHETYPES) if rings.get("on") else []
+        thr_of = {a["key"]: a["thr"] for a in rgt.RING_ARCHETYPES}
+        ring_magic = bool(rings.get("on") and rings.get("magic"))
+    else:
+        enabled, thr_of = [], {}
+        for a in rgt.RING_ARCHETYPES:
+            s = arch_cfg.get(a["key"])
+            if not (isinstance(s, dict) and s.get("on")):
+                continue
+            enabled.append(a)
+            try:
+                t = float(s.get("thr", a["thr"]))
+            except (TypeError, ValueError):
+                t = float(a["thr"])
+            thr_of[a["key"]] = int(t) if t.is_integer() else t
+        ring_magic = bool(rings.get("magic"))
+    if enabled or ring_magic:
+        lines += ["", gen.header_minor("Rings")]
+        for arch in enabled:
+            lines.append(f"// {arch['label']}")
+            for name in rgc.RING_BASES:
+                lines.append(_pro_rule(name, 1, "Rare", arch["full"], thr_of[arch["key"]]))
+        if ring_magic:
+            m_mods, m_thr = rgt.RING_MAGIC
+            lines.append("//MAGIC")
+            for name in rgc.RING_BASES:
+                lines.append(_pro_rule(name, 1, "Magic", m_mods, m_thr))
+            stat, r_thr = rgt.RING_RARITY
+            for rarity in ("Rare", "Magic"):
+                lines.append(f'[Category] == "Ring" && [Rarity] == "{rarity}" '
+                             f'# [{stat}] >= "{r_thr}" && [StashItem] == "true"')
+
+    # Expert rules: hand-written .ipd lines the templates can't express
+    # (threshold ladders, Computed* defences, DPS rules…) — appended VERBATIM.
+    expert = cfg.get("expert", {}) if isinstance(cfg.get("expert"), dict) else {}
+    if expert.get("on"):
+        body = [ln.rstrip() for ln in str(expert.get("text", "")).splitlines()]
+        while body and not body[0]:
+            body.pop(0)
+        while body and not body[-1]:
+            body.pop()
+        if body:
+            lines += ["", gen.header_minor("Expert rules (verbatim)")] + body
     return lines
 
 
@@ -320,7 +569,8 @@ def weighted_sum_term(stat_id: str, weight) -> str:
 
 
 def build_weighted_sum_rule(selector: str, mods, threshold,
-                            include_magic: bool = False) -> str:
+                            include_magic: bool = False,
+                            min_ilvl: int = 0) -> str:
     """Build one WeightedSum pickit rule, matching the bot's exact syntax:
 
         <selector> && [Rarity] == "Rare" # [WeightedSum(stat:wt,stat:wt,...)] >= "N" && [StashItem] == "true"
@@ -329,13 +579,16 @@ def build_weighted_sum_rule(selector: str, mods, threshold,
               '[WeaponCategory] == "Shield" && [ItemTier] >= "3"'.
     mods: iterable of (stat_id, weight) pairs.
     [WeightedSum(...)] reads identified mods, so it lives AFTER the #; the threshold
-    is quoted — both verified against the bot's default pickit files."""
+    is quoted — both verified against the bot's default pickit files.
+    min_ilvl > 0 additionally requires [ItemLevel] >= min_ilvl to stash — also
+    post-# because item level is only readable after identify."""
     terms = [weighted_sum_term(*m) for m in mods]
     rarity = ('([Rarity] == "Rare" || [Rarity] == "Magic")'
               if include_magic else '[Rarity] == "Rare"')
     th = f"{threshold:g}" if isinstance(threshold, (int, float)) else str(threshold)
+    ilvl = f'[ItemLevel] >= "{int(min_ilvl)}" && ' if min_ilvl and min_ilvl > 0 else ""
     return (f'{selector} && {rarity} '
-            f'# [WeightedSum({",".join(terms)})] >= "{th}" && [StashItem] == "true"')
+            f'# {ilvl}[WeightedSum({",".join(terms)})] >= "{th}" && [StashItem] == "true"')
 
 
 # ── Price-move alerts ─────────────────────────────────────────────────────────

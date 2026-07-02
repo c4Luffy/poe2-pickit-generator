@@ -20,6 +20,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # version.txt / GUI VERSION may lag the tag while work is unreleased on
+      # main, but a RELEASE must have all three in lockstep — the auto-updater
+      # and download URLs are derived from them.
+      - name: Verify version.txt and GUI VERSION match the tag
+        run: |
+          $tag  = "${{ github.ref_name }}".TrimStart("v")
+          $file = (Get-Content version.txt -Raw).Trim()
+          $gui  = (Select-String -Path poe2_pickit_gui.py -Pattern 'VERSION\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if ($file -ne $tag -or $gui -ne $tag) {
+            throw "Version mismatch: tag=$tag version.txt=$file VERSION=$gui - bump version.txt and VERSION before tagging."
+          }
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

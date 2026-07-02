@@ -200,9 +200,11 @@ from tab_rare_gear import RareGearTab
 
 TABS = ["Generate", "Items", "Chance Bases", "Craft Bases", "Rare Gear", "Preview", "History", "Settings", "Debug"]
 
-VERSION       = "2.6.17"
+VERSION       = "2.6.18"
 GITHUB_REPO   = "c4Luffy/poe2-pickit-generator"
-VERSION_URL   = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.txt"
+# Latest *published release* (GitHub API), NOT the source tree — a source push
+# to main must never advertise an update before its .exe actually exists.
+VERSION_URL   = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 RELEASES_URL  = f"https://github.com/{GITHUB_REPO}/releases"
 
 # Built-in icon URLs (official PoE CDN) for items poe2wiki can't resolve via the
@@ -356,10 +358,21 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, RareGearTab):
 
         # Rare Gear tab state (computed-value floors per equipment slot)
         self._rare_gear           = dict(self.cfg.get("rare_gear", {}))
-        self._rare_gear_magic     = bool(self.cfg.get("rare_gear_magic", True))  # also match Magic
+        self._rare_gear_magic     = bool(self.cfg.get("rare_gear_magic", False))  # also match Magic (opt-in)
+        self._rare_gear_min_ilvl  = cfg_int(self.cfg, "rare_gear_min_ilvl", gen.RARE_GEAR_MIN_ILVL_DEFAULT)
+        self._rare_gear_min_tier  = cfg_int(self.cfg, "rare_gear_min_tier", 0)
         self._rare_gear_vars      = {}
         self._rare_gear_count_var = tk.StringVar(value="")
         self._raregear_canvas     = None
+        # Per-base (Pro) mode: one [Type] rule per base, low/mid/high brackets.
+        mode = self.cfg.get("rare_gear_mode", "simple")
+        self._rare_gear_mode = mode if mode in ("simple", "pro") else "simple"
+        rgp = self.cfg.get("rare_gear_pro", {})
+        self._rare_gear_pro  = rgp if isinstance(rgp, dict) else {}
+        self._rare_gear_pro.setdefault("sections", {})
+        self._rare_gear_pro.setdefault("jewels", {})
+        self._raregear_pro_vars   = {}
+        self._raregear_jewel_vars = {}
 
         # Sidebar badge labels {cat_key: tk.Label}
         self._cat_sidebar_badges: dict = {}
@@ -1581,7 +1594,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, RareGearTab):
             frame._spark_cv.configure(bg=bg)
 
         self._update_cat_count(key)
-        self.after(0, self._save_states_now)
+        self._save_states_soon()
 
     def _update_cat_count(self, key):
         cards   = self._cat_cards.get(key, [])
@@ -1809,7 +1822,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, RareGearTab):
                 self._item_states[key][card._name] = {"enabled": False}
 
         self._update_cat_count(key)
-        self.after(0, self._save_states_now)
+        self._save_states_soon()
 
     def _cat_items_reset(self):
         """Reset all item states for the current category to default (all enabled)."""
@@ -1826,7 +1839,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, RareGearTab):
             card._dot_lbl.configure(bg=_CON, text="", fg=GOLD)
             if getattr(card, "_spark_cv", None): card._spark_cv.configure(bg=_CON)
         self._update_cat_count(key)
-        self.after(0, self._save_states_now)
+        self._save_states_soon()
 
     # ── Min price filter ──────────────────────────────────────────────────────
 
@@ -2192,8 +2205,20 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, RareGearTab):
     # ── State persistence ─────────────────────────────────────────────────────
 
     def _save_states_now(self):
+        self._save_after_id = None
         self.cfg["item_states"] = self._item_states
         save_config(self.cfg)
+
+    def _save_states_soon(self, delay=300):
+        """Debounced full-config save — bulk actions (Enable All etc.) fire one
+        handler per row; this coalesces them into a single disk write. Closing
+        the app saves synchronously anyway (_quit_app -> save_config)."""
+        if getattr(self, "_save_after_id", None):
+            try:
+                self.after_cancel(self._save_after_id)
+            except Exception:
+                pass
+        self._save_after_id = self.after(delay, self._save_states_now)
 
     # ── Gear & Bases panel (existing controls) ────────────────────────────────
 
@@ -2794,11 +2819,12 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, RareGearTab):
     def _check_update(self):
         try:
             r = requests.get(VERSION_URL, timeout=8,
-                             headers={"User-Agent": f"poe2-pickit/{VERSION}"})
+                             headers={"User-Agent": f"poe2-pickit/{VERSION}",
+                                      "Accept": "application/vnd.github+json"})
             if r.status_code != 200:
                 return
-            remote = r.text.strip()
-            if self._ver_tuple(remote) > self._ver_tuple(VERSION):
+            remote = str((r.json() or {}).get("tag_name") or "").lstrip("v").strip()
+            if remote and self._ver_tuple(remote) > self._ver_tuple(VERSION):
                 self.after(0, lambda: self._show_update_banner(remote))
         except Exception:
             pass
@@ -3314,6 +3340,10 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, RareGearTab):
             "item_states":     dict(self._item_states),
             "rare_gear":       dict(self._rare_gear),
             "rare_gear_magic": self._rare_gear_magic,
+            "rare_gear_min_ilvl": self._rare_gear_min_ilvl,
+            "rare_gear_min_tier": self._rare_gear_min_tier,
+            "rare_gear_mode":  self._rare_gear_mode,
+            "rare_gear_pro":   dict(self._rare_gear_pro),
         }
         # Make the Craft Bases tab authoritative: bake the ilvl each craft card is
         # actually showing into the snapshot as a per-base override, so the .ipd
@@ -3517,13 +3547,22 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, RareGearTab):
                 self._log(f"  ✓ Craft bases: {_cb_count} Normal ilvl-{_craft_ilvl}+ rules", "ok")
 
             # ── Rare gear (pick up rares scored by computed values) ───────────
-            _rare_lines = asm.build_rare_gear_rules(snapshot)
+            if snapshot.get("rare_gear_mode") == "pro":
+                _rare_lines = asm.build_rare_gear_pro_rules(snapshot)
+                _rare_note = "per-base rule(s)"
+            else:
+                _rare_lines = asm.build_rare_gear_rules(snapshot)
+                _rare_note = (f"slot rule(s), ilvl {self._rare_gear_min_ilvl}+"
+                              if self._rare_gear_min_ilvl else "slot rule(s)")
             if _rare_lines:
                 output_lines.append("")
                 output_lines.append("")
                 output_lines.append(gen.header_sub("Rare Gear (by stats)"))
                 output_lines.extend(_rare_lines)
-                self._log(f"  ✓ Rare gear: {len(_rare_lines)} slot rule(s)", "ok")
+                _n_rules = sum(1 for l in _rare_lines if l.startswith("[Type]")
+                               or l.startswith("[Category]")
+                               or l.startswith("[WeaponCategory]"))
+                self._log(f"  ✓ Rare gear: {_n_rules} {_rare_note}", "ok")
 
             # ── Base types (optional) ─────────────────────────────────────────
             if snapshot.get("include_bases"):

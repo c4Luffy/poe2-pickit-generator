@@ -164,7 +164,7 @@ class ChanceBasesTab:
         frame._dot_lbl.config(bg=bg, text="" if enabled else "✗")
 
         self._update_chance_count()
-        self.after(0, self._save_states_now)
+        self._save_states_soon()
 
     def _chance_set_all(self, enabled_val):
         if "_chance" not in self._item_states:
@@ -175,7 +175,7 @@ class ChanceBasesTab:
             for _, base_type, _ in gen.CHANCE_BASES:
                 self._item_states["_chance"][base_type] = {"enabled": False}
         self._populate_chance_grid()
-        self.after(0, self._save_states_now)
+        self._save_states_soon()
 
     def _update_chance_count(self):
         enabled = sum(1 for c in self._chance_cards if c._enabled)

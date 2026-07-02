@@ -54,6 +54,11 @@ FONT_SM   = ("Segoe UI",  10, "bold")
 
 ALL_CATEGORY_KEYS = [c[0] for c in gen.ALL_CATEGORIES]
 
+# Non-negative int from a config dict; canonical copy lives in the generator
+# module (pickit_assembly must stay Tk-free, so it can't import this file).
+cfg_int = gen.cfg_int
+
+
 # ── Helper widgets ────────────────────────────────────────────────────────────
 
 def scrolled_text(parent, **kw):
