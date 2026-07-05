@@ -334,7 +334,8 @@ class AppApi:
         from exilebot_pickit.ui.config import DEFAULT_CONFIG
         keep = {k: self.cfg.get(k) for k in
                 ("history", "profiles", "item_states", "last_gen_prices",
-                 "window_geometry", "active_profile", "league")}
+                 "window_geometry", "window_geometry_web", "minimize_to_tray",
+                 "active_profile", "league")}
         self.cfg.clear()
         self.cfg.update(DEFAULT_CONFIG)
         self.cfg.update({k: v for k, v in keep.items() if v is not None})
@@ -754,6 +755,3 @@ class AppApi:
         except Exception as e:
             return {"error": str(e)}
 
-
-# Back-compat alias (poc.py of the first preview imported PocApi)
-PocApi = AppApi
