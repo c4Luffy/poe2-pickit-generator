@@ -28,6 +28,7 @@ _SETTABLE = {
     "league", "output_base", "bot_folder", "auto_copy", "theme",
     "min_exalt_gear", "min_exalt_unique", "include_bases",
     "base_quality", "base_min_level", "auto_regen_hours", "backup_count",
+    "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
 }
 
 
@@ -56,6 +57,10 @@ class AppApi:
             "base_quality": int(c.get("base_quality", 28)),
             "base_min_level": int(c.get("base_min_level", 82)),
             "auto_regen_hours": int(c.get("auto_regen_hours", 0) or 0),
+            "copy_filter_to_game": bool(c.get("copy_filter_to_game", False)),
+            "poe2_filter_dir": c.get("poe2_filter_dir", ""),
+            "backup_count": int(c.get("backup_count", 5)),
+            "confirm_overwrite_secs": int(c.get("confirm_overwrite_secs", 120)),
         }
 
     def set_setting(self, key, value):
@@ -76,12 +81,15 @@ class AppApi:
     # ── Economy browser ───────────────────────────────────────────────────────
 
     def economy(self, league):
-        """All categories with their items, live/cached values, and on/off state."""
+        """All categories with their items, live/cached values, icons, price
+        changes and on/off state."""
         try:
-            payloads = gen.fetch_all_payloads(league, gen.ALL_CATEGORIES)
+            stale = set()
+            payloads = gen.fetch_all_payloads(league, gen.ALL_CATEGORIES, stale_out=stale)
             cur = payloads.get("currency")
             div_rate, _, rate = asm.compute_divine_rate(cur) if isinstance(cur, dict) else (1.0, False, 0.0)
             states = self.cfg.get("item_states", {})
+            prev = self.cfg.get("last_gen_prices", {}).get(league, {})
             out = []
             for key, _t, label, is_unique in gen.ALL_CATEGORIES:
                 p = payloads.get(key)
@@ -90,8 +98,20 @@ class AppApi:
                                 "error": str(p) if p else "no data", "items": []})
                     continue
                 cat_states = states.get(key, {})
+                prev_cat = prev.get(key, {}) if isinstance(prev, dict) else {}
                 r = gen.exalted_rate(p)
                 items, seen = [], set()
+
+                def _chg(nm, ev, spark=None):
+                    """% change: poe.ninja 7-day sparkline for uniques, else
+                    vs the price snapshot from the last generate."""
+                    if spark and spark.get("totalChange") is not None:
+                        return round(float(spark["totalChange"]), 1)
+                    old = prev_cat.get(nm)
+                    if isinstance(old, (int, float)) and old > 0 and ev > 0:
+                        return round((ev - old) / old * 100, 1)
+                    return None
+
                 if is_unique:
                     for line in p.get("lines", []):
                         nm = line.get("name")
@@ -100,7 +120,9 @@ class AppApi:
                         seen.add(nm)
                         ev = float(line.get("primaryValue") or 0.0) * (r or 1.0)
                         items.append({"name": nm, "base": line.get("baseType", ""),
-                                      "ex": round(ev, 2), "enabled": True})
+                                      "ex": round(ev, 2), "enabled": True,
+                                      "icon": line.get("icon") or "",
+                                      "chg": _chg(nm, ev, line.get("sparkLine"))})
                 else:
                     by_id = {i["id"]: i for i in p.get("items", [])}
                     for line in p.get("lines", []):
@@ -112,16 +134,144 @@ class AppApi:
                             continue
                         seen.add(nm)
                         ev = float(line.get("primaryValue") or 0.0) * (r or 1.0)
+                        img = it.get("image") or ""
+                        if img and img.startswith("/"):
+                            img = "https://web.poecdn.com" + img
                         items.append({"name": nm, "base": "", "ex": round(ev, 2),
-                                      "enabled": cat_states.get(nm, {}).get("enabled", True)})
+                                      "enabled": cat_states.get(nm, {}).get("enabled", True),
+                                      "icon": img, "chg": _chg(nm, ev)})
                 items.sort(key=lambda i: -i["ex"])
                 out.append({"key": key, "label": label, "unique": is_unique, "items": items})
             enabled_cfg = self.cfg.get("category_enabled", {})
             return {"divine_rate": round(div_rate, 1),
-                    "cats": out,
+                    "cats": out, "stale": sorted(stale),
                     "cat_enabled": {c[0]: enabled_cfg.get(c[0], True) for c in gen.ALL_CATEGORIES}}
         except Exception as e:
             return {"error": str(e)}
+
+    def set_items_bulk(self, cat_key, names, enabled):
+        """Enable/disable every listed item of a category at once."""
+        states = self.cfg.setdefault("item_states", {}).setdefault(cat_key, {})
+        for n in names:
+            states.setdefault(n, {})["enabled"] = bool(enabled)
+        save_config(self.cfg)
+        return {"ok": True}
+
+    def rule_for(self, cat_key, name, is_unique, base, ex):
+        """The pickit rule line for one item — for right-click 'copy rule'."""
+        safe = name.replace('"', '\\"')
+        if is_unique:
+            sb = (base or "").replace('"', '\\"')
+            return (f'[Type] == "{sb}" && [Rarity] == "Unique" # [UniqueName] == "{safe}" '
+                    f'&& [StashItem] == "true" // ExValue = {float(ex):.2f}')
+        return f'[Type] == "{safe}" # [StashItem] == "true" // ExValue = {float(ex):.2f}'
+
+    # ── Profiles ──────────────────────────────────────────────────────────────
+
+    def _profile_snapshot(self):
+        c = self.cfg
+        import copy as _copy
+        return {"item_states": _copy.deepcopy(c.get("item_states", {})),
+                "min_exalt": float(c.get("min_exalt_gear", 0.0)),
+                "min_exalt_gear": float(c.get("min_exalt_gear", 0.0)),
+                "min_exalt_unique": float(c.get("min_exalt_unique", 0.0)),
+                "output_base": c.get("output_base", "poe2_pickit"),
+                "include_bases": bool(c.get("include_bases", True)),
+                "base_quality": int(c.get("base_quality", 28)),
+                "base_min_level": int(c.get("base_min_level", 82))}
+
+    def profiles(self):
+        return {"names": sorted(self.cfg.get("profiles", {}).keys()),
+                "active": self.cfg.get("active_profile", "")}
+
+    def profile_save(self, name):
+        name = (name or "").strip()
+        if not name:
+            return {"error": "empty name"}
+        self.cfg.setdefault("profiles", {})[name] = self._profile_snapshot()
+        self.cfg["active_profile"] = name
+        save_config(self.cfg)
+        return {"ok": True}
+
+    def profile_load(self, name):
+        prof = self.cfg.get("profiles", {}).get(name)
+        if not prof:
+            return {"error": "profile not found"}
+        import copy as _copy
+        self.cfg["item_states"]      = _copy.deepcopy(prof.get("item_states", {}))
+        self.cfg["min_exalt_gear"]   = prof.get("min_exalt_gear", 0.0)
+        self.cfg["min_exalt"]        = self.cfg["min_exalt_gear"]
+        self.cfg["min_exalt_unique"] = prof.get("min_exalt_unique", 0.0)
+        self.cfg["output_base"]      = prof.get("output_base", "poe2_pickit")
+        self.cfg["include_bases"]    = prof.get("include_bases", True)
+        self.cfg["base_quality"]     = prof.get("base_quality", 28)
+        self.cfg["base_min_level"]   = prof.get("base_min_level", 82)
+        self.cfg["active_profile"]   = name
+        save_config(self.cfg)
+        return {"ok": True, "info": self.app_info()}
+
+    def profile_delete(self, name):
+        self.cfg.get("profiles", {}).pop(name, None)
+        if self.cfg.get("active_profile") == name:
+            self.cfg["active_profile"] = ""
+        save_config(self.cfg)
+        return {"ok": True}
+
+    # ── History / update check / debug ────────────────────────────────────────
+
+    def history(self):
+        return list(reversed(self.cfg.get("history", [])))[:30]
+
+    def check_update(self):
+        try:
+            from exilebot_pickit.ui.updater import AutoUpdateMixin, VERSION_URL, RELEASES_URL
+            import requests
+            r = requests.get(VERSION_URL, timeout=8,
+                             headers={"User-Agent": f"poe2-pickit/{VERSION}",
+                                      "Accept": "application/vnd.github+json"})
+            if r.status_code != 200:
+                return {"update": False}
+            remote = str((r.json() or {}).get("tag_name") or "").lstrip("v").strip()
+            if AutoUpdateMixin._should_offer_update(remote, VERSION):
+                return {"update": True, "version": remote, "url": RELEASES_URL}
+            return {"update": False}
+        except Exception:
+            return {"update": False}
+
+    def open_url(self, url):
+        if not str(url).startswith("https://github.com/"):
+            return {"error": "blocked"}
+        import webbrowser
+        webbrowser.open(url)
+        return {"ok": True}
+
+    def debug_info(self):
+        from exilebot_pickit.ui.config import LOG_PATH, CONFIG_PATH
+        ci = gen.cache_info()
+        tail = []
+        try:
+            with open(LOG_PATH, encoding="utf-8", errors="replace") as f:
+                tail = f.read().splitlines()[-80:]
+        except OSError:
+            pass
+        return {"cache": ci, "log": tail, "config_path": CONFIG_PATH,
+                "cache_dir": PRICE_CACHE_DIR,
+                "unique_cats": len(gen.UNIQUE_CATEGORIES),
+                "all_cats": len(gen.ALL_CATEGORIES)}
+
+    def api_test(self, league):
+        out = []
+        for key, ninja_type, label, is_unique in gen.ALL_CATEGORIES:
+            try:
+                p = gen.fetch_category(league, key, ninja_type, is_unique)
+                out.append({"label": label, "ok": True, "rows": len(p.get("lines", []))})
+            except Exception as e:
+                out.append({"label": label, "ok": False, "error": str(e)[:120]})
+        return out
+
+    def clear_cache(self):
+        gen.clear_cache()
+        return {"ok": True}
 
     def set_item(self, cat_key, name, enabled):
         """Toggle one item (also used for '_chance' pseudo-category)."""
@@ -298,9 +448,24 @@ class AppApi:
                                             min_level=snap["base_min_level"])
 
             validation = gen.validate_pickit(out)
+            self._last_validation = validation
             os.makedirs(OUTPUT_DIR, exist_ok=True)
             base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
             ipd = os.path.join(OUTPUT_DIR, base + ".ipd")
+            # Rotate backups of the previous pickit (keep backup_count copies)
+            nkeep = int(self.cfg.get("backup_count", 5) or 0)
+            if nkeep > 0 and os.path.isfile(ipd):
+                try:
+                    bdir = os.path.join(OUTPUT_DIR, "backups")
+                    os.makedirs(bdir, exist_ok=True)
+                    stamp = time.strftime("%Y%m%d-%H%M%S")
+                    shutil.copy2(ipd, os.path.join(bdir, f"{base}-{stamp}.ipd"))
+                    old = sorted(f for f in os.listdir(bdir)
+                                 if f.startswith(base + "-") and f.endswith(".ipd"))
+                    for f in old[:-nkeep]:
+                        os.remove(os.path.join(bdir, f))
+                except OSError:
+                    self._log("✗ Backup rotation failed (continuing)")
             content = "\n".join(out)
             gen.write_text_atomic(ipd, content)
             gen.write_text_atomic(os.path.join(OUTPUT_DIR, "latest.ipd"), content)
@@ -317,6 +482,13 @@ class AppApi:
                     self._log(f"✓ Auto-copied to {bot}")
                 else:
                     self._log("✗ Auto-copy skipped: bot folder doesn't exist")
+            fdir = (self.cfg.get("poe2_filter_dir") or "").strip()
+            if self.cfg.get("copy_filter_to_game") and fdir and os.path.isdir(fdir):
+                try:
+                    shutil.copy2(flt, os.path.join(fdir, os.path.basename(flt)))
+                    self._log("✓ .filter copied to the PoE2 folder")
+                except OSError:
+                    self._log("✗ Couldn't copy .filter to the game folder")
 
             self._last_lines = out
             active = sum(1 for l in out if l and not l.startswith("//") and "[StashItem]" in l)
@@ -328,6 +500,38 @@ class AppApi:
             self.cfg.update({"league": league,
                              "min_exalt_gear": min_gear, "min_exalt": min_gear,
                              "min_exalt_unique": min_unique})
+            # Run history (same shape the Tk app writes)
+            hist = self.cfg.setdefault("history", [])
+            hist.append({"ts": time.strftime("%Y-%m-%d %H:%M"),
+                         "active": active, "commented": commented,
+                         "divine_rate": div_rate,
+                         "top_item": top_pool[0][0] if top_pool else "",
+                         "top_value": round(top_pool[0][1], 1) if top_pool else 0,
+                         "duration": f"{time.time() - t0:.1f}s"})
+            del hist[:-50]
+            # Price snapshot for next run's change arrows
+            try:
+                snap_prices = {}
+                for key, _t, _l, is_u in cats:
+                    p2 = payloads.get(key)
+                    if not isinstance(p2, dict):
+                        continue
+                    r2 = gen.exalted_rate(p2)
+                    d2 = {}
+                    if is_u:
+                        for ln in p2.get("lines", []):
+                            if ln.get("name"):
+                                d2[ln["name"]] = float(ln.get("primaryValue") or 0) * (r2 or 1.0)
+                    else:
+                        by2 = {i["id"]: i for i in p2.get("items", [])}
+                        for ln in p2.get("lines", []):
+                            it2 = by2.get(ln.get("id"))
+                            if it2 and it2.get("name"):
+                                d2[it2["name"]] = float(ln.get("primaryValue") or 0) * (r2 or 1.0)
+                    snap_prices[key] = d2
+                self.cfg["last_gen_prices"] = {league: snap_prices}
+            except Exception:
+                pass
             save_config(self.cfg)
             with self._lock:
                 self._status["running"] = False
@@ -358,6 +562,56 @@ class AppApi:
                 return f.read().splitlines()
         except OSError:
             return []
+
+    def validation(self):
+        """Full error/warning list from the last generate (Preview banner)."""
+        v = getattr(self, "_last_validation", None) or {"errors": [], "warnings": []}
+        return {"errors": [f"Line {n}: {m}" for n, m in v.get("errors", [])],
+                "warnings": [f"Line {n}: {m}" for n, m in v.get("warnings", [])]}
+
+    def profile_get(self, name):
+        """Profile snapshot summary for the Compare view."""
+        p = self.cfg.get("profiles", {}).get(name)
+        if not p:
+            return {"error": "not found"}
+        st = p.get("item_states", {})
+        return {"min_gear": p.get("min_exalt_gear", 0), "min_unique": p.get("min_exalt_unique", 0),
+                "output_base": p.get("output_base", ""), "include_bases": p.get("include_bases", True),
+                "base_quality": p.get("base_quality", 28), "base_min_level": p.get("base_min_level", 82),
+                "disabled_counts": {k: sum(1 for s in v.values() if not s.get("enabled", True))
+                                    for k, v in st.items() if isinstance(v, dict)}}
+
+    def open_file(self, kind):
+        """Open the last .ipd / .filter / debug log / config with the default app."""
+        from exilebot_pickit.ui.config import LOG_PATH, CONFIG_PATH
+        base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
+        paths = {"ipd": os.path.join(OUTPUT_DIR, base + ".ipd"),
+                 "filter": os.path.join(OUTPUT_DIR, base + ".filter"),
+                 "log": LOG_PATH, "config": CONFIG_PATH}
+        p = paths.get(kind)
+        if not p or not os.path.isfile(p):
+            return {"error": "file not found — generate first"}
+        os.startfile(p)   # noqa: S606
+        return {"ok": True}
+
+    def clear_history(self):
+        self.cfg["history"] = []
+        save_config(self.cfg)
+        return {"ok": True}
+
+    def chaos_ex(self, league):
+        """Exalt value of 1 Chaos Orb (for the Chaos display unit)."""
+        try:
+            p = gen.fetch_all_payloads(league, [("currency", "Currency", "Currency", False)])["currency"]
+            r = gen.exalted_rate(p)
+            by_id = {i["id"]: i for i in p.get("items", [])}
+            for line in p.get("lines", []):
+                it = by_id.get(line.get("id"))
+                if it and it.get("name") == "Chaos Orb":
+                    return {"ex": float(line.get("primaryValue") or 0) * (r or 1.0)}
+            return {"ex": 0.0}
+        except Exception:
+            return {"ex": 0.0}
 
     def open_output(self):
         try:

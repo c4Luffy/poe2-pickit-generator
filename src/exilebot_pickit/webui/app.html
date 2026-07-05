@@ -120,6 +120,19 @@
   pre{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;
       font:12px/1.65 Consolas,monospace;overflow:auto;max-height:calc(100vh - 220px);white-space:pre}
   .l-h{color:var(--gold)}.l-c{color:var(--dim);opacity:.7}.l-a{color:var(--ok)}
+  .icn{width:26px;height:26px;object-fit:contain;vertical-align:middle;margin-right:8px}
+  .chg{font-size:11.5px;white-space:nowrap}
+  .chg.up{color:var(--ok)}.chg.dn{color:var(--err)}
+  .rowbtn{background:transparent;border:1px solid var(--border);color:var(--dim);
+          border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer}
+  .rowbtn:hover{color:var(--gold);border-color:var(--gold-dim)}
+  .banner{display:none;background:#c8a96e22;border:1px solid var(--gold-dim);color:var(--gold);
+          border-radius:10px;padding:10px 16px;margin-bottom:14px;cursor:pointer;font-size:13px}
+  .banner.on{display:block}
+  .banner.warn{background:#d9a03f1c;border-color:var(--warn);color:var(--warn);cursor:default}
+  .hrow{display:flex;gap:10px;color:var(--dim);font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--border)}
+  .hrow:last-child{border-bottom:0}
+  .hrow b{color:var(--text);font-weight:600}
   .toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--gold-dim);
          color:var(--text);border-radius:10px;padding:11px 18px;font-size:13px;opacity:0;
          transition:opacity .25s;pointer-events:none;z-index:9}
@@ -134,7 +147,9 @@
   <div class="nav-btn" data-p="chance">🎲 Chance Bases</div>
   <div class="nav-btn" data-p="craft">🛠 Craft Bases</div>
   <div class="nav-btn" data-p="prev">📜 Preview</div>
+  <div class="nav-btn" data-p="hist">🕘 History</div>
   <div class="nav-btn" data-p="set">⚙ Settings</div>
+  <div class="nav-btn" data-p="dbg">🔧 Debug</div>
   <div class="nav-sp"></div>
   <div class="theme-toggle">
     <button id="thDark">🌙 Dark</button><button id="thLight">☀ Light</button>
@@ -144,9 +159,22 @@
 
 <!-- ══ GENERATE ══ -->
 <div class="page on" id="p-gen">
-  <h1>Generate</h1><div class="sub">Live poe.ninja prices → ready-to-use Exiled Bot 2 pickit.</div>
+  <div class="banner" id="updBanner"></div>
+  <div class="banner warn" id="offBanner" style="cursor:default"></div>
+  <h1>Generate</h1><div class="sub">Live poe.ninja prices → ready-to-use Exiled Bot 2 pickit. Ctrl+G works too.</div>
   <div class="card"><h2>🌍 League</h2>
     <select id="league" style="width:100%"><option>Loading…</option></select>
+  </div>
+  <div class="card"><h2>👤 Profile</h2>
+    <div class="hint">Save different setups — e.g. a "Farmer" and a "Boss runner" profile, each with its own selections and floors.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="profSel" style="min-width:220px"><option value="">— no profile —</option></select>
+      <button class="ghost mini" id="profSave">Save as…</button>
+      <button class="ghost mini" id="profDel">Delete</button>
+      <button class="ghost mini" id="profCmp">Compare</button>
+      <span class="hint" style="margin:0" id="profHint"></span>
+    </div>
+    <div id="cmpBox" style="display:none;margin-top:12px"></div>
   </div>
   <div class="card"><h2>💰 Minimum values</h2>
     <div class="hint">Only pick up items worth at least this much (0 = everything). Type in Exalt or Divine — converted with the live rate.</div>
@@ -171,10 +199,13 @@
     </div>
   </div>
   <div class="card">
-    <div style="display:flex;align-items:center;gap:14px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <button class="primary" id="go">⚡ Generate Pickit</button>
+      <button class="ghost mini" id="force" title="Clear cached prices, then generate fresh">⟳ Force refresh</button>
       <div class="bar" id="bar"><i></i></div>
-      <button class="ghost" id="open">📂 Output</button>
+      <button class="ghost mini" id="openIpd">.ipd</button>
+      <button class="ghost mini" id="openFlt">.filter</button>
+      <button class="ghost mini" id="open">📂 Output</button>
     </div>
     <div style="height:12px"></div>
     <div class="log" id="log">Ready.</div>
@@ -195,37 +226,77 @@
 <!-- ══ ECONOMY ══ -->
 <div class="page" id="p-eco">
   <h1>Economy</h1><div class="sub">Everything the bot can pick up. Click a row to include/exclude it. Click a category chip to open it; double-click a chip to turn the whole category on/off.</div>
+  <div class="banner warn" id="ecoStale"></div>
   <div class="eco-head">
     <input type="text" id="ecoSearch" placeholder="🔎 Search all items…">
+    <span class="chips" style="margin:0" id="unitChips">
+      <span class="chip on" data-u="ex">Exalt</span>
+      <span class="chip" data-u="chaos">Chaos</span>
+      <span class="chip" data-u="div">Divine</span>
+    </span>
+    <button class="ghost mini" id="ecoAll">Enable all</button>
+    <button class="ghost mini" id="ecoNone">Disable all</button>
     <button class="ghost mini" id="ecoReload">↻ Refresh prices</button>
     <span class="hint" style="margin:0" id="ecoInfo"></span>
   </div>
   <div class="chips" id="ecoChips"></div>
   <div class="card" style="padding:8px 6px">
     <table><thead><tr>
-      <th style="width:55%" data-s="name">Item</th>
+      <th style="width:48%" data-s="name">Item</th>
       <th data-s="ex" style="text-align:right">Value (ex)</th>
-      <th style="text-align:center;width:110px">Picked up</th>
+      <th data-s="chg" style="text-align:right;width:80px">Δ</th>
+      <th style="text-align:center;width:95px">Picked up</th>
+      <th style="width:64px"></th>
     </tr></thead><tbody id="ecoBody"></tbody></table>
   </div>
 </div>
 
 <!-- ══ CHANCE ══ -->
 <div class="page" id="p-chance">
-  <h1>Chance Bases</h1><div class="sub">White bases worth keeping for Orb of Chance — click a card to toggle.</div>
+  <h1>Chance Bases</h1><div class="sub">White bases worth keeping for Orb of Chance — click a card to toggle. <span id="chanceCount"></span></div>
+  <div class="eco-head"><button class="ghost mini" id="chanceAll">Enable all</button>
+    <button class="ghost mini" id="chanceNone">Disable all</button></div>
   <div class="grid" id="chanceGrid"></div>
 </div>
 
 <!-- ══ CRAFT ══ -->
 <div class="page" id="p-craft">
-  <h1>Craft Bases</h1><div class="sub">Best white bases per slot at high item level — blank bases worth crafting on. Click to toggle; set the minimum item level per base.</div>
+  <h1>Craft Bases</h1><div class="sub">Best white bases per slot at high item level — blank bases worth crafting on. Click to toggle; set the minimum item level per base. <span id="craftCount"></span></div>
+  <div class="eco-head"><button class="ghost mini" id="craftAll">Enable all</button>
+    <button class="ghost mini" id="craftNone">Disable all</button></div>
   <div class="grid" id="craftGrid"></div>
+</div>
+
+<!-- ══ HISTORY ══ -->
+<div class="page" id="p-hist">
+  <h1>History</h1><div class="sub">Every generate is logged (last 50 kept).</div>
+  <div class="eco-head"><button class="ghost mini" id="histClear">🗑 Clear history</button></div>
+  <div class="card" id="histBox"><div class="hint">No runs yet.</div></div>
+</div>
+
+<!-- ══ DEBUG ══ -->
+<div class="page" id="p-dbg">
+  <h1>Debug</h1><div class="sub">Troubleshooting tools.</div>
+  <div class="card"><h2>🔧 Tools</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="ghost mini" id="dbgApi">Test all API endpoints</button>
+      <button class="ghost mini" id="dbgInfo">Cache & app info</button>
+      <button class="ghost mini" id="dbgClear">Clear price cache</button>
+      <button class="ghost mini" id="dbgLog">Open debug log</button>
+      <button class="ghost mini" id="dbgCfg">Open config file</button>
+      <button class="ghost mini" id="dbgWipe">Clear output</button>
+    </div>
+    <div style="height:12px"></div>
+    <pre id="dbgOut" style="max-height:420px">Ready.</pre>
+  </div>
 </div>
 
 <!-- ══ PREVIEW ══ -->
 <div class="page" id="p-prev">
   <h1>Preview</h1><div class="sub">The raw pickit from your last generate. <span id="prevCount"></span></div>
-  <div class="eco-head"><input type="text" id="prevFilter" placeholder="🔎 Filter lines…"></div>
+  <div class="banner warn" id="valBanner"></div>
+  <div class="eco-head"><input type="text" id="prevFilter" placeholder="🔎 Filter lines…">
+    <button class="ghost mini" id="prevCopy">Copy all</button></div>
   <pre id="prevBox">Generate first.</pre>
 </div>
 
@@ -258,10 +329,27 @@
     <div class="set-row"><div class="lab"><b>Minimum item level</b><span>82 = max</span></div><div class="sp"></div>
       <input type="number" id="baseL" min="1" max="82" style="width:80px;text-align:center"></div>
   </div>
-  <div class="card"><h2>💾 Output</h2>
+  <div class="card"><h2>💾 Output & backups</h2>
     <div class="set-row"><div class="lab"><b>Output file name</b>
       <span>.ipd is added automatically.</span></div><div class="sp"></div>
       <input type="text" id="outBase" style="width:220px"></div>
+    <div class="set-row"><div class="lab"><b>Keep backups</b>
+      <span>Previous pickits kept in output\backups (0 = off).</span></div><div class="sp"></div>
+      <input type="number" id="bakCount" min="0" max="20" style="width:80px;text-align:center"></div>
+  </div>
+  <div class="card"><h2>🎮 In-game loot filter</h2>
+    <div class="hint">⚠ Leave OFF while botting — a filter that hides items can make the bot walk to drops it can't pick up. The .filter is always written next to the .ipd anyway.</div>
+    <div class="set-row"><div class="lab"><b>Copy .filter to the game folder after generate</b>
+      <span>For manual play only.</span></div><div class="sp"></div>
+      <div class="switch" id="swFilter"><i></i></div></div>
+    <div class="set-row"><div class="lab"><b>PoE2 filter folder</b>
+      <span id="fltDirLbl">not set</span></div><div class="sp"></div>
+      <button class="ghost mini" id="fltBrowse">Browse…</button></div>
+  </div>
+  <div class="card"><h2>⬆ Updates</h2>
+    <div class="set-row"><div class="lab"><b>Check for updates</b>
+      <span id="updLbl">Checks GitHub for a newer build.</span></div><div class="sp"></div>
+      <button class="ghost mini" id="updCheck">Check now</button></div>
   </div>
 </div>
 </main>
@@ -286,7 +374,10 @@ document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{
   if(b.dataset.p==="chance")loadChance();
   if(b.dataset.p==="craft")loadCraft();
   if(b.dataset.p==="prev")loadPreview();
+  if(b.dataset.p==="hist")loadHistory();
 });
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey&&e.key.toLowerCase()==="g"){e.preventDefault();doGenerate();}});
 function setTheme(t){document.documentElement.dataset.theme=t;
   $("thDark").classList.toggle("on",t==="dark");$("thLight").classList.toggle("on",t==="light");
   api().set_setting("theme",t);}
@@ -331,23 +422,78 @@ async function poll(){
       (d.val_warnings?`⚠ Validation: ${d.val_warnings} warnings`:"✓ Validation passed")+
       (d.copied?"  ·  ✓ deployed to bot folder":"");
     $("sum").style.display="block";
+    const ob=$("offBanner");
+    if(d.stale){ob.textContent=`⚠ poe.ninja was partly unreachable — ${d.stale} categories used cached prices. Prices may be out of date.`;ob.classList.add("on");}
+    else ob.classList.remove("on");
     logLine(`Done in ${d.secs}s → ${d.path}`,"ok");uEx();gEx();
   } else if(d.error)logLine("✗ "+d.error,"err");}
 async function doGenerate(){
   if(running)return;running=true;$("go").disabled=true;$("bar").classList.add("on");
   await api().generate($("league").value,gEx(),uEx());poll();}
 $("go").onclick=doGenerate;
+$("force").onclick=async()=>{await api().clear_cache();eco=null;toast("Cache cleared — fetching fresh prices");doGenerate();};
 $("open").onclick=()=>api().open_output();
+$("openIpd").onclick=async()=>{const r=await api().open_file("ipd");if(r.error)toast(r.error);};
+$("openFlt").onclick=async()=>{const r=await api().open_file("filter");if(r.error)toast(r.error);};
+
+/* ── profiles ── */
+async function loadProfiles(){
+  const p=await api().profiles();const sel=$("profSel");
+  sel.innerHTML='<option value="">— no profile —</option>';
+  for(const n of p.names){const o=document.createElement("option");o.value=o.textContent=n;sel.appendChild(o);}
+  sel.value=p.active||"";
+  $("profHint").textContent=p.active?`Active: ${p.active}`:"";}
+$("profSel").onchange=async()=>{const n=$("profSel").value;if(!n)return;
+  const r=await api().profile_load(n);
+  if(r.ok){info=r.info;$("uAmt").value=info.min_unique;$("gAmt").value=info.min_gear;
+    $("outBase").value=info.output_base;uEx();gEx();eco=null;
+    $("profHint").textContent="Active: "+n;toast("Profile loaded: "+n);}};
+$("profSave").onclick=async()=>{const n=prompt("Profile name (existing name = overwrite):",$("profSel").value||"");
+  if(!n)return;await api().profile_save(n);await loadProfiles();toast("Profile saved: "+n);};
+$("profDel").onclick=async()=>{const n=$("profSel").value;if(!n)return toast("Pick a profile first");
+  if(!confirm(`Delete profile "${n}"? Your current settings stay.`))return;
+  await api().profile_delete(n);await loadProfiles();toast("Deleted "+n);};
+$("profCmp").onclick=async()=>{
+  const p=await api().profiles();
+  if(p.names.length<2){toast("Save at least two profiles to compare");return;}
+  const box=$("cmpBox");
+  if(box.style.display==="block"){box.style.display="none";return;}
+  const [a,b]=p.names.slice(0,2);
+  const A=await api().profile_get(a),B=await api().profile_get(b);
+  const rows=[["Unique floor",A.min_unique+" ex",B.min_unique+" ex"],
+    ["Other floor",A.min_gear+" ex",B.min_gear+" ex"],
+    ["Output",A.output_base,B.output_base],
+    ["Gear bases",A.include_bases?"on":"off",B.include_bases?"on":"off"],
+    ["Base quality",A.base_quality+"%",B.base_quality+"%"],
+    ["Base ilvl",A.base_min_level,B.base_min_level]];
+  const cats=new Set([...Object.keys(A.disabled_counts||{}),...Object.keys(B.disabled_counts||{})]);
+  for(const c of cats)rows.push(["Excluded in "+c,(A.disabled_counts[c]||0)+" items",(B.disabled_counts[c]||0)+" items"]);
+  box.innerHTML=`<table><thead><tr><th></th><th>${a}</th><th>${b}</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr${r[1]!==String(r[2])&&String(r[1])!==String(r[2])?' style="color:var(--warn)"':''}>
+      <td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")+"</tbody></table>";
+  box.style.display="block";};
 
 /* ── economy ── */
+let ecoUnit="ex",chaosEx=0;
 async function loadEco(){
   $("ecoInfo").textContent="Loading prices…";
   eco=await api().economy($("league").value);
   if(eco.error){$("ecoInfo").textContent="✗ "+eco.error;eco=null;return;}
   divRate=eco.divine_rate||divRate;
+  api().chaos_ex($("league").value).then(r=>chaosEx=r.ex||0);
+  const st=$("ecoStale");
+  if(eco.stale&&eco.stale.length){st.textContent=`⚠ Offline: ${eco.stale.length} categories are showing cached prices (poe.ninja unreachable).`;st.classList.add("on");}
+  else st.classList.remove("on");
   if(!ecoCat)ecoCat=eco.cats[0].key;
   renderChips();renderEco();
   $("ecoInfo").textContent=`1 div = ${eco.divine_rate} ex`;}
+function fmtVal(ex){
+  if(ecoUnit==="div"&&divRate>1)return (ex/divRate).toFixed(2)+" div";
+  if(ecoUnit==="chaos"&&chaosEx>0)return Math.round(ex/chaosEx).toLocaleString()+" c";
+  return ex.toLocaleString()+" ex";}
+document.querySelectorAll("#unitChips .chip").forEach(c=>c.onclick=()=>{
+  document.querySelectorAll("#unitChips .chip").forEach(x=>x.classList.remove("on"));
+  c.classList.add("on");ecoUnit=c.dataset.u;eco&&renderEco();});
 $("ecoReload").onclick=()=>{eco=null;loadEco();};
 function renderChips(){
   const c=$("ecoChips");c.innerHTML="";
@@ -360,41 +506,77 @@ function renderChips(){
       await api().set_category(cat.key,en);renderChips();
       toast((en?"Enabled ":"Disabled ")+cat.label);};
     c.appendChild(s);}}
-function renderEco(){
+function ecoRows(){
   const q=($("ecoSearch").value||"").toLowerCase();
-  const body=$("ecoBody");body.innerHTML="";
   let rows=[];
   if(q){for(const cat of eco.cats)for(const it of cat.items)
       if(it.name.toLowerCase().includes(q))rows.push([cat,it]);}
   else{const cat=eco.cats.find(c=>c.key===ecoCat);if(cat)rows=cat.items.map(i=>[cat,i]);}
-  rows.sort((a,b)=>ecoSort==="name"?a[1].name.localeCompare(b[1].name):b[1].ex-a[1].ex);
+  return rows;}
+function renderEco(){
+  const q=($("ecoSearch").value||"").toLowerCase();
+  const body=$("ecoBody");body.innerHTML="";
+  let rows=ecoRows();
+  rows.sort((a,b)=>ecoSort==="name"?a[1].name.localeCompare(b[1].name):
+    ecoSort==="chg"?(b[1].chg||0)-(a[1].chg||0):b[1].ex-a[1].ex);
   for(const [cat,it] of rows.slice(0,400)){
     const tr=document.createElement("tr");tr.className="item"+(it.enabled?"":" dis");
-    const nm=q?`${it.name} <span class="pill">${cat.label}</span>`:it.name+
+    const ico=it.icon?`<img class="icn" loading="lazy" src="${it.icon}" onerror="this.style.display='none'">`:"";
+    const nm=ico+it.name+(q?` <span class="pill">${cat.label}</span>`:"")+
       (it.base?` <span class="pill">${it.base}</span>`:"");
-    tr.innerHTML=`<td>${nm}</td><td class="val">${it.ex.toLocaleString()} ex</td>
-      <td style="text-align:center"><span class="pill ${it.enabled?"on":""}">${it.enabled?"yes":"no"}</span></td>`;
+    const chg=it.chg==null?"":`<span class="chg ${it.chg>=0?"up":"dn"}">${it.chg>=0?"▲":"▼"} ${Math.abs(it.chg)}%</span>`;
+    tr.innerHTML=`<td>${nm}</td><td class="val">${fmtVal(it.ex)}</td>
+      <td style="text-align:right">${chg}</td>
+      <td style="text-align:center"><span class="pill ${it.enabled?"on":""}">${it.enabled?"yes":"no"}</span></td>
+      <td><button class="rowbtn">copy</button></td>`;
+    tr.querySelector(".rowbtn").onclick=async e=>{e.stopPropagation();
+      const rule=await api().rule_for(cat.key,it.name,cat.unique,it.base||"",it.ex);
+      try{await navigator.clipboard.writeText(rule);}catch(_){/* clipboard blocked */}
+      toast("Rule copied");};
     if(cat.unique){tr.title="Uniques are filtered by the value floor, not per item";tr.style.cursor="default";}
     else tr.onclick=async()=>{it.enabled=!it.enabled;
       await api().set_item(cat.key,it.name,it.enabled);renderEco();};
     body.appendChild(tr);}}
+async function ecoBulk(en){
+  if(!eco)return;
+  const rows=ecoRows().filter(([c])=>!c.unique);
+  const byCat={};
+  for(const [cat,it] of rows){(byCat[cat.key]=byCat[cat.key]||[]).push(it.name);it.enabled=en;}
+  for(const k in byCat)await api().set_items_bulk(k,byCat[k],en);
+  renderEco();toast((en?"Enabled ":"Disabled ")+rows.length+" items");}
+$("ecoAll").onclick=()=>ecoBulk(true);
+$("ecoNone").onclick=()=>ecoBulk(false);
 $("ecoSearch").addEventListener("input",()=>eco&&renderEco());
 document.querySelectorAll("th[data-s]").forEach(th=>th.onclick=()=>{ecoSort=th.dataset.s;eco&&renderEco();});
 
 /* ── chance ── */
+let chanceList=[];
+function chanceCount(){$("chanceCount").textContent=
+  `${chanceList.filter(b=>b.enabled).length} / ${chanceList.length} enabled.`;}
 async function loadChance(){
-  const list=await api().chance_bases();const g=$("chanceGrid");g.innerHTML="";
-  for(const b of list){const d=document.createElement("div");
+  chanceList=await api().chance_bases();const g=$("chanceGrid");g.innerHTML="";
+  for(const b of chanceList){const d=document.createElement("div");
     d.className="bcard"+(b.enabled?"":" dis");
     d.innerHTML=`<b>${b.base}</b><div class="t">${b.cat} → ${b.target}</div>`;
     d.onclick=async()=>{b.enabled=!b.enabled;
-      await api().set_item("_chance",b.base,b.enabled);d.className="bcard"+(b.enabled?"":" dis");};
-    g.appendChild(d);}}
+      await api().set_item("_chance",b.base,b.enabled);
+      d.className="bcard"+(b.enabled?"":" dis");chanceCount();};
+    g.appendChild(d);}
+  chanceCount();}
+async function chanceBulk(en){
+  for(const b of chanceList)b.enabled=en;
+  await api().set_items_bulk("_chance",chanceList.map(b=>b.base),en);
+  loadChance();toast((en?"Enabled":"Disabled")+" all chance bases");}
+$("chanceAll").onclick=()=>chanceBulk(true);
+$("chanceNone").onclick=()=>chanceBulk(false);
 
 /* ── craft ── */
+let craftList=[];
+function craftCount(){$("craftCount").textContent=
+  `${craftList.filter(b=>b.enabled).length} / ${craftList.length} enabled.`;}
 async function loadCraft(){
-  const list=await api().craft_bases();const g=$("craftGrid");g.innerHTML="";
-  for(const b of list){const d=document.createElement("div");
+  craftList=await api().craft_bases();const g=$("craftGrid");g.innerHTML="";
+  for(const b of craftList){const d=document.createElement("div");
     d.className="bcard"+(b.enabled?"":" dis");
     d.innerHTML=`<b>${b.base}</b><div class="t">${b.cat}${b.defence?" · "+b.defence:""}</div>
       <div class="ilvl">min ilvl <input type="number" min="1" max="82" value="${b.ilvl}"></div>`;
@@ -402,13 +584,53 @@ async function loadCraft(){
     inp.onclick=e=>e.stopPropagation();
     inp.onchange=()=>api().set_craft(b.base,b.enabled,inp.value);
     d.onclick=async()=>{b.enabled=!b.enabled;
-      await api().set_craft(b.base,b.enabled,inp.value);d.className="bcard"+(b.enabled?"":" dis");};
-    g.appendChild(d);}}
+      await api().set_craft(b.base,b.enabled,inp.value);
+      d.className="bcard"+(b.enabled?"":" dis");craftCount();};
+    g.appendChild(d);}
+  craftCount();}
+async function craftBulk(en){
+  for(const b of craftList)await api().set_craft(b.base,en,b.ilvl);
+  loadCraft();toast((en?"Enabled":"Disabled")+" all craft bases");}
+$("craftAll").onclick=()=>craftBulk(true);
+$("craftNone").onclick=()=>craftBulk(false);
+
+/* ── history ── */
+async function loadHistory(){
+  const h=await api().history();const box=$("histBox");
+  if(!h.length){box.innerHTML='<div class="hint">No runs yet.</div>';return;}
+  box.innerHTML=h.map(r=>`<div class="hrow"><span style="width:120px">${r.ts}</span>
+    <b>${r.active}</b> active · ${r.commented} skipped ·
+    1 div = ${Number(r.divine_rate).toFixed(0)} ex ·
+    top: <b>${r.top_item||"—"}</b>${r.top_value?" ("+r.top_value+" ex)":""} · ${r.duration}</div>`).join("");}
+$("histClear").onclick=async()=>{if(!confirm("Clear all run history?"))return;
+  await api().clear_history();loadHistory();toast("History cleared");};
+
+/* ── debug ── */
+function dbg(t){$("dbgOut").textContent=t;}
+$("dbgApi").onclick=async()=>{dbg("Testing all endpoints…");
+  const r=await api().api_test($("league").value);
+  dbg(r.map(x=>(x.ok?"✓ ":"✗ ")+x.label.padEnd(22)+(x.ok?x.rows+" rows":x.error)).join("\n"));};
+$("dbgInfo").onclick=async()=>{const d=await api().debug_info();
+  dbg(`Cached payloads : ${d.cache.count} (TTL ${d.cache.ttl_secs}s)\n`+
+      `Categories      : ${d.all_cats} total, ${d.unique_cats} unique\n`+
+      `Config          : ${d.config_path}\nPrice cache dir : ${d.cache_dir}\n\n— debug.log (last lines) —\n`+
+      d.log.join("\n"));};
+$("dbgClear").onclick=async()=>{await api().clear_cache();toast("Price cache cleared");};
+$("dbgLog").onclick=()=>api().open_file("log");
+$("dbgCfg").onclick=()=>api().open_file("config");
+$("dbgWipe").onclick=()=>dbg("Ready.");
 
 /* ── preview ── */
 let prevLines=[];
 async function loadPreview(){
-  prevLines=await api().preview();renderPreview();}
+  prevLines=await api().preview();renderPreview();
+  const v=await api().validation();const b=$("valBanner");
+  const msgs=[...v.errors,...v.warnings];
+  if(msgs.length){b.innerHTML=`⚠ Validation: ${v.errors.length} errors, ${v.warnings.length} warnings<br>`+
+    msgs.slice(0,8).map(m=>"&nbsp;&nbsp;"+m).join("<br>");b.classList.add("on");}
+  else b.classList.remove("on");}
+$("prevCopy").onclick=async()=>{try{await navigator.clipboard.writeText(prevLines.join("\n"));
+  toast("Whole pickit copied");}catch(_){toast("Clipboard blocked");}};
 function renderPreview(){
   const q=($("prevFilter").value||"").toLowerCase();
   const shown=q?prevLines.filter(l=>l.toLowerCase().includes(q)):prevLines;
@@ -439,6 +661,16 @@ $("botBrowse").onclick=async()=>{const r=await api().browse_folder();
 $("baseQ").onchange=()=>{api().set_setting("base_quality",parseInt($("baseQ").value)||28);toast("Saved");};
 $("baseL").onchange=()=>{api().set_setting("base_min_level",parseInt($("baseL").value)||82);toast("Saved");};
 $("outBase").onchange=()=>{api().set_setting("output_base",$("outBase").value.trim()||"poe2_pickit");toast("Saved");};
+$("bakCount").onchange=()=>{api().set_setting("backup_count",parseInt($("bakCount").value)||0);toast("Saved");};
+$("fltBrowse").onclick=async()=>{const r=await api().browse_folder();
+  if(r.path){$("fltDirLbl").textContent=r.path;await api().set_setting("poe2_filter_dir",r.path);toast("Saved");}};
+$("updCheck").onclick=async()=>{$("updLbl").textContent="Checking…";
+  const u=await api().check_update();
+  $("updLbl").textContent=u.update?`⬆ v${u.version} available!`:"✓ You're up to date.";
+  if(u.update)showUpdBanner(u);};
+function showUpdBanner(u){const b=$("updBanner");
+  b.textContent=`⬆ Update available: v${u.version} — click to open the download page`;
+  b.classList.add("on");b.onclick=()=>api().open_url(u.url);}
 
 /* ── init ── */
 async function init(){
@@ -450,8 +682,13 @@ async function init(){
   $("botFolderLbl").textContent=info.bot_folder||"not set";
   sw("swCopy","auto_copy",info.auto_copy);
   sw("swBases","include_bases",info.include_bases);
+  sw("swFilter","copy_filter_to_game",info.copy_filter_to_game);
+  $("fltDirLbl").textContent=info.poe2_filter_dir||"not set";
+  $("bakCount").value=info.backup_count;
   $("baseQ").value=info.base_quality;$("baseL").value=info.base_min_level;
   $("regenSel").value=String(info.auto_regen_hours||0);armRegen();
+  loadProfiles();
+  api().check_update().then(u=>{if(u.update)showUpdBanner(u);});
   const ls=await api().leagues();const sel=$("league");sel.innerHTML="";
   if(ls.error){sel.innerHTML="<option>Could not load leagues</option>";logLine("✗ "+ls.error,"err");}
   else{for(const l of ls){const o=document.createElement("option");o.value=l.name;o.textContent=l.display;sel.appendChild(o);}
