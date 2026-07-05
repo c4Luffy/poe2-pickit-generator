@@ -321,11 +321,30 @@
 
 <!-- ══ PREVIEW ══ -->
 <div class="page" id="p-prev">
-  <h1>Preview</h1><div class="sub">The raw pickit from your last generate. <span id="prevCount"></span></div>
+  <h1>Preview</h1><div class="sub">Your last generated pickit — exactly what the bot reads.</div>
   <div class="banner warn" id="valBanner"></div>
-  <div class="eco-head"><input type="text" id="prevFilter" placeholder="🔎 Filter lines…">
-    <button class="ghost mini" id="prevCopy">Copy all</button></div>
-  <pre id="prevBox">Generate first.</pre>
+  <div class="stats" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
+    <div class="stat"><b id="pvTotal">–</b><span>rules</span></div>
+    <div class="stat"><b id="pvActive">–</b><span>active</span></div>
+    <div class="stat"><b id="pvSkip">–</b><span>skipped</span></div>
+    <div class="stat"><b id="pvSize">–</b><span>file size</span></div>
+    <div class="stat"><b id="pvVal">–</b><span>validation</span></div>
+  </div>
+  <div class="eco-head">
+    <input type="text" id="prevFilter" placeholder="🔎 Filter lines…">
+    <span class="chips" style="margin:0" id="pvChips">
+      <span class="chip on" data-f="all">All</span>
+      <span class="chip" data-f="active">Active</span>
+      <span class="chip" data-f="skip">Skipped</span>
+      <span class="chip" data-f="uniq">Uniques</span>
+      <span class="chip" data-f="base">Bases</span>
+    </span>
+    <button class="ghost mini" id="prevCopy">Copy all</button>
+  </div>
+  <div style="display:flex;gap:12px;align-items:flex-start">
+    <div id="pvNav" style="width:215px;flex-shrink:0;max-height:calc(100vh - 330px);overflow-y:auto"></div>
+    <pre id="prevBox" style="flex:1;max-height:calc(100vh - 330px)">Generate first.</pre>
+  </div>
 </div>
 
 <!-- ══ SETTINGS ══ -->
@@ -754,28 +773,77 @@ document.addEventListener("keydown",e=>{
   if(e.ctrlKey&&e.key.toLowerCase()==="r"){e.preventDefault();$("leagueRefresh").click();}});
 
 /* ── preview ── */
-let prevLines=[];
+let prevLines=[],pvSections=[],pvSection=null,pvFilter="all",pvValMap={};
+function parseSections(){
+  pvSections=[];let cur=null;
+  const bar=l=>/^\/{10,}$/.test(l.trim());
+  for(let i=0;i<prevLines.length;i++){
+    const l=prevLines[i];
+    // a header content line sits between // borders: "//   TITLE   //"
+    if(l.startsWith("//")&&l.endsWith("//")&&l.length>8&&i>0&&bar(prevLines[i-1])){
+      const t=l.slice(2,-2).trim();
+      if(t&&!/^─/.test(t)){cur={title:t,start:i,active:0,skip:0};pvSections.push(cur);continue;}}
+    if(cur&&l.includes("[StashItem]")){l.startsWith("//")?cur.skip++:cur.active++;}}}
+function pvLineOK(l){
+  const isRule=l.includes("[StashItem]");
+  switch(pvFilter){
+    case "active":return isRule&&!l.startsWith("//");
+    case "skip":return isRule&&l.startsWith("//");
+    case "uniq":return isRule&&(l.includes("[UniqueName]")||l.includes('[Rarity] == "Unique"'));
+    case "base":return isRule&&(l.includes("[Quality]")||l.includes("[Sockets]")||l.includes('[Rarity] == "Normal"'));
+    default:return true;}}
 async function loadPreview(){
-  prevLines=await api().preview();renderPreview();
-  const v=await api().validation();const b=$("valBanner");
-  const msgs=[...v.errors,...v.warnings];
-  if(msgs.length){b.innerHTML=`⚠ Validation: ${v.errors.length} errors, ${v.warnings.length} warnings<br>`+
-    msgs.slice(0,8).map(m=>"&nbsp;&nbsp;"+m).join("<br>");b.classList.add("on");}
-  else b.classList.remove("on");}
-$("prevCopy").onclick=async()=>{try{await navigator.clipboard.writeText(prevLines.join("\n"));
-  toast("Whole pickit copied");}catch(_){toast("Clipboard blocked");}};
+  prevLines=await api().preview();parseSections();
+  const v=await api().validation();
+  pvValMap={};
+  for(const m of v.errors){const n=parseInt(m.match(/Line (\d+)/)?.[1]);if(n)pvValMap[n]=["err",m];}
+  for(const m of v.warnings){const n=parseInt(m.match(/Line (\d+)/)?.[1]);if(n)pvValMap[n]=pvValMap[n]||["warn",m];}
+  const b=$("valBanner");
+  if(v.errors.length){b.textContent=`⚠ ${v.errors.length} validation errors — marked ⚠ inline below`;b.classList.add("on");}
+  else b.classList.remove("on");
+  $("pvVal").textContent=v.errors.length?v.errors.length+" ✗":(v.warnings.length?v.warnings.length+" ⚠":"✓");
+  renderPvNav();renderPreview();}
+function renderPvNav(){
+  const n=$("pvNav");
+  if(!pvSections.length){n.innerHTML="";return;}
+  n.innerHTML=`<div class="nav-btn${pvSection===null?" on":""}" data-s="">All sections</div>`+
+    pvSections.map((s,i)=>`<div class="nav-btn${pvSection===i?" on":""}" data-s="${i}"
+      style="font-size:12.5px;padding:7px 10px">${s.title.length>20?s.title.slice(0,20)+"…":s.title}
+      <span style="margin-left:auto;font-size:10.5px;color:var(--dim)">${s.active}</span></div>`).join("");
+  n.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{
+    pvSection=b.dataset.s===""?null:parseInt(b.dataset.s);renderPvNav();renderPreview();});}
 function renderPreview(){
   const q=($("prevFilter").value||"").toLowerCase();
-  const shown=q?prevLines.filter(l=>l.toLowerCase().includes(q)):prevLines;
-  let a=0,c=0;
-  const html=shown.slice(0,6000).map(l=>{
-    const e=l.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  let lo=0,hi=prevLines.length;
+  if(pvSection!==null&&pvSections[pvSection]){
+    lo=pvSections[pvSection].start-2;
+    hi=pvSection+1<pvSections.length?pvSections[pvSection+1].start-2:prevLines.length;}
+  let a=0,c=0,shown=[];
+  for(let i=Math.max(0,lo);i<hi;i++){
+    const l=prevLines[i];
+    if(q&&!l.toLowerCase().includes(q))continue;
+    if(!pvLineOK(l))continue;
+    shown.push([i+1,l]);}
+  const html=shown.slice(0,6000).map(([n,l])=>{
+    let e=l.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+    const vm=pvValMap[n];
+    if(vm)e=`<span style="color:${vm[0]==="err"?"var(--err)":"var(--warn)"}" title="${vm[1].replace(/"/g,"&quot;")}">⚠ ${e}</span>`;
     if(l.startsWith("////")||(l.startsWith("//")&&(l.match(/\/\//g)||[]).length>2))return`<span class="l-h">${e}</span>`;
-    if(l.startsWith("//")){if(l.includes("[StashItem]"))c++;return`<span class="l-c">${e}</span>`;}
-    if(l.includes("[StashItem]")){a++;return`<span class="l-a">${e}</span>`;}
+    if(l.startsWith("//")){if(l.includes("[StashItem]"))c++;return vm?e:`<span class="l-c">${e}</span>`;}
+    if(l.includes("[StashItem]")){a++;return vm?e:`<span class="l-a">${e}</span>`;}
     return e;}).join("\n");
-  $("prevBox").innerHTML=html||"Generate first.";
-  $("prevCount").textContent=prevLines.length?`${a} active · ${c} commented out.`:"";}
+  $("prevBox").innerHTML=html||"Nothing matches this filter.";
+  const tot=prevLines.filter(l=>l.includes("[StashItem]")).length;
+  const act=prevLines.filter(l=>l.includes("[StashItem]")&&!l.startsWith("//")).length;
+  $("pvTotal").textContent=tot?tot.toLocaleString():"–";
+  $("pvActive").textContent=tot?act.toLocaleString():"–";
+  $("pvSkip").textContent=tot?(tot-act).toLocaleString():"–";
+  $("pvSize").textContent=prevLines.length?Math.round(prevLines.join("\n").length/1024)+" KB":"–";}
+document.querySelectorAll("#pvChips .chip").forEach(c=>c.onclick=()=>{
+  document.querySelectorAll("#pvChips .chip").forEach(x=>x.classList.remove("on"));
+  c.classList.add("on");pvFilter=c.dataset.f;renderPreview();});
+$("prevCopy").onclick=async()=>{try{await navigator.clipboard.writeText(prevLines.join("\n"));
+  toast("Whole pickit copied");}catch(_){toast("Clipboard blocked");}};
 $("prevFilter").addEventListener("input",renderPreview);
 
 /* ── settings ── */
