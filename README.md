@@ -132,13 +132,6 @@ Newest first, last 5 releases. Full history is on the **[Releases page](https://
 - 🧹 **Simpler Categories tab** — removed the confusing per-category "Global floor" chip; categories are a plain on/off and always follow the Generate-tab value floor
 - 🏷️ **Renamed unclear sections** — e.g. "Exceptional Base Types — Game Data" is now "High-End Gear Bases (non-unique)" with an example of exactly what it picks up
 
-**v2.6.39**
-- 🛡️ **Settings can't be lost anymore** — saves are atomic, a corrupted settings file is backed up and reported instead of silently reset, and "Save settings" no longer wipes your value floors
-- 🐛 **Fixed inverted overwrite-confirm** — disabling the confirmation now actually disables it (it used to prompt on every run)
-- 🎮 **In-game loot filter controls are back** — copy-to-game toggle + PoE2 folder picker in Settings
-- 🔎 **Smoother Economy search** — no more freezes while typing; Enable/Disable All and sorting now work correctly on search results
-- 🔒 Hardened downloads (size caps, icon host allowlist), rate-limit-aware retries, and releases are now test-gated with published checksums
-
 <!-- 👇 ON EACH UPDATE, add the new version here at the top. Keep only the 5 most recent — drop the oldest as you add the newest:
 **vX.Y.Z**
 - what changed
