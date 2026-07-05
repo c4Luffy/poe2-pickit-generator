@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "exilebot-pickit"
+version = "2.6.39"
+description = "Generate Exiled Bot 2 pickit rules from live Path of Exile 2 economy prices"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.32.4,<3",
+    "Pillow>=11.3",
+    "customtkinter==5.2.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# Tooling config for the ExileBot 2 Pickit Generator.
+# (The project ships as a single PyInstaller .exe; this file is dev-only — it does
+#  not change how the app is built or run.)
+
+[tool.pytest.ini_options]
+addopts = "-q"
+python_files = ["test_*.py"]
+
+[tool.ruff]
+# Match the codebase's existing line lengths (the rule tables are intentionally wide).
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+# Conservative, high-signal rules only — this is a working app, not a style reset.
+#   E9  syntax errors        F   pyflakes (undefined names, unused imports)
+#   B   common bugs          UP  obvious modernizations
+select = ["E9", "F", "B", "UP"]
+ignore = [
+    "B008",  # function calls in argument defaults (Tk widget idioms)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/exilebot_pickit/ui/app.py" = ["E722"]  # a few broad excepts guard the UI on purpose
+"src/exilebot_pickit/**/__init__.py" = []

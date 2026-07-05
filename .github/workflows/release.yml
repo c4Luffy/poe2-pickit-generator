@@ -1,0 +1,89 @@
+name: Release
+
+# Build the Windows EXE and publish a GitHub Release automatically whenever a
+# version tag (e.g. v2.6.8) is pushed. Uses the built-in GITHUB_TOKEN — no local
+# `gh auth` or stored credentials needed. The asset is named exactly
+# ExileBot2PickitGenerator.exe so the in-app auto-updater's download URL
+# (releases/download/<tag>/ExileBot2PickitGenerator.exe) resolves correctly.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  # A tag must never ship a red build: run the full test suite first and make
+  # the build job depend on it.
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install and test
+        run: |
+          pip install -r requirements.txt pytest
+          pip install -e .
+          python -m pytest -q
+
+  build-and-release:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # version.py is the single source of truth (updater.py imports it), but a
+      # RELEASE must match the tag — the auto-updater and download URLs are
+      # derived from it.
+      - name: Verify VERSION matches the tag
+        run: |
+          $tag  = "${{ github.ref_name }}".TrimStart("v")
+          $pkg  = (Select-String -Path src/exilebot_pickit/version.py -Pattern 'VERSION\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if ($pkg -ne $tag) {
+            throw "Version mismatch: tag=$tag version.py=$pkg - bump version.py before tagging."
+          }
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      # Install from the pinned requirements so the shipped exe's dependency
+      # versions are controlled by the repo, not by PyPI on tag day.
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt "pyinstaller==6.21.0"
+          pip install -e .
+
+      - name: Build EXE
+        run: >
+          pyinstaller --onefile --windowed --name ExileBot2PickitGenerator
+          --icon src/exilebot_pickit/resources/appicon.ico --add-data "src/exilebot_pickit/resources/appicon.ico;."
+          --collect-data certifi
+          --hidden-import certifi --hidden-import charset_normalizer --hidden-import urllib3
+          --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageTk --hidden-import PIL.ImageDraw
+          --exclude-module unittest --exclude-module pydoc --exclude-module doctest
+          --exclude-module lib2to3 --exclude-module test --exclude-module tkinter.test
+          --exclude-module numpy --exclude-module pandas --exclude-module matplotlib --exclude-module scipy
+          --collect-all customtkinter
+          --collect-all exilebot_pickit
+          --noconfirm src/exilebot_pickit/__main__.py
+
+      # Publish a SHA-256 alongside the exe so downloads can be verified
+      # (the binary is unsigned; this is the minimum trust anchor).
+      - name: Compute checksum
+        run: |
+          $h = (Get-FileHash dist/ExileBot2PickitGenerator.exe -Algorithm SHA256).Hash.ToLower()
+          "$h  ExileBot2PickitGenerator.exe" | Out-File -Encoding ascii dist/SHA256SUMS.txt
+          Get-Content dist/SHA256SUMS.txt
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create ${{ github.ref_name }} dist/ExileBot2PickitGenerator.exe dist/SHA256SUMS.txt --title ${{ github.ref_name }} --generate-notes

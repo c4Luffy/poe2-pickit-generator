@@ -1,0 +1,73 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# Build log
+build_log.txt
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Generated output (personal, not shared)
+pickit_output/
+output/
+
+# Generated pickit / filter / CSV files (regenerated on every run)
+poe2_pickit.filter
+poe2_pickit.txt
+poe2_pickit_items.csv
+
+# Local config (contains personal paths/settings)
+pickit_gui_config.json
+
+# Backup files
+*_backup_*.ipd
+
+# Icon cache (downloaded at runtime, not needed in repo)
+icon_cache/
+wiki_icon_cache.json
+
+# Price cache (poe.ninja payloads saved at runtime for offline mode)
+price_cache/
+
+# Local game-data extracts (large raw PoE2 dumps used as input to offline
+# generation tools; never shipped in the repo)
+/data/
+
+# Test / scratch files
+test_icon.png
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# User presets (personal, not shared)
+presets/
+
+# Stray generated pickit files
+*.ipd
+
+# Windows artifacts
+nul
+Thumbs.db
+desktop.ini
+
+# IDE / editor
+.vscode/
+.idea/
+*.suo
+*.user
+
+# AI agent artifacts
+.claude/
+
+# Logs and temp
+*.log
+*.log.*
+*.tmp
