@@ -64,14 +64,16 @@ jobs:
       - name: Build EXE
         run: >
           pyinstaller --onefile --windowed --name ExileBot2PickitGenerator
-          --icon src/exilebot_pickit/resources/appicon.ico --add-data "src/exilebot_pickit/resources/appicon.ico;."
+          --icon src/exilebot_pickit/resources/appicon.ico
+          --add-data "src/exilebot_pickit/webui/app.html;."
+          --add-data "src/exilebot_pickit/resources/appicon.png;."
+          --collect-all webview --collect-all clr_loader --collect-all pythonnet --collect-all pystray
           --collect-data certifi
           --hidden-import certifi --hidden-import charset_normalizer --hidden-import urllib3
-          --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageTk --hidden-import PIL.ImageDraw
+          --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageDraw
           --exclude-module unittest --exclude-module pydoc --exclude-module doctest
-          --exclude-module lib2to3 --exclude-module test --exclude-module tkinter.test
+          --exclude-module lib2to3 --exclude-module test
           --exclude-module numpy --exclude-module pandas --exclude-module matplotlib --exclude-module scipy
-          --collect-all customtkinter
           --collect-all exilebot_pickit
           --noconfirm src/exilebot_pickit/__main__.py
 

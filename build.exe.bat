@@ -62,15 +62,20 @@ python -m PyInstaller ^
     --windowed ^
     --name "ExileBot2PickitGenerator" ^
     %ICON_ARGS% ^
+    --add-data "src/exilebot_pickit/webui/app.html;." ^
+    --add-data "src/exilebot_pickit/resources/appicon.png;." ^
+    --collect-all webview ^
+    --collect-all clr_loader ^
+    --collect-all pythonnet ^
+    --collect-all pystray ^
     --collect-data certifi ^
     --hidden-import certifi ^
     --hidden-import charset_normalizer ^
     --hidden-import urllib3 ^
     --hidden-import PIL ^
     --hidden-import PIL.Image ^
-    --hidden-import PIL.ImageTk ^
     --hidden-import PIL.ImageDraw ^
-    --collect-all customtkinter ^
+    --collect-all exilebot_pickit ^
     --noconfirm ^
     src/exilebot_pickit/__main__.py
 

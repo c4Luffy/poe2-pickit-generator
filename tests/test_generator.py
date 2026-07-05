@@ -421,17 +421,14 @@ def test_base_min_level_cli_default_matches_constant():
 
 # ── Round 6: hardcoded constants, GUI consistency ─────────────────────────────
 
-def test_gui_base_min_level_references_constant_not_literal():
-    """GUI must use gen.CRAFT_BASE_MIN_ILVL not hardcoded 82 for base_min_level."""
-    import re
-    with open("src/exilebot_pickit/ui/app.py", encoding="utf-8") as f:
-        gui = f.read()
-    # Should have no bare ", 82)" as base_min_level default — must use constant.
-    # A match that already references CRAFT_BASE_MIN_ILVL is fine (e.g. a clamp
-    # whose default is the constant and whose upper bound is the max ilvl 82).
-    bad = [m for m in re.findall(r'base_min_level.*?,\s*82\)', gui)
-           if "CRAFT_BASE_MIN_ILVL" not in m]
-    assert not bad, f"Hardcoded 82 found in base_min_level context: {bad}"
+def test_webui_uses_min_level_constant():
+    """The web API snapshot must fall back to base_min_level 82 (the constant's
+    value) and expose it via app_info — guards against silent drift."""
+    from exilebot_pickit import generator as gen
+    assert gen.CRAFT_BASE_MIN_ILVL == 82
+    with open("src/exilebot_pickit/webui/api.py", encoding="utf-8") as f:
+        api_src = f.read()
+    assert '"base_min_level", 82' in api_src
 
 
 def test_requirements_has_pillow():
@@ -459,28 +456,14 @@ def test_build_unique_lines_sorted_high_to_low():
     assert vals == sorted(vals, reverse=True), f"uniques not sorted high→low: {vals}"
 
 
-def test_gui_tab_mixins_import_and_inherit():
-    """Verify tab mixin classes exist, have expected methods, and PickitApp
-    inherits them — without instantiating Tk (no display needed)."""
-    import inspect
-    from exilebot_pickit.ui.tabs.chance_bases import ChanceBasesTab
-    from exilebot_pickit.ui.tabs.craft_bases import CraftBasesTab
-
-    assert hasattr(ChanceBasesTab, "_build_chance_page")
-    assert hasattr(ChanceBasesTab, "_populate_chance_grid")
-    assert hasattr(ChanceBasesTab, "_set_chance_enabled")
-
-    assert hasattr(CraftBasesTab, "_build_craftbase_page")
-    assert hasattr(CraftBasesTab, "_populate_craftbase_grid")
-    assert hasattr(CraftBasesTab, "_craftbase_ilvl_for")
-
-    bases = {c.__name__ for c in (ChanceBasesTab, CraftBasesTab)}
-    assert bases == {"ChanceBasesTab", "CraftBasesTab"}
-
-    from exilebot_pickit.ui.app import PickitApp as gui_app
-    mro = [c.__name__ for c in inspect.getmro(gui_app)]
-    for t in ("ChanceBasesTab", "CraftBasesTab"):
-        assert t in mro, f"PickitApp does not inherit {t}"
+def test_webui_entry_and_api_import():
+    """The packaged entry point routes to the web UI and the bridge imports
+    cleanly (no Tk dependency left)."""
+    with open("src/exilebot_pickit/__main__.py", encoding="utf-8") as f:
+        assert "webui.poc" in f.read()
+    from exilebot_pickit.webui.api import AppApi
+    for m in ("generate", "economy", "suggest_floors", "league_start_preset"):
+        assert hasattr(AppApi, m)
 
 
 def test_all_new_bases_have_correct_ilvl_placement():

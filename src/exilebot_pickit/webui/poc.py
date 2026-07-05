@@ -100,6 +100,10 @@ def main():
         background_color="#0e0f12",
     )
     tray = _start_tray(window, api)
+    _run_webview(window, api, tray)
+
+
+def _run_webview(window, api, tray):
 
     def _on_closing():
         # Tray mode on → hide instead of exit so auto-regenerate keeps running.
@@ -116,7 +120,24 @@ def main():
             tray.stop()
         return True
     window.events.closing += _on_closing
-    webview.start()
+    try:
+        webview.start()
+    except Exception:
+        # Almost always a missing WebView2 runtime (rare on updated Windows).
+        # With the Tk UI removed there is no fallback, so say exactly what to do.
+        try:
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(
+                None,
+                "The app couldn't start its window.\n\n"
+                "This usually means the Microsoft WebView2 runtime is missing.\n"
+                "Install it (free, one minute) from:\n"
+                "https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
+                "then start the app again.",
+                "ExileBot 2 Pickit Generator", 0x10)
+        except Exception:
+            pass
+        raise
 
 
 if __name__ == "__main__":

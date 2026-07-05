@@ -11,5 +11,5 @@ if "--cli" in _sys.argv:
     from exilebot_pickit.generator import main
     _sys.exit(main())
 
-from exilebot_pickit.ui.app import main
+from exilebot_pickit.webui.poc import main
 _sys.exit(main())

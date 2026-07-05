@@ -1,8 +1,8 @@
 # Runtime dependencies for the ExileBot 2 Pickit Generator GUI.
 #   pip install -r requirements.txt
-# Versions are pinned for reproducible builds. customtkinter is pinned exactly
-# because its widget API has breaking changes between minor versions.
+# Versions are pinned for reproducible builds.
 requests>=2.32.4,<3
 Pillow>=11.3
-customtkinter==5.2.2
+pywebview>=6.2,<7
+pystray>=0.19
 # Build-only (for producing the .exe): pip install pyinstaller

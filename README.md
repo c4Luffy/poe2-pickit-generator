@@ -45,7 +45,10 @@ Builds an `.ipd` pickit **and** a matching in-game `.filter` on every run, using
 - 🪙 **Live prices** — pulls real PoE2 economy data from poe.ninja every run
 - 🎯 **Keeps what's worth it** — set a value floor (in Exalts); junk is skipped automatically
 - 🧰 **Two files, one click** — the bot `.ipd`, plus a matching `.filter` in the output folder if you ever want one for manual play *(don't feed it to the bot — hidden drops make it get stuck)*
-- 🖱️ **Easy to tweak** — click any item to exclude it; type in the search box to find one fast
+- 🖱️ **Easy to tweak** — click any item to exclude it; search, sort, and see live price-change arrows
+- ✨ **Auto value floor** — one click sets your minimum values from the league's real prices
+- 🛡️ **Safety net** — a broken or collapsed pickit is never auto-deployed to your bot
+- 🖥️ **Modern interface** — instant dark/light themes, system-tray mode, and plain-language explainers on every tab
 - 🧱 **Base picking** — dedicated Chance Bases & Craft Bases tabs help you keep the right bases
 - 🔄 **Set and forget** — auto-copies the generated pickit straight into your bot folder
 - ⬆️ **Update alerts** — tells you when a new version is out and links you straight to the download
@@ -92,7 +95,7 @@ pip install pytest requests ruff
 python -m pytest -q && ruff check .
 ```
 
-Layout: the app lives in `src/exilebot_pickit/` (`generator.py` + `generators/assembly.py` build the rules, `ui/` is the Tkinter app, `data/` holds the item/base data). CI runs tests and lint on every push; pushing a `vX.Y.Z` tag auto-builds the `.exe` and publishes a release.
+Layout: the app lives in `src/exilebot_pickit/` (`generator.py` + `generators/assembly.py` build the rules, `webui/` is the WebView2 app — `api.py` bridge + `app.html` front-end, `ui/` keeps config/updater plumbing, `data/` holds the item/base data). CI runs tests and lint on every push; pushing a `vX.Y.Z` tag auto-builds the `.exe` and publishes a release.
 
 </details>
 
@@ -102,7 +105,18 @@ Layout: the app lives in `src/exilebot_pickit/` (`generator.py` + `generators/as
 
 Newest first, last 5 releases. Full history is on the **[Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases)** — the current build is always the **[latest release](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)**.
 
-**v2.8.0** — *latest*
+**v3.0.0** — *latest*
+- 🖥️ **Brand-new interface** — the app was rebuilt on a modern WebView2 front-end: same engine, same files, dramatically better UI
+- 🌙 **Instant themes** — dark/light switch applies immediately (no restart, no crash)
+- ✨ **Auto value floor** — sets both minimum values from the league's live prices ("keep top 40%"), with a preview of how many items each floor keeps
+- 💰 **Floors in Exalt, Chaos or Divine** — type the value in whichever currency holds its worth
+- 🛡️ **Safety net** — if a run produces a collapsed/broken pickit, auto-copy to the bot is blocked and you're told why
+- 🚀 **League-start preset** — one click picks up everything on day 1; one click restores your old setup
+- 🖥️ **Tray mode** — close to the system tray and Auto-Regenerate keeps your pickit fresh in the background
+- 📈 **Redesigned History & Preview** — trend chart with hover details; section navigator, filter chips and inline validation markers
+- Requires the Microsoft WebView2 runtime (preinstalled on up-to-date Windows 10/11)
+
+**v2.8.0**
 - ⏰ **Auto-Regenerate** — new Settings option: the app regenerates the pickit by itself every 1–12 hours while it's open, so with Auto-copy on, your bot always runs on fresh prices with zero clicks
 
 **v2.7.1**
@@ -121,11 +135,6 @@ Newest first, last 5 releases. Full history is on the **[Releases page](https://
 - 🎮 **In-game loot filter controls are back** — copy-to-game toggle + PoE2 folder picker in Settings
 - 🔎 **Smoother Economy search** — no more freezes while typing; Enable/Disable All and sorting now work correctly on search results
 - 🔒 Hardened downloads (size caps, icon host allowlist), rate-limit-aware retries, and releases are now test-gated with published checksums
-
-**v2.6.38**
-- 📊 **Economy tab remodelled** — sortable price table with a % change column (replaces the Items tab)
-- 🎛️ **Settings redesigned** — grouped cards, toggle switches, and visual Dark/Light theme preview cards
-- 📌 **Generate footer** — the ⚡ Generate button and live progress are pinned to the bottom, never scrolled away
 
 <!-- 👇 ON EACH UPDATE, add the new version here at the top. Keep only the 5 most recent — drop the oldest as you add the newest:
 **vX.Y.Z**
