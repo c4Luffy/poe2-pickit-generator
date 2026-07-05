@@ -41,7 +41,7 @@ def main():
     w = int(geo.get("w", 1120)) if isinstance(geo, dict) else 1120
     h = int(geo.get("h", 860)) if isinstance(geo, dict) else 860
     window = webview.create_window(
-        "ExileBot 2 Pickit Generator — Modern UI",
+        "ExileBot 2 Pickit Generator",
         _html_path(),
         js_api=api,
         width=max(760, w), height=max(560, h),

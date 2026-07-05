@@ -808,7 +808,7 @@ function showUpdBanner(u){const b=$("updBanner");
 /* ── init ── */
 async function init(){
   info=await api().app_info();
-  $("ver").textContent="v"+info.version+" · modern";
+  $("ver").textContent="v"+info.version+" · made by C4Luffy";
   setTheme(info.theme==="light"?"light":"dark");
   $("uAmt").value=info.min_unique||0;$("gAmt").value=info.min_gear||0;
   $("outBase").value=info.output_base;
