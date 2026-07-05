@@ -77,6 +77,27 @@ jobs:
           --collect-all exilebot_pickit
           --noconfirm src/exilebot_pickit/__main__.py
 
+      # ── Code signing (DORMANT) ─────────────────────────────────────────────
+      # Does nothing until two repository secrets exist:
+      #   SIGN_CERT_PFX_BASE64  — the .pfx certificate, base64-encoded
+      #                           (PowerShell: [Convert]::ToBase64String([IO.File]::ReadAllBytes("cert.pfx")))
+      #   SIGN_CERT_PASSWORD    — the certificate password
+      # Add them under Settings → Secrets → Actions and every future release is
+      # signed automatically — no code changes needed. Until then this step is
+      # skipped and the exe ships unsigned (with the SHA-256 below as the
+      # verification anchor).
+      - name: Sign EXE (runs only when certificate secrets are configured)
+        env:
+          SIGN_PFX: ${{ secrets.SIGN_CERT_PFX_BASE64 }}
+          SIGN_PWD: ${{ secrets.SIGN_CERT_PASSWORD }}
+        if: ${{ env.SIGN_PFX != '' }}
+        run: |
+          [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:SIGN_PFX))
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kitsin\*d\signtool.exe" | Select-Object -Last 1
+          & $signtool.FullName sign /f cert.pfx /p $env:SIGN_PWD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 dist/ExileBot2PickitGenerator.exe
+          Remove-Item cert.pfx
+          & $signtool.FullName verify /pa dist/ExileBot2PickitGenerator.exe
+
       # Publish a SHA-256 alongside the exe so downloads can be verified
       # (the binary is unsigned; this is the minimum trust anchor).
       - name: Compute checksum
