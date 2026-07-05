@@ -32,6 +32,11 @@ _SETTABLE = {
 }
 
 
+def _config_warning() -> str:
+    from exilebot_pickit.ui import config as _c
+    return _c.CONFIG_LOAD_ERROR or ""
+
+
 class AppApi:
     def __init__(self):
         self._lock = threading.Lock()
@@ -39,6 +44,15 @@ class AppApi:
         self._last_lines: list = []
         self.cfg = load_config()
         gen.set_disk_cache_dir(PRICE_CACHE_DIR)
+        gen.prune_disk_cache(max_age_days=60)
+        # Self-updating game data (new bases / unique categories from the repo):
+        # cached copy synchronously, fresh copy in the background — same as Tk.
+        try:
+            from exilebot_pickit.data import remote_data as _rd
+            _rd.load_cached_game_data(PRICE_CACHE_DIR)
+            _rd.refresh_game_data_async(PRICE_CACHE_DIR)
+        except Exception:
+            pass
 
     # ── App/config ────────────────────────────────────────────────────────────
 
@@ -61,6 +75,7 @@ class AppApi:
             "poe2_filter_dir": c.get("poe2_filter_dir", ""),
             "backup_count": int(c.get("backup_count", 5)),
             "confirm_overwrite_secs": int(c.get("confirm_overwrite_secs", 120)),
+            "config_warning": _config_warning(),
         }
 
     def set_setting(self, key, value):
@@ -273,6 +288,22 @@ class AppApi:
         gen.clear_cache()
         return {"ok": True}
 
+    def prune_cache(self):
+        return {"removed": gen.prune_disk_cache(max_age_days=60)}
+
+    def reset_defaults(self):
+        """Reset settings to defaults; keep history, profiles, selections and
+        price baselines — mirrors the Tk app's Reset behaviour."""
+        from exilebot_pickit.ui.config import DEFAULT_CONFIG
+        keep = {k: self.cfg.get(k) for k in
+                ("history", "profiles", "item_states", "last_gen_prices",
+                 "window_geometry", "active_profile", "league")}
+        self.cfg.clear()
+        self.cfg.update(DEFAULT_CONFIG)
+        self.cfg.update({k: v for k, v in keep.items() if v is not None})
+        save_config(self.cfg)
+        return {"ok": True, "info": self.app_info()}
+
     def set_item(self, cat_key, name, enabled):
         """Toggle one item (also used for '_chance' pseudo-category)."""
         states = self.cfg.setdefault("item_states", {})
@@ -452,6 +483,30 @@ class AppApi:
             os.makedirs(OUTPUT_DIR, exist_ok=True)
             base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
             ipd = os.path.join(OUTPUT_DIR, base + ".ipd")
+
+            # What changed vs the previous pickit (+added / -removed rules)
+            added, removed = [], []
+            try:
+                if os.path.isfile(ipd):
+                    with open(ipd, encoding="utf-8") as f:
+                        prev_ids = asm.active_rule_ids(f.read().splitlines())
+                    new_ids = asm.active_rule_ids(out)
+                    added   = sorted(new_ids - prev_ids)[:8]
+                    removed = sorted(prev_ids - new_ids)[:8]
+            except OSError:
+                pass
+
+            # Price movers (>=20% vs the last generate's snapshot)
+            alerts = []
+            try:
+                prev_prices = self.cfg.get("last_gen_prices", {}).get(league, {})
+                chaos_v = 0.0
+                _, price_alerts = asm.compute_price_alerts(
+                    cats, payloads, prev_prices, chaos_v, threshold=0.20)
+                price_alerts.sort(key=lambda t: t[0], reverse=True)
+                alerts = [t for _, t in price_alerts[:8]]
+            except Exception:
+                pass
             # Rotate backups of the previous pickit (keep backup_count copies)
             nkeep = int(self.cfg.get("backup_count", 5) or 0)
             if nkeep > 0 and os.path.isfile(ipd):
@@ -544,6 +599,7 @@ class AppApi:
                     "val_errors": len(validation.get("errors", [])),
                     "val_warnings": len(validation.get("warnings", [])),
                     "copied": copied,
+                    "added": added, "removed": removed, "alerts": alerts,
                 }
         except Exception as e:
             with self._lock:

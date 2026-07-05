@@ -166,7 +166,10 @@
   <div class="banner warn" id="offBanner" style="cursor:default"></div>
   <h1>Generate</h1><div class="sub">Live poe.ninja prices → ready-to-use Exiled Bot 2 pickit. Ctrl+G works too.</div>
   <div class="card"><h2>🌍 League</h2>
-    <select id="league" style="width:100%"><option>Loading…</option></select>
+    <div style="display:flex;gap:8px">
+      <select id="league" style="flex:1"><option>Loading…</option></select>
+      <button class="ghost mini" id="leagueRefresh" title="Re-fetch the league list (Ctrl+R)">↻</button>
+    </div>
   </div>
   <div class="card"><h2>👤 Profile</h2>
     <div class="hint">Save different setups — e.g. a "Farmer" and a "Boss runner" profile, each with its own selections and floors.</div>
@@ -223,6 +226,8 @@
     </div>
     <div class="toprow" id="sTop"></div>
     <div class="toprow" id="sVal"></div>
+    <div class="toprow" id="sDiff"></div>
+    <div class="toprow" id="sMoves"></div>
   </div>
 </div>
 
@@ -273,8 +278,26 @@
 <!-- ══ HISTORY ══ -->
 <div class="page" id="p-hist">
   <h1>History</h1><div class="sub">Every generate is logged (last 50 kept).</div>
-  <div class="eco-head"><button class="ghost mini" id="histClear">🗑 Clear history</button></div>
-  <div class="card" id="histBox"><div class="hint">No runs yet.</div></div>
+  <div class="stats" id="histTiles" style="margin-bottom:14px">
+    <div class="stat"><b id="htRuns">–</b><span>runs logged</span></div>
+    <div class="stat"><b id="htLast">–</b><span>last run rules</span></div>
+    <div class="stat"><b id="htAvg">–</b><span>average rules</span></div>
+    <div class="stat"><b id="htPeak">–</b><span>peak rules</span></div>
+  </div>
+  <div class="card"><h2>📈 Active rules per run</h2>
+    <div style="position:relative">
+      <svg id="histChart" width="100%" height="180" style="display:block"></svg>
+      <div id="histTip" style="position:absolute;display:none;background:var(--bg3);border:1px solid var(--gold-dim);
+           border-radius:8px;padding:6px 10px;font-size:12px;pointer-events:none;white-space:nowrap;z-index:5"></div>
+    </div>
+  </div>
+  <div class="card" style="padding:8px 6px">
+    <table><thead><tr><th>Date</th><th style="text-align:right">Active</th>
+      <th style="text-align:right">Skipped</th><th style="text-align:right">1 Div =</th>
+      <th>Top item</th><th style="text-align:right">Time</th></tr></thead>
+      <tbody id="histRows"><tr><td colspan="6" class="hint" style="padding:14px">No runs yet.</td></tr></tbody></table>
+  </div>
+  <div class="eco-head" style="margin-top:4px"><button class="ghost mini" id="histClear">🗑 Clear history</button></div>
 </div>
 
 <!-- ══ DEBUG ══ -->
@@ -285,6 +308,8 @@
       <button class="ghost mini" id="dbgApi">Test all API endpoints</button>
       <button class="ghost mini" id="dbgInfo">Cache & app info</button>
       <button class="ghost mini" id="dbgClear">Clear price cache</button>
+      <button class="ghost mini" id="dbgPrune">Prune old cache files</button>
+      <button class="ghost mini" id="dbgCopy">Copy output</button>
       <button class="ghost mini" id="dbgLog">Open debug log</button>
       <button class="ghost mini" id="dbgCfg">Open config file</button>
       <button class="ghost mini" id="dbgWipe">Clear output</button>
@@ -353,6 +378,14 @@
     <div class="set-row"><div class="lab"><b>Check for updates</b>
       <span id="updLbl">Checks GitHub for a newer build.</span></div><div class="sp"></div>
       <button class="ghost mini" id="updCheck">Check now</button></div>
+  </div>
+  <div class="card"><h2>🗂 Advanced</h2>
+    <div class="set-row"><div class="lab"><b>Reset settings to defaults</b>
+      <span>History, profiles and item selections are kept.</span></div><div class="sp"></div>
+      <button class="ghost mini" id="resetBtn">Reset…</button></div>
+    <div class="set-row"><div class="lab"><b>Config file</b>
+      <span>Open the raw settings file.</span></div><div class="sp"></div>
+      <button class="ghost mini" id="cfgOpen">Open</button></div>
   </div>
 </div>
 </main>
@@ -432,6 +465,11 @@ async function poll(){
     const ob=$("offBanner");
     if(d.stale){ob.textContent=`⚠ poe.ninja was partly unreachable — ${d.stale} categories used cached prices. Prices may be out of date.`;ob.classList.add("on");}
     else ob.classList.remove("on");
+    $("sDiff").textContent=(d.added&&d.added.length)||(d.removed&&d.removed.length)?
+      `Changes: +${d.added.length} added (${d.added.slice(0,3).join(", ")})`+
+      (d.removed.length?` · -${d.removed.length} removed (${d.removed.slice(0,3).join(", ")})`:""):
+      "Changes: none since last pickit";
+    $("sMoves").textContent=(d.alerts&&d.alerts.length)?"Price moves: "+d.alerts.slice(0,5).join("  ·  "):"";
     logLine(`Done in ${d.secs}s → ${d.path}`,"ok");uEx();gEx();
   } else if(d.error)logLine("✗ "+d.error,"err");}
 async function doGenerate(){
@@ -465,7 +503,9 @@ $("profCmp").onclick=async()=>{
   if(p.names.length<2){toast("Save at least two profiles to compare");return;}
   const box=$("cmpBox");
   if(box.style.display==="block"){box.style.display="none";return;}
-  const [a,b]=p.names.slice(0,2);
+  renderCompare(p.names,p.names[0],p.names[1]);};
+async function renderCompare(names,a,b){
+  const box=$("cmpBox");
   const A=await api().profile_get(a),B=await api().profile_get(b);
   const rows=[["Unique floor",A.min_unique+" ex",B.min_unique+" ex"],
     ["Other floor",A.min_gear+" ex",B.min_gear+" ex"],
@@ -475,10 +515,16 @@ $("profCmp").onclick=async()=>{
     ["Base ilvl",A.base_min_level,B.base_min_level]];
   const cats=new Set([...Object.keys(A.disabled_counts||{}),...Object.keys(B.disabled_counts||{})]);
   for(const c of cats)rows.push(["Excluded in "+c,(A.disabled_counts[c]||0)+" items",(B.disabled_counts[c]||0)+" items"]);
-  box.innerHTML=`<table><thead><tr><th></th><th>${a}</th><th>${b}</th></tr></thead><tbody>`+
-    rows.map(r=>`<tr${r[1]!==String(r[2])&&String(r[1])!==String(r[2])?' style="color:var(--warn)"':''}>
+  const opts=n=>names.map(x=>`<option${x===n?" selected":""}>${x}</option>`).join("");
+  box.innerHTML=`<div style="display:flex;gap:8px;margin-bottom:8px">
+      <select id="cmpA">${opts(a)}</select><span style="color:var(--dim)">vs</span>
+      <select id="cmpB">${opts(b)}</select></div>
+    <table><thead><tr><th></th><th>${a}</th><th>${b}</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr${String(r[1])!==String(r[2])?' style="color:var(--warn)"':''}>
       <td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")+"</tbody></table>";
-  box.style.display="block";};
+  box.style.display="block";
+  $("cmpA").onchange=()=>renderCompare(names,$("cmpA").value,$("cmpB").value);
+  $("cmpB").onchange=()=>renderCompare(names,$("cmpA").value,$("cmpB").value);}
 
 /* ── economy ── */
 let ecoUnit="ex",chaosEx=0;
@@ -610,13 +656,62 @@ $("craftAll").onclick=()=>craftBulk(true);
 $("craftNone").onclick=()=>craftBulk(false);
 
 /* ── history ── */
+function drawHistChart(h){
+  const svg=$("histChart"),tip=$("histTip");
+  const W=svg.clientWidth||820,H=180,PL=46,PR=14,PT=14,PB=26;
+  const runs=h.slice().reverse();               // oldest → newest
+  const vals=runs.map(r=>r.active||0);
+  if(vals.length<2){svg.innerHTML=`<text x="${PL}" y="${H/2}" fill="var(--dim)" font-size="12.5">Not enough data yet — generate a couple of times and the trend appears here.</text>`;return;}
+  const mn=Math.min(...vals),mx=Math.max(...vals);
+  const lo=Math.max(0,mn-(mx-mn||1)*0.15),hi=mx+(mx-mn||1)*0.15,rng=hi-lo||1;
+  const X=i=>PL+i*(W-PL-PR)/(vals.length-1);
+  const Y=v=>PT+(hi-v)*(H-PT-PB)/rng;
+  // recessive grid: 3 horizontal lines with value labels in muted ink
+  let g="";
+  for(let k=0;k<3;k++){const v=lo+rng*(k+1)/4,y=Y(v);
+    g+=`<line x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}" stroke="var(--border)" stroke-width="1"/>
+        <text x="${PL-8}" y="${y+4}" fill="var(--dim)" font-size="10.5" text-anchor="end">${Math.round(v).toLocaleString()}</text>`;}
+  const pts=vals.map((v,i)=>[X(i),Y(v)]);
+  const line=pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
+  const first=runs[0].ts.split(" ")[0],last=runs[runs.length-1].ts;
+  svg.innerHTML=g+
+    `<polygon points="${PL},${H-PB} ${line} ${W-PR},${H-PB}" fill="rgba(200,169,110,.12)"/>
+     <polyline points="${line}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linejoin="round"/>`+
+    pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===pts.length-1?4:2.5}" fill="var(--gold)"
+       ${i===pts.length-1?'stroke="var(--bg2)" stroke-width="2"':''}/>`).join("")+
+    `<text x="${PL}" y="${H-8}" fill="var(--dim)" font-size="10.5">${first}</text>
+     <text x="${W-PR}" y="${H-8}" fill="var(--dim)" font-size="10.5" text-anchor="end">${last}</text>
+     <circle id="hcHover" r="5" fill="none" stroke="var(--gold)" stroke-width="2" style="display:none"/>`;
+  // hover layer: nearest-point crosshair + tooltip
+  svg.onmousemove=e=>{
+    const r=svg.getBoundingClientRect(),x=e.clientX-r.left;
+    let i=Math.round((x-PL)/((W-PL-PR)/(vals.length-1)));
+    i=Math.max(0,Math.min(vals.length-1,i));
+    const hc=svg.querySelector("#hcHover");
+    hc.setAttribute("cx",pts[i][0]);hc.setAttribute("cy",pts[i][1]);hc.style.display="block";
+    tip.innerHTML=`<b style="color:var(--gold)">${vals[i].toLocaleString()}</b> active rules<br>
+      <span style="color:var(--dim)">${runs[i].ts} · ${runs[i].commented} skipped · top: ${runs[i].top_item||"—"}</span>`;
+    tip.style.display="block";
+    tip.style.left=Math.min(pts[i][0]+12,W-230)+"px";
+    tip.style.top=Math.max(pts[i][1]-52,0)+"px";};
+  svg.onmouseleave=()=>{tip.style.display="none";
+    const hc=svg.querySelector("#hcHover");if(hc)hc.style.display="none";};}
 async function loadHistory(){
-  const h=await api().history();const box=$("histBox");
-  if(!h.length){box.innerHTML='<div class="hint">No runs yet.</div>';return;}
-  box.innerHTML=h.map(r=>`<div class="hrow"><span style="width:120px">${r.ts}</span>
-    <b>${r.active}</b> active · ${r.commented} skipped ·
-    1 div = ${Number(r.divine_rate).toFixed(0)} ex ·
-    top: <b>${r.top_item||"—"}</b>${r.top_value?" ("+r.top_value+" ex)":""} · ${r.duration}</div>`).join("");}
+  const h=await api().history();
+  const vals=h.map(r=>r.active||0);
+  $("htRuns").textContent=h.length||"–";
+  $("htLast").textContent=h.length?vals[0].toLocaleString():"–";
+  $("htAvg").textContent=h.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length).toLocaleString():"–";
+  $("htPeak").textContent=h.length?Math.max(...vals).toLocaleString():"–";
+  drawHistChart(h);
+  const tb=$("histRows");
+  tb.innerHTML=h.length?h.map(r=>`<tr>
+      <td>${r.ts}</td><td class="val">${(r.active||0).toLocaleString()}</td>
+      <td style="text-align:right;color:var(--dim)">${r.commented||0}</td>
+      <td style="text-align:right;color:var(--dim)">${Number(r.divine_rate||0).toFixed(0)} ex</td>
+      <td>${r.top_item||"—"}${r.top_value?` <span class="pill">${Number(r.top_value).toLocaleString()} ex</span>`:""}</td>
+      <td style="text-align:right;color:var(--dim)">${r.duration||""}</td></tr>`).join(""):
+    '<tr><td colspan="6" class="hint" style="padding:14px">No runs yet.</td></tr>';}
 $("histClear").onclick=async()=>{if(!confirm("Clear all run history?"))return;
   await api().clear_history();loadHistory();toast("History cleared");};
 
@@ -631,9 +726,29 @@ $("dbgInfo").onclick=async()=>{const d=await api().debug_info();
       `Config          : ${d.config_path}\nPrice cache dir : ${d.cache_dir}\n\n— debug.log (last lines) —\n`+
       d.log.join("\n"));};
 $("dbgClear").onclick=async()=>{await api().clear_cache();toast("Price cache cleared");};
+$("dbgPrune").onclick=async()=>{const r=await api().prune_cache();toast(`Pruned ${r.removed} old cache file(s)`);};
+$("dbgCopy").onclick=async()=>{try{await navigator.clipboard.writeText($("dbgOut").textContent);toast("Copied");}catch(_){toast("Clipboard blocked");}};
 $("dbgLog").onclick=()=>api().open_file("log");
 $("dbgCfg").onclick=()=>api().open_file("config");
 $("dbgWipe").onclick=()=>dbg("Ready.");
+$("cfgOpen").onclick=()=>api().open_file("config");
+$("resetBtn").onclick=async()=>{
+  if(!confirm("Reset all settings to defaults?\nHistory, profiles and item selections are kept."))return;
+  const r=await api().reset_defaults();
+  if(r.ok){info=r.info;$("uAmt").value=info.min_unique;$("gAmt").value=info.min_gear;
+    $("outBase").value=info.output_base;$("bakCount").value=info.backup_count;
+    $("baseQ").value=info.base_quality;$("baseL").value=info.base_min_level;
+    $("regenSel").value=String(info.auto_regen_hours||0);armRegen();
+    $("botFolderLbl").textContent=info.bot_folder||"not set";
+    $("fltDirLbl").textContent=info.poe2_filter_dir||"not set";
+    uEx();gEx();toast("Settings reset to defaults");}};
+$("leagueRefresh").onclick=async()=>{
+  const ls=await api().leagues();if(ls.error)return toast("✗ "+ls.error);
+  const sel=$("league"),cur=sel.value;sel.innerHTML="";
+  for(const l of ls){const o=document.createElement("option");o.value=l.name;o.textContent=l.display;sel.appendChild(o);}
+  if(cur)sel.value=cur;toast("League list refreshed");};
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey&&e.key.toLowerCase()==="r"){e.preventDefault();$("leagueRefresh").click();}});
 
 /* ── preview ── */
 let prevLines=[];
@@ -704,6 +819,8 @@ async function init(){
   $("regenSel").value=String(info.auto_regen_hours||0);armRegen();
   loadProfiles();
   api().check_update().then(u=>{if(u.update)showUpdBanner(u);});
+  if(info.config_warning)setTimeout(()=>alert(info.config_warning),600);
+  if(info.auto_copy&&!info.bot_folder)toast("⚠ Auto-copy is ON but no bot folder is set");
   const ls=await api().leagues();const sel=$("league");sel.innerHTML="";
   if(ls.error){sel.innerHTML="<option>Could not load leagues</option>";logLine("✗ "+ls.error,"err");}
   else{for(const l of ls){const o=document.createElement("option");o.value=l.name;o.textContent=l.display;sel.appendChild(o);}
