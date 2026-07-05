@@ -149,12 +149,25 @@ def load_config():
 
 def save_config(cfg):
     """Atomic write (tmp + os.replace) — a crash mid-write can no longer
-    truncate the config and wipe profiles/history/item selections."""
+    truncate the config and wipe profiles/history/item selections.
+
+    The final os.replace is retried: on Windows it fails with WinError 32 if
+    another process momentarily holds the file open (the other UI saving at
+    the same instant, or an antivirus scan). One lost save used to be the
+    result; a few short retries almost always win the race instead."""
+    import time as _time
     try:
         tmp = CONFIG_PATH + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=2)
-        os.replace(tmp, CONFIG_PATH)
+        for attempt in range(4):
+            try:
+                os.replace(tmp, CONFIG_PATH)
+                break
+            except PermissionError:
+                if attempt == 3:
+                    raise
+                _time.sleep(0.1 * (attempt + 1))
         log_info("config saved")
     except Exception:
         log_exc("save_config")
