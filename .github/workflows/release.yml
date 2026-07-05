@@ -87,10 +87,10 @@ jobs:
       # skipped and the exe ships unsigned (with the SHA-256 below as the
       # verification anchor).
       - name: Sign EXE (runs only when certificate secrets are configured)
+        if: ${{ secrets.SIGN_CERT_PFX_BASE64 != '' }}
         env:
           SIGN_PFX: ${{ secrets.SIGN_CERT_PFX_BASE64 }}
           SIGN_PWD: ${{ secrets.SIGN_CERT_PASSWORD }}
-        if: ${{ env.SIGN_PFX != '' }}
         run: |
           [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:SIGN_PFX))
           $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kitsin\*d\signtool.exe" | Select-Object -Last 1
