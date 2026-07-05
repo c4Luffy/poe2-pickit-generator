@@ -102,16 +102,6 @@ SPECIAL_ITEMS = [
     "Kulemak's Invitation",
 ]
 
-# Jewels — passive-tree jewels, picked at any rarity (1x1 inventory slot,
-# rares with good mods sell well; Timeless/Time-Lost are chase items).
-JEWELS = [
-    "Diamond",
-    "Emerald",
-    "Ruby",
-    "Sapphire",
-    "Time-Lost Diamond",
-    "Timeless Jewel",
-]
 
 # Exotic bases — drop-only special bases that sell as bases at any rarity
 # (breach rings, dusk/gloam jewellery, Runic Fork...). Extracted verbatim

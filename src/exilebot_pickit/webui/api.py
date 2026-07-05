@@ -93,7 +93,11 @@ class AppApi:
 
     def leagues(self):
         try:
-            return [{"name": n, "display": d} for n, _, d in gen.fetch_live_leagues()]
+            # current leagues only — finished ones come suffixed "(old)"
+            # from the client and just clutter the dropdown
+            return [{"name": n, "display": d}
+                    for n, _, d in gen.fetch_live_leagues()
+                    if not d.endswith("(old)")]
         except Exception as e:
             return {"error": str(e)}
 
@@ -109,8 +113,36 @@ class AppApi:
             div_rate, _, rate = asm.compute_divine_rate(cur) if isinstance(cur, dict) else (1.0, False, 0.0)
             states = self.cfg.get("item_states", {})
             prev = self.cfg.get("last_gen_prices", {}).get(league, {})
+            # name → icon URL: poe2db art for the always-pick items, plus
+            # anything the fetched payloads carry
+            from exilebot_pickit.data.icons import STATIC_ICONS
+            icon_idx = dict(STATIC_ICONS)
+            for _p in payloads.values():
+                if not isinstance(_p, dict):
+                    continue
+                for i in _p.get("items", []):
+                    img = i.get("image") or ""
+                    if i.get("name") and img:
+                        icon_idx.setdefault(
+                            i["name"],
+                            ("https://web.poecdn.com" + img) if img.startswith("/") else img)
+                for ln in _p.get("lines", []):
+                    if ln.get("name") and ln.get("icon"):
+                        icon_idx.setdefault(ln["name"], ln["icon"])
             out = []
+            priced = set()      # names shown in priced categories (dedupe)
             for key, _t, label, is_unique in gen.ALL_CATEGORIES:
+                if key == "waystones":
+                    # poe.ninja doesn't price waystones — show the three
+                    # pickup rules as toggleable rows instead of an empty list
+                    ws = states.get("waystones", {})
+                    out.append({"key": key, "label": label, "unique": False,
+                                "items": [{"name": nm, "base": "any tier",
+                                           "ex": 0, "icon": icon_idx.get("Waystone", ""),
+                                           "chg": None, "static": True, "emj": "🗺️",
+                                           "enabled": ws.get(nm, {}).get("enabled", True)}
+                                          for nm in gen.WAYSTONE_TOGGLE_NAMES.values()]})
+                    continue
                 p = payloads.get(key)
                 if not isinstance(p, dict):
                     out.append({"key": key, "label": label, "unique": is_unique,
@@ -140,7 +172,8 @@ class AppApi:
                         seen.add(nm)
                         ev = float(line.get("primaryValue") or 0.0) * (r or 1.0)
                         items.append({"name": nm, "base": line.get("baseType", ""),
-                                      "ex": round(ev, 2), "enabled": True,
+                                      "ex": round(ev, 2),
+                                      "enabled": cat_states.get(nm, {}).get("enabled", True),
                                       "icon": line.get("icon") or "",
                                       "chg": _chg(nm, ev, line.get("sparkLine"))})
                 else:
@@ -161,34 +194,64 @@ class AppApi:
                                       "enabled": cat_states.get(nm, {}).get("enabled", True),
                                       "icon": img, "chg": _chg(nm, ev)})
                 items.sort(key=lambda i: -i["ex"])
+                if not is_unique:
+                    priced.update(i["name"] for i in items)
                 out.append({"key": key, "label": label, "unique": is_unique, "items": items})
 
-            # Synthetic category: the always-pick items (no poe.ninja prices —
-            # picked because they're map juice, not because of exchange value).
-            st = states.get("_static", {})
-
-            def _sitem(nm, grp, base=""):
-                return {"name": nm, "base": base, "ex": 0, "icon": "", "chg": None,
-                        "static": True, "grp": grp,
-                        "enabled": st.get(nm, {}).get("enabled", True)}
-            sitems = ([_sitem(t, "Tablets", "all rarities") for t in gen.TABLET_TYPES]
-                      + [_sitem(un, "Unique Tablets", typ) for typ, un in gen.TABLET_UNIQUES]
-                      + [_sitem(s, "Splinters") for s in gen.SPLINTERS]
-                      + [_sitem(w, "Breach Wombgifts") for w in gen.WOMBGIFTS]
-                      + [_sitem(sp, "Special Items") for sp in gen.SPECIAL_ITEMS]
-                      + [_sitem(j, "Jewels") for j in gen.JEWELS]
-                      + [_sitem(b, "Exotic Bases") for b in gen.EXOTIC_BASES])
-            out.append({"key": "_static", "label": "Always-Pick Items",
-                        "unique": False, "items": sitems})
+            # Synthetic always-pick categories (no poe.ninja prices — picked
+            # because they're map juice/valuable bases, not exchange value).
+            # Each group is its own sidebar entry with its own toggles.
+            _emj = {"_ap_tablets": "🗿", "_ap_frag": "🧩", "_ap_exotic": "🧿"}
+            for key, label, rows in self._ap_groups():
+                st = {**states.get("_static", {}), **states.get(key, {})}  # _static = pre-split legacy
+                items = [{"name": nm, "base": base, "ex": 0,
+                          "icon": icon_idx.get(nm, ""),
+                          "chg": None, "static": True, "emj": _emj.get(key, "📌"),
+                          "enabled": st.get(nm, {}).get("enabled", True)}
+                         # ninja prices it → it lives in its priced category
+                         # (force-kept above the floor there), not here too
+                         for nm, base in rows if nm not in priced]
+                out.append({"key": key, "label": label, "unique": False,
+                            "items": items})
 
             enabled_cfg = self.cfg.get("category_enabled", {})
             cat_en = {c[0]: enabled_cfg.get(c[0], True) for c in gen.ALL_CATEGORIES}
-            cat_en["_static"] = enabled_cfg.get("_static", True)
+            for key, _l, _r in self._ap_groups():
+                cat_en[key] = enabled_cfg.get(key, enabled_cfg.get("_static", True))
             return {"divine_rate": round(div_rate, 1),
                     "cats": out, "stale": sorted(stale),
                     "cat_enabled": cat_en}
         except Exception as e:
             return {"error": str(e)}
+
+    @staticmethod
+    def _ap_groups():
+        """The always-pick groups shown as their own Economy categories.
+        Each: (category key, sidebar label, [(item name, sub label), ...])."""
+        return [
+            ("_ap_tablets", "Tablets",
+             [(t, "all rarities") for t in gen.TABLET_TYPES]
+             + [(un, f"unique · {typ}") for typ, un in gen.TABLET_UNIQUES]),
+            ("_ap_frag", "Fragments & Keys",
+             [(s, "splinter") for s in gen.SPLINTERS]
+             + [(w, "wombgift") for w in gen.WOMBGIFTS]
+             + [(sp, "key") for sp in gen.SPECIAL_ITEMS]),
+            ("_ap_exotic",  "Exotic Bases", [(b, "") for b in gen.EXOTIC_BASES]),
+        ]
+
+    def _ap_disabled(self, snap):
+        """Names switched off across all always-pick groups — a group whose
+        whole category is off contributes every one of its names."""
+        states = snap["item_states"]
+        legacy = states.get("_static", {})
+        dis = {n for n, s in legacy.items() if not s.get("enabled", True)}
+        for key, _label, rows in self._ap_groups():
+            if not snap["cat_enabled"].get(key, True):
+                dis.update(n for n, _b in rows)
+                continue
+            st = states.get(key, {})
+            dis.update(n for n, s in st.items() if not s.get("enabled", True))
+        return dis
 
     def set_items_bulk(self, cat_key, names, enabled):
         """Enable/disable every listed item of a category at once."""
@@ -231,7 +294,12 @@ class AppApi:
             sb = (base or "").replace('"', '\\"')
             return (f'[Type] == "{sb}" && [Rarity] == "Unique" # [UniqueName] == "{safe}" '
                     f'&& [StashItem] == "true" // ExValue = {float(ex):.2f}')
-        if cat_key == "_static":
+        if cat_key == "waystones":
+            for rar, nm in gen.WAYSTONE_TOGGLE_NAMES.items():
+                if nm == name:
+                    return next((r for r in gen.WAYSTONE_FALLBACK_RULES
+                                 if f'"{rar}"' in r), "")
+        if cat_key == "_static" or cat_key.startswith("_ap_"):
             if any(name == n for _t, n in gen.TABLET_UNIQUES):
                 typ = next(t for t, n in gen.TABLET_UNIQUES if n == name)
                 st = typ.replace('"', '\\"')
@@ -349,42 +417,6 @@ class AppApi:
         gen.clear_cache()
         return {"ok": True}
 
-    def league_start_preset(self):
-        """One-click 'day 1' setup: floors to 0 and every category enabled —
-        early league, everything sells. Item-level exclusions are kept.
-        The previous floors/categories are stashed so this can be undone."""
-        self.cfg["pre_league_start"] = {
-            "min_exalt_gear": float(self.cfg.get("min_exalt_gear", 0.0)),
-            "min_exalt_unique": float(self.cfg.get("min_exalt_unique", 0.0)),
-            "category_enabled": dict(self.cfg.get("category_enabled", {})),
-            "include_bases": bool(self.cfg.get("include_bases", True)),
-        }
-        self.cfg["min_exalt_gear"] = self.cfg["min_exalt"] = 0.0
-        self.cfg["min_exalt_unique"] = 0.0
-        ce = self.cfg.setdefault("category_enabled", {})
-        for c in gen.ALL_CATEGORIES:
-            ce[c[0]] = True
-        ce["_static"] = True
-        self.cfg["include_bases"] = True
-        save_config(self.cfg)
-        return {"ok": True, "info": self.app_info()}
-
-    def league_start_active(self):
-        return {"active": bool(self.cfg.get("pre_league_start"))}
-
-    def league_start_restore(self):
-        """Undo the league-start preset: put the saved floors/categories back."""
-        prev = self.cfg.get("pre_league_start")
-        if not prev:
-            return {"error": "nothing to restore"}
-        self.cfg["min_exalt_gear"] = self.cfg["min_exalt"] = prev.get("min_exalt_gear", 0.0)
-        self.cfg["min_exalt_unique"] = prev.get("min_exalt_unique", 0.0)
-        self.cfg["category_enabled"] = dict(prev.get("category_enabled", {}))
-        self.cfg["include_bases"] = prev.get("include_bases", True)
-        self.cfg["pre_league_start"] = None
-        save_config(self.cfg)
-        return {"ok": True, "info": self.app_info()}
-
     def prune_cache(self):
         return {"removed": gen.prune_disk_cache(max_age_days=60)}
 
@@ -418,23 +450,44 @@ class AppApi:
 
     def chance_bases(self):
         st = self.cfg.get("item_states", {}).get("_chance", {})
+        from exilebot_pickit.data.icons import STATIC_ICONS
         return [{"cat": cat, "base": base, "target": tgt,
+                 "icon": STATIC_ICONS.get(base, ""),
                  "enabled": st.get(base, {}).get("enabled", True)}
                 for cat, base, tgt in gen.CHANCE_BASES]
 
     def exceptional_bases(self):
-        """The exceptional base list, grouped by slot — read-only info for
-        the Exceptional tab (list itself is remote-updated game data)."""
-        return [{"cat": cat, "bases": [n for n, _s in entries]}
-                for cat, entries in gen._BASE_TYPES_BY_CATEGORY.items()]
+        """Exceptional bases grouped by slot, with per-base toggle state,
+        icon and stats — powers the Exceptional tab grid."""
+        from exilebot_pickit.data.icons import STATIC_ICONS, BASE_STATS
+        st = self.cfg.get("item_states", {}).get("_excbase", {})
+        out = []
+        for cat, entries in gen._BASE_TYPES_BY_CATEGORY.items():
+            bases = []
+            for n, _s in entries:
+                bi = BASE_STATS.get(n, {})
+                bases.append({"name": n,
+                              "enabled": st.get(n, {}).get("enabled", True),
+                              "icon": STATIC_ICONS.get(n, ""),
+                              "lvl": bi.get("lvl", 0),
+                              "stats": bi.get("stats", "")})
+            out.append({"cat": cat, "bases": bases})
+        return out
+
+    def _excbase_disabled(self, snap):
+        return {n for n, s_ in snap["item_states"].get("_excbase", {}).items()
+                if not s_.get("enabled", True)}
 
     def craft_bases(self):
+        from exilebot_pickit.data.icons import STATIC_ICONS as _ci, BASE_STATS as _bs
         st = self.cfg.get("item_states", {}).get("_craftbase", {})
         out = []
         for cat, names in gen.craft_base_categories():
             for n in names:
                 s = st.get(n, {})
-                out.append({"cat": cat, "base": n,
+                out.append({"cat": cat, "base": n, "icon": _ci.get(n, ""),
+                            "lvl": _bs.get(n, {}).get("lvl", 0),
+                            "stats": _bs.get(n, {}).get("stats", ""),
                             "defence": gen.craft_base_defence(n),
                             "ilvl": int(s.get("ilvl", gen.craft_base_default_ilvl(n))),
                             "enabled": s.get("enabled", True)})
@@ -459,7 +512,7 @@ class AppApi:
         and for everything else, from the CURRENT league prices. This is the
         'Auto' floor: it adapts to the economy instead of a fixed number."""
         try:
-            keep = max(5, min(95, int(keep_pct)))
+            keep = max(5, min(100, int(keep_pct)))
             payloads = gen.fetch_all_payloads(league, gen.ALL_CATEGORIES)
             uniq_vals, gear_vals = [], []
             for key, _t, _l, is_unique in gen.ALL_CATEGORIES:
@@ -473,7 +526,7 @@ class AppApi:
                         (uniq_vals if is_unique else gear_vals).append(ev)
 
             def pct_floor(vals):
-                if not vals:
+                if not vals or keep >= 100:   # keep everything → no floor
                     return 0.0
                 vals.sort(reverse=True)
                 idx = min(len(vals) - 1, max(0, int(len(vals) * keep / 100) - 1))
@@ -526,7 +579,8 @@ class AppApi:
         item_states = dict(st)
         item_states["_craftbase"] = cb
         cat_enabled = {c[0]: enabled_cfg.get(c[0], True) for c in gen.ALL_CATEGORIES}
-        cat_enabled["_static"] = enabled_cfg.get("_static", True)
+        for apk, _l, _r in self._ap_groups():
+            cat_enabled[apk] = enabled_cfg.get(apk, enabled_cfg.get("_static", True))
         return {
             "cat_enabled": cat_enabled,
             "cat_thresh": {},          # per-category floors removed by design
@@ -572,31 +626,40 @@ class AppApi:
                 en = asm.enabled_names_for(key, is_unique, p,
                                            snap["item_states"].get(key, {}))
                 lines = asm.build_category_lines(key, is_unique, p, div_rate,
-                                                 eff, min_gear, en)
+                                                 eff, min_gear, en,
+                                                 cat_states=snap["item_states"].get(key, {}))
                 top_pool += asm.top_items_from_lines(lines)
                 out += [gen.header_sub(label), ""] + lines + [""]
                 ok += 1
                 self._log(f"✓ {label}")
 
-            # Always-pick sections — individual items (and the whole group)
-            # can be switched off from the Economy tab.
-            if snap["cat_enabled"].get("_static", True):
-                sdis = {n for n, s in snap["item_states"].get("_static", {}).items()
-                        if not s.get("enabled", True)}
-                out += gen.build_tablet_rules(sdis)
-                out += gen.build_wombgift_rules(sdis)
-                out += gen.build_special_item_rules(sdis)
-                out += gen.build_exotic_base_rules(sdis)
-                out += gen.build_jewel_rules(sdis)
+            # Always-pick sections — each group is its own Economy category;
+            # single items and whole groups can be switched off there.
+            sdis = self._ap_disabled(snap)
+            # dedupe: items poe.ninja prices already got a force-kept rule in
+            # their own category above — don't write a second static rule
+            priced = set()
+            for _p in payloads.values():
+                if isinstance(_p, dict):
+                    priced.update(
+                        gen.ITEM_NAME_CORRECTIONS.get(i["name"], i["name"])
+                        for i in _p.get("items", []) if i.get("name"))
+            sdis |= priced & gen.always_pick_force_names()
+            out += gen.build_tablet_rules(sdis)
+            out += gen.build_wombgift_rules(sdis)
+            out += gen.build_special_item_rules(sdis)
+            out += gen.build_exotic_base_rules(sdis)
             out += gen.build_chance_base_rules(asm.chance_base_disabled(snap))
             craft_lines, _n, _floor = asm.craft_base_section(snap)
             out += craft_lines
+            excdis = self._excbase_disabled(snap)
             if snap["unique_exceptional"]:
-                out += [""] + gen.build_unique_exceptional_rules()
+                out += [""] + gen.build_unique_exceptional_rules(disabled=excdis)
             if snap["include_bases"]:
                 out += ["", gen.header_major("Exceptional Bases"), ""]
                 out += gen.build_base_rules(min_quality=snap["base_quality"],
-                                            min_level=snap["base_min_level"])
+                                            min_level=snap["base_min_level"],
+                                            disabled=excdis)
 
             # Validate the FLATTENED lines — multi-line banner headers in
             # `out` would shift line numbers vs what Preview displays.

@@ -465,7 +465,7 @@ def test_webui_entry_and_api_import():
     with open("src/exilebot_pickit/__main__.py", encoding="utf-8") as f:
         assert "webui.poc" in f.read()
     from exilebot_pickit.webui.api import AppApi
-    for m in ("generate", "economy", "suggest_floors", "league_start_preset"):
+    for m in ("generate", "economy", "suggest_floors", "exceptional_bases"):
         assert hasattr(AppApi, m)
 
 

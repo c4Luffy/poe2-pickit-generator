@@ -211,16 +211,24 @@ def enabled_names_for(key: str, is_unique: bool, payload: dict,
 def build_category_lines(key: str, is_unique: bool, payload: dict,
                          divine_rate_exalts: float, eff_min: float,
                          min_exalt_gear: float,
-                         enabled_names: set[str] | None) -> list[str]:
+                         enabled_names: set[str] | None,
+                         cat_states: dict | None = None) -> list[str]:
     """Build the pickit lines for one economy category, dispatching to the right
     builder in poe2_pickit_generator based on the category key."""
     if is_unique:
-        return gen.build_unique_lines(payload, divine_rate_exalts, min_exalt=eff_min)
+        dis = {n for n, s in (cat_states or {}).items()
+               if not s.get("enabled", True)}
+        return gen.build_unique_lines(payload, divine_rate_exalts, min_exalt=eff_min,
+                                      disabled_names=dis)
     if key == "uncut_gems":
         return gen.build_uncut_gem_lines(payload, divine_rate_exalts, min_exalt=eff_min,
                                          enabled_names=enabled_names)
     if key == "waystones":
-        return gen.build_waystone_lines()
+        # waystone rows are synthetic (poe.ninja doesn't price them), so the
+        # Economy-tab toggles come from cat_states, not the payload names
+        dis = {n for n, s in (cat_states or {}).items()
+               if not s.get("enabled", True)}
+        return gen.build_waystone_lines(disabled=dis)
     pick_all  = key in gen.PICK_ALL_CATEGORIES
     tier_sort = (key == "essences")
     always    = gen.ALWAYS_PICK_CURRENCY if key == "currency" else (
@@ -232,6 +240,7 @@ def build_category_lines(key: str, is_unique: bool, payload: dict,
                                     tier_sort=tier_sort,
                                     enabled_names=enabled_names,
                                     always_names=always,
+                                    force_names=gen.always_pick_force_names(),
                                     ritual_threshold=ritual_th)
 
 

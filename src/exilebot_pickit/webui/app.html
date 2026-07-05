@@ -10,13 +10,15 @@
     --dim:#989ba3; --ok:#4cc38a; --err:#e5534b; --warn:#d9a03f;
   }
   html[data-theme="light"]{
-    --bg:#f4f1ea; --bg2:#fbf9f4; --bg3:#eee9dd; --border:#d8d2c2;
-    --gold:#9a7b3f; --gold-dim:#b39a63; --text:#2b2822;
-    --dim:#6f6a5d; --ok:#1d8a56; --err:#c23b33; --warn:#a3701c;
+    /* Clean Studio: white cards on cool gray, hairline borders, no shadows —
+       game item icons read sharpest on pure white */
+    --bg:#eef0f3; --bg2:#ffffff; --bg3:#f2f4f7; --border:#dde1e6;
+    --gold:#b8860b; --gold-dim:#d4b45e; --text:#1c2128;
+    --dim:#636c76; --ok:#1a7f37; --err:#cf222e; --warn:#9a6700;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font:14.5px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
-       height:100vh;display:flex;overflow:hidden;transition:background .25s,color .25s}
+  body{zoom:1.1;background:var(--bg);color:var(--text);font:14.5px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+       height:90.9vh;display:flex;overflow:hidden;transition:background .25s,color .25s}
   /* ── Sidebar ── */
   nav{width:212px;background:var(--bg2);border-right:1px solid var(--border);
       display:flex;flex-direction:column;padding:18px 12px;gap:4px;flex-shrink:0}
@@ -62,7 +64,7 @@
   .floor select{width:100px}
   .floor .subv{color:var(--dim);font-size:11.5px;margin-top:5px;min-height:15px}
   .autofloor{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
-  .autofloor .keep{width:120px}
+  .autofloor .keep{width:170px;padding:9px 12px;font-size:13.5px}
   /* progress + log */
   .bar{flex:1;height:6px;border-radius:99px;background:var(--bg3);overflow:hidden;display:none}
   .bar.on{display:block}
@@ -94,7 +96,13 @@
   tr.item:hover td{background:var(--bg3)}
   tr.dis td{opacity:.4;text-decoration:line-through}
   td.val{text-align:right;font-variant-numeric:tabular-nums;color:var(--gold);white-space:nowrap}
-  .pill{font-size:11px;padding:2px 9px;border-radius:99px;border:1px solid var(--border);color:var(--dim)}
+  /* native number spinners look foreign - hide them; type or use arrow keys */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  input[type=number]{-moz-appearance:textfield}
+  .pill{font-size:11px;padding:2px 9px;border-radius:99px;border:1px solid var(--border);color:var(--dim);
+        white-space:nowrap;display:inline-block;max-width:210px;overflow:hidden;text-overflow:ellipsis;
+        vertical-align:middle}
   .pill.on{color:var(--ok);border-color:var(--ok)}
   /* bases grids */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
@@ -121,7 +129,7 @@
   .switch.on i{left:21px;background:var(--gold)}
   /* preview */
   pre{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;
-      font:12px/1.65 Consolas,monospace;overflow:auto;max-height:calc(100vh - 220px);white-space:pre}
+      font:12px/1.65 Consolas,monospace;overflow:auto;max-height:calc(90.9vh - 220px);white-space:pre}
   .l-h{color:var(--gold)}.l-c{color:var(--dim);opacity:.7}.l-a{color:var(--ok)}
   .icn{width:26px;height:26px;object-fit:contain;vertical-align:middle;margin-right:8px}
   .chg{font-size:11.5px;white-space:nowrap}
@@ -136,10 +144,10 @@
   .hrow{display:flex;gap:10px;color:var(--dim);font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--border)}
   .hrow:last-child{border-bottom:0}
   .hrow b{color:var(--text);font-weight:600}
-  .whatis{display:inline-block;margin-left:10px;font-size:11.5px;color:var(--dim);
-          border:1px solid var(--border);border-radius:99px;padding:2px 10px;cursor:pointer;
-          vertical-align:3px;user-select:none}
-  .whatis:hover{color:var(--gold);border-color:var(--gold-dim)}
+  .whatis{float:right;font-size:12px;color:var(--dim);width:22px;height:22px;line-height:20px;
+          text-align:center;border:1px solid var(--border);border-radius:50%;cursor:pointer;
+          margin-top:8px;user-select:none;font-style:italic;font-family:Georgia,serif}
+  .whatis:hover{color:var(--gold);border-color:var(--gold-dim);background:var(--bg3)}
   .whatis-box{display:none;background:var(--bg2);border:1px solid var(--gold-dim);
           border-radius:12px;padding:14px 18px;margin:0 0 16px;font-size:13px;
           color:var(--text);line-height:1.65}
@@ -175,22 +183,24 @@
   <div class="banner" id="updBanner"></div>
   <div class="banner warn" id="offBanner" style="cursor:default"></div>
   <h1>Generate</h1><div class="sub">Live poe.ninja prices → ready-to-use Exiled Bot 2 pickit. Ctrl+G works too.</div>
-  <div class="card"><h2>🌍 League</h2>
-    <div style="display:flex;gap:8px">
-      <select id="league" style="flex:1"><option>Loading…</option></select>
-      <button class="ghost mini" id="leagueRefresh" title="Re-fetch the league list (Ctrl+R)">↻</button>
+  <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:14px">
+    <div class="card" style="margin-bottom:14px"><h2>🌍 League</h2>
+      <div style="display:flex;gap:8px">
+        <select id="league" style="flex:1"><option>Loading…</option></select>
+        <button class="ghost mini" id="leagueRefresh" title="Re-fetch the league list (Ctrl+R)">↻</button>
+      </div>
+      <div class="hint" style="margin:10px 0 0">Prices come from this league's live market.</div>
     </div>
-  </div>
-  <div class="card"><h2>👤 Profile</h2>
-    <div class="hint">Save different setups — e.g. a "Farmer" and a "Boss runner" profile, each with its own selections and floors.</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <select id="profSel" style="min-width:220px"><option value="">— no profile —</option></select>
-      <button class="ghost mini" id="profSave">Save as…</button>
-      <button class="ghost mini" id="profDel">Delete</button>
-      <button class="ghost mini" id="profCmp">Compare</button>
-      <span class="hint" style="margin:0" id="profHint"></span>
+    <div class="card" style="margin-bottom:14px"><h2>👤 Profile</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="profSel" style="flex:1;min-width:150px"><option value="">— no profile —</option></select>
+        <button class="ghost mini" id="profSave">Save as…</button>
+        <button class="ghost mini" id="profDel">Delete</button>
+        <button class="ghost mini" id="profCmp">Compare</button>
+      </div>
+      <div class="hint" style="margin:10px 0 0">Different setups — e.g. "Farmer" vs "Boss runner", each with its own selections and floors. <span id="profHint"></span></div>
+      <div id="cmpBox" style="display:none;margin-top:12px"></div>
     </div>
-    <div id="cmpBox" style="display:none;margin-top:12px"></div>
   </div>
   <div class="card"><h2>💰 Minimum values</h2>
     <div class="hint">Only pick up items worth at least this much (0 = everything). Type in Exalt or Divine — converted with the live rate.</div>
@@ -207,22 +217,26 @@
     </div>
     <div class="autofloor">
       <button class="ghost mini" id="autoBtn">✨ Auto floor</button>
-      <button class="ghost mini" id="leagueStart" title="Day-1 setup: floors to 0, every category on — early league, everything sells">🚀 League start</button>
       <select class="keep" id="keepPct">
-        <option value="60">Keep top 60%</option><option value="40" selected>Keep top 40%</option>
-        <option value="25">Keep top 25%</option><option value="10">Keep top 10%</option>
+        <option value="10">Keep top 10%</option><option value="20">Keep top 20%</option>
+        <option value="30">Keep top 30%</option><option value="40" selected>Keep top 40%</option>
+        <option value="50">Keep top 50%</option><option value="60">Keep top 60%</option>
+        <option value="70">Keep top 70%</option><option value="80">Keep top 80%</option>
+        <option value="90">Keep top 90%</option><option value="100">Keep everything</option>
       </select>
-      <span class="hint" style="margin:0" id="autoHint">Sets both floors from this league's actual prices — adapts as the economy moves.</span>
+      <span class="hint" style="margin:0" id="autoHint">How to use: choose how much of the market to keep (e.g. "top 40%"), press ✨ Auto floor, and both minimum values are set from this league's real prices. Early league pick a high %, later tighten to 25% or less. Re-run it every few days as prices move.</span>
     </div>
   </div>
-  <div class="card">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <button class="primary" id="go">⚡ Generate Pickit</button>
+  <div class="card" style="border-color:var(--gold-dim)">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button class="primary" id="go" style="font-size:15.5px;padding:13px 34px;border-radius:12px">⚡ Generate Pickit</button>
       <button class="ghost mini" id="force" title="Clear cached prices, then generate fresh">⟳ Force refresh</button>
       <div class="bar" id="bar"><i></i></div>
-      <button class="ghost mini" id="openIpd">.ipd</button>
-      <button class="ghost mini" id="openFlt">.filter</button>
-      <button class="ghost mini" id="open">📂 Output</button>
+      <div class="sp" style="flex:1"></div>
+      <span class="hint" style="margin:0">Open:</span>
+      <button class="ghost mini" id="openIpd" title="The file your bot reads">.ipd</button>
+      <button class="ghost mini" id="openFlt" title="In-game filter for manual play — don't feed it to the bot">.filter</button>
+      <button class="ghost mini" id="open" title="The folder with all generated files + backups">📂 Output</button>
     </div>
     <div style="height:12px"></div>
     <div class="log" id="log">Ready.</div>
@@ -244,7 +258,7 @@
 
 <!-- ══ ECONOMY ══ -->
 <div class="page" id="p-eco">
-  <h1>Economy</h1><div class="sub">Everything the bot can pick up. Click a row to include/exclude it. Click a category chip to open it; double-click a chip to turn the whole category on/off.</div>
+  <h1>Economy</h1><div class="sub">Everything the bot can pick up. Pick a category on the left; click a row to include/exclude it. Double-click a category to turn the whole group on/off.</div>
   <div class="banner warn" id="ecoStale"></div>
   <div class="eco-head">
     <input type="text" id="ecoSearch" placeholder="🔎 Search all items…">
@@ -258,15 +272,17 @@
     <button class="ghost mini" id="ecoReload">↻ Refresh prices</button>
     <span class="hint" style="margin:0" id="ecoInfo"></span>
   </div>
-  <div class="chips" id="ecoChips"></div>
-  <div class="card" style="padding:8px 6px">
-    <table><thead><tr>
-      <th style="width:48%" data-s="name">Item</th>
-      <th data-s="ex" style="text-align:right">Value (ex)</th>
-      <th data-s="chg" style="text-align:right;width:80px">Δ</th>
-      <th style="text-align:center;width:95px">Picked up</th>
-      <th style="width:64px"></th>
-    </tr></thead><tbody id="ecoBody"></tbody></table>
+  <div style="display:flex;gap:12px;align-items:flex-start">
+    <div id="ecoChips" style="width:195px;flex-shrink:0;max-height:calc(90.9vh - 265px);overflow-y:auto"></div>
+    <div class="card" style="padding:8px 6px;flex:1;min-width:0">
+      <table><thead><tr>
+        <th style="width:48%" data-s="name">Item</th>
+        <th data-s="ex" style="text-align:right">Value (ex)</th>
+        <th data-s="chg" style="text-align:right;width:80px">Δ</th>
+        <th style="text-align:center;width:95px">Picked up</th>
+        <th style="width:64px"></th>
+      </tr></thead><tbody id="ecoBody"></tbody></table>
+    </div>
   </div>
 </div>
 
@@ -336,20 +352,38 @@
 
 <!-- ══ DEBUG ══ -->
 <div class="page" id="p-dbg">
-  <h1>Debug</h1><div class="sub">Troubleshooting tools.</div>
-  <div class="card"><h2>🔧 Tools</h2>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="ghost mini" id="dbgApi">Test all API endpoints</button>
-      <button class="ghost mini" id="dbgInfo">Cache & app info</button>
-      <button class="ghost mini" id="dbgClear">Clear price cache</button>
-      <button class="ghost mini" id="dbgPrune">Prune old cache files</button>
+  <h1>Debug</h1><div class="sub">When something's wrong, work top to bottom: test the connection, look at the cache, then check the log.</div>
+
+  <div class="card"><h2>🩺 Step 1 — Is poe.ninja reachable?</h2>
+    <div class="hint">Prices not loading or Generate failing? This calls every poe.ninja endpoint and shows exactly which ones answer. All ✓ = the problem isn't the connection.</div>
+    <div class="set-row"><div class="lab"><b>Test all API endpoints</b><span>takes a few seconds, safe to run anytime</span></div><div class="sp"></div>
+      <button class="ghost mini" id="dbgApi">Run test</button></div>
+  </div>
+
+  <div class="card"><h2>📦 Step 2 — Is the price cache healthy?</h2>
+    <div class="hint">The app keeps recent prices on disk so it still works when poe.ninja is down. Old or broken cache = stale prices. Clearing is safe — the next Generate simply downloads fresh data.</div>
+    <div class="set-row"><div class="lab"><b>Cache &amp; app info</b><span>shows what's cached, how old it is, versions and paths</span></div><div class="sp"></div>
+      <button class="ghost mini" id="dbgInfo">Show info</button></div>
+    <div class="set-row"><div class="lab"><b>Clear price cache</b><span>forces fresh prices on the next Generate</span></div><div class="sp"></div>
+      <button class="ghost mini" id="dbgClear">Clear</button></div>
+    <div class="set-row"><div class="lab"><b>Prune old cache files</b><span>deletes only files older than 60 days</span></div><div class="sp"></div>
+      <button class="ghost mini" id="dbgPrune">Prune</button></div>
+  </div>
+
+  <div class="card"><h2>📄 Step 3 — What happened? (files)</h2>
+    <div class="hint">The debug log records every run and error — it's the first thing to attach when reporting a problem. The config file holds all your settings; only edit it with the app closed.</div>
+    <div class="set-row"><div class="lab"><b>Open debug log</b><span>every action and error, newest at the bottom</span></div><div class="sp"></div>
+      <button class="ghost mini" id="dbgLog">Open</button></div>
+    <div class="set-row"><div class="lab"><b>Open config file</b><span>your settings as JSON — handy for backups</span></div><div class="sp"></div>
+      <button class="ghost mini" id="dbgCfg">Open</button></div>
+  </div>
+
+  <div class="card"><h2>🖥 Output</h2>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
       <button class="ghost mini" id="dbgCopy">Copy output</button>
-      <button class="ghost mini" id="dbgLog">Open debug log</button>
-      <button class="ghost mini" id="dbgCfg">Open config file</button>
       <button class="ghost mini" id="dbgWipe">Clear output</button>
     </div>
-    <div style="height:12px"></div>
-    <pre id="dbgOut" style="max-height:420px">Ready.</pre>
+    <pre id="dbgOut" style="max-height:340px">Ready. Run a tool above — results appear here.</pre>
   </div>
 </div>
 
@@ -376,15 +410,17 @@
     <button class="ghost mini" id="prevCopy">Copy all</button>
   </div>
   <div style="display:flex;gap:12px;align-items:flex-start">
-    <div id="pvNav" style="width:215px;flex-shrink:0;max-height:calc(100vh - 330px);overflow-y:auto"></div>
-    <pre id="prevBox" style="flex:1;max-height:calc(100vh - 330px);white-space:pre-wrap;word-break:break-word;overflow-x:hidden;min-width:0">Generate first.</pre>
+    <div id="pvNav" style="width:215px;flex-shrink:0;max-height:calc(90.9vh - 330px);overflow-y:auto"></div>
+    <pre id="prevBox" style="flex:1;max-height:calc(90.9vh - 330px);white-space:pre-wrap;word-break:break-word;overflow-x:hidden;min-width:0">Generate first.</pre>
   </div>
 </div>
 
 <!-- ══ SETTINGS ══ -->
 <div class="page" id="p-set">
-  <h1>Settings</h1><div class="sub">Saved instantly — no Save button needed. Shared with the classic app.</div>
-  <div class="card"><h2>🤖 Bot integration</h2>
+  <h1>Settings</h1><div class="sub">Everything saves instantly — no Save button. Set the bot folder once and forget this page.</div>
+
+  <div class="card" style="border-color:var(--gold-dim)"><h2>🤖 Connect your bot</h2>
+    <div class="hint">The one setting that matters: where Exiled Bot 2 reads its pickit. Set it + Auto-copy ON = every Generate lands in the bot automatically.</div>
     <div class="set-row"><div class="lab"><b>Exiled Bot 2 pickit folder</b>
       <span id="botFolderLbl">not set</span></div><div class="sp"></div>
       <button class="ghost mini" id="botBrowse">Browse…</button></div>
@@ -392,47 +428,52 @@
       <span>Deploy the .ipd into the bot folder on every run.</span></div><div class="sp"></div>
       <div class="switch" id="swCopy"><i></i></div></div>
   </div>
-  <div class="card"><h2>⏰ Auto-regenerate</h2>
-    <div class="set-row"><div class="lab"><b>Regenerate while open</b>
-      <span>Keeps prices fresh hands-free. With Auto-copy on, the bot always runs on current prices.</span></div>
-      <div class="sp"></div>
-      <select id="regenSel"><option value="0">Off</option><option value="1">Every hour</option>
-      <option value="2">Every 2 h</option><option value="4">Every 4 h</option>
-      <option value="6">Every 6 h</option><option value="12">Every 12 h</option></select></div>
-    <div class="hint" id="regenHint" style="margin:8px 0 0"></div>
-    <div class="set-row"><div class="lab"><b>Minimize to tray on close</b>
-      <span>Closing the window hides it to the system tray so auto-regenerate keeps running. Right-click the tray icon for Show / Generate / Exit.</span></div>
-      <div class="sp"></div><div class="switch" id="swTray"><i></i></div></div>
-  </div>
-  <div class="card"><h2>💾 Output & backups</h2>
-    <div class="set-row"><div class="lab"><b>Output file name</b>
-      <span>.ipd is added automatically.</span></div><div class="sp"></div>
-      <input type="text" id="outBase" style="width:220px"></div>
-    <div class="set-row"><div class="lab"><b>Keep backups</b>
-      <span>Previous pickits kept in output\backups (0 = off).</span></div><div class="sp"></div>
-      <input type="number" id="bakCount" min="0" max="20" style="width:80px;text-align:center"></div>
-  </div>
-  <div class="card"><h2>🎮 In-game loot filter</h2>
-    <div class="hint">⚠ Leave OFF while botting — a filter that hides items can make the bot walk to drops it can't pick up. The .filter is always written next to the .ipd anyway.</div>
-    <div class="set-row"><div class="lab"><b>Copy .filter to the game folder after generate</b>
-      <span>For manual play only.</span></div><div class="sp"></div>
-      <div class="switch" id="swFilter"><i></i></div></div>
-    <div class="set-row"><div class="lab"><b>PoE2 filter folder</b>
-      <span id="fltDirLbl">not set</span></div><div class="sp"></div>
-      <button class="ghost mini" id="fltBrowse">Browse…</button></div>
-  </div>
-  <div class="card"><h2>⬆ Updates</h2>
-    <div class="set-row"><div class="lab"><b>Check for updates</b>
-      <span id="updLbl">Checks GitHub for a newer build.</span></div><div class="sp"></div>
-      <button class="ghost mini" id="updCheck">Check now</button></div>
-  </div>
-  <div class="card"><h2>🗂 Advanced</h2>
-    <div class="set-row"><div class="lab"><b>Reset settings to defaults</b>
-      <span>History, profiles and item selections are kept.</span></div><div class="sp"></div>
-      <button class="ghost mini" id="resetBtn">Reset…</button></div>
-    <div class="set-row"><div class="lab"><b>Config file</b>
-      <span>Open the raw settings file.</span></div><div class="sp"></div>
-      <button class="ghost mini" id="cfgOpen">Open</button></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
+    <div>
+      <div class="card"><h2>⏰ Hands-free mode</h2>
+        <div class="set-row"><div class="lab"><b>Auto-regenerate</b>
+          <span>Fresh prices on a timer while the app runs.</span></div>
+          <div class="sp"></div>
+          <select id="regenSel"><option value="0">Off</option><option value="1">Every hour</option>
+          <option value="2">Every 2 h</option><option value="4">Every 4 h</option>
+          <option value="6">Every 6 h</option><option value="12">Every 12 h</option></select></div>
+        <div class="hint" id="regenHint" style="margin:8px 0 0"></div>
+        <div class="set-row"><div class="lab"><b>Minimize to tray on close</b>
+          <span>Keeps auto-regenerate alive in the background. Right-click the tray icon for Show / Generate / Exit.</span></div>
+          <div class="sp"></div><div class="switch" id="swTray"><i></i></div></div>
+      </div>
+      <div class="card"><h2>💾 Output &amp; backups</h2>
+        <div class="set-row"><div class="lab"><b>Output file name</b>
+          <span>.ipd is added automatically.</span></div><div class="sp"></div>
+          <input type="text" id="outBase" style="width:170px"></div>
+        <div class="set-row"><div class="lab"><b>Keep backups</b>
+          <span>Previous pickits in output\backups (0 = off).</span></div><div class="sp"></div>
+          <input type="number" id="bakCount" min="0" max="20" style="width:70px;text-align:center"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card"><h2>🎮 In-game loot filter <span class="pill" style="margin-left:6px">manual play only</span></h2>
+        <div class="hint">⚠ Leave OFF while botting — a filter that hides items can make the bot walk to drops it can't pick up. The .filter is always written next to the .ipd anyway.</div>
+        <div class="set-row"><div class="lab"><b>Copy .filter to the game after generate</b></div><div class="sp"></div>
+          <div class="switch" id="swFilter"><i></i></div></div>
+        <div class="set-row"><div class="lab"><b>PoE2 filter folder</b>
+          <span id="fltDirLbl">not set</span></div><div class="sp"></div>
+          <button class="ghost mini" id="fltBrowse">Browse…</button></div>
+        <div class="hint" style="margin:8px 0 0">To use it: in PoE2 → Options → Game → Filters, pick "poe2_pickit". If it loads without an error there, it's working.</div>
+      </div>
+      <div class="card"><h2>🧹 Maintenance</h2>
+        <div class="set-row"><div class="lab"><b>Check for updates</b>
+          <span id="updLbl">Checks GitHub for a newer build.</span></div><div class="sp"></div>
+          <button class="ghost mini" id="updCheck">Check now</button></div>
+        <div class="set-row"><div class="lab"><b>Reset settings to defaults</b>
+          <span>History, profiles and item selections are kept.</span></div><div class="sp"></div>
+          <button class="ghost mini" id="resetBtn">Reset…</button></div>
+        <div class="set-row"><div class="lab"><b>Config file</b>
+          <span>Open the raw settings file.</span></div><div class="sp"></div>
+          <button class="ghost mini" id="cfgOpen">Open</button></div>
+      </div>
+    </div>
   </div>
 </div>
 </main>
@@ -500,25 +541,6 @@ $("autoBtn").onclick=async()=>{
   api().set_setting("min_exalt_unique",uEx());api().set_setting("min_exalt_gear",gEx());
   $("autoHint").textContent=`Set from live data: uniques ≥ ${r.unique} ex (keeps ${r.kept_unique}/${r.total_unique}), rest ≥ ${r.gear} ex (keeps ${r.kept_gear}/${r.total_gear}).`;
   toast("✨ Floors set from live league data");};
-async function refreshLeagueStartBtn(){
-  const a=await api().league_start_active();
-  $("leagueStart").textContent=a.active?"↩ Restore previous setup":"🚀 League start";
-  $("leagueStart").title=a.active?
-    "Undo League start: bring back the floors and category switches you had before":
-    "Day-1 setup: floors to 0, every category on — early league, everything sells";}
-$("leagueStart").onclick=async()=>{
-  const a=await api().league_start_active();
-  if(a.active){
-    const r=await api().league_start_restore();
-    if(r.ok){info=r.info;$("uAmt").value=info.min_unique;$("gAmt").value=info.min_gear;
-      uEx();gEx();eco=null;toast("↩ Previous setup restored");}
-  }else{
-    if(!confirm("League-start preset:\n• both value floors → 0 (pick up everything)\n• every category enabled\n\nYour current setup is saved — the button becomes 'Restore previous setup'. Apply?"))return;
-    const r=await api().league_start_preset();
-    if(r.ok){info=r.info;$("uAmt").value=0;$("gAmt").value=0;uEx();gEx();eco=null;
-      toast("🚀 League-start preset applied");}}
-  refreshLeagueStartBtn();};
-
 /* ── generate ── */
 async function poll(){
   const st=await api().status();
@@ -629,40 +651,53 @@ document.querySelectorAll("#unitChips .chip").forEach(c=>c.onclick=()=>{
 $("ecoReload").onclick=()=>{eco=null;loadEco();};
 function renderChips(){
   const c=$("ecoChips");c.innerHTML="";
+  const group=k=>k.startsWith("_ap_")?"ALWAYS PICK":(k.startsWith("unique_")?"UNIQUES":"MARKET");
+  let lastG=null;
   for(const cat of eco.cats){
-    const s=document.createElement("span");
-    s.className="chip"+(cat.key===ecoCat?" on":"")+(eco.cat_enabled[cat.key]?"":" off-cat");
-    s.textContent=cat.label;
-    s.onclick=()=>{ecoCat=cat.key;renderChips();renderEco();};
-    s.ondblclick=async()=>{const en=!eco.cat_enabled[cat.key];eco.cat_enabled[cat.key]=en;
-      await api().set_category(cat.key,en);renderChips();
-      toast((en?"Enabled ":"Disabled ")+cat.label);};
-    c.appendChild(s);}}
+    const g=group(cat.key);
+    if(g!==lastG){lastG=g;
+      const h=document.createElement("div");
+      h.textContent=g;
+      h.style.cssText="padding:10px 10px 4px;font-size:10.5px;font-weight:600;letter-spacing:1px;color:var(--dim)";
+      c.appendChild(h);}
+    const en=eco.cat_enabled[cat.key];
+    const b=document.createElement("div");
+    b.className="nav-btn"+(cat.key===ecoCat?" on":"");
+    b.style.cssText="font-size:12.5px;padding:7px 10px"+(en?"":";opacity:.45");
+    const n=cat.items?cat.items.length:0;
+    const lbl=cat.key.startsWith("unique_")?cat.label.replace(/^Unique /,""):cat.label;
+    b.innerHTML=`${esc(lbl)}<span style="margin-left:auto;font-size:10.5px;color:var(--dim)">${en?n:"off"}</span>`;
+    b.title=en?"Click to open · double-click to disable the whole category":"Category is OFF — double-click to enable";
+    b.onclick=()=>{ecoCat=cat.key;renderChips();renderEco();};
+    b.ondblclick=async()=>{const e2=!eco.cat_enabled[cat.key];eco.cat_enabled[cat.key]=e2;
+      await api().set_category(cat.key,e2);renderChips();
+      toast((e2?"Enabled ":"Disabled ")+cat.label);};
+    c.appendChild(b);}}
+function ecoMatch(it,q){
+  // every search term must match the START of a word in the name or base
+  // ("ring" finds Gold Ring / Breach Ring, not Fracturing / Suffering)
+  const words=(it.name+" "+(it.base||"")).toLowerCase().split(/[\s'-]+/);
+  return q.split(/\s+/).every(t=>words.some(w=>w.startsWith(t)));}
 function ecoRows(){
-  const q=($("ecoSearch").value||"").toLowerCase();
+  const q=($("ecoSearch").value||"").trim().toLowerCase();
   let rows=[];
   if(q){for(const cat of eco.cats)for(const it of cat.items)
-      if(it.name.toLowerCase().includes(q))rows.push([cat,it]);}
+      if(ecoMatch(it,q))rows.push([cat,it]);}
   else{const cat=eco.cats.find(c=>c.key===ecoCat);if(cat)rows=cat.items.map(i=>[cat,i]);}
   return rows;}
 function renderEco(){
   const q=($("ecoSearch").value||"").toLowerCase();
   const body=$("ecoBody");body.innerHTML="";
   let rows=ecoRows();
-  const isStatic=!q&&ecoCat==="_static";
+  const isStatic=!q&&(ecoCat||"").startsWith("_ap_");
   if(!isStatic)rows.sort((a,b)=>ecoSort==="name"?a[1].name.localeCompare(b[1].name):
     ecoSort==="chg"?(b[1].chg||0)-(a[1].chg||0):b[1].ex-a[1].ex);
-  let lastGrp=null;
   for(const [cat,it] of rows.slice(0,400)){
-    if(isStatic&&it.grp&&it.grp!==lastGrp){lastGrp=it.grp;
-      const hr=document.createElement("tr");
-      hr.innerHTML=`<td colspan="5" style="padding:12px 8px 5px;color:var(--gold);font-weight:600;
-        font-size:12px;letter-spacing:.6px;text-transform:uppercase;border-bottom:1px solid var(--gold-dim)">${esc(it.grp)}</td>`;
-      body.appendChild(hr);}
     const tr=document.createElement("tr");tr.className="item"+(it.enabled?"":" dis");
-    const ico=it.icon?`<img class="icn" loading="lazy" src="${esc(it.icon)}" onerror="this.style.display='none'">`:"";
-    const nm=ico+esc(it.name)+(q?` <span class="pill">${esc(cat.label)}</span>`:"")+
-      (it.base?` <span class="pill">${esc(it.base)}</span>`:"");
+    const ico=it.icon?`<img class="icn" loading="lazy" src="${esc(it.icon)}" onerror="this.style.display='none'">`
+      :(it.emj?`<span class="icn" style="display:inline-flex;align-items:center;justify-content:center;font-size:15px">${it.emj}</span>`:"");
+    const nm=ico+esc(it.name)+(q?` <span class="pill" title="${esc(cat.label)}">${esc(cat.label)}</span>`:"")+
+      (it.base?` <span class="pill" title="${esc(it.base)}">${esc(it.base)}</span>`:"");
     const chg=it.chg==null?"":`<span class="chg ${it.chg>=0?"up":"dn"}">${it.chg>=0?"▲":"▼"} ${Math.abs(it.chg)}%</span>`;
     tr.innerHTML=`<td>${nm}</td><td class="val">${it.static?'<span class="pill">always picked</span>':fmtVal(it.ex)}</td>
       <td style="text-align:right">${chg}</td>
@@ -672,13 +707,12 @@ function renderEco(){
       const rule=await api().rule_for(cat.key,it.name,cat.unique,it.base||"",it.ex);
       const ok=await copyText(rule);
       toast(ok?"Rule copied":"Clipboard blocked");};
-    if(cat.unique){tr.title="Uniques are filtered by the value floor, not per item";tr.style.cursor="default";}
-    else tr.onclick=async()=>{it.enabled=!it.enabled;
+    tr.onclick=async()=>{it.enabled=!it.enabled;
       await api().set_item(cat.key,it.name,it.enabled);renderEco();};
     body.appendChild(tr);}}
 async function ecoBulk(en){
   if(!eco)return;
-  const rows=ecoRows().filter(([c])=>!c.unique);
+  const rows=ecoRows();
   const byCat={};
   for(const [cat,it] of rows){(byCat[cat.key]=byCat[cat.key]||[]).push(it.name);it.enabled=en;}
   for(const k in byCat)await api().set_items_bulk(k,byCat[k],en);
@@ -700,7 +734,8 @@ async function loadChance(){
       const h=document.createElement("div");h.className="gsec";h.textContent=b.cat;g.appendChild(h);}
     const d=document.createElement("div");
     d.className="bcard"+(b.enabled?"":" dis");
-    d.innerHTML=`<b>${esc(b.base)}</b><div class="t">→ ${esc(b.target)}</div>`;
+    const cIco=b.icon?`<img class="icn" loading="lazy" src="${b.icon}" style="width:30px;height:30px;float:right">`:"";
+    d.innerHTML=`${cIco}<b>${esc(b.base)}</b><div class="t">→ ${esc(b.target)}</div>`;
     d.onclick=async()=>{b.enabled=!b.enabled;
       await api().set_item("_chance",b.base,b.enabled);
       d.className="bcard"+(b.enabled?"":" dis");chanceCount();};
@@ -725,7 +760,9 @@ async function loadCraft(){
       const h=document.createElement("div");h.className="gsec";h.textContent=b.cat;g.appendChild(h);}
     const d=document.createElement("div");
     d.className="bcard"+(b.enabled?"":" dis");
-    d.innerHTML=`<b>${esc(b.base)}</b><div class="t">${b.defence?esc(b.defence):"&nbsp;"}</div>
+    const kIco=b.icon?`<img class="icn" loading="lazy" src="${b.icon}" style="width:30px;height:30px;float:right">`:"";
+    const kMeta=[b.lvl?`lvl ${b.lvl}`:"",b.stats||""].filter(x=>x).join(" · ");
+    d.innerHTML=`${kIco}<b>${esc(b.base)}</b><div class="t">${esc(kMeta)||"&nbsp;"}</div>
       <div class="ilvl">min ilvl <input type="number" min="1" max="82" value="${b.ilvl}"></div>`;
     const inp=d.querySelector("input");
     inp.onclick=e=>e.stopPropagation();
@@ -744,13 +781,22 @@ $("craftNone").onclick=()=>craftBulk(false);
 /* ── exceptional ── */
 async function loadExc(){
   const cats=await api().exceptional_bases();const g=$("excGrid");g.innerHTML="";
-  let total=0;
+  let total=0,on=0;
+  const cnt=()=>{$("excCount").textContent=`${on} / ${total} enabled.`};
   for(const c of cats){
     const h=document.createElement("div");h.className="gsec";h.textContent=c.cat;g.appendChild(h);
-    for(const b of c.bases){total++;
-      const d=document.createElement("div");d.className="bcard";d.style.cursor="default";
-      d.innerHTML=`<b>${esc(b)}</b>`;g.appendChild(d);}}
-  $("excCount").textContent=`${total} bases.`;}
+    for(const b of c.bases){total++;if(b.enabled)on++;
+      const d=document.createElement("div");
+      d.className="bcard"+(b.enabled?"":" dis");
+      const ico=b.icon?`<img class="icn" loading="lazy" src="${b.icon}" style="width:30px;height:30px;float:right">`:"";
+      const meta=[b.lvl?`lvl ${b.lvl}`:"",b.stats||""].filter(x=>x).join(" · ");
+      d.innerHTML=`${ico}<b>${esc(b.name)}</b><div class="t">${esc(meta)||"&nbsp;"}</div>`;
+      d.title="Click to include/exclude this base (white pickup + its uniques)";
+      d.onclick=async()=>{b.enabled=!b.enabled;b.enabled?on++:on--;
+        await api().set_item("_excbase",b.name,b.enabled);
+        d.className="bcard"+(b.enabled?"":" dis");cnt();};
+      g.appendChild(d);}}
+  cnt();}
 
 /* ── history ── */
 function drawHistChart(h){
@@ -814,7 +860,8 @@ $("histClear").onclick=async()=>{if(!confirm("Clear all run history?"))return;
   await api().clear_history();loadHistory();toast("History cleared");};
 
 /* ── debug ── */
-function dbg(t){$("dbgOut").textContent=t;}
+function dbg(t){const o=$("dbgOut");o.textContent=t;
+  o.scrollIntoView({behavior:"smooth",block:"nearest"});o.scrollTop=0;}
 $("dbgApi").onclick=async()=>{dbg("Testing all endpoints…");
   const r=await api().api_test($("league").value);
   dbg(r.map(x=>(x.ok?"✓ ":"✗ ")+x.label.padEnd(22)+(x.ok?x.rows+" rows":x.error)).join("\n"));};
@@ -962,7 +1009,7 @@ function showUpdBanner(u){const b=$("updBanner");
 /* ── "What is this?" explainers ── */
 const WHATIS={
   gen:"<b>Generate</b> is the main button of the whole app. It downloads current market prices from poe.ninja for your league, keeps every item worth more than your minimum values, and writes the pickit file the bot reads. Run it whenever prices have moved — or let Auto-Regenerate in Settings do it for you.",
-  eco:"<b>Economy</b> is your full catalog of what the bot can pick up, with live prices. Everything is ON by default. Click a row to exclude an item you don't want (e.g. cheap essences filling your stash). Double-click a category chip to turn a whole group on/off. The ▲▼ arrows show price movement. The <b>Always-Pick Items</b> category holds map-juice items (tablets, splinters, wombgifts) that are grabbed regardless of price — switch off any you don't want.",
+  eco:"<b>Economy</b> is your full catalog of what the bot can pick up, with live prices. Everything is ON by default. Click a row to exclude an item you don't want (e.g. cheap essences filling your stash). Double-click a category chip to turn a whole group on/off. The ▲▼ arrows show price movement. The <b>ALWAYS PICK</b> section holds the map-juice groups (tablets, splinters, wombgifts, exotic bases…) grabbed regardless of price — each group and each item can be switched off.",
   chance:"<b>Chance Bases</b> are white (Normal) items worth keeping ONLY to use Orb of Chance on, hoping they turn into a chase unique — e.g. keep white Heavy Belts because one can become a Headhunter. Turn off any target you don't care about.",
   craft:"<b>Craft Bases</b> are the best white items at high item level, kept as blank canvases to craft your own gear on. 'Min ilvl' is how high the item level must be — 82 gives access to the best crafting outcomes. If you never craft, turn this whole tab off.",
   exc:"<b>Exceptional Bases</b> are special versions of gear bases that can roll an <b>extra rune socket</b> — gloves with 2 instead of 1, and the same idea for helmets, weapons and armour. More sockets = more runes = the strongest version of that slot. Two things live here: picking up blank white ones to craft on or sell, and grabbing ANY unique that drops on one (the extra-socket copy of a unique beats the normal copy, whatever its price). The base list updates itself with game patches.",
@@ -973,7 +1020,7 @@ const WHATIS={
 document.querySelectorAll(".page > h1").forEach(h=>{
   const key=h.parentElement.id.replace("p-","");
   if(!WHATIS[key])return;
-  const btn=document.createElement("span");btn.className="whatis";btn.textContent="ℹ what is this?";
+  const btn=document.createElement("span");btn.className="whatis";btn.textContent="i";btn.title="What is this page?";
   const box=document.createElement("div");box.className="whatis-box";box.innerHTML=WHATIS[key];
   h.appendChild(btn);
   const sub=h.nextElementSibling;
@@ -997,7 +1044,7 @@ async function init(){
   $("bakCount").value=info.backup_count;
   $("baseQ").value=info.base_quality;$("baseL").value=info.base_min_level;
   $("regenSel").value=String(info.auto_regen_hours||0);armRegen();
-  loadProfiles();refreshLeagueStartBtn();
+  loadProfiles();
   api().check_update().then(u=>{if(u.update)showUpdBanner(u);});
   if(info.config_warning)setTimeout(()=>alert(info.config_warning),600);
   if(info.auto_copy&&!info.bot_folder)toast("⚠ Auto-copy is ON but no bot folder is set");

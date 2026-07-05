@@ -31,7 +31,7 @@ import requests
 from exilebot_pickit.data.corrections import (  # noqa: F401
     ALWAYS_PICK_CURRENCY, ALWAYS_PICK_RUNES,
     ITEM_NAME_CORRECTIONS, ITEM_NAME_SKIP, WAYSTONE_FALLBACK_RULES,
-    EXOTIC_BASES, JEWELS, SPECIAL_ITEMS, SPLINTERS, TABLET_TYPES,
+    EXOTIC_BASES, SPECIAL_ITEMS, SPLINTERS, TABLET_TYPES,
     TABLET_UNIQUES, WOMBGIFTS,
 )
 from exilebot_pickit.data.base_types import (  # noqa: F401
@@ -193,7 +193,7 @@ def validate_pickit(lines) -> dict:
     return {"errors": errors, "warnings": warnings}
 
 
-def build_base_rules(min_quality: int = 25, min_level: int = 82, progress_callback=None) -> list:
+def build_base_rules(min_quality: int = 25, min_level: int = 82, progress_callback=None, disabled=None) -> list:
     """Build endgame base-type pickup rules from local game data — no network requests.
 
     Uses _BASE_TYPES_BY_CATEGORY (sourced from baseitemtypes.json) for all equipment
@@ -216,7 +216,10 @@ def build_base_rules(min_quality: int = 25, min_level: int = 82, progress_callba
         all_lines.append(header_minor(cat))
         all_lines.append("")
         cat_rules: set = set()
+        _dis = set(disabled or ())
         for name, sock in entries:
+            if name in _dis:
+                continue
             safe = _quote_ipd(name)
             cat_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" # [ItemLevel] >= "{min_level}" && [StashItem] == "true"')
             if sock > 0:
@@ -403,12 +406,14 @@ def build_wombgift_rules(disabled=None) -> list:
     return out
 
 
-def build_unique_exceptional_rules() -> list:
+def build_unique_exceptional_rules(disabled=None) -> list:
     """One catch-all rule per exceptional base: ANY unique on that base is
     picked regardless of the unique value floor. Base list comes from the
     same remote-updatable game data as the gear-base rules."""
-    names = list(dict.fromkeys(
-        n for ents in _BASE_TYPES_BY_CATEGORY.values() for n, _ in ents))
+    _dis = set(disabled or ())
+    names = [n for n in dict.fromkeys(
+        n for ents in _BASE_TYPES_BY_CATEGORY.values() for n, _ in ents)
+        if n not in _dis]
     if not names:
         return []
     out = header_major("Uniques on Exceptional Bases").splitlines() + [
@@ -449,27 +454,6 @@ def build_exotic_base_rules(disabled=None) -> list:
         out.append(f'[Type] == "{b}" # [StashItem] == "true"')
     return out
 
-
-# Chase jewels picked unconditionally; all other jewels only as Rare at high
-# item level (low-ilvl / magic jewels are vendor junk).
-CHASE_JEWELS = frozenset({"Timeless Jewel", "Time-Lost Diamond"})
-JEWEL_MIN_ILVL = 81
-
-
-def build_jewel_rules(disabled=None) -> list:
-    """Passive-tree jewels — 1x1 slot. Basic jewels only when Rare and high
-    ilvl (mods are what sells); Timeless/Time-Lost always."""
-    dis = set(disabled or ())
-    keep = [j for j in JEWELS if j not in dis]
-    if not keep:
-        return []
-    out = header_major("Jewels").splitlines() + [""]
-    for j in keep:
-        if j in CHASE_JEWELS:
-            out.append(f'[Type] == "{j}" # [StashItem] == "true"')
-        else:
-            out.append(f'[Type] == "{j}" && [Rarity] == "Rare" # [StashItem] == "true" && [ItemLevel] >= "{JEWEL_MIN_ILVL}"')
-    return out
 
 
 # NOTE: type-less catch-all rules ([Quality] >= "21" / [Sockets] >= "3" with
@@ -679,8 +663,13 @@ def build_exchange_lines(
     tier_sort: bool = False,
     enabled_names: set[str] | None = None,
     always_names: list[str] | None = None,
+    force_names: set[str] | None = None,
     ritual_threshold: float | None = None,
 ) -> list:
+    """``force_names``: priced items whose rule stays ACTIVE regardless of the
+    value floor (always-pick items ninja happens to price, e.g. Expedition
+    Logbook). An explicit user disable (enabled_names) still wins."""
+    force = set(force_names or ())
     items_by_id = {i["id"]: i for i in payload.get("items", [])}
     rate = exalted_rate(payload)
     rows = []
@@ -712,7 +701,9 @@ def build_exchange_lines(
         ]
     else:
         result = [
-            format_rule(name, ev, dv, min_exalt=min_exalt, ritual_threshold=ritual_threshold)
+            (f'[Type] == "{_quote_ipd(name)}" # [StashItem] == "true" // ExValue = {ev:.2f} (always pick)'
+             if name in force else
+             format_rule(name, ev, dv, min_exalt=min_exalt, ritual_threshold=ritual_threshold))
             for name, ev, dv in rows
         ]
 
@@ -774,8 +765,10 @@ def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: f
     return output
 
 
-def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: float | None = None) -> list:
+def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: float | None = None,
+                       disabled_names=None) -> list:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
+    dis = set(disabled_names or ())
     rate = exalted_rate(payload)
     rows = []
     seen = set()
@@ -791,16 +784,39 @@ def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: flo
             f'[Type] == "{base_type}" && [Rarity] == "Unique" # [UniqueName] == "{name}" '
             f'&& [StashItem] == "true" // ExValue = {exalt_value:.2f}'
         )
-        rows.append((exalt_value, rule if exalt_value >= threshold else f"//{rule}"))
+        keep = exalt_value >= threshold and name not in dis
+        rows.append((exalt_value, rule if keep else f"//{rule}"))
     # Sort by value, highest first — matches every other category. (Previously
     # `key=-r[0]` *with* reverse=True cancelled out, listing uniques cheapest-first.)
     rows.sort(key=lambda r: r[0], reverse=True)
     return [rule for _, rule in rows]
 
 
-def build_waystone_lines() -> list:
-    """Always pick all waystones tier 1-15 regardless of value."""
-    return list(WAYSTONE_FALLBACK_RULES)
+def always_pick_force_names() -> set:
+    """Always-pick item names that must stay ACTIVE even when poe.ninja
+    prices them below the value floor (single source for dedupe too)."""
+    return set(SPECIAL_ITEMS) | set(SPLINTERS) | set(WOMBGIFTS) | set(TABLET_TYPES)
+
+
+# Economy-tab row names for the three waystone pickup rules.
+WAYSTONE_TOGGLE_NAMES = {
+    "Normal": "Normal Waystones",
+    "Magic":  "Magic Waystones",
+    "Rare":   "Rare Waystones",
+}
+
+
+def build_waystone_lines(disabled=None) -> list:
+    """Always pick all waystones tier 1+ — per-rarity rows can be switched
+    off in the Economy tab (``disabled`` holds the row names)."""
+    dis = set(disabled or ())
+    out = []
+    for rule in WAYSTONE_FALLBACK_RULES:
+        m = re.search(r'\[Rarity\]\s*==\s*"(\w+)"', rule)
+        if m and WAYSTONE_TOGGLE_NAMES.get(m.group(1)) in dis:
+            continue
+        out.append(rule)
+    return out
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1009,7 +1025,7 @@ def main():
             else:
                 pick_all  = key in PICK_ALL_CATEGORIES
                 always    = ALWAYS_PICK_CURRENCY if key == "currency" else (ALWAYS_PICK_RUNES if key == "runes" else None)
-                lines = build_exchange_lines(payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt, tier_sort=(key == "essences"), always_names=always)
+                lines = build_exchange_lines(payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt, tier_sort=(key == "essences"), always_names=always, force_names=always_pick_force_names())
                 report_rows.extend(collect_exchange_report_rows(label, payload, divine_rate_exalts, pick_all=pick_all, min_exalt=min_exalt))
 
             output_lines.append(header_sub(label))

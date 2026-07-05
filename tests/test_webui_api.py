@@ -80,21 +80,4 @@ def test_economy_shape(api):
     assert cur["items"][0]["icon"].startswith("https://web.poecdn.com")
 
 
-def test_league_start_preset(api):
-    api.cfg["min_exalt_gear"] = 50
-    r = api.league_start_preset()
-    assert r["ok"] and api.cfg["min_exalt_gear"] == 0.0
-    assert all(api.cfg["category_enabled"].values())
 
-
-def test_league_start_restore_roundtrip(api):
-    api.cfg["min_exalt_gear"] = 42.0
-    api.cfg["min_exalt_unique"] = 7.0
-    api.cfg["category_enabled"] = {"essences": False}
-    api.league_start_preset()
-    assert api.cfg["min_exalt_gear"] == 0.0
-    assert api.league_start_active()["active"]
-    r = api.league_start_restore()
-    assert r["ok"] and api.cfg["min_exalt_gear"] == 42.0
-    assert api.cfg["category_enabled"] == {"essences": False}
-    assert not api.league_start_active()["active"]

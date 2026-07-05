@@ -48,7 +48,7 @@ Every generate pulls the **real economy of your league** — currency, essences,
 The **safety net** blocks auto-deploy if a run ever produces a collapsed or broken pickit. Backups rotate on every generate. Rules are validated before they ever reach your bot folder.
 
 ### 🧱 The stuff other pickits forget
-Tablets, splinters, wombgifts, boss keys, **exceptional bases with extra rune sockets**, chance-orb targets (Headhunter, Mageblood…), craftable high-ilvl bases, valuable jewels, exotic drop-only bases — all built in, all individually toggleable, all explained in plain language inside the app.
+Tablets, splinters, wombgifts, boss keys, **exceptional bases with extra rune sockets**, chance-orb targets (Headhunter, Mageblood…), craftable high-ilvl bases, exotic drop-only bases — all built in, all individually toggleable, all explained in plain language inside the app.
 
 ### 🔄 It updates itself
 Game patch added new items? The app's **game data refreshes from this repo automatically** — every installed copy, within hours, no new download. Item names are verified against the live game (poe2db + NeverSink's filter data), so dead rules don't rot in your pickit.
@@ -65,7 +65,7 @@ Game patch added new items? The app's **game data refreshes from this repo autom
 
 | Tab | One-liner |
 |-----|-----------|
-| ⚡ **Generate** | The button. League, floors, ✨ auto floor, 🚀 league-start preset. |
+| ⚡ **Generate** | The button. League, floors, ✨ auto floor from live prices. |
 | 🪙 **Economy** | Every pickable item with live prices & trend arrows — click to exclude. |
 | 🎲 **Chance Bases** | White bases worth chancing into Headhunter, Mageblood & co. |
 | 🛠 **Craft Bases** | Blank ilvl-82 bases worth keeping as crafting canvases. |
@@ -120,7 +120,16 @@ pip install pytest ruff     # test:  python -m pytest -q && ruff check .
 
 ## 📝 What's new
 
-### v3.3.0 — latest
+### v3.4.0 — latest
+
+- 🪙 **Economy redesigned** — categories moved into a grouped sidebar (Market / Uniques / Always Pick), every group in its own place with real item icons everywhere (embedded — they work offline)
+- 🖱️ **Everything is toggleable now** — unique items, waystone rarities, every always-pick group and item; duplicates between priced and always-pick lists resolved with force-keep above your floor
+- 🧱 **Exceptional tab upgraded** — every base shows its icon + stats (level, Armour/Evasion/ES, weapon damage/crit/APS/DPS from poe2db) and can be excluded per base
+- 🔎 **Smarter search** — "ring" finds rings, not "Fractu-ring-Orb"; searches base types too
+- 🎨 **New light theme (Clean Studio)** + bigger UI, redesigned Generate/Settings/Debug pages, cleaner number inputs
+- 🧰 Craft & Chance cards show icons and stats · Auto floor how-to hint + keep 10–100% range · league dropdown shows current leagues only · League-start button retired (Auto floor covers it)
+
+### v3.3.0
 
 - 🧱 **New Exceptional tab** — extra-socket bases managed in one place: white-base pickup (quality/ilvl gates) + optionally **any unique that drops on an exceptional base**, whatever its price
 - 📋 **Always-Pick Items in Economy** — tablets, splinters, wombgifts, boss keys, jewels and exotic bases are now visible and individually toggleable
@@ -142,11 +151,6 @@ pip install pytest ruff     # test:  python -m pytest -q && ruff check .
 **v3.1.1**
 - Rare Items tab pulled for a redesign — coming back rebuilt step by step
 
-**v3.0.0**
-- 🖥️ **Brand-new interface** — rebuilt on WebView2: same engine, dramatically better UI
-- 🌙 Instant dark/light themes · ✨ Auto value floor · 💰 floors in Exalt/Chaos/Divine
-- 🛡️ Safety net · 🚀 League-start preset · 🖥️ Tray mode · 📈 redesigned History & Preview
-- Requires the Microsoft WebView2 runtime (preinstalled on up-to-date Windows 10/11)
 
 </details>
 

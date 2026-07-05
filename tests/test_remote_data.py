@@ -123,20 +123,17 @@ def test_unique_exceptional_rules():
     assert gen.validate_pickit(lines)["errors"] == []
 
 
-def test_exotic_and_jewel_rules():
+def test_exotic_base_rules():
     exo = gen.build_exotic_base_rules()
     assert '[Type] == "Breach Ring" # [StashItem] == "true"' in exo
     assert '[Type] == "Runic Fork" # [StashItem] == "true"' in exo
     assert gen.build_exotic_base_rules(set(corr.EXOTIC_BASES)) == []
-    jw = gen.build_jewel_rules()
-    assert '[Type] == "Timeless Jewel" # [StashItem] == "true"' in jw
-    assert '[Type] == "Time-Lost Diamond" # [StashItem] == "true"' in jw
-    # type-less catch-all rules must STAY removed — Exiled Bot matches a rule
-    # without [Type] against everything (owner-confirmed 2026-07-05)
+    assert gen.validate_pickit(exo)["errors"] == []
+    # removed features must STAY removed (owner-confirmed 2026-07-05):
+    # type-less catch-alls match everything; jewels flooded the stash
     assert not hasattr(gen, "build_exceptional_catchall_rules")
-    for lines in (exo, jw):
-        assert gen.validate_pickit(lines)["errors"] == []
+    assert not hasattr(gen, "build_jewel_rules")
     data = _load_bundled()
     assert data["exotic_bases"] == corr.EXOTIC_BASES
-    assert data["jewels"] == corr.JEWELS
     assert data["special_items"] == corr.SPECIAL_ITEMS
+    assert "jewels" not in data
