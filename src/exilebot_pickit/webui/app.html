@@ -181,11 +181,11 @@
     <div class="floors">
       <div class="floor"><label>💎 Unique items</label>
         <div class="row"><input id="uAmt" type="number" min="0" step="1" value="0">
-        <select id="uUnit"><option>Exalt</option><option>Divine</option></select></div>
+        <select id="uUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></div>
         <div class="subv" id="uSub"></div></div>
       <div class="floor"><label>⚖ Currency &amp; exchange items</label>
         <div class="row"><input id="gAmt" type="number" min="0" step="1" value="0">
-        <select id="gUnit"><option>Exalt</option><option>Divine</option></select></div>
+        <select id="gUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></div>
         <div class="subv" id="gSub"></div>
         <div class="subv" style="min-height:0">Essences, catalysts, fragments, runes, omens, gems… Basic currency &amp; waystones are always picked; gear bases use quality/ilvl instead.</div></div>
     </div>
@@ -385,9 +385,13 @@ $("thDark").onclick=()=>setTheme("dark");$("thLight").onclick=()=>setTheme("ligh
 
 /* ── floors ── */
 function subCalc(a,u,s,noun){const v=parseFloat($(a).value)||0,unit=$(u).value;
-  const ex=unit==="Divine"&&divRate>1?v*divRate:v;
-  $(s).textContent=ex<=0?`Picking up ${noun}.`:
-    divRate>1?`≈ ${ex.toFixed(0)} ex · ${(ex/divRate).toFixed(2)} div`:`${ex.toFixed(0)} ex`;
+  const ex=unit==="Divine"&&divRate>1?v*divRate:
+           unit==="Chaos"&&chaosEx>0?v*chaosEx:v;
+  const parts=[];
+  if(ex>0){parts.push(ex.toFixed(0)+" ex");
+    if(chaosEx>0&&unit!=="Chaos")parts.push("~"+Math.round(ex/chaosEx)+" chaos");
+    if(divRate>1&&unit!=="Divine")parts.push((ex/divRate).toFixed(2)+" div");}
+  $(s).textContent=ex<=0?`Picking up ${noun}.`:"≈ "+parts.join(" · ");
   return ex;}
 const uEx=()=>subCalc("uAmt","uUnit","uSub","every unique");
 const gEx=()=>subCalc("gAmt","gUnit","gSub","everything");
@@ -694,7 +698,9 @@ async function init(){
   else{for(const l of ls){const o=document.createElement("option");o.value=l.name;o.textContent=l.display;sel.appendChild(o);}
     if(info.league)sel.value=info.league;
     logLine("Loaded "+ls.length+" leagues.","ok");}
-  sel.onchange=()=>{api().set_setting("league",sel.value);eco=null;};
+  const _rates=()=>api().chaos_ex(sel.value).then(r=>{chaosEx=r.ex||0;uEx();gEx();});
+  sel.onchange=()=>{api().set_setting("league",sel.value);eco=null;_rates();};
+  if(sel.value)_rates();
   uEx();gEx();}
 window.addEventListener("pywebviewready",init);
 </script>
