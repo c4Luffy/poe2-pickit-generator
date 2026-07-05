@@ -930,7 +930,7 @@ document.querySelectorAll(".page > h1").forEach(h=>{
 /* ── init ── */
 async function init(){
   info=await api().app_info();
-  $("ver").textContent="v"+info.version+" · made by C4Luffy";
+  $("ver").textContent="v"+info.version;
   setTheme(info.theme==="light"?"light":"dark");
   $("uAmt").value=info.min_unique||0;$("gAmt").value=info.min_gear||0;
   $("outBase").value=info.output_base;
