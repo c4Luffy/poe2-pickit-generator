@@ -510,9 +510,9 @@ class AppApi:
                 ok += 1
                 self._log(f"✓ {label}")
 
-            out += gen.STATIC_TABLET_RULES.splitlines()
-            out += gen.STATIC_WOMBGIFT_RULES.splitlines()
-            out += gen.STATIC_SPECIAL_WAYSTONE_RULES.splitlines()
+            out += gen.build_tablet_rules()
+            out += gen.build_wombgift_rules()
+            out += gen.build_special_item_rules()
             out += gen.build_chance_base_rules(asm.chance_base_disabled(snap))
             craft_lines, _n, _floor = asm.craft_base_section(snap)
             out += craft_lines

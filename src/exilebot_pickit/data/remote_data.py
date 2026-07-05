@@ -28,6 +28,7 @@ import time
 import requests
 
 from exilebot_pickit.data import base_types as _bt
+from exilebot_pickit.data import corrections as _corr
 from exilebot_pickit.api import client as _client
 
 REMOTE_DATA_URL = ("https://raw.githubusercontent.com/"
@@ -61,6 +62,50 @@ def _validate(data) -> bool:
             if (not isinstance(e, list) or len(e) != 3
                     or not all(isinstance(x, str) for x in e)):
                 return False
+
+    def _str_list(v):
+        return isinstance(v, list) and all(isinstance(x, str) and x for x in v)
+
+    def _pair_list(v, n):
+        return (isinstance(v, list)
+                and all(isinstance(e, list) and len(e) == n
+                        and all(isinstance(x, str) and x for x in e) for e in v))
+
+    for key in ("splinters", "wombgifts", "special_items"):
+        v = data.get(key)
+        if v is not None and not _str_list(v):
+            return False
+    ap = data.get("always_pick")
+    if ap is not None:
+        if not isinstance(ap, dict):
+            return False
+        for k in ("currency", "runes"):
+            v = ap.get(k)
+            if v is not None and not _str_list(v):
+                return False
+    tb = data.get("tablets")
+    if tb is not None:
+        if not isinstance(tb, dict):
+            return False
+        if tb.get("types") is not None and not _str_list(tb["types"]):
+            return False
+        if tb.get("uniques") is not None and not _pair_list(tb["uniques"], 2):
+            return False
+    nf = data.get("name_fixes")
+    if nf is not None:
+        if not isinstance(nf, dict):
+            return False
+        corr = nf.get("corrections")
+        if corr is not None:
+            if not isinstance(corr, dict) or not all(
+                    isinstance(k, str) and isinstance(v, str)
+                    for k, v in corr.items()):
+                return False
+        if nf.get("skip") is not None and not _str_list(nf["skip"]):
+            return False
+    cb = data.get("chance_bases")
+    if cb is not None and not _pair_list(cb, 3):
+        return False
     return True
 
 
@@ -90,6 +135,38 @@ def _apply(data: dict) -> None:
                 entry = (key, ninja_type, label, True)
                 _client.UNIQUE_CATEGORIES.append(entry)
                 _client.ALL_CATEGORIES.append(entry)
+
+    # Always-pick static sections. All mutations are IN PLACE ([:] / clear+
+    # update) — generator.py imported these objects by reference at startup.
+    if data.get("splinters"):
+        _corr.SPLINTERS[:] = data["splinters"]
+    if data.get("wombgifts"):
+        _corr.WOMBGIFTS[:] = data["wombgifts"]
+    if data.get("special_items"):
+        _corr.SPECIAL_ITEMS[:] = data["special_items"]
+    ap = data.get("always_pick") or {}
+    if ap.get("currency"):
+        _corr.ALWAYS_PICK_CURRENCY[:] = ap["currency"]
+    if ap.get("runes"):
+        _corr.ALWAYS_PICK_RUNES[:] = ap["runes"]
+    tb = data.get("tablets") or {}
+    if tb.get("types"):
+        _corr.TABLET_TYPES[:] = tb["types"]
+    if tb.get("uniques"):
+        _corr.TABLET_UNIQUES[:] = [tuple(e) for e in tb["uniques"]]
+    nf = data.get("name_fixes") or {}
+    if nf.get("corrections") is not None:
+        _corr.ITEM_NAME_CORRECTIONS.clear()
+        _corr.ITEM_NAME_CORRECTIONS.update(nf["corrections"])
+    if nf.get("skip") is not None:
+        _corr.ITEM_NAME_SKIP.clear()
+        _corr.ITEM_NAME_SKIP.update(nf["skip"])
+    if data.get("chance_bases"):
+        try:
+            from exilebot_pickit import generator as _gen
+            _gen.CHANCE_BASES[:] = [tuple(e) for e in data["chance_bases"]]
+        except Exception:
+            pass
 
 
 def load_cached_game_data(cache_dir: str) -> tuple:

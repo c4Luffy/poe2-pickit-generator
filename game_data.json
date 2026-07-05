@@ -1,6 +1,6 @@
 {
-  "_comment": "Self-updating game data. The app fetches this file from the main branch on startup. When a PoE2 patch adds new droppable bases or a new unique category, edit THIS file - no new exe needed.",
-  "version": 1,
+  "_comment": "Self-updating game data. The app fetches this file from the main branch on startup (6h interval). When a PoE2 patch adds/renames droppable bases, unique categories, tablets, splinters, wombgifts, runes or chance bases, edit THIS file - no new exe needed. Bad edits are rejected by the app's validator (it keeps built-in data), but keep JSON valid.",
+  "version": 2,
   "base_types": {
     "Body Armours": [
       [
@@ -1316,6 +1316,184 @@
       "unique_relics",
       "UniqueSanctumRelics",
       "Unique Relics"
+    ]
+  ],
+  "always_pick": {
+    "currency": [
+      "Exalted Orb",
+      "Divine Orb",
+      "Mirror of Kalandra"
+    ],
+    "runes": [
+      "Emergent Vigour",
+      "Emergent Possibility",
+      "Emergent Protection",
+      "Emergent Instinct",
+      "Iron Rune",
+      "Glacial Rune",
+      "Arcane Rune",
+      "Dire Rune",
+      "Honed Rune",
+      "Jagged Rune",
+      "Phrecia Rune",
+      "Skullbreaker Rune",
+      "Destined Rune"
+    ]
+  },
+  "tablets": {
+    "types": [
+      "Overseer Tablet",
+      "Abyss Tablet",
+      "Breach Tablet",
+      "Ritual Tablet",
+      "Irradiated Tablet",
+      "Temple Tablet",
+      "Delirium Tablet"
+    ],
+    "uniques": [
+      [
+        "Irradiated Tablet",
+        "Visions of Paradise"
+      ],
+      [
+        "Irradiated Tablet",
+        "The Grand Project"
+      ],
+      [
+        "Irradiated Tablet",
+        "Mastered Domain"
+      ],
+      [
+        "Abyss Tablet",
+        "Unforeseen Consequences"
+      ],
+      [
+        "Ritual Tablet",
+        "Freedom of Faith"
+      ],
+      [
+        "Breach Tablet",
+        "Wraeclast Besieged"
+      ],
+      [
+        "Overseer Tablet",
+        "Cruel Hegemony"
+      ],
+      [
+        "Overseer Tablet",
+        "Season of the Hunt"
+      ],
+      [
+        "Delirium Tablet",
+        "Clear Skies"
+      ]
+    ]
+  },
+  "splinters": [
+    "Breach Splinter",
+    "Simulacrum Splinter"
+  ],
+  "wombgifts": [
+    "Banded Wombgift",
+    "Lavish Wombgift",
+    "Ornate Wombgift",
+    "Revelatory Wombgift",
+    "Signet Wombgift"
+  ],
+  "special_items": [
+    "An Audience with the King",
+    "Expedition Logbook"
+  ],
+  "name_fixes": {
+    "corrections": {
+      "Stamped Wombgift": "Signet Wombgift",
+      "Pressurised Wombgift": "Ornate Wombgift"
+    },
+    "skip": [
+      "Necrotic Catalyst",
+      "Refined Necrotic Catalyst"
+    ]
+  },
+  "chance_bases": [
+    [
+      "Rings",
+      "Gold Ring",
+      "Ventor's Gamble / Andvarius / Perandus Seal"
+    ],
+    [
+      "Belts",
+      "Heavy Belt",
+      "Headhunter"
+    ],
+    [
+      "Belts",
+      "Utility Belt",
+      "Mageblood / Ingenuity"
+    ],
+    [
+      "Belts",
+      "Ornate Belt",
+      "Ryslatha's Coil"
+    ],
+    [
+      "Amulets",
+      "Solar Amulet",
+      "Fireflower"
+    ],
+    [
+      "Body Armours",
+      "Conqueror Plate",
+      "Kaom's Heart"
+    ],
+    [
+      "Body Armours",
+      "Grand Regalia",
+      "Morior Invictus"
+    ],
+    [
+      "Body Armours",
+      "Tattered Robe",
+      "Ghostwrithe"
+    ],
+    [
+      "Body Armours",
+      "Armoured Vest",
+      "Hyrri's Ire"
+    ],
+    [
+      "Helmets",
+      "Magus Tiara",
+      "Indigon"
+    ],
+    [
+      "Helmets",
+      "Cultist Crown",
+      "Crown of the Pale King"
+    ],
+    [
+      "Gloves",
+      "Fine Bracers",
+      "Maligaro's Virtuosity"
+    ],
+    [
+      "Gloves",
+      "Spiral Wraps",
+      "Hand of Wisdom and Action"
+    ],
+    [
+      "Boots",
+      "Braced Sabatons",
+      "Darkray Vectors"
+    ],
+    [
+      "Weapons",
+      "Heavy Bow",
+      "Lioneye's Glare"
+    ],
+    [
+      "Weapons",
+      "Omen Sceptre",
+      "Font of Power"
     ]
   ]
 }

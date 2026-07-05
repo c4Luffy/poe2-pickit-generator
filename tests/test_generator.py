@@ -342,8 +342,9 @@ def test_validate_pickit_passes_on_chance_base_rules():
 
 
 def test_validate_pickit_passes_on_static_tablet_rules():
-    """STATIC_TABLET_RULES must pass validation with zero errors."""
-    lines = gen.STATIC_TABLET_RULES.strip().splitlines()
+    """Tablet/wombgift/special builders must pass validation with zero errors."""
+    lines = (gen.build_tablet_rules() + gen.build_wombgift_rules()
+             + gen.build_special_item_rules())
     result = gen.validate_pickit(lines)
     assert result["errors"] == [], f"Static tablet rules validation errors: {result['errors']}"
 

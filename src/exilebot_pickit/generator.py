@@ -31,6 +31,7 @@ import requests
 from exilebot_pickit.data.corrections import (  # noqa: F401
     ALWAYS_PICK_CURRENCY, ALWAYS_PICK_RUNES,
     ITEM_NAME_CORRECTIONS, ITEM_NAME_SKIP, WAYSTONE_FALLBACK_RULES,
+    SPECIAL_ITEMS, SPLINTERS, TABLET_TYPES, TABLET_UNIQUES, WOMBGIFTS,
 )
 from exilebot_pickit.data.base_types import (  # noqa: F401
     _BASE_TYPES_BY_CATEGORY,
@@ -356,86 +357,38 @@ def header_minor(title: str) -> str:
     return f"//{inner}{dashes} //"
 
 
-STATIC_TABLET_RULES = """\
-/////////////////////////////////////////////////////////////////////////////////////
-//                                                                                 //
-//                               UNIQUE TABLETS                                    //
-//                                                                                 //
-/////////////////////////////////////////////////////////////////////////////////////
+# ── Always-pick static sections (tablets / wombgifts / specials) ─────────────
+# Item names live in data/corrections.py and are remote-updatable via
+# game_data.json; only the rule syntax is built here.
 
-[Type] == "Irradiated Tablet" && [Rarity] == "Unique" # [UniqueName] == "Visions of Paradise" && [StashItem] == "true" && [IgnoreRitual] == "true"
-[Type] == "Irradiated Tablet" && [Rarity] == "Unique" # [UniqueName] == "The Grand Project" && [StashItem] == "true" && [IgnoreRitual] == "true"
-[Type] == "Irradiated Tablet" && [Rarity] == "Unique" # [UniqueName] == "Mastered Domain" && [StashItem] == "true" && [IgnoreRitual] == "true"
-[Type] == "Abyss Tablet" && [Rarity] == "Unique" # [UniqueName] == "Unforeseen Consequences" && [StashItem] == "true" && [IgnoreRitual] == "true"
-[Type] == "Ritual Tablet" && [Rarity] == "Unique" # [UniqueName] == "Freedom of Faith" && [StashItem] == "true" && [IgnoreRitual] == "true"
-[Type] == "Breach Tablet" && [Rarity] == "Unique" # [UniqueName] == "Wraeclast Besieged" && [StashItem] == "true" && [IgnoreRitual] == "true"
-[Type] == "Overseer Tablet" && [Rarity] == "Unique" # [UniqueName] == "Cruel Hegemony" && [StashItem] == "true" && [IgnoreRitual] == "true"
-[Type] == "Overseer Tablet" && [Rarity] == "Unique" # [UniqueName] == "Season of the Hunt" && [StashItem] == "true" && [IgnoreRitual] == "true"
-[Type] == "Delirium Tablet" && [Rarity] == "Unique" # [UniqueName] == "Clear Skies" && [StashItem] == "true" && [IgnoreRitual] == "true"
-
-/////////////////////////////////////////////////////////////////////////////////////
-//                                                                                 //
-//                          REGULAR TABLETS (ALL RARITIES)                         //
-//                                                                                 //
-/////////////////////////////////////////////////////////////////////////////////////
-
-[Type] == "Overseer Tablet" && [Rarity] == "Normal" # [StashItem] == "true"
-[Type] == "Overseer Tablet" && [Rarity] == "Magic" # [StashItem] == "true"
-[Type] == "Overseer Tablet" && [Rarity] == "Rare" # [StashItem] == "true"
-[Type] == "Abyss Tablet" && [Rarity] == "Normal" # [StashItem] == "true"
-[Type] == "Abyss Tablet" && [Rarity] == "Magic" # [StashItem] == "true"
-[Type] == "Abyss Tablet" && [Rarity] == "Rare" # [StashItem] == "true"
-[Type] == "Breach Tablet" && [Rarity] == "Normal" # [StashItem] == "true"
-[Type] == "Breach Tablet" && [Rarity] == "Magic" # [StashItem] == "true"
-[Type] == "Breach Tablet" && [Rarity] == "Rare" # [StashItem] == "true"
-[Type] == "Ritual Tablet" && [Rarity] == "Normal" # [StashItem] == "true"
-[Type] == "Ritual Tablet" && [Rarity] == "Magic" # [StashItem] == "true"
-[Type] == "Ritual Tablet" && [Rarity] == "Rare" # [StashItem] == "true"
-[Type] == "Irradiated Tablet" && [Rarity] == "Normal" # [StashItem] == "true"
-[Type] == "Irradiated Tablet" && [Rarity] == "Magic" # [StashItem] == "true"
-[Type] == "Irradiated Tablet" && [Rarity] == "Rare" # [StashItem] == "true"
-[Type] == "Temple Tablet" && [Rarity] == "Normal" # [StashItem] == "true"
-[Type] == "Temple Tablet" && [Rarity] == "Magic" # [StashItem] == "true"
-[Type] == "Temple Tablet" && [Rarity] == "Rare" # [StashItem] == "true"
-[Type] == "Delirium Tablet" && [Rarity] == "Normal" # [StashItem] == "true"
-[Type] == "Delirium Tablet" && [Rarity] == "Magic" # [StashItem] == "true"
-[Type] == "Delirium Tablet" && [Rarity] == "Rare" # [StashItem] == "true"
-
-/////////////////////////////////////////////////////////////////////////////////////
-//                                                                                 //
-//                                   SPLINTERS                                     //
-//                                                                                 //
-/////////////////////////////////////////////////////////////////////////////////////
-
-[Type] == "Breach Splinter" # [StashItem] == "true"
-[Type] == "Simulacrum Splinter" # [StashItem] == "true"
-"""
+def build_tablet_rules() -> list:
+    """Unique tablets by name, all regular tablets, and splinters."""
+    out = header_major("Unique Tablets").splitlines() + [""]
+    for typ, name in TABLET_UNIQUES:
+        out.append(f'[Type] == "{typ}" && [Rarity] == "Unique" # [UniqueName] == "{name}" && [StashItem] == "true" && [IgnoreRitual] == "true"')
+    out += [""] + header_major("Regular Tablets (all rarities)").splitlines() + [""]
+    for typ in TABLET_TYPES:
+        for rar in ("Normal", "Magic", "Rare"):
+            out.append(f'[Type] == "{typ}" && [Rarity] == "{rar}" # [StashItem] == "true"')
+    out += [""] + header_major("Splinters").splitlines() + [""]
+    for s in SPLINTERS:
+        out.append(f'[Type] == "{s}" # [StashItem] == "true"')
+    return out
 
 
-STATIC_WOMBGIFT_RULES = """\
-/////////////////////////////////////////////////////////////////////////////////////
-//                                                                                 //
-//                             BREACH WOMBGIFTS                                    //
-//                                                                                 //
-/////////////////////////////////////////////////////////////////////////////////////
+def build_wombgift_rules() -> list:
+    out = header_major("Breach Wombgifts").splitlines() + [""]
+    for w in WOMBGIFTS:
+        out.append(f'[Type] == "{w}" # [StashItem] == "true"')
+    return out
 
-[Type] == "Banded Wombgift" # [StashItem] == "true"
-[Type] == "Lavish Wombgift" # [StashItem] == "true"
-[Type] == "Ornate Wombgift" # [StashItem] == "true"
-[Type] == "Revelatory Wombgift" # [StashItem] == "true"
-[Type] == "Signet Wombgift" # [StashItem] == "true"
-"""
 
-STATIC_SPECIAL_WAYSTONE_RULES = """\
-/////////////////////////////////////////////////////////////////////////////////////
-//                                                                                 //
-//                           SPECIAL WAYSTONES                                     //
-//                                                                                 //
-/////////////////////////////////////////////////////////////////////////////////////
+def build_special_item_rules() -> list:
+    out = header_major("Special Waystones").splitlines() + [""]
+    for s in SPECIAL_ITEMS:
+        out.append(f'[Type] == "{s}" # [StashItem] == "true" && [IgnoreRitual] == "true"')
+    return out
 
-[Type] == "An Audience with the King" # [StashItem] == "true" && [IgnoreRitual] == "true"
-[Type] == "Expedition Logbook" # [StashItem] == "true" && [IgnoreRitual] == "true"
-"""
 
 # Structured list of chance orb bases — used by the GUI tab and build_chance_base_rules().
 # Each entry: (category_label, base_type, target_unique).  Bases verified against
@@ -989,13 +942,13 @@ def main():
             print(f"  ✗ {label}: {e}", file=sys.stderr)
 
     # ── Tablets ───────────────────────────────────────────────────────────────
-    output_lines.extend(STATIC_TABLET_RULES.splitlines())
+    output_lines.extend(build_tablet_rules())
 
     # ── Breach Wombgifts ──────────────────────────────────────────────────────
-    output_lines.extend(STATIC_WOMBGIFT_RULES.splitlines())
+    output_lines.extend(build_wombgift_rules())
 
     # ── Special Waystones ─────────────────────────────────────────────────────
-    output_lines.extend(STATIC_SPECIAL_WAYSTONE_RULES.splitlines())
+    output_lines.extend(build_special_item_rules())
 
     # ── Chance Orb Bases ──────────────────────────────────────────────────────
     output_lines.extend(build_chance_base_rules())

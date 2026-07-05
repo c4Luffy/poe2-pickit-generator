@@ -105,7 +105,11 @@ Layout: the app lives in `src/exilebot_pickit/` (`generator.py` + `generators/as
 
 Newest first, last 5 releases. Full history is on the **[Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases)** — the current build is always the **[latest release](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)**.
 
-**v3.1.1** — *latest*
+**v3.2.0** — *latest*
+- 🔄 **All game data now updates without a new release** — tablets, splinters, wombgifts, always-pick currency & runes, chance-orb bases and item-name fixes moved into the self-updating `game_data.json`; when a PoE2 patch adds or renames items, the app picks up the change automatically within hours
+- Bad remote data can't break anything: it's validated first, and the app keeps its built-in copy if the file looks wrong
+
+**v3.1.1**
 - Rare Items tab pulled for a redesign — coming back rebuilt step by step
 
 **v3.0.0**
@@ -124,13 +128,6 @@ Newest first, last 5 releases. Full history is on the **[Releases page](https://
 
 **v2.7.1**
 - 🖱️ **League picker opens on click anywhere** — you no longer have to hit the tiny arrow to change league
-
-**v2.7.0**
-- 🎨 **Fixed the crash after switching theme** — "Failed to load Python DLL" when the app relaunched itself is gone
-- 💰 **Clearer value settings** — the Generate-tab sliders are now type-a-number boxes where you choose the amount in **Exalt or Divine** (converted with the live rate), with a plain-English explanation of what each floor does
-- 🔄 **Self-updating game data** — when a PoE2 patch adds new gear bases or unique categories, the app picks them up automatically on launch (no new .exe needed); unique item prices were always live from poe.ninja
-- 🧹 **Simpler Categories tab** — removed the confusing per-category "Global floor" chip; categories are a plain on/off and always follow the Generate-tab value floor
-- 🏷️ **Renamed unclear sections** — e.g. "Exceptional Base Types — Game Data" is now "High-End Gear Bases (non-unique)" with an example of exactly what it picks up
 
 <!-- 👇 ON EACH UPDATE, add the new version here at the top. Keep only the 5 most recent — drop the oldest as you add the newest:
 **vX.Y.Z**

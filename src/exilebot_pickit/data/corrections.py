@@ -45,6 +45,52 @@ ALWAYS_PICK_RUNES = [
 ]
 
 
+# Tablet types that get Normal/Magic/Rare pick-all rules.
+TABLET_TYPES = [
+    "Overseer Tablet",
+    "Abyss Tablet",
+    "Breach Tablet",
+    "Ritual Tablet",
+    "Irradiated Tablet",
+    "Temple Tablet",
+    "Delirium Tablet",
+]
+
+# Unique tablets picked by name: (tablet type, unique name).
+TABLET_UNIQUES = [
+    ("Irradiated Tablet", "Visions of Paradise"),
+    ("Irradiated Tablet", "The Grand Project"),
+    ("Irradiated Tablet", "Mastered Domain"),
+    ("Abyss Tablet",      "Unforeseen Consequences"),
+    ("Ritual Tablet",     "Freedom of Faith"),
+    ("Breach Tablet",     "Wraeclast Besieged"),
+    ("Overseer Tablet",   "Cruel Hegemony"),
+    ("Overseer Tablet",   "Season of the Hunt"),
+    ("Delirium Tablet",   "Clear Skies"),
+]
+
+# Splinter types — always picked.
+SPLINTERS = [
+    "Breach Splinter",
+    "Simulacrum Splinter",
+]
+
+# Breach wombgift types — always picked.
+WOMBGIFTS = [
+    "Banded Wombgift",
+    "Lavish Wombgift",
+    "Ornate Wombgift",
+    "Revelatory Wombgift",
+    "Signet Wombgift",
+]
+
+# Special always-pick map-like items (stash, never use in rituals).
+SPECIAL_ITEMS = [
+    "An Audience with the King",
+    "Expedition Logbook",
+]
+
+
 # Fallback waystone rules used when poe.ninja returns no waystone rows.
 WAYSTONE_FALLBACK_RULES = [
     '[Category] == "Waystone" && [Rarity] == "Normal" && [WaystoneTier] >= "1" # [StashItem] == "true" && [IgnoreRitual] == "true"',
