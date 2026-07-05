@@ -83,6 +83,14 @@ def main():
     geo = api.cfg.get("window_geometry_web") or {}
     w = int(geo.get("w", 1120)) if isinstance(geo, dict) else 1120
     h = int(geo.get("h", 860)) if isinstance(geo, dict) else 860
+    # Clamp to the primary screen so the window never opens taller/wider than
+    # the desktop (default 860px is too tall for a 1366x768 laptop).
+    try:
+        scr = webview.screens[0]
+        w = min(w, scr.width - 40)
+        h = min(h, scr.height - 90)     # leave room for the taskbar
+    except Exception:
+        pass
     window = webview.create_window(
         "ExileBot 2 Pickit Generator",
         _res_path("app.html") if getattr(sys, "_MEIPASS", None)
