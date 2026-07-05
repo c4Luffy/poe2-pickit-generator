@@ -102,7 +102,10 @@ Layout: the app lives in `src/exilebot_pickit/` (`generator.py` + `generators/as
 
 Newest first, last 5 releases. Full history is on the **[Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases)** — the current build is always the **[latest release](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)**.
 
-**v2.7.1** — *latest*
+**v2.8.0** — *latest*
+- ⏰ **Auto-Regenerate** — new Settings option: the app regenerates the pickit by itself every 1–12 hours while it's open, so with Auto-copy on, your bot always runs on fresh prices with zero clicks
+
+**v2.7.1**
 - 🖱️ **League picker opens on click anywhere** — you no longer have to hit the tiny arrow to change league
 
 **v2.7.0**

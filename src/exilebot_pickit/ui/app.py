@@ -190,6 +190,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, AutoUpdateMixin):
             log_exc("refresh_game_data_async")
         self._fetch_leagues_async()
         self._check_update_async()
+        self._schedule_auto_regen()   # arm auto-regenerate if enabled in config
         threading.Thread(target=self._fetch_divine_rate_async, daemon=True).start()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.bind_all("<Control-g>", lambda e: self._start_generate())
@@ -221,6 +222,11 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, AutoUpdateMixin):
             value=self.cfg.get("poe2_filter_dir") or _default_poe2_filter_dir())
         self.backup_count_var = tk.IntVar(value=self.cfg.get("backup_count", 5))
         self.confirm_ovw_var  = tk.BooleanVar(value=self.cfg.get("confirm_overwrite_secs", 120) > 0)
+        # Display var for the auto-regenerate dropdown ("Off" / "Every N hours").
+        _arh = int(self.cfg.get("auto_regen_hours", 0) or 0)
+        self.auto_regen_display_var = tk.StringVar(
+            value="Off" if _arh <= 0 else
+                  ("Every hour" if _arh == 1 else f"Every {_arh} hours"))
         self.theme_var        = tk.StringVar(
             value="Light" if (self.cfg.get("theme") or "dark").lower() == "light" else "Dark")
 
@@ -2985,6 +2991,30 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, AutoUpdateMixin):
         self.bot_folder_var.trace_add("write", lambda *_: self._update_autocopy_hint())
         self._update_autocopy_hint()
 
+        # ── Auto-regenerate ──────────────────────────────────────────────────
+        g = self._settings_group(inner, "⏰", "Auto-Regenerate")
+        tk.Label(g, text="Prices move all day, but the pickit is a snapshot from the moment "
+                         "you generated it.  Turn this on and the app regenerates by itself "
+                         "while it's open — combined with Auto-copy above, your bot's pickit "
+                         "stays priced-to-market with zero clicks.",
+                 bg=BG2, fg=TEXT_DIM, font=FONT_SM, anchor="w", justify="left",
+                 wraplength=760).pack(anchor="w", padx=14, pady=(8, 2))
+        ar_row = tk.Frame(g, bg=BG2)
+        ar_row.pack(fill="x", padx=14, pady=(4, 4))
+        tk.Label(ar_row, text="Regenerate automatically:", bg=BG2, fg=TEXT,
+                 font=FONT).pack(side="left")
+        _ar_cb = ttk.Combobox(ar_row, textvariable=self.auto_regen_display_var,
+                              state="readonly", width=16, font=FONT,
+                              values=("Off", "Every hour", "Every 2 hours",
+                                      "Every 4 hours", "Every 6 hours", "Every 12 hours"))
+        _ar_cb.pack(side="left", padx=(10, 0), ipady=3)
+        Tip(_ar_cb, "How often to regenerate while the app is open. "
+                    "Takes effect when you click Save settings.")
+        self._auto_regen_hint = tk.Label(g, text="", bg=BG2, fg=TEXT_DIM, font=FONT_SM,
+                                         anchor="w", justify="left")
+        self._auto_regen_hint.pack(anchor="w", padx=14, pady=(2, 10))
+        self._update_auto_regen_hint()
+
         # ── In-game loot filter (manual play only) ───────────────────────────
         g = self._settings_group(inner, "🎮", "In-Game Loot Filter")
         tk.Label(g, text="A matching .filter is written next to the .ipd on every run. "
@@ -3175,12 +3205,60 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, AutoUpdateMixin):
             self.cfg["min_exalt_unique"] = float(self.min_exalt_unique_var.get())
         except (tk.TclError, ValueError):
             pass
+        # Auto-regenerate: parse "Every N hours" back to an int and (re)arm the timer.
+        _disp = (self.auto_regen_display_var.get() or "Off").strip()
+        _m = re.search(r"\d+", _disp)
+        self.cfg["auto_regen_hours"] = int(_m.group()) if _m else (1 if "hour" in _disp.lower() else 0)
+        self._schedule_auto_regen()
         self.after(0, lambda: save_config(self.cfg))
         self._log("Settings saved.", "ok")
         _lbl = getattr(self, "_settings_saved_lbl", None)
         if _lbl is not None:
             _lbl.configure(text="✓ Saved")
             self.after(2500, lambda: _lbl.configure(text=""))
+
+    # ── Auto-regenerate timer ─────────────────────────────────────────────────
+
+    def _schedule_auto_regen(self):
+        """(Re)arm the auto-regenerate timer from cfg['auto_regen_hours']."""
+        if getattr(self, "_auto_regen_after", None):
+            try:
+                self.after_cancel(self._auto_regen_after)
+            except Exception:
+                pass
+            self._auto_regen_after = None
+        hours = int(self.cfg.get("auto_regen_hours", 0) or 0)
+        if hours <= 0:
+            self._auto_regen_next = 0.0
+            self._update_auto_regen_hint()
+            return
+        self._auto_regen_next  = time.time() + hours * 3600
+        self._auto_regen_after = self.after(hours * 3600 * 1000, self._auto_regen_fire)
+        self._update_auto_regen_hint()
+        log_info(f"auto-regen armed: every {hours}h")
+
+    def _auto_regen_fire(self):
+        self._auto_regen_after = None
+        try:
+            if self._running:
+                self._log("Auto-regenerate skipped: a run is already in progress.", "warn")
+            else:
+                self._log("⏰ Auto-regenerate: starting scheduled run.", "info")
+                self._start_generate(auto=True)
+        finally:
+            self._schedule_auto_regen()   # always re-arm for the next cycle
+
+    def _update_auto_regen_hint(self):
+        lbl = getattr(self, "_auto_regen_hint", None)
+        if lbl is None:
+            return
+        nxt = getattr(self, "_auto_regen_next", 0.0)
+        if nxt:
+            lbl.configure(text="Next automatic run: "
+                               + time.strftime("%H:%M", time.localtime(nxt))
+                               + "  (only while the app stays open)")
+        else:
+            lbl.configure(text="Off — the pickit only updates when you click Generate.")
 
     def _restart_app(self):
         """Persist settings, then relaunch so a theme change takes effect.
@@ -3680,13 +3758,18 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, AutoUpdateMixin):
                 continue
         return out
 
-    def _start_generate(self):
+    def _start_generate(self, auto: bool = False):
+        """*auto* = fired by the auto-regenerate timer: never pop dialogs, just
+        log and bail on any condition a human would have been prompted for."""
         if self._running:
             self.status_lbl.configure(text="Already running…", fg=TEXT_WARN)
             return
 
         league = self._selected_league()
         if not league or league.startswith("Loading"):
+            if auto:
+                self._log("Auto-regenerate skipped: league list not loaded yet.", "warn")
+                return
             self.status_lbl.configure(
                 text="No league — wait for leagues to load or type a name", fg=TEXT_ERR)
             self._log("No league selected — wait for the league list to load or type a name manually.", "warn")
@@ -3694,7 +3777,7 @@ class PickitApp(tk.Tk, ChanceBasesTab, CraftBasesTab, AutoUpdateMixin):
 
         base_path = self._output_base_path()
         ipd_path  = base_path + ".ipd"
-        if os.path.isfile(ipd_path):
+        if not auto and os.path.isfile(ipd_path):
             age   = time.time() - os.path.getmtime(ipd_path)
             limit = self.cfg.get("confirm_overwrite_secs", 120)
             # limit == 0 means the confirmation is disabled (see _save_settings)

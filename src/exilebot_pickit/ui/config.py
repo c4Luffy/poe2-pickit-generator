@@ -73,6 +73,8 @@ DEFAULT_CONFIG = {
 
     "window_geometry": "",
     "confirm_overwrite_secs": 120,
+    # Hours between automatic regenerations while the app is open (0 = off).
+    "auto_regen_hours": 0,
     "include_bases": True,
     "base_quality": 28,
     "base_min_level": 82,
