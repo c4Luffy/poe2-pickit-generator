@@ -649,9 +649,16 @@ function renderEco(){
   const q=($("ecoSearch").value||"").toLowerCase();
   const body=$("ecoBody");body.innerHTML="";
   let rows=ecoRows();
-  rows.sort((a,b)=>ecoSort==="name"?a[1].name.localeCompare(b[1].name):
+  const isStatic=!q&&ecoCat==="_static";
+  if(!isStatic)rows.sort((a,b)=>ecoSort==="name"?a[1].name.localeCompare(b[1].name):
     ecoSort==="chg"?(b[1].chg||0)-(a[1].chg||0):b[1].ex-a[1].ex);
+  let lastGrp=null;
   for(const [cat,it] of rows.slice(0,400)){
+    if(isStatic&&it.grp&&it.grp!==lastGrp){lastGrp=it.grp;
+      const hr=document.createElement("tr");
+      hr.innerHTML=`<td colspan="5" style="padding:12px 8px 5px;color:var(--gold);font-weight:600;
+        font-size:12px;letter-spacing:.6px;text-transform:uppercase;border-bottom:1px solid var(--gold-dim)">${esc(it.grp)}</td>`;
+      body.appendChild(hr);}
     const tr=document.createElement("tr");tr.className="item"+(it.enabled?"":" dis");
     const ico=it.icon?`<img class="icn" loading="lazy" src="${esc(it.icon)}" onerror="this.style.display='none'">`:"";
     const nm=ico+esc(it.name)+(q?` <span class="pill">${esc(cat.label)}</span>`:"")+

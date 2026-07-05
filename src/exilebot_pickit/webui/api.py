@@ -167,17 +167,17 @@ class AppApi:
             # picked because they're map juice, not because of exchange value).
             st = states.get("_static", {})
 
-            def _sitem(nm, base=""):
+            def _sitem(nm, grp, base=""):
                 return {"name": nm, "base": base, "ex": 0, "icon": "", "chg": None,
-                        "static": True,
+                        "static": True, "grp": grp,
                         "enabled": st.get(nm, {}).get("enabled", True)}
-            sitems = ([_sitem(t, "all rarities") for t in gen.TABLET_TYPES]
-                      + [_sitem(un, typ) for typ, un in gen.TABLET_UNIQUES]
-                      + [_sitem(s) for s in gen.SPLINTERS]
-                      + [_sitem(w) for w in gen.WOMBGIFTS]
-                      + [_sitem(sp) for sp in gen.SPECIAL_ITEMS]
-                      + [_sitem(j, "jewel") for j in gen.JEWELS]
-                      + [_sitem(b, "exotic base") for b in gen.EXOTIC_BASES])
+            sitems = ([_sitem(t, "Tablets", "all rarities") for t in gen.TABLET_TYPES]
+                      + [_sitem(un, "Unique Tablets", typ) for typ, un in gen.TABLET_UNIQUES]
+                      + [_sitem(s, "Splinters") for s in gen.SPLINTERS]
+                      + [_sitem(w, "Breach Wombgifts") for w in gen.WOMBGIFTS]
+                      + [_sitem(sp, "Special Items") for sp in gen.SPECIAL_ITEMS]
+                      + [_sitem(j, "Jewels") for j in gen.JEWELS]
+                      + [_sitem(b, "Exotic Bases") for b in gen.EXOTIC_BASES])
             out.append({"key": "_static", "label": "Always-Pick Items",
                         "unique": False, "items": sitems})
 

@@ -27,14 +27,11 @@ so your bot grabs what sells *today*, not what sold last month.
 
 <br>
 
-```mermaid
-flowchart LR
-    A["🌐 poe.ninja<br/>live PoE2 prices"] --> B["⚔️ Pickit Generator<br/>your floors & choices"]
-    B --> C["📄 pickit .ipd<br/>+ in-game .filter"]
-    C --> D["🤖 Exiled Bot 2<br/>auto-copied, ready"]
-```
+<div align="center">
 
-<br>
+### 🌐 poe.ninja prices &nbsp;→&nbsp; ⚔️ your floors & choices &nbsp;→&nbsp; 📄 `.ipd` pickit &nbsp;→&nbsp; 🤖 your bot
+
+</div>
 
 > [!TIP]
 > **First time?** Download → pick your league → press **⚡ Generate** → point the bot at the `.ipd`.
