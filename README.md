@@ -1,167 +1,204 @@
 <div align="center">
 
-<br>
+# ExileBot 2 Pickit Generator
 
-# ⚔️ ExileBot 2 Pickit Generator
+**Live Path of Exile 2 economy prices, converted into an Exiled Bot 2 pickit.**
 
-**The market moves. Your pickit follows.**
-
-Turns live [poe.ninja](https://poe.ninja) prices into a complete Exiled Bot 2 pickit —
-so your bot grabs what sells *today*, not what sold last month.
-
-<br>
+Build a fresh `.ipd` from poe.ninja prices, tune your own value floors, exclude
+anything you do not want, and keep your bot following the market instead of a
+stale static list.
 
 [![CI](https://github.com/c4Luffy/poe2-pickit-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/c4Luffy/poe2-pickit-generator/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/c4Luffy/poe2-pickit-generator?label=release&color=c8a96e)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?color=2ea043)](https://github.com/c4Luffy/poe2-pickit-generator/releases)
+[![Release](https://img.shields.io/github/v/release/c4Luffy/poe2-pickit-generator?label=latest%20release&color=2ea043)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?color=0969da)](https://github.com/c4Luffy/poe2-pickit-generator/releases)
 [![Windows](https://img.shields.io/badge/Windows-single%20.exe-0078D6)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
-[![MIT](https://img.shields.io/badge/license-MIT-blue)](#-license)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 <br>
 
-<a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F%20%20DOWNLOAD%20THE%20APP%20%20-2ea043?style=for-the-badge" alt="Download"></a>
+<a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest">
+  <img src="https://img.shields.io/badge/Download%20the%20Windows%20app-2ea043?style=for-the-badge" alt="Download the Windows app">
+</a>
 
-*One .exe — no Python, no installer, no setup.*
+<br><br>
+
+`poe.ninja prices` -> `your floors and exclusions` -> `.ipd pickit` -> `Exiled Bot 2`
 
 </div>
 
-<br>
-
-<div align="center">
-
-### 🌐 poe.ninja prices &nbsp;→&nbsp; ⚔️ your floors & choices &nbsp;→&nbsp; 📄 `.ipd` pickit &nbsp;→&nbsp; 🤖 your bot
-
-</div>
-
-> [!TIP]
-> **First time?** Download → pick your league → press **⚡ Generate** → point the bot at the `.ipd`.
-> Everything valuable is picked by default; the **Economy** tab is where you say *"not that"* with one click.
-
 ---
 
-## What you get
+## Quick Start
 
-### 🪙 Prices that are never stale
-Every generate pulls the **real economy of your league** — currency, essences, runes, catalysts, uniques, gems and more. Set your value floor in **Exalt, Chaos or Divine**, or press **✨ Auto floor** and let the league's actual prices choose it for you.
+1. Download `ExileBot2PickitGenerator.exe` from the [latest release](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest).
+2. Open the app and choose your league.
+3. Set your value floors, or use **Auto floor** to calculate them from the current market.
+4. Review the Economy, Chance Bases, Craft Bases, and Exceptional tabs.
+5. Click **Generate Pickit**.
+6. Point Exiled Bot 2 at the generated `.ipd`, or enable auto-copy to your bot folder.
 
-### 🛡️ A bot that can't be fed garbage
-The **safety net** blocks auto-deploy if a run ever produces a collapsed or broken pickit. Backups rotate on every generate. Rules are validated before they ever reach your bot folder.
+The app also writes a matching `.filter` for manual play. Use the `.ipd` for the
+bot. A loot filter that hides items can make bot pickup behavior unreliable.
 
-### 🧱 The stuff other pickits forget
-Tablets, splinters, wombgifts, boss keys, **exceptional bases with extra rune sockets**, chance-orb targets (Headhunter, Mageblood…), craftable high-ilvl bases, exotic drop-only bases — all built in, all individually toggleable, all explained in plain language inside the app.
+## What It Generates
 
-### 🔄 It updates itself
-Game patch added new items? The app's **game data refreshes from this repo automatically** — every installed copy, within hours, no new download. Item names are verified against the live game (poe2db + NeverSink's filter data), so dead rules don't rot in your pickit.
+| File | Purpose |
+| --- | --- |
+| `.ipd` | The Exiled Bot 2 pickit. This is the main output. |
+| `latest.ipd` | A stable copy of the newest generated pickit. |
+| `.filter` | A Path of Exile 2 client loot filter for manual play. |
+| `*_items.csv` | A price and inclusion report for auditing your rules. |
+| `backups/*.ipd` | Rotating backups before each new generate. |
 
-### ⏰ Zero-click operation
-**Auto-Regenerate** every few hours + **tray mode** + **auto-copy to the bot folder**: start it once, minimize it, and your bot rides fresh prices all day.
+By default, generated files live in:
 
-> [!NOTE]
-> The app also writes a matching **in-game `.filter`** for manual play sessions — but don't feed that one to the bot: hidden drops can make Exiled Bot stall. The `.ipd` is the bot's file.
-
----
-
-## The app in 30 seconds
-
-| Tab | One-liner |
-|-----|-----------|
-| ⚡ **Generate** | The button. League, floors, ✨ auto floor from live prices. |
-| 🪙 **Economy** | Every pickable item with live prices & trend arrows — click to exclude. |
-| 🎲 **Chance Bases** | White bases worth chancing into Headhunter, Mageblood & co. |
-| 🛠 **Craft Bases** | Blank ilvl-82 bases worth keeping as crafting canvases. |
-| 🧱 **Exceptional** | Extra-socket bases: white pickups + any unique that drops on one. |
-| 📜 **Preview** | The exact file the bot reads — sections, filters, validation marks. |
-| 🕘 **History** | Every run charted, so you see your pickit evolve over the league. |
-| ⚙ **Settings** | Bot folder, auto-copy, auto-regen, tray, backups, updates. |
-| 🔧 **Debug** | API test, cache tools, logs — for the one day something's weird. |
-
-<details>
-<summary>&nbsp;💡 <b>Power-user tips</b></summary>
-
-<br>
-
-- **Right-click any item row** → its pickit rule goes to your clipboard
-- **Double-click a category chip** → whole category on/off
-- <kbd>Ctrl</kbd>+<kbd>G</kbd> generates, <kbd>Ctrl</kbd>+<kbd>R</kbd> refreshes leagues
-- **▲▼ arrows** = price moved >3% · post-generate alerts flag >20% swings
-- Every tab has an **ℹ "what is this?"** explainer — click it, no wiki needed
-
-</details>
-
-<details>
-<summary>&nbsp;🛠️ <b>Troubleshooting</b></summary>
-
-<br>
-
-| Symptom | Fix |
-|---------|-----|
-| No prices loading | Debug tab → **Run API test**. poe.ninja down? The app uses its price cache. |
-| Bot ignores items | Check the pickit path in Exiled Bot 2, or enable **Auto-copy** in Settings. |
-| Windows blocks the exe | **More info → Run anyway** — unsigned free tool, full source is right here. |
-| Where are my files? | `ExileBot2PickitGenerator_data` folder next to the `.exe`. |
-
-</details>
-
-<details>
-<summary>&nbsp;👩‍💻 <b>Build from source</b></summary>
-
-<br>
-
-```bash
-pip install -e .            # run:   python -m exilebot_pickit
-pip install pytest ruff     # test:  python -m pytest -q && ruff check .
+```text
+ExileBot2PickitGenerator_data/pickit_output
 ```
 
-`src/exilebot_pickit/` — `generator.py` + `generators/assembly.py` build the rules · `webui/` is the WebView2 app (`api.py` bridge + `app.html` UI) · `data/` holds remote-updatable game data · `ui/` config & updater. Push a `vX.Y.Z` tag and CI builds + publishes the exe.
+When running from source, the data folder is stored under your user app-data
+directory as `exilebot-pickit`.
 
-</details>
+## Why This Exists
 
----
+Static pickits age badly. League prices move, patch data changes, new bases get
+added, and yesterday's valuable drops can become tomorrow's stash clutter.
 
-## 📝 What's new
+This tool keeps the boring part automated:
 
-### v3.4.0 — latest
+| Area | What it does |
+| --- | --- |
+| Live economy | Fetches current Path of Exile 2 prices from poe.ninja. |
+| Value floors | Lets you set separate floors for unique gear and everything else. |
+| Auto floor | Suggests floors based on the current league's price distribution. |
+| Per-item toggles | Lets you disable individual items, categories, bases, and static picks. |
+| Safety net | Warns and blocks auto-copy when a generated pickit looks collapsed or broken. |
+| Offline fallback | Uses cached price payloads when poe.ninja is unavailable. |
+| Self-updating data | Refreshes game-data lists from this repo without requiring a new `.exe`. |
+| Bot-friendly output | Writes IPD rules with validation checks before deployment. |
 
-- 🪙 **Economy redesigned** — categories moved into a grouped sidebar (Market / Uniques / Always Pick), every group in its own place with real item icons everywhere (embedded — they work offline)
-- 🖱️ **Everything is toggleable now** — unique items, waystone rarities, every always-pick group and item; duplicates between priced and always-pick lists resolved with force-keep above your floor
-- 🧱 **Exceptional tab upgraded** — every base shows its icon + stats (level, Armour/Evasion/ES, weapon damage/crit/APS/DPS from poe2db) and can be excluded per base
-- 🔎 **Smarter search** — "ring" finds rings, not "Fractu-ring-Orb"; searches base types too
-- 🎨 **New light theme (Clean Studio)** + bigger UI, redesigned Generate/Settings/Debug pages, cleaner number inputs
-- 🧰 Craft & Chance cards show icons and stats · Auto floor how-to hint + keep 10–100% range · league dropdown shows current leagues only · League-start button retired (Auto floor covers it)
+## App Areas
 
-### v3.3.0
+| Tab | What you control |
+| --- | --- |
+| Generate | League, floors, auto floor, generate status, recent results. |
+| Economy | Priced items, uniques, always-pick groups, search, sorting, exclusions. |
+| Chance Bases | White bases worth chancing into valuable uniques. |
+| Craft Bases | High-item-level Normal bases worth saving as crafting canvases. |
+| Exceptional | Extra-socket-capable bases, quality gates, item level gates, unique-on-base pickup. |
+| Preview | The exact generated `.ipd`, with sections and validation output. |
+| History | Recent runs, rule counts, top values, and market movement context. |
+| Settings | Bot folder, auto-copy, backups, tray mode, output names, update checks. |
+| Debug | API checks, cache tools, logs, config access, and troubleshooting helpers. |
 
-- 🧱 **New Exceptional tab** — extra-socket bases managed in one place: white-base pickup (quality/ilvl gates) + optionally **any unique that drops on an exceptional base**, whatever its price
-- 📋 **Always-Pick Items in Economy** — tablets, splinters, wombgifts, boss keys, jewels and exotic bases are now visible and individually toggleable
-- 💎 **New pickup sections** — 48 exotic bases (Breach rings, Runic Fork…), valuable jewels (Rare ilvl 81+, Timeless Jewel, Time-Lost Diamond), Kulemak's Invitation
-- 🔍 **Game-data audit** — names verified against the live game: 7 dead rune names out, 12 real ones in, chance list corrected to only actually-chanceable targets
-- 🐛 Copy buttons always work (native clipboard) · Preview copies your selection · long rules wrap · validation marks hit the right lines · profiles remember the new settings · game filter folder auto-detected
+## Pickit Rules Covered
 
-<details>
-<summary><b>Older releases</b></summary>
+The generator combines live market data with curated static rules:
 
-<br>
+- Currency, essences, catalysts, runes, fragments, omens, soul cores, idols, gems, waystones, expedition items, and other exchange categories.
+- Unique weapons, armours, accessories, flasks, charms, jewels, relics, and any remote-added unique categories.
+- Always-pick groups such as tablets, splinters, wombgifts, boss keys, exotic bases, and key special items.
+- Chance Orb bases for targets such as Headhunter, Mageblood, and other valuable uniques.
+- Craft bases at configurable item level thresholds.
+- Exceptional bases with quality and socket rules.
+- Optional rules for any unique that drops on an exceptional base.
 
-**v3.2.1**
-- 🐛 **Preview fix** — the section sidebar went missing right after generating; now every section shows immediately
+## Safety Features
 
-**v3.2.0**
-- 🔄 **All game data updates without a new release** — tablets, splinters, wombgifts, always-pick lists, chance bases and name fixes live in the self-updating `game_data.json`; bad remote data is rejected, the app keeps its built-in copy
+The app is designed to avoid silently deploying a bad pickit:
 
-**v3.1.1**
-- Rare Items tab pulled for a redesign — coming back rebuilt step by step
+- Generated rules are validated before they are shown in Preview.
+- Backups rotate before overwriting the previous `.ipd`.
+- Auto-copy is blocked if the new rule count collapses compared with the last run.
+- Core currency rules are checked before deployment.
+- Price data is cached to disk for offline fallback.
+- Remote game-data updates are schema-validated before they are applied.
 
+## Build From Source
 
-</details>
+Requires Python 3.10 or newer.
 
-<!-- ON EACH UPDATE: new version under "What's new", move the previous latest into "Older releases", keep 5 total. -->
+```bash
+pip install -e .
+python -m exilebot_pickit
+```
 
----
+Run the CLI generator instead of the GUI:
 
-<div align="center">
+```bash
+python -m exilebot_pickit --cli --league "Fate of the Vaal"
+python -m exilebot_pickit --cli --list-leagues
+```
 
-**[⬇️ Download](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)** · **[🐛 Report an issue](https://github.com/c4Luffy/poe2-pickit-generator/issues)** · **License: MIT**
+Run tests and lint:
 
-<sub>Built for the Exiled Bot 2 community. Prices by poe.ninja. Not affiliated with GGG.</sub>
+```bash
+pip install pytest ruff
+python -m pytest -q
+python -m ruff check .
+```
 
-</div>
+Build the Windows executable locally:
+
+```bat
+build.exe.bat
+```
+
+## Project Layout
+
+```text
+src/exilebot_pickit/
+  api/client.py              poe.ninja API client, retries, memory and disk cache
+  generator.py               legacy-compatible rule builders, CLI, validation
+  generators/assembly.py     pure generate pipeline helpers used by the UI
+  webui/api.py               Python bridge exposed to the WebView UI
+  webui/app.html             single-file modern UI
+  webui/poc.py               WebView2 entry point and tray integration
+  ui/config.py               config paths, defaults, atomic save/load, logging
+  ui/updater.py              GitHub release update checks
+  data/remote_data.py        self-updating game-data loader
+  data/base_types.py         bundled base-type data
+  data/corrections.py        bundled name fixes and always-pick lists
+```
+
+## Releases
+
+CI runs tests, lint, byte-compilation, and a Windows PyInstaller smoke build.
+
+To ship a release:
+
+1. Update `src/exilebot_pickit/version.py`.
+2. Push a matching `vX.Y.Z` tag.
+3. GitHub Actions builds `ExileBot2PickitGenerator.exe`.
+4. The release includes the `.exe` and `SHA256SUMS.txt`.
+
+## Troubleshooting
+
+| Problem | Try this |
+| --- | --- |
+| Prices do not load | Open Debug, run the API test, then retry with Force refresh. |
+| poe.ninja is rate-limiting | Wait a little, or generate from cached prices if available. |
+| Bot ignores the pickit | Check the bot's configured `.ipd` path or enable auto-copy. |
+| Windows blocks the `.exe` | Use "More info" -> "Run anyway" for the unsigned release build. |
+| Settings reset | Check Debug -> open config. Corrupt configs are backed up before defaults load. |
+| Want the last good file | Open the output folder and check `backups/`. |
+
+## Current Version
+
+`v3.4.0`
+
+Highlights:
+
+- Redesigned Economy tab with grouped categories and item icons.
+- Per-item toggles for uniques, waystones, always-pick groups, craft bases, chance bases, and exceptional bases.
+- Exceptional base cards with level and stat metadata.
+- Smarter search across names and base types.
+- New light theme, larger layout, cleaner settings/debug pages.
+- Auto floor workflow for current-league price-based thresholds.
+
+## Credits
+
+Prices are provided by [poe.ninja](https://poe.ninja). This project is built for
+the Exiled Bot 2 community and is not affiliated with Grinding Gear Games.
+
+Released under the [MIT License](LICENSE).
