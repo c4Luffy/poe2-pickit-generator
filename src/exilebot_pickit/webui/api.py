@@ -19,6 +19,7 @@ from exilebot_pickit import generator as gen
 from exilebot_pickit.generators import assembly as asm
 from exilebot_pickit.ui.config import (
     OUTPUT_DIR, PRICE_CACHE_DIR, load_config, save_config,
+    _default_poe2_filter_dir as _default_dir,
 )
 from exilebot_pickit.version import VERSION
 
@@ -26,7 +27,7 @@ from exilebot_pickit.version import VERSION
 # can't scribble arbitrary keys into the config file.
 _SETTABLE = {
     "league", "output_base", "bot_folder", "auto_copy", "theme",
-    "min_exalt_gear", "min_exalt_unique", "include_bases",
+    "min_exalt_gear", "min_exalt_unique", "include_bases", "unique_exceptional",
     "base_quality", "base_min_level", "auto_regen_hours", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
     "minimize_to_tray",
@@ -69,11 +70,12 @@ class AppApi:
             "min_gear": float(c.get("min_exalt_gear", 0.0)),
             "min_unique": float(c.get("min_exalt_unique", 0.0)),
             "include_bases": bool(c.get("include_bases", True)),
-            "base_quality": int(c.get("base_quality", 28)),
+            "unique_exceptional": bool(c.get("unique_exceptional", True)),
+            "base_quality": int(c.get("base_quality", 25)),
             "base_min_level": int(c.get("base_min_level", 82)),
             "auto_regen_hours": int(c.get("auto_regen_hours", 0) or 0),
             "copy_filter_to_game": bool(c.get("copy_filter_to_game", False)),
-            "poe2_filter_dir": c.get("poe2_filter_dir", ""),
+            "poe2_filter_dir": c.get("poe2_filter_dir", "") or _default_dir(),
             "backup_count": int(c.get("backup_count", 5)),
             "confirm_overwrite_secs": int(c.get("confirm_overwrite_secs", 120)),
             "config_warning": _config_warning(),
@@ -160,10 +162,31 @@ class AppApi:
                                       "icon": img, "chg": _chg(nm, ev)})
                 items.sort(key=lambda i: -i["ex"])
                 out.append({"key": key, "label": label, "unique": is_unique, "items": items})
+
+            # Synthetic category: the always-pick items (no poe.ninja prices —
+            # picked because they're map juice, not because of exchange value).
+            st = states.get("_static", {})
+
+            def _sitem(nm, base=""):
+                return {"name": nm, "base": base, "ex": 0, "icon": "", "chg": None,
+                        "static": True,
+                        "enabled": st.get(nm, {}).get("enabled", True)}
+            sitems = ([_sitem(t, "all rarities") for t in gen.TABLET_TYPES]
+                      + [_sitem(un, typ) for typ, un in gen.TABLET_UNIQUES]
+                      + [_sitem(s) for s in gen.SPLINTERS]
+                      + [_sitem(w) for w in gen.WOMBGIFTS]
+                      + [_sitem(sp) for sp in gen.SPECIAL_ITEMS]
+                      + [_sitem(j, "jewel") for j in gen.JEWELS]
+                      + [_sitem(b, "exotic base") for b in gen.EXOTIC_BASES])
+            out.append({"key": "_static", "label": "Always-Pick Items",
+                        "unique": False, "items": sitems})
+
             enabled_cfg = self.cfg.get("category_enabled", {})
+            cat_en = {c[0]: enabled_cfg.get(c[0], True) for c in gen.ALL_CATEGORIES}
+            cat_en["_static"] = enabled_cfg.get("_static", True)
             return {"divine_rate": round(div_rate, 1),
                     "cats": out, "stale": sorted(stale),
-                    "cat_enabled": {c[0]: enabled_cfg.get(c[0], True) for c in gen.ALL_CATEGORIES}}
+                    "cat_enabled": cat_en}
         except Exception as e:
             return {"error": str(e)}
 
@@ -175,6 +198,32 @@ class AppApi:
         save_config(self.cfg)
         return {"ok": True}
 
+    def copy_text(self, text):
+        """Copy to the Windows clipboard natively — navigator.clipboard is
+        unreliable inside WebView2 (blocked in non-secure contexts)."""
+        try:
+            import ctypes
+            from ctypes import wintypes
+            u32, k32 = ctypes.windll.user32, ctypes.windll.kernel32
+            s = str(text)
+            if not u32.OpenClipboard(None):
+                return {"error": "clipboard busy"}
+            try:
+                u32.EmptyClipboard()
+                buf = ctypes.create_unicode_buffer(s)
+                size = ctypes.sizeof(buf)
+                h = k32.GlobalAlloc(0x0042, size)          # GMEM_MOVEABLE|ZEROINIT
+                k32.GlobalLock.restype = wintypes.LPVOID
+                p = k32.GlobalLock(h)
+                ctypes.memmove(p, buf, size)
+                k32.GlobalUnlock(h)
+                u32.SetClipboardData(13, h)                # CF_UNICODETEXT
+            finally:
+                u32.CloseClipboard()
+            return {"ok": True}
+        except Exception as e:
+            return {"error": str(e)}
+
     def rule_for(self, cat_key, name, is_unique, base, ex):
         """The pickit rule line for one item — for right-click 'copy rule'."""
         safe = name.replace('"', '\\"')
@@ -182,6 +231,13 @@ class AppApi:
             sb = (base or "").replace('"', '\\"')
             return (f'[Type] == "{sb}" && [Rarity] == "Unique" # [UniqueName] == "{safe}" '
                     f'&& [StashItem] == "true" // ExValue = {float(ex):.2f}')
+        if cat_key == "_static":
+            if any(name == n for _t, n in gen.TABLET_UNIQUES):
+                typ = next(t for t, n in gen.TABLET_UNIQUES if n == name)
+                st = typ.replace('"', '\\"')
+                return (f'[Type] == "{st}" && [Rarity] == "Unique" # [UniqueName] == "{safe}" '
+                        f'&& [StashItem] == "true" && [IgnoreRitual] == "true"')
+            return f'[Type] == "{safe}" # [StashItem] == "true"'
         return f'[Type] == "{safe}" # [StashItem] == "true" // ExValue = {float(ex):.2f}'
 
     # ── Profiles ──────────────────────────────────────────────────────────────
@@ -195,7 +251,8 @@ class AppApi:
                 "min_exalt_unique": float(c.get("min_exalt_unique", 0.0)),
                 "output_base": c.get("output_base", "poe2_pickit"),
                 "include_bases": bool(c.get("include_bases", True)),
-                "base_quality": int(c.get("base_quality", 28)),
+                "unique_exceptional": bool(c.get("unique_exceptional", True)),
+                "base_quality": int(c.get("base_quality", 25)),
                 "base_min_level": int(c.get("base_min_level", 82))}
 
     def profiles(self):
@@ -222,7 +279,8 @@ class AppApi:
         self.cfg["min_exalt_unique"] = prof.get("min_exalt_unique", 0.0)
         self.cfg["output_base"]      = prof.get("output_base", "poe2_pickit")
         self.cfg["include_bases"]    = prof.get("include_bases", True)
-        self.cfg["base_quality"]     = prof.get("base_quality", 28)
+        self.cfg["unique_exceptional"] = prof.get("unique_exceptional", True)
+        self.cfg["base_quality"]     = prof.get("base_quality", 25)
         self.cfg["base_min_level"]   = prof.get("base_min_level", 82)
         self.cfg["active_profile"]   = name
         save_config(self.cfg)
@@ -306,6 +364,7 @@ class AppApi:
         ce = self.cfg.setdefault("category_enabled", {})
         for c in gen.ALL_CATEGORIES:
             ce[c[0]] = True
+        ce["_static"] = True
         self.cfg["include_bases"] = True
         save_config(self.cfg)
         return {"ok": True, "info": self.app_info()}
@@ -362,6 +421,12 @@ class AppApi:
         return [{"cat": cat, "base": base, "target": tgt,
                  "enabled": st.get(base, {}).get("enabled", True)}
                 for cat, base, tgt in gen.CHANCE_BASES]
+
+    def exceptional_bases(self):
+        """The exceptional base list, grouped by slot — read-only info for
+        the Exceptional tab (list itself is remote-updated game data)."""
+        return [{"cat": cat, "bases": [n for n, _s in entries]}
+                for cat, entries in gen._BASE_TYPES_BY_CATEGORY.items()]
 
     def craft_bases(self):
         st = self.cfg.get("item_states", {}).get("_craftbase", {})
@@ -460,12 +525,15 @@ class AppApi:
                 cb.setdefault(n, {}).setdefault("ilvl", gen.craft_base_default_ilvl(n))
         item_states = dict(st)
         item_states["_craftbase"] = cb
+        cat_enabled = {c[0]: enabled_cfg.get(c[0], True) for c in gen.ALL_CATEGORIES}
+        cat_enabled["_static"] = enabled_cfg.get("_static", True)
         return {
-            "cat_enabled": {c[0]: enabled_cfg.get(c[0], True) for c in gen.ALL_CATEGORIES},
+            "cat_enabled": cat_enabled,
             "cat_thresh": {},          # per-category floors removed by design
             "item_states": item_states,
             "include_bases": bool(self.cfg.get("include_bases", True)),
-            "base_quality": int(self.cfg.get("base_quality", 28)),
+            "unique_exceptional": bool(self.cfg.get("unique_exceptional", True)),
+            "base_quality": int(self.cfg.get("base_quality", 25)),
             "base_min_level": int(self.cfg.get("base_min_level", 82)),
         }
 
@@ -510,18 +578,30 @@ class AppApi:
                 ok += 1
                 self._log(f"✓ {label}")
 
-            out += gen.build_tablet_rules()
-            out += gen.build_wombgift_rules()
-            out += gen.build_special_item_rules()
+            # Always-pick sections — individual items (and the whole group)
+            # can be switched off from the Economy tab.
+            if snap["cat_enabled"].get("_static", True):
+                sdis = {n for n, s in snap["item_states"].get("_static", {}).items()
+                        if not s.get("enabled", True)}
+                out += gen.build_tablet_rules(sdis)
+                out += gen.build_wombgift_rules(sdis)
+                out += gen.build_special_item_rules(sdis)
+                out += gen.build_exotic_base_rules(sdis)
+                out += gen.build_jewel_rules(sdis)
             out += gen.build_chance_base_rules(asm.chance_base_disabled(snap))
             craft_lines, _n, _floor = asm.craft_base_section(snap)
             out += craft_lines
+            if snap["unique_exceptional"]:
+                out += [""] + gen.build_unique_exceptional_rules()
             if snap["include_bases"]:
-                out += ["", gen.header_major("Base Types"), ""]
+                out += ["", gen.header_major("Exceptional Bases"), ""]
                 out += gen.build_base_rules(min_quality=snap["base_quality"],
                                             min_level=snap["base_min_level"])
 
-            validation = gen.validate_pickit(out)
+            # Validate the FLATTENED lines — multi-line banner headers in
+            # `out` would shift line numbers vs what Preview displays.
+            flat = "\n".join(out).splitlines()
+            validation = gen.validate_pickit(flat)
             self._last_validation = validation
             os.makedirs(OUTPUT_DIR, exist_ok=True)
             base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
@@ -606,7 +686,7 @@ class AppApi:
                     self._log(f"✓ Auto-copied to {bot}")
                 else:
                     self._log("✗ Auto-copy skipped: bot folder doesn't exist")
-            fdir = (self.cfg.get("poe2_filter_dir") or "").strip()
+            fdir = (self.cfg.get("poe2_filter_dir") or "").strip() or _default_dir()
             if self.cfg.get("copy_filter_to_game") and fdir and os.path.isdir(fdir):
                 try:
                     shutil.copy2(flt, os.path.join(fdir, os.path.basename(flt)))
@@ -705,7 +785,7 @@ class AppApi:
         st = p.get("item_states", {})
         return {"min_gear": p.get("min_exalt_gear", 0), "min_unique": p.get("min_exalt_unique", 0),
                 "output_base": p.get("output_base", ""), "include_bases": p.get("include_bases", True),
-                "base_quality": p.get("base_quality", 28), "base_min_level": p.get("base_min_level", 82),
+                "base_quality": p.get("base_quality", 25), "base_min_level": p.get("base_min_level", 82),
                 "disabled_counts": {k: sum(1 for s in v.values() if not s.get("enabled", True))
                                     for k, v in st.items() if isinstance(v, dict)}}
 

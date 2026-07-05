@@ -158,6 +158,7 @@
   <div class="nav-btn" data-p="eco">🪙 Economy</div>
   <div class="nav-btn" data-p="chance">🎲 Chance Bases</div>
   <div class="nav-btn" data-p="craft">🛠 Craft Bases</div>
+  <div class="nav-btn" data-p="exc">🧱 Exceptional</div>
   <div class="nav-btn" data-p="prev">📜 Preview</div>
   <div class="nav-btn" data-p="hist">🕘 History</div>
   <div class="nav-btn" data-p="set">⚙ Settings</div>
@@ -285,6 +286,29 @@
   <div class="grid" id="craftGrid"></div>
 </div>
 
+<!-- ══ EXCEPTIONAL ══ -->
+<div class="page" id="p-exc">
+  <h1>Exceptional Bases</h1><div class="sub">Gear bases that can roll an extra rune socket — the strongest version of every slot. Kept as white items to craft on, and optionally ANY unique that drops on one. <span id="excCount"></span></div>
+  <div class="card"><h2>🧱 White bases</h2>
+    <div class="hint">Exceptional bases can roll an <b>extra rune socket</b> (e.g. gloves with 2 instead of 1) — that's what makes them special and worth crafting on. Blank (Normal) ones are kept to craft or sell to crafters. No market listing, so your value floors don't apply; the quality and item-level gates below decide what's worth the pickup.</div>
+    <div class="set-row"><div class="lab"><b>Pick up white exceptional bases</b><span>Normal rarity, gated by quality &amp; item level below</span></div><div class="sp"></div>
+      <div class="switch" id="swBases"><i></i></div></div>
+    <div class="set-row"><div class="lab"><b>Minimum quality %</b></div><div class="sp"></div>
+      <input type="number" id="baseQ" min="0" max="100" style="width:80px;text-align:center"></div>
+    <div class="set-row"><div class="lab"><b>Minimum item level</b><span>82 = max</span></div><div class="sp"></div>
+      <input type="number" id="baseL" min="1" max="82" style="width:80px;text-align:center"></div>
+  </div>
+  <div class="card"><h2>💎 Uniques on these bases</h2>
+    <div class="hint">Normally a unique below your value floor is left on the ground. This picks up <b>every</b> unique that drops on one of the bases listed below, price ignored — the exceptional version can roll an extra rune socket, so it's the better copy of that unique and usually worth the slot. Turn it off if your stash fills with cheap uniques.</div>
+    <div class="set-row"><div class="lab"><b>Pick ANY unique on an exceptional base</b><span>ignores the unique value floor — the base alone is worth the slot</span></div><div class="sp"></div>
+      <div class="switch" id="swUniqExc"><i></i></div></div>
+  </div>
+  <div class="card"><h2>📋 The base list</h2>
+    <div class="hint">Updates automatically when a PoE2 patch adds new bases — nothing to manage here.</div>
+    <div class="grid" id="excGrid" style="margin-top:10px"></div>
+  </div>
+</div>
+
 <!-- ══ HISTORY ══ -->
 <div class="page" id="p-hist">
   <h1>History</h1><div class="sub">Every generate is logged (last 50 kept).</div>
@@ -353,7 +377,7 @@
   </div>
   <div style="display:flex;gap:12px;align-items:flex-start">
     <div id="pvNav" style="width:215px;flex-shrink:0;max-height:calc(100vh - 330px);overflow-y:auto"></div>
-    <pre id="prevBox" style="flex:1;max-height:calc(100vh - 330px)">Generate first.</pre>
+    <pre id="prevBox" style="flex:1;max-height:calc(100vh - 330px);white-space:pre-wrap;word-break:break-word;overflow-x:hidden;min-width:0">Generate first.</pre>
   </div>
 </div>
 
@@ -379,15 +403,6 @@
     <div class="set-row"><div class="lab"><b>Minimize to tray on close</b>
       <span>Closing the window hides it to the system tray so auto-regenerate keeps running. Right-click the tray icon for Show / Generate / Exit.</span></div>
       <div class="sp"></div><div class="switch" id="swTray"><i></i></div></div>
-  </div>
-  <div class="card"><h2>🧱 High-end gear bases (non-unique)</h2>
-    <div class="hint">Ordinary endgame gear worth keeping for quality/sockets. No market price — the value floors don't apply here.</div>
-    <div class="set-row"><div class="lab"><b>Pick up high-end bases</b></div><div class="sp"></div>
-      <div class="switch" id="swBases"><i></i></div></div>
-    <div class="set-row"><div class="lab"><b>Minimum quality %</b></div><div class="sp"></div>
-      <input type="number" id="baseQ" min="0" max="100" style="width:80px;text-align:center"></div>
-    <div class="set-row"><div class="lab"><b>Minimum item level</b><span>82 = max</span></div><div class="sp"></div>
-      <input type="number" id="baseL" min="1" max="82" style="width:80px;text-align:center"></div>
   </div>
   <div class="card"><h2>💾 Output & backups</h2>
     <div class="set-row"><div class="lab"><b>Output file name</b>
@@ -427,6 +442,9 @@
 const $=id=>document.getElementById(id);
 const esc=x=>String(x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const api=()=>pywebview.api;
+async function copyText(t){
+  try{const r=await api().copy_text(t);if(r&&r.ok)return true;}catch(_){/* fall through */}
+  try{await navigator.clipboard.writeText(t);return true;}catch(_){return false;}}
 let info={}, divRate=0, eco=null, ecoCat=null, ecoSort="ex", running=false, regenTimer=null;
 
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");
@@ -442,6 +460,7 @@ document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{
   if(b.dataset.p==="eco"&&!eco)loadEco();
   if(b.dataset.p==="chance")loadChance();
   if(b.dataset.p==="craft")loadCraft();
+  if(b.dataset.p==="exc")loadExc();
   if(b.dataset.p==="prev")loadPreview();
   if(b.dataset.p==="hist")loadHistory();
 });
@@ -638,14 +657,14 @@ function renderEco(){
     const nm=ico+esc(it.name)+(q?` <span class="pill">${esc(cat.label)}</span>`:"")+
       (it.base?` <span class="pill">${esc(it.base)}</span>`:"");
     const chg=it.chg==null?"":`<span class="chg ${it.chg>=0?"up":"dn"}">${it.chg>=0?"▲":"▼"} ${Math.abs(it.chg)}%</span>`;
-    tr.innerHTML=`<td>${nm}</td><td class="val">${fmtVal(it.ex)}</td>
+    tr.innerHTML=`<td>${nm}</td><td class="val">${it.static?'<span class="pill">always picked</span>':fmtVal(it.ex)}</td>
       <td style="text-align:right">${chg}</td>
       <td style="text-align:center"><span class="pill ${it.enabled?"on":""}">${it.enabled?"yes":"no"}</span></td>
       <td><button class="rowbtn">copy</button></td>`;
     tr.querySelector(".rowbtn").onclick=async e=>{e.stopPropagation();
       const rule=await api().rule_for(cat.key,it.name,cat.unique,it.base||"",it.ex);
-      try{await navigator.clipboard.writeText(rule);}catch(_){/* clipboard blocked */}
-      toast("Rule copied");};
+      const ok=await copyText(rule);
+      toast(ok?"Rule copied":"Clipboard blocked");};
     if(cat.unique){tr.title="Uniques are filtered by the value floor, not per item";tr.style.cursor="default";}
     else tr.onclick=async()=>{it.enabled=!it.enabled;
       await api().set_item(cat.key,it.name,it.enabled);renderEco();};
@@ -714,6 +733,17 @@ async function craftBulk(en){
   loadCraft();toast((en?"Enabled":"Disabled")+" all craft bases");}
 $("craftAll").onclick=()=>craftBulk(true);
 $("craftNone").onclick=()=>craftBulk(false);
+
+/* ── exceptional ── */
+async function loadExc(){
+  const cats=await api().exceptional_bases();const g=$("excGrid");g.innerHTML="";
+  let total=0;
+  for(const c of cats){
+    const h=document.createElement("div");h.className="gsec";h.textContent=c.cat;g.appendChild(h);
+    for(const b of c.bases){total++;
+      const d=document.createElement("div");d.className="bcard";d.style.cursor="default";
+      d.innerHTML=`<b>${esc(b)}</b>`;g.appendChild(d);}}
+  $("excCount").textContent=`${total} bases.`;}
 
 /* ── history ── */
 function drawHistChart(h){
@@ -788,7 +818,7 @@ $("dbgInfo").onclick=async()=>{const d=await api().debug_info();
       d.log.join("\n"));};
 $("dbgClear").onclick=async()=>{await api().clear_cache();toast("Price cache cleared");};
 $("dbgPrune").onclick=async()=>{const r=await api().prune_cache();toast(`Pruned ${r.removed} old cache file(s)`);};
-$("dbgCopy").onclick=async()=>{try{await navigator.clipboard.writeText($("dbgOut").textContent);toast("Copied");}catch(_){toast("Clipboard blocked");}};
+$("dbgCopy").onclick=async()=>{const r=await copyText($("dbgOut").textContent);toast(r?"Copied":"Clipboard blocked");};
 $("dbgLog").onclick=()=>api().open_file("log");
 $("dbgCfg").onclick=()=>api().open_file("config");
 $("dbgWipe").onclick=()=>dbg("Ready.");
@@ -854,18 +884,22 @@ function renderPvNav(){
       <span style="margin-left:auto;font-size:10.5px;color:var(--dim)">${s.active}</span></div>`).join("");
   n.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{
     pvSection=b.dataset.s===""?null:parseInt(b.dataset.s);renderPvNav();renderPreview();});}
-function renderPreview(){
+function pvVisible(){
   const q=($("prevFilter").value||"").toLowerCase();
   let lo=0,hi=prevLines.length;
   if(pvSection!==null&&pvSections[pvSection]){
     lo=pvSections[pvSection].start-2;
     hi=pvSection+1<pvSections.length?pvSections[pvSection+1].start-2:prevLines.length;}
-  let a=0,c=0,shown=[];
+  const shown=[];
   for(let i=Math.max(0,lo);i<hi;i++){
     const l=prevLines[i];
     if(q&&!l.toLowerCase().includes(q))continue;
     if(!pvLineOK(l))continue;
     shown.push([i+1,l]);}
+  return shown;}
+function renderPreview(){
+  let a=0,c=0;
+  const shown=pvVisible();
   const html=shown.slice(0,6000).map(([n,l])=>{
     let e=l.replace(/&/g,"&amp;").replace(/</g,"&lt;");
     const vm=pvValMap[n];
@@ -884,8 +918,11 @@ function renderPreview(){
 document.querySelectorAll("#pvChips .chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll("#pvChips .chip").forEach(x=>x.classList.remove("on"));
   c.classList.add("on");pvFilter=c.dataset.f;renderPreview();});
-$("prevCopy").onclick=async()=>{try{await navigator.clipboard.writeText(prevLines.join("\n"));
-  toast("Whole pickit copied");}catch(_){toast("Clipboard blocked");}};
+$("prevCopy").onclick=async()=>{
+  const all=pvSection===null&&pvFilter==="all"&&!($("prevFilter").value||"").trim();
+  const lines=all?prevLines:pvVisible().map(([,l])=>l);
+  const r=await copyText(lines.join("\n"));
+  toast(r?(all?"Whole pickit copied":lines.length+" visible lines copied"):"Clipboard blocked");};
 $("prevFilter").addEventListener("input",renderPreview);
 
 /* ── settings ── */
@@ -901,7 +938,7 @@ function armRegen(){
 $("regenSel").onchange=async()=>{await api().set_setting("auto_regen_hours",parseInt($("regenSel").value));armRegen();toast("Saved");};
 $("botBrowse").onclick=async()=>{const r=await api().browse_folder();
   if(r.path){$("botFolderLbl").textContent=r.path;await api().set_setting("bot_folder",r.path);toast("Saved");}};
-$("baseQ").onchange=()=>{api().set_setting("base_quality",parseInt($("baseQ").value)||28);toast("Saved");};
+$("baseQ").onchange=()=>{api().set_setting("base_quality",parseInt($("baseQ").value)||25);toast("Saved");};
 $("baseL").onchange=()=>{api().set_setting("base_min_level",parseInt($("baseL").value)||82);toast("Saved");};
 $("outBase").onchange=()=>{api().set_setting("output_base",$("outBase").value.trim()||"poe2_pickit");toast("Saved");};
 $("bakCount").onchange=()=>{api().set_setting("backup_count",parseInt($("bakCount").value)||0);toast("Saved");};
@@ -918,9 +955,10 @@ function showUpdBanner(u){const b=$("updBanner");
 /* ── "What is this?" explainers ── */
 const WHATIS={
   gen:"<b>Generate</b> is the main button of the whole app. It downloads current market prices from poe.ninja for your league, keeps every item worth more than your minimum values, and writes the pickit file the bot reads. Run it whenever prices have moved — or let Auto-Regenerate in Settings do it for you.",
-  eco:"<b>Economy</b> is your full catalog of what the bot can pick up, with live prices. Everything is ON by default. Click a row to exclude an item you don't want (e.g. cheap essences filling your stash). Double-click a category chip to turn a whole group on/off. The ▲▼ arrows show price movement.",
+  eco:"<b>Economy</b> is your full catalog of what the bot can pick up, with live prices. Everything is ON by default. Click a row to exclude an item you don't want (e.g. cheap essences filling your stash). Double-click a category chip to turn a whole group on/off. The ▲▼ arrows show price movement. The <b>Always-Pick Items</b> category holds map-juice items (tablets, splinters, wombgifts) that are grabbed regardless of price — switch off any you don't want.",
   chance:"<b>Chance Bases</b> are white (Normal) items worth keeping ONLY to use Orb of Chance on, hoping they turn into a chase unique — e.g. keep white Heavy Belts because one can become a Headhunter. Turn off any target you don't care about.",
   craft:"<b>Craft Bases</b> are the best white items at high item level, kept as blank canvases to craft your own gear on. 'Min ilvl' is how high the item level must be — 82 gives access to the best crafting outcomes. If you never craft, turn this whole tab off.",
+  exc:"<b>Exceptional Bases</b> are special versions of gear bases that can roll an <b>extra rune socket</b> — gloves with 2 instead of 1, and the same idea for helmets, weapons and armour. More sockets = more runes = the strongest version of that slot. Two things live here: picking up blank white ones to craft on or sell, and grabbing ANY unique that drops on one (the extra-socket copy of a unique beats the normal copy, whatever its price). The base list updates itself with game patches.",
   prev:"<b>Preview</b> shows the exact file the bot reads, after every Generate. Green lines = the bot picks it up, grey = below your value floor (skipped). Use the section list and filters to check that what you expect is actually in the file.",
   hist:"<b>History</b> logs every Generate run so you can see how your pickit evolves over the league — how many rules were active, what the top item was, and the Divine rate at the time.",
   set:"<b>Settings</b> connects the generator to your bot (folder + auto-copy), keeps the pickit fresh (Auto-Regenerate + tray mode), and controls output, backups and updates. Everything saves instantly.",
@@ -945,6 +983,7 @@ async function init(){
   $("botFolderLbl").textContent=info.bot_folder||"not set";
   sw("swCopy","auto_copy",info.auto_copy);
   sw("swBases","include_bases",info.include_bases);
+  sw("swUniqExc","unique_exceptional",info.unique_exceptional);
   sw("swFilter","copy_filter_to_game",info.copy_filter_to_game);
   sw("swTray","minimize_to_tray",info.minimize_to_tray);
   $("fltDirLbl").textContent=info.poe2_filter_dir||"not set";

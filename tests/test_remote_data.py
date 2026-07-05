@@ -91,3 +91,52 @@ def test_validate_rejects_malformed_sections():
     assert not rd._validate({"chance_bases": [["cat", "base"]]})
     assert not rd._validate({"name_fixes": {"corrections": {"a": 1}}})
     assert rd._validate({})  # all sections optional
+
+
+def test_builders_respect_disabled_names():
+    dis = {"Overseer Tablet", "Visions of Paradise", "Breach Splinter"}
+    lines = gen.build_tablet_rules(dis)
+    tab = "\n".join(lines)
+    # the TYPE toggle kills the all-rarity rules but not that type's uniques
+    assert '[Type] == "Overseer Tablet" && [Rarity] == "Normal"' not in tab
+    assert "Cruel Hegemony" in tab
+    assert "Visions of Paradise" not in tab
+    assert "Breach Splinter" not in tab
+    assert "Simulacrum Splinter" in tab
+    assert "Abyss Tablet" in tab
+    assert gen.build_wombgift_rules(set(corr.WOMBGIFTS)) == []
+    assert gen.build_special_item_rules(set(corr.SPECIAL_ITEMS)) == []
+    # nothing disabled → all sections present
+    full = "\n".join(gen.build_tablet_rules())
+    for t in corr.TABLET_TYPES:
+        assert t in full
+
+
+def test_unique_exceptional_rules():
+    lines = gen.build_unique_exceptional_rules()
+    rules = [ln for ln in lines if ln.startswith("[Type]")]
+    bases = {n for ents in gen._BASE_TYPES_BY_CATEGORY.values() for n, _ in ents}
+    assert len(rules) == len(bases)
+    for ln in rules:
+        assert '[Rarity] == "Unique"' in ln and "[StashItem]" in ln
+        assert "[UniqueName]" not in ln  # catch-all by base, not by name
+    assert gen.validate_pickit(lines)["errors"] == []
+
+
+def test_exotic_and_jewel_rules():
+    exo = gen.build_exotic_base_rules()
+    assert '[Type] == "Breach Ring" # [StashItem] == "true"' in exo
+    assert '[Type] == "Runic Fork" # [StashItem] == "true"' in exo
+    assert gen.build_exotic_base_rules(set(corr.EXOTIC_BASES)) == []
+    jw = gen.build_jewel_rules()
+    assert '[Type] == "Timeless Jewel" # [StashItem] == "true"' in jw
+    assert '[Type] == "Time-Lost Diamond" # [StashItem] == "true"' in jw
+    # type-less catch-all rules must STAY removed — Exiled Bot matches a rule
+    # without [Type] against everything (owner-confirmed 2026-07-05)
+    assert not hasattr(gen, "build_exceptional_catchall_rules")
+    for lines in (exo, jw):
+        assert gen.validate_pickit(lines)["errors"] == []
+    data = _load_bundled()
+    assert data["exotic_bases"] == corr.EXOTIC_BASES
+    assert data["jewels"] == corr.JEWELS
+    assert data["special_items"] == corr.SPECIAL_ITEMS

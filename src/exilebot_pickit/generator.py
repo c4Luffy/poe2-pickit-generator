@@ -31,7 +31,8 @@ import requests
 from exilebot_pickit.data.corrections import (  # noqa: F401
     ALWAYS_PICK_CURRENCY, ALWAYS_PICK_RUNES,
     ITEM_NAME_CORRECTIONS, ITEM_NAME_SKIP, WAYSTONE_FALLBACK_RULES,
-    SPECIAL_ITEMS, SPLINTERS, TABLET_TYPES, TABLET_UNIQUES, WOMBGIFTS,
+    EXOTIC_BASES, JEWELS, SPECIAL_ITEMS, SPLINTERS, TABLET_TYPES,
+    TABLET_UNIQUES, WOMBGIFTS,
 )
 from exilebot_pickit.data.base_types import (  # noqa: F401
     _BASE_TYPES_BY_CATEGORY,
@@ -192,7 +193,7 @@ def validate_pickit(lines) -> dict:
     return {"errors": errors, "warnings": warnings}
 
 
-def build_base_rules(min_quality: int = 28, min_level: int = 82, progress_callback=None) -> list:
+def build_base_rules(min_quality: int = 25, min_level: int = 82, progress_callback=None) -> list:
     """Build endgame base-type pickup rules from local game data — no network requests.
 
     Uses _BASE_TYPES_BY_CATEGORY (sourced from baseitemtypes.json) for all equipment
@@ -361,33 +362,121 @@ def header_minor(title: str) -> str:
 # Item names live in data/corrections.py and are remote-updatable via
 # game_data.json; only the rule syntax is built here.
 
-def build_tablet_rules() -> list:
-    """Unique tablets by name, all regular tablets, and splinters."""
-    out = header_major("Unique Tablets").splitlines() + [""]
-    for typ, name in TABLET_UNIQUES:
-        out.append(f'[Type] == "{typ}" && [Rarity] == "Unique" # [UniqueName] == "{name}" && [StashItem] == "true" && [IgnoreRitual] == "true"')
-    out += [""] + header_major("Regular Tablets (all rarities)").splitlines() + [""]
-    for typ in TABLET_TYPES:
-        for rar in ("Normal", "Magic", "Rare"):
-            out.append(f'[Type] == "{typ}" && [Rarity] == "{rar}" # [StashItem] == "true"')
-    out += [""] + header_major("Splinters").splitlines() + [""]
-    for s in SPLINTERS:
-        out.append(f'[Type] == "{s}" # [StashItem] == "true"')
+def build_tablet_rules(disabled=None) -> list:
+    """Unique tablets by name, all regular tablets, and splinters.
+
+    ``disabled`` — item names the user switched off in the Economy tab
+    (tablet type, unique tablet name, or splinter name)."""
+    dis = set(disabled or ())
+    out = []
+    uniq = [(t, n) for t, n in TABLET_UNIQUES if n not in dis]
+    if uniq:
+        out += header_major("Unique Tablets").splitlines() + [""]
+        for typ, name in uniq:
+            out.append(f'[Type] == "{typ}" && [Rarity] == "Unique" # [UniqueName] == "{name}" && [StashItem] == "true" && [IgnoreRitual] == "true"')
+        out.append("")
+    types = [t for t in TABLET_TYPES if t not in dis]
+    if types:
+        out += header_major("Regular Tablets (all rarities)").splitlines() + [""]
+        for typ in types:
+            for rar in ("Normal", "Magic", "Rare"):
+                out.append(f'[Type] == "{typ}" && [Rarity] == "{rar}" # [StashItem] == "true"')
+        out.append("")
+    spl = [s for s in SPLINTERS if s not in dis]
+    if spl:
+        out += header_major("Splinters").splitlines() + [""]
+        for s in spl:
+            out.append(f'[Type] == "{s}" # [StashItem] == "true"')
+    while out and out[-1] == "":
+        out.pop()
     return out
 
 
-def build_wombgift_rules() -> list:
+def build_wombgift_rules(disabled=None) -> list:
+    dis = set(disabled or ())
+    keep = [w for w in WOMBGIFTS if w not in dis]
+    if not keep:
+        return []
     out = header_major("Breach Wombgifts").splitlines() + [""]
-    for w in WOMBGIFTS:
+    for w in keep:
         out.append(f'[Type] == "{w}" # [StashItem] == "true"')
     return out
 
 
-def build_special_item_rules() -> list:
-    out = header_major("Special Waystones").splitlines() + [""]
-    for s in SPECIAL_ITEMS:
+def build_unique_exceptional_rules() -> list:
+    """One catch-all rule per exceptional base: ANY unique on that base is
+    picked regardless of the unique value floor. Base list comes from the
+    same remote-updatable game data as the gear-base rules."""
+    names = list(dict.fromkeys(
+        n for ents in _BASE_TYPES_BY_CATEGORY.values() for n, _ in ents))
+    if not names:
+        return []
+    out = header_major("Uniques on Exceptional Bases").splitlines() + [
+        "",
+        "// Any unique that drops on an exceptional base is kept, whatever its",
+        "// market value - the base alone makes it worth the inventory slot.",
+        "",
+    ]
+    for n in names:
+        out.append(f'[Type] == "{_quote_ipd(n)}" && [Rarity] == "Unique" # [StashItem] == "true"')
+    return out
+
+
+def build_special_item_rules(disabled=None) -> list:
+    dis = set(disabled or ())
+    keep = [s for s in SPECIAL_ITEMS if s not in dis]
+    if not keep:
+        return []
+    out = header_major("Special Items").splitlines() + [""]
+    for s in keep:
         out.append(f'[Type] == "{s}" # [StashItem] == "true" && [IgnoreRitual] == "true"')
     return out
+
+
+def build_exotic_base_rules(disabled=None) -> list:
+    """Drop-only exotic bases (breach rings, dusk jewellery, Runic Fork...)
+    picked at any rarity — they sell as bases. List is remote-updatable."""
+    dis = set(disabled or ())
+    keep = [b for b in EXOTIC_BASES if b not in dis]
+    if not keep:
+        return []
+    out = header_major("Exotic Bases").splitlines() + [
+        "",
+        "// Special drop-only bases that sell as bases at any rarity.",
+        "",
+    ]
+    for b in keep:
+        out.append(f'[Type] == "{b}" # [StashItem] == "true"')
+    return out
+
+
+# Chase jewels picked unconditionally; all other jewels only as Rare at high
+# item level (low-ilvl / magic jewels are vendor junk).
+CHASE_JEWELS = frozenset({"Timeless Jewel", "Time-Lost Diamond"})
+JEWEL_MIN_ILVL = 81
+
+
+def build_jewel_rules(disabled=None) -> list:
+    """Passive-tree jewels — 1x1 slot. Basic jewels only when Rare and high
+    ilvl (mods are what sells); Timeless/Time-Lost always."""
+    dis = set(disabled or ())
+    keep = [j for j in JEWELS if j not in dis]
+    if not keep:
+        return []
+    out = header_major("Jewels").splitlines() + [""]
+    for j in keep:
+        if j in CHASE_JEWELS:
+            out.append(f'[Type] == "{j}" # [StashItem] == "true"')
+        else:
+            out.append(f'[Type] == "{j}" && [Rarity] == "Rare" # [StashItem] == "true" && [ItemLevel] >= "{JEWEL_MIN_ILVL}"')
+    return out
+
+
+# NOTE: type-less catch-all rules ([Quality] >= "21" / [Sockets] >= "3" with
+# no [Type]) were tried and REMOVED (owner, 2026-07-05): Exiled Bot treats a
+# rule without [Type] as matching EVERYTHING and would pick the whole ground.
+# Do not re-add. Exceptional pickup is per-base (build_base_rules quality/
+# sockets pairs + build_unique_exceptional_rules).
 
 
 # Structured list of chance orb bases — used by the GUI tab and build_chance_base_rules().
@@ -397,24 +486,17 @@ def build_special_item_rules() -> list:
 # unique — the most currency-efficient targets.  The rest are high-value single
 # targets (low odds, but iconic chase items).
 CHANCE_BASES: list = [
-    # ── Accessories — best value (multi-unique pools) ──
+    # Verified against maxroll's 0.5.2 chancing guide (2026-07-05): only these
+    # bases have chanceable uniques in the current drop pool. The old armour/
+    # weapon chase targets (Kaom's Heart, Indigon, Lioneye's...) are boss/
+    # restricted drops that an Orb of Chance CANNOT hit — keeping their white
+    # bases for chancing was wasted bot inventory.
     ("Rings",        "Gold Ring",        "Ventor's Gamble / Andvarius / Perandus Seal"),
     ("Belts",        "Heavy Belt",       "Headhunter"),
     ("Belts",        "Utility Belt",     "Mageblood / Ingenuity"),
     ("Belts",        "Ornate Belt",      "Ryslatha's Coil"),
-    ("Amulets",      "Solar Amulet",     "Fireflower"),
-    # ── High-value chase uniques (single target) ──
-    ("Body Armours", "Conqueror Plate",  "Kaom's Heart"),
-    ("Body Armours", "Grand Regalia",    "Morior Invictus"),
-    ("Body Armours", "Tattered Robe",    "Ghostwrithe"),
-    ("Body Armours", "Armoured Vest",    "Hyrri's Ire"),
-    ("Helmets",      "Magus Tiara",      "Indigon"),
-    ("Helmets",      "Cultist Crown",    "Crown of the Pale King"),
-    ("Gloves",       "Fine Bracers",     "Maligaro's Virtuosity"),
-    ("Gloves",       "Spiral Wraps",     "Hand of Wisdom and Action"),
-    ("Boots",        "Braced Sabatons",  "Darkray Vectors"),
-    ("Weapons",      "Heavy Bow",        "Lioneye's Glare"),
-    ("Weapons",      "Omen Sceptre",     "Font of Power"),
+    ("Amulets",      "Solar Amulet",     "Fireflower / Beacon of Azis"),
+    ("Amulets",      "Gold Amulet",      "Eye of Chayula / Serpent's Egg"),
 ]
 
 
@@ -811,7 +893,7 @@ def main():
     parser.add_argument("--check-endpoints", action="store_true",       help="Test all poe.ninja category endpoints and print results")
     parser.add_argument("--variant",         choices=("all","currency","exchange","uniques","maps"), default="all")
     parser.add_argument("--include-bases",   action="store_true",       help="Build endgame base type rules from game data and append to output")
-    parser.add_argument("--base-quality",    type=int, default=28,      help="Min quality %% for base-type rules (default 28)")
+    parser.add_argument("--base-quality",    type=int, default=25,      help="Min quality %% for base-type rules (default 25)")
     parser.add_argument("--base-min-level",  type=int, default=CRAFT_BASE_MIN_ILVL, help=f"Min required level for base-type rules (default {CRAFT_BASE_MIN_ILVL})")
     args = parser.parse_args()
     min_exalt = args.min_exalt
@@ -960,7 +1042,7 @@ def main():
             print(f"  [{idx}/{total}] {title}")
         base_lines = build_base_rules(min_quality=args.base_quality, min_level=args.base_min_level, progress_callback=_prog)
         output_lines.append("")
-        output_lines.append(header_major("Base Types"))
+        output_lines.append(header_major("Exceptional Bases"))
         output_lines.append("")
         output_lines.extend(base_lines)
         output_lines.append("")

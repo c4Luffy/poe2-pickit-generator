@@ -25,27 +25,37 @@ ALWAYS_PICK_CURRENCY = [
     "Mirror of Kalandra",
 ]
 
-# Runes not tracked by poe.ninja — always pick up regardless of threshold
+# Runes not tracked by poe.ninja — always pick up regardless of threshold.
+# Names verified against poe2db (patch 0.5.x, 2026-07-05).
 ALWAYS_PICK_RUNES = [
     # Emergent runes (not tracked by poe.ninja)
     "Emergent Vigour",
     "Emergent Possibility",
     "Emergent Protection",
     "Emergent Instinct",
-    # Standard runes (not always tracked; always pick to be safe)
+    # Core runes, base tier (not always tracked; always pick to be safe)
     "Iron Rune",
     "Glacial Rune",
-    "Arcane Rune",
-    "Dire Rune",
-    "Honed Rune",
-    "Jagged Rune",
-    "Phrecia Rune",
-    "Skullbreaker Rune",
-    "Destined Rune",
+    "Desert Rune",
+    "Storm Rune",
+    "Body Rune",
+    "Mind Rune",
+    "Rebirth Rune",
+    "Inspiration Rune",
+    "Stone Rune",
+    "Vision Rune",
+    "Robust Rune",
+    "Adept Rune",
+    "Resolve Rune",
+    "Ward Rune",
+    "Charging Rune",
 ]
 
 
 # Tablet types that get Normal/Magic/Rare pick-all rules.
+# Verified against NeverSink's live PoE2 filter (FilterBlade data): exactly
+# these 7 drop. poe2db also lists "Expedition Tablet" but it's datamined
+# unreleased content — do NOT add it until it appears in NeverSink/ninja.
 TABLET_TYPES = [
     "Overseer Tablet",
     "Abyss Tablet",
@@ -84,10 +94,42 @@ WOMBGIFTS = [
     "Signet Wombgift",
 ]
 
-# Special always-pick map-like items (stash, never use in rituals).
+# Special always-pick items: map-like keys and standalone valuables
+# (stash, never use in rituals).
 SPECIAL_ITEMS = [
     "An Audience with the King",
     "Expedition Logbook",
+    "Kulemak's Invitation",
+]
+
+# Jewels — passive-tree jewels, picked at any rarity (1x1 inventory slot,
+# rares with good mods sell well; Timeless/Time-Lost are chase items).
+JEWELS = [
+    "Diamond",
+    "Emerald",
+    "Ruby",
+    "Sapphire",
+    "Time-Lost Diamond",
+    "Timeless Jewel",
+]
+
+# Exotic bases — drop-only special bases that sell as bases at any rarity
+# (breach rings, dusk/gloam jewellery, Runic Fork...). Extracted verbatim
+# from NeverSink's PoE2 filter ($type->exoticbases), 2026-07-05.
+EXOTIC_BASES = [
+    "Aberrant Sledge", "Absent Amulet", "Abyssal Signet", "Ancient Gauntlets",
+    "Ancient Leggings", "Ancient Mail", "Ancient Visor", "Biostatic Ring",
+    "Breach Ring", "Corona Amulet", "Distorted Amulet",
+    "Dusk Amulet", "Dusk Ring", "Forking Belt", "Glacial Fortress",
+    "Gloam Amulet", "Gloam Ring", "Grasping Mail", "Grasping Ring",
+    "Heartwood Shortbow", "Invoking Belt", "Kinetic Ring", "Lament Amulet",
+    "Mnemonic Ring", "Oneiric Ring", "Ornate Ringmail", "Pearlescent Amulet",
+    "Penumbra Amulet", "Penumbra Ring", "Perching Staff", "Portent Amulet",
+    "Primal Markings", "Refined Breach Ring", "Reflecting Staff", "Runic Fork",
+    "Sacrificial Regalia", "Sinew Belt", "Stalking Belt", "Tenebrous Amulet",
+    "Tenebrous Crown", "Tenebrous Ring", "Twisted Amulet",
+    "Twisted Wand", "Two-Stone Ring", "Venerable Defender", "Veridical Chain",
+    "Vitalic Ring", "Warding Quarterstaff",
 ]
 
 

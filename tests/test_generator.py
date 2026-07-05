@@ -262,7 +262,10 @@ def test_always_pick_runes_not_empty():
     assert len(gen.ALWAYS_PICK_RUNES) >= 9
     assert "Emergent Vigour" in gen.ALWAYS_PICK_RUNES
     assert "Iron Rune" in gen.ALWAYS_PICK_RUNES
-    assert "Destined Rune" in gen.ALWAYS_PICK_RUNES
+    assert "Desert Rune" in gen.ALWAYS_PICK_RUNES
+    # dead pre-0.5 names must stay gone (audit 2026-07-05)
+    for dead in ("Destined Rune", "Phrecia Rune", "Skullbreaker Rune"):
+        assert dead not in gen.ALWAYS_PICK_RUNES
 
 
 def test_validate_flags_missing_hash_separator():

@@ -105,7 +105,15 @@ Layout: the app lives in `src/exilebot_pickit/` (`generator.py` + `generators/as
 
 Newest first, last 5 releases. Full history is on the **[Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases)** — the current build is always the **[latest release](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)**.
 
-**v3.2.1** — *latest*
+**v3.3.0** — *latest*
+- 🧱 **New Exceptional tab** — the best endgame bases explained and managed in one place: white-base pickup (quality/ilvl gates) plus a new option to grab **any unique that drops on an exceptional base**, whatever its price
+- 📋 **Always-Pick Items in Economy** — tablets, splinters, wombgifts, special keys, jewels and exotic bases are now visible and individually toggleable like everything else
+- 💎 **New pickup sections** — 48 exotic bases (Breach rings, Runic Fork…), valuable jewels (Rare ilvl 81+, Timeless Jewel, Time-Lost Diamond), Kulemak's Invitation
+- 🔍 **Game-data audit** — item names verified against the live game (via poe2db + NeverSink's filter data): 7 dead rune names removed and 12 real ones added, chance-orb list corrected to only actually-chanceable targets
+- 🐛 Fixes: copy buttons now always work (native clipboard), Preview copies your current selection, long rules wrap instead of being cut off, validation markers point at the right lines, profiles remember the new settings
+- The game's loot-filter folder is now detected automatically for the optional .filter copy
+
+**v3.2.1**
 - 🐛 **Preview fix** — the section list ("All sections" sidebar) went missing right after generating; it now shows every section immediately, including the big banner sections like Tablets and Chance Orb Bases
 
 **v3.2.0**
@@ -125,9 +133,6 @@ Newest first, last 5 releases. Full history is on the **[Releases page](https://
 - 🖥️ **Tray mode** — close to the system tray and Auto-Regenerate keeps your pickit fresh in the background
 - 📈 **Redesigned History & Preview** — trend chart with hover details; section navigator, filter chips and inline validation markers
 - Requires the Microsoft WebView2 runtime (preinstalled on up-to-date Windows 10/11)
-
-**v2.8.0**
-- ⏰ **Auto-Regenerate** — new Settings option: the app regenerates the pickit by itself every 1–12 hours while it's open, so with Auto-copy on, your bot always runs on fresh prices with zero clicks
 
 <!-- 👇 ON EACH UPDATE, add the new version here at the top. Keep only the 5 most recent — drop the oldest as you add the newest:
 **vX.Y.Z**

@@ -76,7 +76,10 @@ DEFAULT_CONFIG = {
     # Hours between automatic regenerations while the app is open (0 = off).
     "auto_regen_hours": 0,
     "include_bases": True,
-    "base_quality": 28,
+    # Pick ANY unique sitting on an exceptional base, ignoring the unique
+    # value floor (good bases make even cheap uniques worth grabbing).
+    "unique_exceptional": True,
+    "base_quality": 25,
     "base_min_level": 82,
     "item_states":  {},
     "last_gen_prices": {},
@@ -128,6 +131,10 @@ def load_config():
         _coerce_types(cfg)
         if cfg.get("base_min_level") == 75:
             cfg["base_min_level"] = 82
+        # old default 28 -> owner picked 25 (between NeverSink's 27+ top tier
+        # and 24 mid tier); user-set values other than 28 are left alone.
+        if cfg.get("base_quality") == 28:
+            cfg["base_quality"] = 25
         return cfg
     except FileNotFoundError:
         return dict(DEFAULT_CONFIG)          # first run — nothing to recover

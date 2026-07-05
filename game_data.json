@@ -1331,13 +1331,19 @@
       "Emergent Instinct",
       "Iron Rune",
       "Glacial Rune",
-      "Arcane Rune",
-      "Dire Rune",
-      "Honed Rune",
-      "Jagged Rune",
-      "Phrecia Rune",
-      "Skullbreaker Rune",
-      "Destined Rune"
+      "Desert Rune",
+      "Storm Rune",
+      "Body Rune",
+      "Mind Rune",
+      "Rebirth Rune",
+      "Inspiration Rune",
+      "Stone Rune",
+      "Vision Rune",
+      "Robust Rune",
+      "Adept Rune",
+      "Resolve Rune",
+      "Ward Rune",
+      "Charging Rune"
     ]
   },
   "tablets": {
@@ -1402,7 +1408,8 @@
   ],
   "special_items": [
     "An Audience with the King",
-    "Expedition Logbook"
+    "Expedition Logbook",
+    "Kulemak's Invitation"
   ],
   "name_fixes": {
     "corrections": {
@@ -1438,62 +1445,70 @@
     [
       "Amulets",
       "Solar Amulet",
-      "Fireflower"
+      "Fireflower / Beacon of Azis"
     ],
     [
-      "Body Armours",
-      "Conqueror Plate",
-      "Kaom's Heart"
-    ],
-    [
-      "Body Armours",
-      "Grand Regalia",
-      "Morior Invictus"
-    ],
-    [
-      "Body Armours",
-      "Tattered Robe",
-      "Ghostwrithe"
-    ],
-    [
-      "Body Armours",
-      "Armoured Vest",
-      "Hyrri's Ire"
-    ],
-    [
-      "Helmets",
-      "Magus Tiara",
-      "Indigon"
-    ],
-    [
-      "Helmets",
-      "Cultist Crown",
-      "Crown of the Pale King"
-    ],
-    [
-      "Gloves",
-      "Fine Bracers",
-      "Maligaro's Virtuosity"
-    ],
-    [
-      "Gloves",
-      "Spiral Wraps",
-      "Hand of Wisdom and Action"
-    ],
-    [
-      "Boots",
-      "Braced Sabatons",
-      "Darkray Vectors"
-    ],
-    [
-      "Weapons",
-      "Heavy Bow",
-      "Lioneye's Glare"
-    ],
-    [
-      "Weapons",
-      "Omen Sceptre",
-      "Font of Power"
+      "Amulets",
+      "Gold Amulet",
+      "Eye of Chayula / Serpent's Egg"
     ]
+  ],
+  "exotic_bases": [
+    "Aberrant Sledge",
+    "Absent Amulet",
+    "Abyssal Signet",
+    "Ancient Gauntlets",
+    "Ancient Leggings",
+    "Ancient Mail",
+    "Ancient Visor",
+    "Biostatic Ring",
+    "Breach Ring",
+    "Corona Amulet",
+    "Distorted Amulet",
+    "Dusk Amulet",
+    "Dusk Ring",
+    "Forking Belt",
+    "Glacial Fortress",
+    "Gloam Amulet",
+    "Gloam Ring",
+    "Grasping Mail",
+    "Grasping Ring",
+    "Heartwood Shortbow",
+    "Invoking Belt",
+    "Kinetic Ring",
+    "Lament Amulet",
+    "Mnemonic Ring",
+    "Oneiric Ring",
+    "Ornate Ringmail",
+    "Pearlescent Amulet",
+    "Penumbra Amulet",
+    "Penumbra Ring",
+    "Perching Staff",
+    "Portent Amulet",
+    "Primal Markings",
+    "Refined Breach Ring",
+    "Reflecting Staff",
+    "Runic Fork",
+    "Sacrificial Regalia",
+    "Sinew Belt",
+    "Stalking Belt",
+    "Tenebrous Amulet",
+    "Tenebrous Crown",
+    "Tenebrous Ring",
+    "Twisted Amulet",
+    "Twisted Wand",
+    "Two-Stone Ring",
+    "Venerable Defender",
+    "Veridical Chain",
+    "Vitalic Ring",
+    "Warding Quarterstaff"
+  ],
+  "jewels": [
+    "Diamond",
+    "Emerald",
+    "Ruby",
+    "Sapphire",
+    "Time-Lost Diamond",
+    "Timeless Jewel"
   ]
 }

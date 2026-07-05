@@ -71,7 +71,8 @@ def _validate(data) -> bool:
                 and all(isinstance(e, list) and len(e) == n
                         and all(isinstance(x, str) and x for x in e) for e in v))
 
-    for key in ("splinters", "wombgifts", "special_items"):
+    for key in ("splinters", "wombgifts", "special_items", "exotic_bases",
+                "jewels"):
         v = data.get(key)
         if v is not None and not _str_list(v):
             return False
@@ -144,6 +145,10 @@ def _apply(data: dict) -> None:
         _corr.WOMBGIFTS[:] = data["wombgifts"]
     if data.get("special_items"):
         _corr.SPECIAL_ITEMS[:] = data["special_items"]
+    if data.get("exotic_bases"):
+        _corr.EXOTIC_BASES[:] = data["exotic_bases"]
+    if data.get("jewels"):
+        _corr.JEWELS[:] = data["jewels"]
     ap = data.get("always_pick") or {}
     if ap.get("currency"):
         _corr.ALWAYS_PICK_CURRENCY[:] = ap["currency"]

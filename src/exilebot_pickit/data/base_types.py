@@ -153,10 +153,12 @@ _BASE_TYPES_BY_CATEGORY: dict = {
     # Claws, Daggers, One/Two Hand Swords, One/Two Hand Axes and Flails exist
     # in the extracted game data (and on datamined wiki base tables) but are
     # NOT droppable in the current PoE2 release — they belong to unreleased
-    # classes (Shadow, Templar, Marauder, Duelist), so their base rules are
-    # omitted. Confirmed by the project owner (2026-07); don't re-add them
-    # based on wiki tables or kitchen-sink community configs, which list every
-    # base in the game FILES whether or not it drops.
+    # classes, so their base rules are omitted. RE-confirmed by the project
+    # owner 2026-07-05 (Talon Claw / Cinquedea / Dark Blade / Dread Hatchet
+    # were briefly added from a community pickit and removed again — that
+    # pickit carried inert rules). Don't re-add from wiki tables or
+    # kitchen-sink configs, which list every base in the game FILES whether
+    # or not it drops.
 }
 
 # NOTE on Runeforged / Runemastered variants: these are NOT droppable bases —
