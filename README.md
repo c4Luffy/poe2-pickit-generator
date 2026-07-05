@@ -2,9 +2,10 @@
 
 # ⚔️ ExileBot 2 Pickit Generator
 
-**Live Path of Exile 2 economy prices → ready-to-use Exiled Bot 2 pickit rules, in one click.**
+### Live Path of Exile 2 prices in. Ready-to-use pickit out. One click.
 
-Builds an `.ipd` pickit **and** a matching in-game `.filter` on every run, using real-time prices from [poe.ninja](https://poe.ninja).
+Fetches the **real PoE2 economy** from [poe.ninja](https://poe.ninja) and writes an Exiled Bot 2 `.ipd` pickit
+(plus a matching in-game `.filter`) tuned to what's *actually worth picking up today*.
 
 <br>
 
@@ -12,46 +13,57 @@ Builds an `.ipd` pickit **and** a matching in-game `.filter` on every run, using
 [![Release](https://img.shields.io/github/v/release/c4Luffy/poe2-pickit-generator?label=release&color=c8a96e)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?color=2ea043)](https://github.com/c4Luffy/poe2-pickit-generator/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows-0078D6)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
-[![License](https://img.shields.io/badge/license-MIT-blue)](#-license)
+[![License](https://img.shields.io/badge/license-MIT-blue)](#license)
 
 <br>
 
-### [⬇️ Download the latest .exe →](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
+## [⬇️ &nbsp;Download the latest .exe](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
 
-*No Python, no install — a single self-contained Windows app.*
+*No Python. No install. One self-contained Windows app.*
+
+<br>
 
 </div>
 
 ---
 
-## 🚀 Get started in 3 steps
+## 🚀 Up and running in 3 steps
 
-> **1️⃣ Download & open**
-> Get **`ExileBot2PickitGenerator.exe`** from the **[latest release](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)** and double-click it.
-> *(No install. If Windows shows a warning, click **More info → Run anyway**.)*
+|   | Step | What to do |
+|:-:|------|------------|
+| 1️⃣ | **Download & open** | Grab `ExileBot2PickitGenerator.exe` from the [latest release](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest) and double-click. *(Windows warning? → More info → Run anyway.)* |
+| 2️⃣ | **Generate** | Pick your league, hit **⚡ Generate Pickit**. Live prices in, pickit out — saved to `pickit_output`. |
+| 3️⃣ | **Connect the bot** | Point Exiled Bot 2 at the `.ipd` — or flip on **Auto-copy** in Settings and never touch it again. |
 
-> **2️⃣ Pick your league, then click ⚡ Generate**
-> On the **Generate** tab, choose your current PoE2 league and hit **⚡ Generate Pickit**. Live prices are fetched and your pickit is saved to the **`pickit_output`** folder.
-
-> **3️⃣ Point your bot at the file**
-> In Exiled Bot 2, set the pickit path to the generated `.ipd` — **or** turn on **Auto-copy** in **Settings** so it's deployed for you after every run.
-
-**That's it.** Everything valuable is picked by default. Want to skip something? Open the **Economy** tab and click it to turn it off.
+> **That's it.** Everything valuable is picked by default. Don't want something? One click in the **Economy** tab turns it off.
 
 ---
 
-## ✨ What it does
+## ✨ Why it's good
 
-- 🪙 **Live prices** — pulls real PoE2 economy data from poe.ninja every run
-- 🎯 **Keeps what's worth it** — set a value floor (in Exalts); junk is skipped automatically
-- 🧰 **Two files, one click** — the bot `.ipd`, plus a matching `.filter` in the output folder if you ever want one for manual play *(don't feed it to the bot — hidden drops make it get stuck)*
-- 🖱️ **Easy to tweak** — click any item to exclude it; search, sort, and see live price-change arrows
-- ✨ **Auto value floor** — one click sets your minimum values from the league's real prices
-- 🛡️ **Safety net** — a broken or collapsed pickit is never auto-deployed to your bot
-- 🖥️ **Modern interface** — instant dark/light themes, system-tray mode, and plain-language explainers on every tab
-- 🧱 **Base picking** — dedicated Chance Bases & Craft Bases tabs help you keep the right bases
-- 🔄 **Set and forget** — auto-copies the generated pickit straight into your bot folder
-- ⬆️ **Update alerts** — tells you when a new version is out and links you straight to the download
+| | |
+|---|---|
+| 🪙 **Live prices, every run** | Real PoE2 economy from poe.ninja — never a stale price list |
+| ✨ **Auto value floor** | One click sets your minimum values from the league's actual prices |
+| 🛡️ **Safety net** | A broken or collapsed pickit is **never** auto-deployed to your bot |
+| ⏰ **Set & forget** | Auto-regenerate every few hours + tray mode + auto-copy = always fresh, zero clicks |
+| 🔄 **Self-updating game data** | New items after a game patch reach every installed app within hours — no new download |
+| 💰 **Your currency, your call** | Value floors in Exalt, Chaos or Divine, converted at the live rate |
+| 🖥️ **Modern UI** | Instant dark/light themes, price-change arrows, plain-language explainers on every tab |
+| ⬆️ **Update alerts** | Tells you when a new version is out, links straight to it |
+
+### 🗺️ The tabs, in one line each
+
+| Tab | What it's for |
+|-----|---------------|
+| ⚡ **Generate** | The main button — league, value floors, auto floor, league-start preset |
+| 🪙 **Economy** | Everything the bot can pick up, with live prices — click to include/exclude |
+| 🎲 **Chance Bases** | White bases worth keeping for Orb of Chance (Headhunter, Mageblood…) |
+| 🛠 **Craft Bases** | Blank high-ilvl bases worth crafting on, per slot |
+| 🧱 **Exceptional** | Top-tier bases with extra rune sockets — white pickups + uniques on them |
+| 📜 **Preview** | The exact file the bot reads, with sections, filters and validation |
+| 🕘 **History** | Every run logged, with a trend chart |
+| ⚙ **Settings / 🔧 Debug** | Bot folder, auto-copy, backups, updates · API test & logs |
 
 ---
 
@@ -61,7 +73,7 @@ Builds an `.ipd` pickit **and** a matching in-game `.filter` on every run, using
 <br>
 
 - **Right-click** any item row → copies its pickit rule to the clipboard
-- **Refresh** on the Economy tab → gets fresh prices for that category
+- **Refresh** on the Economy tab → fresh prices for that category
 - **Enable All / Disable All** → toggles a whole category at once
 - **Arrows ▲▼** show price moves over 3%; alerts flag moves over 20%
 - **Craft Bases** → the item level you set on a card is exactly what the bot uses
@@ -73,10 +85,10 @@ Builds an `.ipd` pickit **and** a matching in-game `.filter` on every run, using
 
 <br>
 
-- **No prices loading?** Open the **Debug** tab → **Run API test**. poe.ninja may be down — the app falls back to its saved price cache.
-- **Bot not picking items?** Make sure Exiled Bot 2's pickit path points to your `.ipd`, or turn on **Auto-copy** in Settings.
-- **Windows blocked the .exe?** Click **More info → Run anyway**. It's unsigned (it's a free tool), but all the source is right here in this repo.
-- **Where are my files?** In an `ExileBot2PickitGenerator_data` folder next to the `.exe` (`pickit_output/` holds the generated files).
+- **No prices loading?** Debug tab → **Run API test**. poe.ninja may be down — the app falls back to its saved price cache.
+- **Bot not picking items?** Check the pickit path in Exiled Bot 2, or turn on **Auto-copy** in Settings.
+- **Windows blocked the .exe?** More info → Run anyway. It's unsigned (free tool) — all the source is right here.
+- **Where are my files?** In `ExileBot2PickitGenerator_data` next to the `.exe` (`pickit_output/` holds the generated files).
 
 </details>
 
@@ -103,7 +115,7 @@ Layout: the app lives in `src/exilebot_pickit/` (`generator.py` + `generators/as
 
 ## 📝 Changelog
 
-Newest first, last 5 releases. Full history is on the **[Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases)** — the current build is always the **[latest release](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)**.
+Newest first, last 5 releases. Full history on the **[Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases)**.
 
 **v3.3.0** — *latest*
 - 🧱 **New Exceptional tab** — the best endgame bases explained and managed in one place: white-base pickup (quality/ilvl gates) plus a new option to grab **any unique that drops on an exceptional base**, whatever its price
@@ -144,6 +156,6 @@ Newest first, last 5 releases. Full history is on the **[Releases page](https://
 
 <div align="center">
 
-**[⬇️ Download](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)** · **[🐛 Report an issue](https://github.com/c4Luffy/poe2-pickit-generator/issues)** · **License: MIT**
+**[⬇️ Download](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)** · **[🐛 Report an issue](https://github.com/c4Luffy/poe2-pickit-generator/issues)** · <a name="license"></a>**License: MIT**
 
 </div>
