@@ -119,9 +119,10 @@ class AppApi:
                 r = gen.exalted_rate(p)
                 items, seen = [], set()
 
-                def _chg(nm, ev, spark=None):
+                def _chg(nm, ev, spark=None, prev_cat=prev_cat):
                     """% change: poe.ninja 7-day sparkline for uniques, else
-                    vs the price snapshot from the last generate."""
+                    vs the price snapshot from the last generate. prev_cat is
+                    bound per-iteration via the default arg (ruff B023)."""
                     if spark and spark.get("totalChange") is not None:
                         return round(float(spark["totalChange"]), 1)
                     old = prev_cat.get(nm)
