@@ -319,14 +319,13 @@ def test_version_sync():
     )
 
 
-def test_requirements_has_customtkinter():
-    """customtkinter is used in ui/common.py (btn, entry, checkbtn widgets) —
-    must be present and pinned in requirements.txt."""
+def test_requirements_has_ui_deps():
+    """The WebView2 UI needs pywebview + pystray; the Tk stack must be gone."""
     with open("requirements.txt", encoding="utf-8") as f:
         reqs = f.read()
-    assert "customtkinter" in reqs, "customtkinter missing from requirements.txt"
-    # Should be pinned to exact version (== not >=) due to API breakage between versions
-    assert "customtkinter==" in reqs, "customtkinter should be pinned with == in requirements.txt"
+    assert "pywebview" in reqs, "pywebview missing from requirements.txt"
+    assert "pystray" in reqs, "pystray missing from requirements.txt"
+    assert "customtkinter" not in reqs, "customtkinter should be removed (Tk UI deleted)"
 
 
 def test_craft_base_rules_appear_in_loot_filter():
