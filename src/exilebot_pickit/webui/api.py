@@ -292,13 +292,36 @@ class AppApi:
 
     def league_start_preset(self):
         """One-click 'day 1' setup: floors to 0 and every category enabled —
-        early league, everything sells. Item-level exclusions are kept."""
+        early league, everything sells. Item-level exclusions are kept.
+        The previous floors/categories are stashed so this can be undone."""
+        self.cfg["pre_league_start"] = {
+            "min_exalt_gear": float(self.cfg.get("min_exalt_gear", 0.0)),
+            "min_exalt_unique": float(self.cfg.get("min_exalt_unique", 0.0)),
+            "category_enabled": dict(self.cfg.get("category_enabled", {})),
+            "include_bases": bool(self.cfg.get("include_bases", True)),
+        }
         self.cfg["min_exalt_gear"] = self.cfg["min_exalt"] = 0.0
         self.cfg["min_exalt_unique"] = 0.0
         ce = self.cfg.setdefault("category_enabled", {})
         for c in gen.ALL_CATEGORIES:
             ce[c[0]] = True
         self.cfg["include_bases"] = True
+        save_config(self.cfg)
+        return {"ok": True, "info": self.app_info()}
+
+    def league_start_active(self):
+        return {"active": bool(self.cfg.get("pre_league_start"))}
+
+    def league_start_restore(self):
+        """Undo the league-start preset: put the saved floors/categories back."""
+        prev = self.cfg.get("pre_league_start")
+        if not prev:
+            return {"error": "nothing to restore"}
+        self.cfg["min_exalt_gear"] = self.cfg["min_exalt"] = prev.get("min_exalt_gear", 0.0)
+        self.cfg["min_exalt_unique"] = prev.get("min_exalt_unique", 0.0)
+        self.cfg["category_enabled"] = dict(prev.get("category_enabled", {}))
+        self.cfg["include_bases"] = prev.get("include_bases", True)
+        self.cfg["pre_league_start"] = None
         save_config(self.cfg)
         return {"ok": True, "info": self.app_info()}
 

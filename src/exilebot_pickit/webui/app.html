@@ -467,11 +467,24 @@ $("autoBtn").onclick=async()=>{
   api().set_setting("min_exalt_unique",uEx());api().set_setting("min_exalt_gear",gEx());
   $("autoHint").textContent=`Set from live data: uniques ≥ ${r.unique} ex (keeps ${r.kept_unique}/${r.total_unique}), rest ≥ ${r.gear} ex (keeps ${r.kept_gear}/${r.total_gear}).`;
   toast("✨ Floors set from live league data");};
+async function refreshLeagueStartBtn(){
+  const a=await api().league_start_active();
+  $("leagueStart").textContent=a.active?"↩ Restore previous setup":"🚀 League start";
+  $("leagueStart").title=a.active?
+    "Undo League start: bring back the floors and category switches you had before":
+    "Day-1 setup: floors to 0, every category on — early league, everything sells";}
 $("leagueStart").onclick=async()=>{
-  if(!confirm("League-start preset:\n• both value floors → 0 (pick up everything)\n• every category enabled\n\nYour individual item exclusions are kept. Apply?"))return;
-  const r=await api().league_start_preset();
-  if(r.ok){info=r.info;$("uAmt").value=0;$("gAmt").value=0;uEx();gEx();eco=null;
-    toast("🚀 League-start preset applied");}};
+  const a=await api().league_start_active();
+  if(a.active){
+    const r=await api().league_start_restore();
+    if(r.ok){info=r.info;$("uAmt").value=info.min_unique;$("gAmt").value=info.min_gear;
+      uEx();gEx();eco=null;toast("↩ Previous setup restored");}
+  }else{
+    if(!confirm("League-start preset:\n• both value floors → 0 (pick up everything)\n• every category enabled\n\nYour current setup is saved — the button becomes 'Restore previous setup'. Apply?"))return;
+    const r=await api().league_start_preset();
+    if(r.ok){info=r.info;$("uAmt").value=0;$("gAmt").value=0;uEx();gEx();eco=null;
+      toast("🚀 League-start preset applied");}}
+  refreshLeagueStartBtn();};
 
 /* ── generate ── */
 async function poll(){
@@ -901,7 +914,7 @@ async function init(){
   $("bakCount").value=info.backup_count;
   $("baseQ").value=info.base_quality;$("baseL").value=info.base_min_level;
   $("regenSel").value=String(info.auto_regen_hours||0);armRegen();
-  loadProfiles();
+  loadProfiles();refreshLeagueStartBtn();
   api().check_update().then(u=>{if(u.update)showUpdBanner(u);});
   if(info.config_warning)setTimeout(()=>alert(info.config_warning),600);
   if(info.auto_copy&&!info.bot_folder)toast("⚠ Auto-copy is ON but no bot folder is set");

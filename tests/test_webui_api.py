@@ -85,3 +85,16 @@ def test_league_start_preset(api):
     r = api.league_start_preset()
     assert r["ok"] and api.cfg["min_exalt_gear"] == 0.0
     assert all(api.cfg["category_enabled"].values())
+
+
+def test_league_start_restore_roundtrip(api):
+    api.cfg["min_exalt_gear"] = 42.0
+    api.cfg["min_exalt_unique"] = 7.0
+    api.cfg["category_enabled"] = {"essences": False}
+    api.league_start_preset()
+    assert api.cfg["min_exalt_gear"] == 0.0
+    assert api.league_start_active()["active"]
+    r = api.league_start_restore()
+    assert r["ok"] and api.cfg["min_exalt_gear"] == 42.0
+    assert api.cfg["category_enabled"] == {"essences": False}
+    assert not api.league_start_active()["active"]
