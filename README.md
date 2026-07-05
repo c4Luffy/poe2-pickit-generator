@@ -105,7 +105,10 @@ Layout: the app lives in `src/exilebot_pickit/` (`generator.py` + `generators/as
 
 Newest first, last 5 releases. Full history is on the **[Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases)** — the current build is always the **[latest release](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)**.
 
-**v3.2.0** — *latest*
+**v3.2.1** — *latest*
+- 🐛 **Preview fix** — the section list ("All sections" sidebar) went missing right after generating; it now shows every section immediately, including the big banner sections like Tablets and Chance Orb Bases
+
+**v3.2.0**
 - 🔄 **All game data now updates without a new release** — tablets, splinters, wombgifts, always-pick currency & runes, chance-orb bases and item-name fixes moved into the self-updating `game_data.json`; when a PoE2 patch adds or renames items, the app picks up the change automatically within hours
 - Bad remote data can't break anything: it's validated first, and the app keeps its built-in copy if the file looks wrong
 
@@ -125,9 +128,6 @@ Newest first, last 5 releases. Full history is on the **[Releases page](https://
 
 **v2.8.0**
 - ⏰ **Auto-Regenerate** — new Settings option: the app regenerates the pickit by itself every 1–12 hours while it's open, so with Auto-copy on, your bot always runs on fresh prices with zero clicks
-
-**v2.7.1**
-- 🖱️ **League picker opens on click anywhere** — you no longer have to hit the tiny arrow to change league
 
 <!-- 👇 ON EACH UPDATE, add the new version here at the top. Keep only the 5 most recent — drop the oldest as you add the newest:
 **vX.Y.Z**

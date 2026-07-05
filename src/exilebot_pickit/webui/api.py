@@ -614,7 +614,9 @@ class AppApi:
                 except OSError:
                     self._log("✗ Couldn't copy .filter to the game folder")
 
-            self._last_lines = out
+            # Headers are multi-line strings; Preview's section parser works
+            # line-by-line, so flatten to real lines (same shape as the file).
+            self._last_lines = content.splitlines()
             active = sum(1 for l in out if l and not l.startswith("//") and "[StashItem]" in l)
             commented = sum(1 for l in out if l.startswith("//") and "[StashItem]" in l)
             top_pool.sort(key=lambda t: -t[1])
