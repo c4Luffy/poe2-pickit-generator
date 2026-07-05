@@ -105,7 +105,10 @@ Layout: the app lives in `src/exilebot_pickit/` (`generator.py` + `generators/as
 
 Newest first, last 5 releases. Full history is on the **[Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases)** — the current build is always the **[latest release](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)**.
 
-**v3.0.0** — *latest*
+**v3.1.1** — *latest*
+- Rare Items tab pulled for a redesign — coming back rebuilt step by step
+
+**v3.0.0**
 - 🖥️ **Brand-new interface** — the app was rebuilt on a modern WebView2 front-end: same engine, same files, dramatically better UI
 - 🌙 **Instant themes** — dark/light switch applies immediately (no restart, no crash)
 - ✨ **Auto value floor** — sets both minimum values from the league's live prices ("keep top 40%"), with a preview of how many items each floor keeps
