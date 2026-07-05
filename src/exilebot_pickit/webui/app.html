@@ -197,6 +197,7 @@
     </div>
     <div class="autofloor">
       <button class="ghost mini" id="autoBtn">✨ Auto floor</button>
+      <button class="ghost mini" id="leagueStart" title="Day-1 setup: floors to 0, every category on — early league, everything sells">🚀 League start</button>
       <select class="keep" id="keepPct">
         <option value="60">Keep top 60%</option><option value="40" selected>Keep top 40%</option>
         <option value="25">Keep top 25%</option><option value="10">Keep top 10%</option>
@@ -366,6 +367,9 @@
       <option value="2">Every 2 h</option><option value="4">Every 4 h</option>
       <option value="6">Every 6 h</option><option value="12">Every 12 h</option></select></div>
     <div class="hint" id="regenHint" style="margin:8px 0 0"></div>
+    <div class="set-row"><div class="lab"><b>Minimize to tray on close</b>
+      <span>Closing the window hides it to the system tray so auto-regenerate keeps running. Right-click the tray icon for Show / Generate / Exit.</span></div>
+      <div class="sp"></div><div class="switch" id="swTray"><i></i></div></div>
   </div>
   <div class="card"><h2>🧱 High-end gear bases (non-unique)</h2>
     <div class="hint">Ordinary endgame gear worth keeping for quality/sockets. No market price — the value floors don't apply here.</div>
@@ -461,8 +465,13 @@ $("autoBtn").onclick=async()=>{
   $("uUnit").value="Exalt";$("gUnit").value="Exalt";
   $("uAmt").value=r.unique;$("gAmt").value=r.gear;
   api().set_setting("min_exalt_unique",uEx());api().set_setting("min_exalt_gear",gEx());
-  $("autoHint").textContent=`Set from live data: uniques ≥ ${r.unique} ex, rest ≥ ${r.gear} ex (top ${r.keep_pct}% kept).`;
+  $("autoHint").textContent=`Set from live data: uniques ≥ ${r.unique} ex (keeps ${r.kept_unique}/${r.total_unique}), rest ≥ ${r.gear} ex (keeps ${r.kept_gear}/${r.total_gear}).`;
   toast("✨ Floors set from live league data");};
+$("leagueStart").onclick=async()=>{
+  if(!confirm("League-start preset:\n• both value floors → 0 (pick up everything)\n• every category enabled\n\nYour individual item exclusions are kept. Apply?"))return;
+  const r=await api().league_start_preset();
+  if(r.ok){info=r.info;$("uAmt").value=0;$("gAmt").value=0;uEx();gEx();eco=null;
+    toast("🚀 League-start preset applied");}};
 
 /* ── generate ── */
 async function poll(){
@@ -491,6 +500,9 @@ async function poll(){
       (d.removed.length?` · -${d.removed.length} removed (${d.removed.slice(0,3).join(", ")})`:""):
       "Changes: none since last pickit";
     $("sMoves").textContent=(d.alerts&&d.alerts.length)?"Price moves: "+d.alerts.slice(0,5).join("  ·  "):"";
+    if(d.safety){const ob=$("offBanner");
+      ob.textContent="🛑 SAFETY: "+d.safety+" — auto-copy was blocked. Check the Preview tab before using this pickit.";
+      ob.classList.add("on");}
     logLine(`Done in ${d.secs}s → ${d.path}`,"ok");uEx();gEx();
   } else if(d.error)logLine("✗ "+d.error,"err");}
 async function doGenerate(){
@@ -884,6 +896,7 @@ async function init(){
   sw("swCopy","auto_copy",info.auto_copy);
   sw("swBases","include_bases",info.include_bases);
   sw("swFilter","copy_filter_to_game",info.copy_filter_to_game);
+  sw("swTray","minimize_to_tray",info.minimize_to_tray);
   $("fltDirLbl").textContent=info.poe2_filter_dir||"not set";
   $("bakCount").value=info.backup_count;
   $("baseQ").value=info.base_quality;$("baseL").value=info.base_min_level;

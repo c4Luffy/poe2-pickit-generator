@@ -29,6 +29,7 @@ _SETTABLE = {
     "min_exalt_gear", "min_exalt_unique", "include_bases",
     "base_quality", "base_min_level", "auto_regen_hours", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
+    "minimize_to_tray",
 }
 
 
@@ -76,6 +77,7 @@ class AppApi:
             "backup_count": int(c.get("backup_count", 5)),
             "confirm_overwrite_secs": int(c.get("confirm_overwrite_secs", 120)),
             "config_warning": _config_warning(),
+            "minimize_to_tray": bool(c.get("minimize_to_tray", False)),
         }
 
     def set_setting(self, key, value):
@@ -288,6 +290,18 @@ class AppApi:
         gen.clear_cache()
         return {"ok": True}
 
+    def league_start_preset(self):
+        """One-click 'day 1' setup: floors to 0 and every category enabled —
+        early league, everything sells. Item-level exclusions are kept."""
+        self.cfg["min_exalt_gear"] = self.cfg["min_exalt"] = 0.0
+        self.cfg["min_exalt_unique"] = 0.0
+        ce = self.cfg.setdefault("category_enabled", {})
+        for c in gen.ALL_CATEGORIES:
+            ce[c[0]] = True
+        self.cfg["include_bases"] = True
+        save_config(self.cfg)
+        return {"ok": True, "info": self.app_info()}
+
     def prune_cache(self):
         return {"removed": gen.prune_disk_cache(max_age_days=60)}
 
@@ -379,8 +393,12 @@ class AppApi:
                     if v <= step * 10:
                         return round(v / step) * step or step
                 return round(v / 100) * 100
-            return {"unique": pct_floor(uniq_vals), "gear": pct_floor(gear_vals),
-                    "keep_pct": keep}
+            uf, gf = pct_floor(uniq_vals), pct_floor(gear_vals)
+            return {"unique": uf, "gear": gf, "keep_pct": keep,
+                    "kept_unique": sum(1 for v in uniq_vals if v >= uf),
+                    "total_unique": len(uniq_vals),
+                    "kept_gear": sum(1 for v in gear_vals if v >= gf),
+                    "total_gear": len(gear_vals)}
         except Exception as e:
             return {"error": str(e)}
 
@@ -528,9 +546,35 @@ class AppApi:
             gen.write_text_atomic(flt, "\n".join(gen.build_loot_filter(out)))
             self._log(f"Wrote {os.path.basename(ipd)} + .filter")
 
+            # ── Safety net ────────────────────────────────────────────────
+            # A malformed poe.ninja payload or an over-aggressive floor can
+            # produce a pickit that silently skips real loot. If this run has
+            # dramatically fewer active rules than the last one, or lost the
+            # always-pick currency, write the file but DO NOT auto-deploy it.
+            safety = ""
+            try:
+                prev_active = (self.cfg.get("history") or [{}])[-1].get("active", 0)
+                new_active = sum(1 for l in out
+                                 if l and not l.startswith("//") and "[StashItem]" in l)
+                if prev_active >= 200 and new_active < prev_active * 0.6:
+                    safety = (f"rule count collapsed: {new_active} vs {prev_active} last run "
+                              f"(-{100 - new_active * 100 // prev_active}%)")
+                joined = "\n".join(out)
+                missing = [n for n in ("Divine Orb", "Exalted Orb")
+                           if f'"{n}"' not in joined]
+                if missing and snap["cat_enabled"].get("currency", True):
+                    safety = (safety + "; " if safety else "") + \
+                        "missing core currency rules: " + ", ".join(missing)
+            except Exception:
+                pass
+            if safety:
+                self._log(f"⚠ SAFETY: {safety} — auto-copy blocked, check before using this pickit")
+
             copied = ""
             bot = (self.cfg.get("bot_folder") or "").strip()
-            if self.cfg.get("auto_copy") and bot:
+            if safety and self.cfg.get("auto_copy"):
+                pass    # blocked — the .ipd is on disk for manual inspection only
+            elif self.cfg.get("auto_copy") and bot:
                 if os.path.isdir(bot):
                     shutil.copy2(ipd, os.path.join(bot, os.path.basename(ipd)))
                     copied = bot
@@ -600,6 +644,7 @@ class AppApi:
                     "val_warnings": len(validation.get("warnings", [])),
                     "copied": copied,
                     "added": added, "removed": removed, "alerts": alerts,
+                    "safety": safety,
                 }
         except Exception as e:
             with self._lock:

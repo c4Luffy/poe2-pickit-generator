@@ -3,24 +3,34 @@
 Run with:  python -m exilebot_pickit.webui.poc
 Renders app.html in a WebView2 window (pywebview) on top of the existing
 Python engine. Lives alongside the shipped Tkinter app; shares its config.
+
+Tray mode: with the "minimize to tray" setting on, closing the window hides
+it to the system tray instead of exiting — the page (and its auto-regenerate
+timer) keeps running. The tray menu offers Show / Generate now / Exit.
 """
 
 import os
 import sys
+import threading
 
 import webview
 
 from exilebot_pickit.webui.api import AppApi
 
 
-def _html_path() -> str:
-    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, "app.html")
+def _res_path(name: str) -> str:
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        return os.path.join(base, name)
+    here = os.path.dirname(os.path.abspath(__file__))
+    local = os.path.join(here, name)
+    if os.path.isfile(local):
+        return local
+    return os.path.join(here, "..", "resources", name)
 
 
 def _single_instance() -> bool:
-    """Windows mutex so a second launch doesn't spawn a second window
-    (same guard the Tk app uses, separate mutex name)."""
+    """Windows mutex so a second launch doesn't spawn a second window."""
     if not sys.platform.startswith("win"):
         return True
     try:
@@ -32,30 +42,72 @@ def _single_instance() -> bool:
         return True
 
 
+def _start_tray(window, api):
+    """System-tray icon (pystray) running on its own thread."""
+    try:
+        import pystray
+        from PIL import Image
+        img = Image.open(_res_path("appicon.png"))
+    except Exception:
+        return None
+
+    def _show(icon, item):
+        window.show()
+        window.restore()
+
+    def _gen(icon, item):
+        c = api.cfg
+        api.generate(c.get("league") or "", c.get("min_exalt_gear", 0),
+                     c.get("min_exalt_unique", 0))
+
+    def _exit(icon, item):
+        icon.stop()
+        api.cfg["window_geometry_web"] = {"w": window.width, "h": window.height}
+        from exilebot_pickit.ui.config import save_config
+        save_config(api.cfg)
+        window.destroy()
+
+    icon = pystray.Icon("poe2pickit", img, "ExileBot 2 Pickit Generator",
+                        menu=pystray.Menu(
+                            pystray.MenuItem("Show", _show, default=True),
+                            pystray.MenuItem("Generate now", _gen),
+                            pystray.MenuItem("Exit", _exit)))
+    threading.Thread(target=icon.run, daemon=True).start()
+    return icon
+
+
 def main():
     if not _single_instance():
         return
     api = AppApi()
-    # Restore last window size (saved on close below)
     geo = api.cfg.get("window_geometry_web") or {}
     w = int(geo.get("w", 1120)) if isinstance(geo, dict) else 1120
     h = int(geo.get("h", 860)) if isinstance(geo, dict) else 860
     window = webview.create_window(
         "ExileBot 2 Pickit Generator",
-        _html_path(),
+        _res_path("app.html") if getattr(sys, "_MEIPASS", None)
+        else os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.html"),
         js_api=api,
         width=max(760, w), height=max(560, h),
         background_color="#0e0f12",
     )
+    tray = _start_tray(window, api)
 
-    def _save_geometry():
+    def _on_closing():
+        # Tray mode on → hide instead of exit so auto-regenerate keeps running.
+        if tray is not None and api.cfg.get("minimize_to_tray"):
+            window.hide()
+            return False        # cancel the close
         try:
             from exilebot_pickit.ui.config import save_config
             api.cfg["window_geometry_web"] = {"w": window.width, "h": window.height}
             save_config(api.cfg)
         except Exception:
             pass
-    window.events.closing += _save_geometry
+        if tray is not None:
+            tray.stop()
+        return True
+    window.events.closing += _on_closing
     webview.start()
 
 
