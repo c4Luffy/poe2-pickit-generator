@@ -456,8 +456,10 @@ async function poll(){
     $("sActive").textContent=d.active.toLocaleString();
     $("sCats").textContent=d.cats_ok+(d.cats_fail?` (+${d.cats_fail}✗)`:"");
     $("sDiv").textContent=d.divine_rate;$("sSecs").textContent=d.secs;
+    const fmtTop=ex=>{const dr=d.divine_rate||divRate;
+      return dr>1&&ex>=dr?(ex/dr>=100?Math.round(ex/dr).toLocaleString():(ex/dr).toFixed(1))+" div":ex.toLocaleString()+" ex";};
     $("sTop").innerHTML=d.top&&d.top.length?
-      "Top: "+d.top.map(t=>`<b>${t.name}</b> ${t.ex} ex`).join(" · "):"";
+      "Top: "+d.top.map(t=>`<b>${t.name}</b> ${fmtTop(t.ex)}`).join(" · "):"";
     $("sVal").textContent=d.val_errors?`⚠ Validation: ${d.val_errors} errors, ${d.val_warnings} warnings`:
       (d.val_warnings?`⚠ Validation: ${d.val_warnings} warnings`:"✓ Validation passed")+
       (d.copied?"  ·  ✓ deployed to bot folder":"");
@@ -709,7 +711,8 @@ async function loadHistory(){
       <td>${r.ts}</td><td class="val">${(r.active||0).toLocaleString()}</td>
       <td style="text-align:right;color:var(--dim)">${r.commented||0}</td>
       <td style="text-align:right;color:var(--dim)">${Number(r.divine_rate||0).toFixed(0)} ex</td>
-      <td>${r.top_item||"—"}${r.top_value?` <span class="pill">${Number(r.top_value).toLocaleString()} ex</span>`:""}</td>
+      <td>${r.top_item||"—"}${r.top_value?` <span class="pill">${(()=>{const dr=Number(r.divine_rate)||0,v=Number(r.top_value);
+        return dr>1&&v>=dr?(v/dr>=100?Math.round(v/dr).toLocaleString():(v/dr).toFixed(1))+" div":v.toLocaleString()+" ex";})()}</span>`:""}</td>
       <td style="text-align:right;color:var(--dim)">${r.duration||""}</td></tr>`).join(""):
     '<tr><td colspan="6" class="hint" style="padding:14px">No runs yet.</td></tr>';}
 $("histClear").onclick=async()=>{if(!confirm("Clear all run history?"))return;
