@@ -98,3 +98,26 @@ def test_league_start_restore_roundtrip(api):
     assert r["ok"] and api.cfg["min_exalt_gear"] == 42.0
     assert api.cfg["category_enabled"] == {"essences": False}
     assert not api.league_start_active()["active"]
+
+
+def test_rare_item_rules_generation(api, tmp_path):
+    api.cfg["include_rares"] = True
+    api.cfg["rare_slots"] = {"Rings": True, "Amulets": False, "Belts": False}
+    api.cfg["rare_min_ilvl"] = 78
+    api._generate("L", 5, 20)
+    d = api._status["done"]
+    assert d and d["ok"], d
+    content = open(os.path.join(str(tmp_path), "t.ipd"), encoding="utf-8").read()
+    assert '[Type] == "Gold Ring" && [Rarity] == "Rare" # [ItemLevel] >= "78"' in content
+    assert 'Amulet" && [Rarity] == "Rare"' not in content
+    assert "RARE ITEMS" in content
+
+
+def test_rare_slots_api(api):
+    slots = api.rare_slots()
+    assert {s["slot"] for s in slots} >= {"Rings", "Amulets", "Belts", "Gloves"}
+    assert next(s for s in slots if s["slot"] == "Rings")["enabled"]
+    assert not next(s for s in slots if s["slot"] == "Boots")["enabled"]
+    assert api.set_rare_slot("Boots", True)["ok"]
+    assert next(s for s in api.rare_slots() if s["slot"] == "Boots")["enabled"]
+    assert "error" in api.set_rare_slot("Wings", True)

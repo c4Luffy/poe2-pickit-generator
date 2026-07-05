@@ -78,6 +78,11 @@ DEFAULT_CONFIG = {
     "include_bases": True,
     "base_quality": 28,
     "base_min_level": 82,
+    # Rare (yellow) item pickup — off by default; slots default to jewelry
+    # when enabled (see generator.rare_slot_defaults).
+    "include_rares": False,
+    "rare_slots": {},
+    "rare_min_ilvl": 80,
     "item_states":  {},
     "last_gen_prices": {},
     "profiles": {},
