@@ -101,6 +101,9 @@
   .bcard{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:12px 14px;cursor:pointer}
   .bcard.dis{opacity:.45}
   .bcard b{font-size:13.5px}
+  .gsec{grid-column:1/-1;color:var(--gold);font-size:12px;font-weight:600;
+        text-transform:uppercase;letter-spacing:1px;margin:10px 2px 0;
+        padding-bottom:5px;border-bottom:1px solid var(--border)}
   .bcard .t{color:var(--dim);font-size:11.5px;margin-top:3px}
   .bcard .ilvl{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--dim)}
   .bcard .ilvl input{width:64px;padding:4px 8px;text-align:center}
@@ -559,9 +562,13 @@ function chanceCount(){$("chanceCount").textContent=
   `${chanceList.filter(b=>b.enabled).length} / ${chanceList.length} enabled.`;}
 async function loadChance(){
   chanceList=await api().chance_bases();const g=$("chanceGrid");g.innerHTML="";
-  for(const b of chanceList){const d=document.createElement("div");
+  let lastCat=null;
+  for(const b of chanceList){
+    if(b.cat!==lastCat){lastCat=b.cat;
+      const h=document.createElement("div");h.className="gsec";h.textContent=b.cat;g.appendChild(h);}
+    const d=document.createElement("div");
     d.className="bcard"+(b.enabled?"":" dis");
-    d.innerHTML=`<b>${b.base}</b><div class="t">${b.cat} → ${b.target}</div>`;
+    d.innerHTML=`<b>${b.base}</b><div class="t">→ ${b.target}</div>`;
     d.onclick=async()=>{b.enabled=!b.enabled;
       await api().set_item("_chance",b.base,b.enabled);
       d.className="bcard"+(b.enabled?"":" dis");chanceCount();};
@@ -580,9 +587,13 @@ function craftCount(){$("craftCount").textContent=
   `${craftList.filter(b=>b.enabled).length} / ${craftList.length} enabled.`;}
 async function loadCraft(){
   craftList=await api().craft_bases();const g=$("craftGrid");g.innerHTML="";
-  for(const b of craftList){const d=document.createElement("div");
+  let lastCat=null;
+  for(const b of craftList){
+    if(b.cat!==lastCat){lastCat=b.cat;
+      const h=document.createElement("div");h.className="gsec";h.textContent=b.cat;g.appendChild(h);}
+    const d=document.createElement("div");
     d.className="bcard"+(b.enabled?"":" dis");
-    d.innerHTML=`<b>${b.base}</b><div class="t">${b.cat}${b.defence?" · "+b.defence:""}</div>
+    d.innerHTML=`<b>${b.base}</b><div class="t">${b.defence?b.defence:"&nbsp;"}</div>
       <div class="ilvl">min ilvl <input type="number" min="1" max="82" value="${b.ilvl}"></div>`;
     const inp=d.querySelector("input");
     inp.onclick=e=>e.stopPropagation();
