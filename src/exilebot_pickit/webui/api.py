@@ -29,7 +29,7 @@ _SETTABLE = {
     "min_exalt_gear", "min_exalt_unique", "include_bases",
     "base_quality", "base_min_level", "auto_regen_hours", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
-    "minimize_to_tray", "include_rares", "rare_min_ilvl",
+    "minimize_to_tray",
 }
 
 
@@ -78,23 +78,7 @@ class AppApi:
             "confirm_overwrite_secs": int(c.get("confirm_overwrite_secs", 120)),
             "config_warning": _config_warning(),
             "minimize_to_tray": bool(c.get("minimize_to_tray", False)),
-            "include_rares": bool(c.get("include_rares", False)),
-            "rare_min_ilvl": int(c.get("rare_min_ilvl", gen.RARE_DEFAULT_MIN_ILVL)),
         }
-
-    def rare_slots(self):
-        """Slot list with effective on/off (user override or default)."""
-        chosen = self.cfg.get("rare_slots") or {}
-        return [{"slot": s, "enabled": bool(chosen.get(s, d)),
-                 "default": d, "bulky": s in ("Gloves", "Boots", "Helmets", "Body Armours")}
-                for s, d in gen.rare_slot_defaults().items()]
-
-    def set_rare_slot(self, slot, enabled):
-        if slot not in gen.rare_slot_defaults():
-            return {"error": "unknown slot"}
-        self.cfg.setdefault("rare_slots", {})[slot] = bool(enabled)
-        save_config(self.cfg)
-        return {"ok": True}
 
     def set_setting(self, key, value):
         if key not in _SETTABLE:
@@ -536,13 +520,6 @@ class AppApi:
                 out += ["", gen.header_major("Base Types"), ""]
                 out += gen.build_base_rules(min_quality=snap["base_quality"],
                                             min_level=snap["base_min_level"])
-            if self.cfg.get("include_rares"):
-                rare_lines = gen.build_rare_item_rules(
-                    self.cfg.get("rare_slots") or {},
-                    int(self.cfg.get("rare_min_ilvl", gen.RARE_DEFAULT_MIN_ILVL)))
-                if rare_lines:
-                    out += [""] + rare_lines
-                    self._log(f"✓ Rare items ({sum(1 for l in rare_lines if l.startswith('[Type]'))} rules)")
 
             validation = gen.validate_pickit(out)
             self._last_validation = validation

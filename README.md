@@ -105,11 +105,7 @@ Layout: the app lives in `src/exilebot_pickit/` (`generator.py` + `generators/as
 
 Newest first, last 5 releases. Full history is on the **[Releases page](https://github.com/c4Luffy/poe2-pickit-generator/releases)** — the current build is always the **[latest release](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)**.
 
-**v3.1.0** — *latest*
-- 💍 **Rare Items** — new tab: pick up rare (yellow) items of chosen slots at high item level to identify and sell. Jewelry on by default when enabled; bulky armour slots opt-in
-- 🔒 Hardened UI rendering (all API-sourced text escaped) and smoother settings saves
-
-**v3.0.0**
+**v3.0.0** — *latest*
 - 🖥️ **Brand-new interface** — the app was rebuilt on a modern WebView2 front-end: same engine, same files, dramatically better UI
 - 🌙 **Instant themes** — dark/light switch applies immediately (no restart, no crash)
 - ✨ **Auto value floor** — sets both minimum values from the league's live prices ("keep top 40%"), with a preview of how many items each floor keeps
@@ -122,6 +118,9 @@ Newest first, last 5 releases. Full history is on the **[Releases page](https://
 
 **v2.8.0**
 - ⏰ **Auto-Regenerate** — new Settings option: the app regenerates the pickit by itself every 1–12 hours while it's open, so with Auto-copy on, your bot always runs on fresh prices with zero clicks
+
+**v2.7.1**
+- 🖱️ **League picker opens on click anywhere** — you no longer have to hit the tiny arrow to change league
 
 **v2.7.0**
 - 🎨 **Fixed the crash after switching theme** — "Failed to load Python DLL" when the app relaunched itself is gone

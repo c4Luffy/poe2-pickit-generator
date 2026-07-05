@@ -158,7 +158,6 @@
   <div class="nav-btn" data-p="eco">🪙 Economy</div>
   <div class="nav-btn" data-p="chance">🎲 Chance Bases</div>
   <div class="nav-btn" data-p="craft">🛠 Craft Bases</div>
-  <div class="nav-btn" data-p="rares">💍 Rare Items</div>
   <div class="nav-btn" data-p="prev">📜 Preview</div>
   <div class="nav-btn" data-p="hist">🕘 History</div>
   <div class="nav-btn" data-p="set">⚙ Settings</div>
@@ -284,21 +283,6 @@
   <div class="eco-head"><button class="ghost mini" id="craftAll">Enable all</button>
     <button class="ghost mini" id="craftNone">Disable all</button></div>
   <div class="grid" id="craftGrid"></div>
-</div>
-
-<!-- ══ RARE ITEMS ══ -->
-<div class="page" id="p-rares">
-  <h1>Rare Items</h1><div class="sub">Pick up rare (yellow) items of chosen slots at high item level — identify the good ones, vendor the rest.</div>
-  <div class="card">
-    <div class="set-row"><div class="lab"><b>Pick up rare items</b>
-      <span>Master switch — the slots below only apply when this is on.</span></div>
-      <div class="sp"></div><div class="switch" id="swRares"><i></i></div></div>
-    <div class="set-row"><div class="lab"><b>Minimum item level</b>
-      <span>80+ can roll top-tier endgame mods worth selling.</span></div><div class="sp"></div>
-      <input type="number" id="rareIlvl" min="1" max="82" style="width:80px;text-align:center"></div>
-  </div>
-  <div class="hint" style="margin-bottom:10px">⚠ Jewelry (rings/amulets/belts) is 1×1–1×2 and worth the space. Armour slots fill your bot's inventory much faster — turn them on only if you really identify-farm.</div>
-  <div class="grid" id="rareGrid"></div>
 </div>
 
 <!-- ══ HISTORY ══ -->
@@ -458,7 +442,6 @@ document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{
   if(b.dataset.p==="eco"&&!eco)loadEco();
   if(b.dataset.p==="chance")loadChance();
   if(b.dataset.p==="craft")loadCraft();
-  if(b.dataset.p==="rares")loadRares();
   if(b.dataset.p==="prev")loadPreview();
   if(b.dataset.p==="hist")loadHistory();
 });
@@ -732,19 +715,6 @@ async function craftBulk(en){
 $("craftAll").onclick=()=>craftBulk(true);
 $("craftNone").onclick=()=>craftBulk(false);
 
-/* ── rare items ── */
-async function loadRares(){
-  const list=await api().rare_slots();const g=$("rareGrid");g.innerHTML="";
-  for(const s of list){const d=document.createElement("div");
-    d.className="bcard"+(s.enabled?"":" dis");
-    d.innerHTML=`<b>${esc(s.slot)}</b><div class="t">${s.bulky?"⚠ bulky — fills inventory fast":"compact — worth the space"}</div>`;
-    d.onclick=async()=>{s.enabled=!s.enabled;
-      await api().set_rare_slot(s.slot,s.enabled);
-      d.className="bcard"+(s.enabled?"":" dis");};
-    g.appendChild(d);}}
-$("rareIlvl").addEventListener("change",()=>{
-  api().set_setting("rare_min_ilvl",Math.max(1,Math.min(82,parseInt($("rareIlvl").value)||80)));toast("Saved");});
-
 /* ── history ── */
 function drawHistChart(h){
   const svg=$("histChart"),tip=$("histTip");
@@ -948,7 +918,6 @@ const WHATIS={
   eco:"<b>Economy</b> is your full catalog of what the bot can pick up, with live prices. Everything is ON by default. Click a row to exclude an item you don't want (e.g. cheap essences filling your stash). Double-click a category chip to turn a whole group on/off. The ▲▼ arrows show price movement.",
   chance:"<b>Chance Bases</b> are white (Normal) items worth keeping ONLY to use Orb of Chance on, hoping they turn into a chase unique — e.g. keep white Heavy Belts because one can become a Headhunter. Turn off any target you don't care about.",
   craft:"<b>Craft Bases</b> are the best white items at high item level, kept as blank canvases to craft your own gear on. 'Min ilvl' is how high the item level must be — 82 gives access to the best crafting outcomes. If you never craft, turn this whole tab off.",
-  rares:"<b>Rare Items</b> makes the bot pick up yellow items of the slots you choose, at high item level, so you can identify them and sell the winners. Jewelry (rings, amulets, belts) is the classic pick — small in the inventory, big value when a good one drops. The value floors don't apply here: rares are unidentified when picked, so item level is the quality gate.",
   prev:"<b>Preview</b> shows the exact file the bot reads, after every Generate. Green lines = the bot picks it up, grey = below your value floor (skipped). Use the section list and filters to check that what you expect is actually in the file.",
   hist:"<b>History</b> logs every Generate run so you can see how your pickit evolves over the league — how many rules were active, what the top item was, and the Divine rate at the time.",
   set:"<b>Settings</b> connects the generator to your bot (folder + auto-copy), keeps the pickit fresh (Auto-Regenerate + tray mode), and controls output, backups and updates. Everything saves instantly.",
@@ -975,8 +944,6 @@ async function init(){
   sw("swBases","include_bases",info.include_bases);
   sw("swFilter","copy_filter_to_game",info.copy_filter_to_game);
   sw("swTray","minimize_to_tray",info.minimize_to_tray);
-  sw("swRares","include_rares",info.include_rares);
-  $("rareIlvl").value=info.rare_min_ilvl||80;
   $("fltDirLbl").textContent=info.poe2_filter_dir||"not set";
   $("bakCount").value=info.backup_count;
   $("baseQ").value=info.base_quality;$("baseL").value=info.base_min_level;

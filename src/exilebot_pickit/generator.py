@@ -333,62 +333,6 @@ def build_craft_base_rules(disabled=None, min_ilvl: int = CRAFT_BASE_MIN_ILVL,
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Rare item rules — pick up RARE (yellow) items of chosen slots at high item
-#  level to identify and sell/vendor. Jewelry is the classic pick (1x1, high
-#  value density); armour slots are opt-in because they eat inventory fast.
-# ─────────────────────────────────────────────────────────────────────────────
-
-RARE_DEFAULT_MIN_ILVL = 80
-
-# slot label -> (default_enabled, [base names])
-_RARE_SLOT_BASES: dict = {
-    "Rings":    (True,  sorted(n for n in _ACCESSORY_BASES if n.endswith("Ring"))),
-    "Amulets":  (True,  sorted(n for n in _ACCESSORY_BASES if n.endswith("Amulet"))),
-    "Belts":    (True,  [n for n, _ in _BASE_TYPES_BY_CATEGORY.get("Belts", ())]),
-    "Gloves":   (False, [n for n, _ in _BASE_TYPES_BY_CATEGORY.get("Gloves", ())]),
-    "Boots":    (False, [n for n, _ in _BASE_TYPES_BY_CATEGORY.get("Boots", ())]),
-    "Helmets":  (False, [n for n, _ in _BASE_TYPES_BY_CATEGORY.get("Helmets", ())]),
-    "Body Armours": (False, [n for n, _ in _BASE_TYPES_BY_CATEGORY.get("Body Armours", ())]),
-}
-
-
-def rare_slot_defaults() -> dict:
-    """{slot: default_enabled} — jewelry on, bulky armour slots off."""
-    return {slot: on for slot, (on, _) in _RARE_SLOT_BASES.items()}
-
-
-def build_rare_item_rules(enabled_slots: dict | None = None,
-                          min_ilvl: int = RARE_DEFAULT_MIN_ILVL) -> list:
-    """Pickit lines for rare items of the enabled slots at >= min_ilvl.
-
-    ``enabled_slots`` maps slot label -> bool (missing slots use defaults).
-    Returns [] when nothing is enabled."""
-    chosen = enabled_slots or {}
-    body: list = []
-    for slot, (default_on, bases) in _RARE_SLOT_BASES.items():
-        if not chosen.get(slot, default_on) or not bases:
-            continue
-        body.append(f"// -- {slot} " + "-" * max(0, 73 - len(slot)))
-        for name in bases:
-            safe = _quote_ipd(name)
-            body.append(f'[Type] == "{safe}" && [Rarity] == "Rare" '
-                        f'# [ItemLevel] >= "{min_ilvl}" && [StashItem] == "true"')
-        body.append("")
-    if not body:
-        return []
-    return [
-        "/////////////////////////////////////////////////////////////////////////////////////",
-        "//                                                                                 //",
-        "//                              RARE ITEMS                                         //",
-        f"//  Rare (yellow) items at item level {min_ilvl}+ - identify and sell/vendor.            //",
-        "//  Manage slots in the Rare Items tab.                                            //",
-        "//                                                                                 //",
-        "/////////////////////////////////////////////////////////////////////////////////////",
-        "",
-    ] + body
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 
 _W = 85  # total line width for all headers
 
