@@ -23,6 +23,17 @@ so your bot grabs what sells *today*, not what sold last month.
 
 *One .exe — no Python, no installer, no setup.*
 
+<br><br>
+
+<img src="docs/app.png" width="880" alt="ExileBot 2 Pickit Generator — Generate tab">
+
+<br><br>
+
+<img src="https://img.shields.io/badge/2,000+-rules_per_pickit-1e2128?style=for-the-badge&labelColor=c8a96e" alt="">&nbsp;
+<img src="https://img.shields.io/badge/21-item_categories-1e2128?style=for-the-badge&labelColor=c8a96e" alt="">&nbsp;
+<img src="https://img.shields.io/badge/350+-item_icons_built_in-1e2128?style=for-the-badge&labelColor=c8a96e" alt="">&nbsp;
+<img src="https://img.shields.io/badge/100%25-free_&_open_source-1e2128?style=for-the-badge&labelColor=c8a96e" alt="">
+
 </div>
 
 <br>
