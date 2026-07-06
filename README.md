@@ -131,7 +131,14 @@ pip install pytest ruff     # test:  python -m pytest -q && ruff check .
 
 ## 📝 What's new
 
-### v3.4.0 — latest
+### v3.4.1 — latest
+
+- 🐛 Fixed the app freezing on "Loading…" (Preview & Settings pages were lost in a layout rewrite)
+- 🔧 Debug tab: compact one-screen layout with a hint under every button, output box always in view, clearer messages
+- 📝 "Open config/log" now falls back to Notepad when Windows has no default editor
+- 🎨 Themed scrollbars in both themes · startup errors now show on screen instead of failing silently
+
+### v3.4.0
 
 - 🪙 **Economy redesigned** — categories moved into a grouped sidebar (Market / Uniques / Always Pick), every group in its own place with real item icons everywhere (embedded — they work offline)
 - 🖱️ **Everything is toggleable now** — unique items, waystone rarities, every always-pick group and item; duplicates between priced and always-pick lists resolved with force-keep above your floor
