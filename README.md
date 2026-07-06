@@ -84,8 +84,9 @@ pip install pytest ruff     # test:  python -m pytest -q && ruff check .
 
 <br>
 
-## What's new — v3.7.0
+## What's new — v3.7.1
 
+- 🐛 Fixed the in-app **Discord** and **Exiled Bot** links (were blocked by the URL allowlist)
 - ⬆️ **New updater** — a clean update banner with progress bar and one-click **install & restart** (backs up the old exe first, so you never lose a working version)
 - 🎨 **App logo** in the sidebar, plus **Discord** and **Exiled Bot** links; clearer "? Help" buttons
 - 🧱 Exceptional bases = the 122 best, ranked and grouped by attribute · Chance Bases trimmed to 8

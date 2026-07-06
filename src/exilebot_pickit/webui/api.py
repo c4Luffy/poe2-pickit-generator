@@ -536,10 +536,13 @@ class AppApi:
             return {"update": False, "current": VERSION}
 
     def open_url(self, url):
-        # Only the app's own outbound links: the GitHub repo/releases and the
-        # poe.ninja economy page the Generate tab links to.
+        # Only the app's own outbound links (allowlist): GitHub, poe.ninja,
+        # the community Discord, and the Exiled Bot website.
         u = str(url)
-        if not (u.startswith("https://github.com/") or u.startswith("https://poe.ninja/")):
+        _allowed = ("https://github.com/", "https://poe.ninja/",
+                    "https://discord.gg/", "https://discord.com/",
+                    "https://exiled-bot.net/", "https://www.exiled-bot.net/")
+        if not u.startswith(_allowed):
             return {"error": "blocked"}
         import webbrowser
         webbrowser.open(u)
