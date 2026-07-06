@@ -11,6 +11,8 @@ so your bot grabs what sells **today**.
 
 ### [⬇️ Download for Windows](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
 
+**[🌐 Website](https://c4luffy.github.io/poe2-pickit-generator/)** · **[💬 Discord](https://discord.gg/T7DU3Afve6)** · **[🤖 Exiled Bot](https://exiled-bot.net/)**
+
 <sub>One `.exe` · no Python · no installer</sub>
 
 </div>
@@ -100,7 +102,7 @@ pip install pytest ruff     # test:  python -m pytest -q && ruff check .
 <div align="center">
 <a name="license"></a>
 
-**[⬇️ Download](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)** · **[🐛 Report an issue](https://github.com/c4Luffy/poe2-pickit-generator/issues)** · MIT License
+**[🌐 Website](https://c4luffy.github.io/poe2-pickit-generator/)** · **[⬇️ Download](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)** · **[💬 Discord](https://discord.gg/T7DU3Afve6)** · **[🐛 Issues](https://github.com/c4Luffy/poe2-pickit-generator/issues)** · MIT
 
 <sub>Built for the Exiled Bot 2 community · prices by poe.ninja · not affiliated with GGG</sub>
 
