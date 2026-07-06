@@ -12,14 +12,14 @@
   --grn:#2ea043; --grn2:#3fb950; --sh:0 1px 2px rgba(0,0,0,.4);
 }
 @media (prefers-color-scheme: light){:root{
-  --bg:#f5f3ee; --bg2:#ffffff; --bg3:#efece4; --bd:#e2ddd0; --bd2:#d6d0bf;
-  --tx:#20242b; --dim:#6a7280; --gold:#9a7628; --gold2:#7d5f1f; --goldd:#c9b06a;
-  --grn:#1a7f37; --grn2:#1a7f37; --sh:0 1px 2px rgba(16,24,40,.06);
+  --bg:#f7f9fb; --bg2:#ffffff; --bg3:#eef2f6; --bd:#e3e8ee; --bd2:#d3dae2;
+  --tx:#1a1f26; --dim:#5b6572; --gold:#8a6a1e; --gold2:#6f5417; --goldd:#d8c48c;
+  --grn:#1a7f37; --grn2:#1a7f37; --sh:0 1px 2px rgba(20,28,40,.05);
 }}
 :root[data-theme=light]{
-  --bg:#f5f3ee; --bg2:#ffffff; --bg3:#efece4; --bd:#e2ddd0; --bd2:#d6d0bf;
-  --tx:#20242b; --dim:#6a7280; --gold:#9a7628; --gold2:#7d5f1f; --goldd:#c9b06a;
-  --grn:#1a7f37; --grn2:#1a7f37; --sh:0 1px 2px rgba(16,24,40,.06);
+  --bg:#f7f9fb; --bg2:#ffffff; --bg3:#eef2f6; --bd:#e3e8ee; --bd2:#d3dae2;
+  --tx:#1a1f26; --dim:#5b6572; --gold:#8a6a1e; --gold2:#6f5417; --goldd:#d8c48c;
+  --grn:#1a7f37; --grn2:#1a7f37; --sh:0 1px 2px rgba(20,28,40,.05);
 }
 :root[data-theme=dark]{
   --bg:#0e0f12; --bg2:#16181d; --bg3:#1e2128; --bd:#262a31; --bd2:#31363f;
@@ -57,6 +57,10 @@ nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);
 .hero{text-align:center;padding:74px 0 48px;position:relative;overflow:hidden}
 .hero::before{content:"";position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(60% 70% at 50% -10%,color-mix(in srgb,var(--gold) 13%,transparent),transparent 70%)}
+:root[data-theme=light] .hero::before{
+  background:radial-gradient(60% 70% at 50% -10%,color-mix(in srgb,var(--goldd) 30%,transparent),transparent 70%)}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]) .hero::before{
+  background:radial-gradient(60% 70% at 50% -10%,color-mix(in srgb,var(--goldd) 30%,transparent),transparent 70%)}}
 .hero>*{position:relative}
 .eyebrow{display:inline-block;font-size:12.5px;letter-spacing:1.5px;text-transform:uppercase;
   color:var(--gold);border:1px solid var(--goldd);border-radius:99px;padding:5px 14px;margin-bottom:22px}
