@@ -44,6 +44,7 @@ class AppApi:
     def __init__(self):
         self._lock = threading.Lock()
         self._status = {"running": False, "log": [], "done": None}
+        self._dl = {"active": False, "pct": 0, "done_mb": 0.0, "total_mb": 0.0, "result": None}
         self._last_lines: list = []
         self.cfg = load_config()
         gen.set_disk_cache_dir(PRICE_CACHE_DIR)
@@ -317,6 +318,7 @@ class AppApi:
         c = self.cfg
         import copy as _copy
         return {"item_states": _copy.deepcopy(c.get("item_states", {})),
+                "category_enabled": _copy.deepcopy(c.get("category_enabled", {})),
                 "min_exalt": float(c.get("min_exalt_gear", 0.0)),
                 "min_exalt_gear": float(c.get("min_exalt_gear", 0.0)),
                 "min_exalt_unique": float(c.get("min_exalt_unique", 0.0)),
@@ -347,12 +349,17 @@ class AppApi:
             return {"error": "profile not found"}
         import copy as _copy
         self.cfg["item_states"]      = _copy.deepcopy(prof.get("item_states", {}))
+        # category-wide toggles drive generation, so restore them too (older
+        # profiles saved before this existed simply carry an empty dict = all on)
+        self.cfg["category_enabled"] = _copy.deepcopy(prof.get("category_enabled", {}))
         self.cfg["min_exalt_gear"]   = prof.get("min_exalt_gear", 0.0)
         self.cfg["min_exalt"]        = self.cfg["min_exalt_gear"]
         self.cfg["min_exalt_unique"] = prof.get("min_exalt_unique", 0.0)
         self.cfg["output_base"]      = prof.get("output_base", "poe2_pickit")
         self.cfg["include_bases"]    = prof.get("include_bases", True)
         self.cfg["unique_exceptional"] = prof.get("unique_exceptional", True)
+        self.cfg["auto_floor"]       = prof.get("auto_floor", False)
+        self.cfg["auto_floor_pct"]   = prof.get("auto_floor_pct", 40)
         self.cfg["base_quality"]     = prof.get("base_quality", 25)
         self.cfg["base_min_level"]   = prof.get("base_min_level", 82)
         self.cfg["active_profile"]   = name
@@ -372,9 +379,32 @@ class AppApi:
         return list(reversed(self.cfg.get("history", [])))[:30]
 
     def download_update(self):
-        """Download the newest release exe into the user's Downloads folder.
+        """Start downloading the newest release exe on a worker thread and return
+        immediately; the page polls download_progress() to drive a progress bar.
         Deliberately NOT self-replacing (AV locks / half-swaps bricked installs
         in the past) — the user runs the fresh exe themselves."""
+        with self._lock:
+            if self._dl.get("active"):
+                return {"error": "already downloading"}
+            self._dl = {"active": True, "pct": 0, "done_mb": 0.0,
+                        "total_mb": 0.0, "result": None}
+        threading.Thread(target=self._download_update_worker, daemon=True).start()
+        return {"ok": True, "started": True}
+
+    def download_progress(self):
+        """Live download state for the UI: percent, MB done/total, and — once
+        finished — the final result dict (ok/path/version or error)."""
+        with self._lock:
+            return dict(self._dl)
+
+    def _dl_finish(self, result: dict):
+        with self._lock:
+            self._dl["active"] = False
+            self._dl["result"] = result
+            if result.get("ok"):
+                self._dl["pct"] = 100
+
+    def _download_update_worker(self):
         try:
             import requests
             from exilebot_pickit.ui.updater import VERSION_URL
@@ -382,30 +412,41 @@ class AppApi:
                              headers={"User-Agent": f"poe2-pickit/{VERSION}",
                                       "Accept": "application/vnd.github+json"})
             if r.status_code != 200:
-                return {"error": f"GitHub said {r.status_code}"}
+                self._dl_finish({"error": f"GitHub said {r.status_code}"})
+                return
             data = r.json() or {}
             ver = str(data.get("tag_name") or "").lstrip("v")
             asset = next((a for a in data.get("assets", [])
                           if a.get("name", "").endswith(".exe")), None)
             if not asset:
-                return {"error": "no .exe in the latest release"}
+                self._dl_finish({"error": "no .exe in the latest release"})
+                return
             dl = os.path.join(os.path.expanduser("~"), "Downloads")
             os.makedirs(dl, exist_ok=True)
             dest = os.path.join(dl, f"ExileBot2PickitGenerator-v{ver}.exe")
             with requests.get(asset["browser_download_url"], stream=True, timeout=120) as resp:
                 resp.raise_for_status()
+                total = int(resp.headers.get("Content-Length") or 0)
+                done = 0
                 with open(dest + ".part", "wb") as f:
                     for chunk in resp.iter_content(1 << 18):
+                        if not chunk:
+                            continue
                         f.write(chunk)
+                        done += len(chunk)
+                        with self._lock:
+                            self._dl["done_mb"] = round(done / 1048576, 1)
+                            self._dl["total_mb"] = round(total / 1048576, 1) if total else 0.0
+                            self._dl["pct"] = int(done * 100 / total) if total else 0
             os.replace(dest + ".part", dest)
             try:
                 import subprocess
                 subprocess.Popen(["explorer", "/select,", dest])
             except Exception:
                 pass
-            return {"ok": True, "path": dest, "version": ver}
+            self._dl_finish({"ok": True, "path": dest, "version": ver})
         except Exception as e:
-            return {"error": str(e)[:200]}
+            self._dl_finish({"error": str(e)[:200]})
 
     def check_update(self):
         try:
@@ -424,10 +465,13 @@ class AppApi:
             return {"update": False}
 
     def open_url(self, url):
-        if not str(url).startswith("https://github.com/"):
+        # Only the app's own outbound links: the GitHub repo/releases and the
+        # poe.ninja economy page the Generate tab links to.
+        u = str(url)
+        if not (u.startswith("https://github.com/") or u.startswith("https://poe.ninja/")):
             return {"error": "blocked"}
         import webbrowser
-        webbrowser.open(url)
+        webbrowser.open(u)
         return {"ok": True}
 
     def debug_info(self):
@@ -737,7 +781,15 @@ class AppApi:
             alerts = []
             try:
                 prev_prices = self.cfg.get("last_gen_prices", {}).get(league, {})
-                chaos_v = 0.0
+                # exalt value of 1 Chaos Orb, from the currency payload already
+                # fetched — the alert text renders moves in chaos ("c"); passing
+                # 0 here silently showed raw exalt values under a "c" label.
+                cur_by_id = {i["id"]: i for i in cur.get("items", [])}
+                cur_rate = gen.exalted_rate(cur)
+                chaos_v = next((float(ln.get("primaryValue") or 0) * (cur_rate or 1.0)
+                                for ln in cur.get("lines", [])
+                                if (cur_by_id.get(ln.get("id")) or {}).get("name") == "Chaos Orb"),
+                               0.0)
                 _, price_alerts = asm.compute_price_alerts(
                     cats, payloads, prev_prices, chaos_v, threshold=0.20)
                 price_alerts.sort(key=lambda t: t[0], reverse=True)

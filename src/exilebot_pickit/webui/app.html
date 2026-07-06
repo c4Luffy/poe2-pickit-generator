@@ -252,6 +252,12 @@
       <div style="font-size:12.5px;font-weight:600"><span class="dot" id="sideDot"></span><span id="sideLeague">PoE2</span></div>
       <div class="hint" style="margin:4px 0 0;font-size:11px" id="sideUpdated">waiting for data…</div>
       <button class="ghost mini" id="sideUpdBtn" style="width:100%;margin-top:9px">⟳ Check for updates</button>
+      <div id="updDl" style="display:none;margin-top:8px">
+        <div style="height:6px;border-radius:99px;background:var(--bg3);overflow:hidden">
+          <div id="updDlFill" style="height:100%;width:0%;background:var(--gold);transition:width .2s"></div>
+        </div>
+        <div id="updDlTxt" style="font-size:10.5px;color:var(--dim);margin-top:4px;text-align:center"></div>
+      </div>
     </div>
   </div>
 
@@ -580,7 +586,7 @@
           <span>.ipd is added automatically.</span></div><div class="sp"></div>
           <input type="text" id="outBase" style="width:170px"></div>
         <div class="set-row"><div class="lab"><b>Keep backups</b>
-          <span>Previous pickits in outputackups (0 = off).</span></div><div class="sp"></div>
+          <span>Previous pickits in output/backups (0 = off).</span></div><div class="sp"></div>
           <input type="number" id="bakCount" min="0" max="20" style="width:70px;text-align:center"></div>
       </div>
     </div>
@@ -729,15 +735,30 @@ function sideRender(){
     (ago===null?" · waiting for data…":" · updated "+(ago<1?"just now":ago+" min ago"));}
 setInterval(sideRender,30000);
 $("sideUpdBtn").onclick=async()=>{
-  const b=$("sideUpdBtn");b.disabled=true;b.textContent="Checking…";
+  const b=$("sideUpdBtn"),dl=$("updDl"),fill=$("updDlFill"),txt=$("updDlTxt");
+  b.disabled=true;b.textContent="Checking…";
   try{
     const u=await api().check_update();
     if(!u.update){toast("✓ You're up to date (v"+info.version+")");return;}
     b.textContent="⬇ Downloading v"+u.version+"…";
-    const r=await api().download_update();
-    if(r.ok)toast("⬇ v"+r.version+" saved to Downloads — close this app and run the new exe");
-    else toast("✗ "+(r.error||"download failed"));
-  }finally{b.disabled=false;b.textContent="⟳ Check for updates";}};
+    fill.style.width="0%";txt.textContent="Starting…";dl.style.display="block";
+    const s=await api().download_update();
+    if(s&&s.error){toast("✗ "+s.error);return;}
+    const r=await new Promise(resolve=>{
+      const iv=setInterval(async()=>{
+        const p=await api().download_progress()||{};
+        fill.style.width=(p.pct||0)+"%";
+        txt.textContent=p.total_mb?`${p.pct}% · ${p.done_mb}/${p.total_mb} MB`
+          :(p.done_mb?`${p.done_mb} MB…`:"Starting…");
+        if(!p.active){clearInterval(iv);resolve(p.result||{error:"download failed"});}
+      },300);
+    });
+    if(r.ok){fill.style.width="100%";txt.textContent="Done — saved to Downloads";
+      toast("⬇ v"+r.version+" saved to Downloads — close this app and run the new exe");}
+    else{txt.textContent="Failed";toast("✗ "+(r.error||"download failed"));}
+  }finally{
+    b.disabled=false;b.textContent="⟳ Check for updates";
+    setTimeout(()=>{$("updDl").style.display="none";},2500);}};
 
 /* ── generate ── */
 async function poll(){
@@ -788,8 +809,7 @@ async function loadProfiles(){
   $("profHint").textContent=p.active?`Active: ${p.active}`:"";}
 $("profSel").onchange=async()=>{const n=$("profSel").value;if(!n)return;
   const r=await api().profile_load(n);
-  if(r.ok){info=r.info;$("uAmt").value=info.min_unique;$("gAmt").value=info.min_gear;
-    $("outBase").value=info.output_base;uEx();gEx();eco=null;
+  if(r.ok){info=r.info;applyInfo(info);eco=null;
     $("profHint").textContent="Active: "+n;toast("Profile loaded: "+n);}};
 $("profSave").onclick=async()=>{const n=prompt("Profile name (existing name = overwrite):",$("profSel").value||"");
   if(!n)return;await api().profile_save(n);await loadProfiles();toast("Profile saved: "+n);};
@@ -831,7 +851,7 @@ async function loadEco(){
   eco=await api().economy($("league").value);
   if(eco.error){$("ecoInfo").textContent="✗ "+eco.error;eco=null;return;}
   divRate=eco.divine_rate||divRate;
-  api().chaos_ex($("league").value).then(r=>chaosEx=r.ex||0);
+  api().chaos_ex($("league").value).then(r=>{chaosEx=r.ex||0;if(ecoUnit==="chaos")renderEco();});
   const st=$("ecoStale");
   if(eco.stale&&eco.stale.length){st.textContent=`⚠ Offline: ${eco.stale.length} categories are showing cached prices (poe.ninja unreachable).`;st.classList.add("on");}
   else st.classList.remove("on");
@@ -906,6 +926,9 @@ function renderEco(){
       toast(ok?"Rule copied":"Clipboard blocked");};
     tr.onclick=async()=>{it.enabled=!it.enabled;
       await api().set_item(cat.key,it.name,it.enabled);renderEco();};
+    body.appendChild(tr);}
+  if(rows.length>400){const tr=document.createElement("tr");
+    tr.innerHTML=`<td colspan="5" style="text-align:center;color:var(--dim);padding:9px 0">Showing the top 400 of ${rows.length} — use search to narrow the list.</td>`;
     body.appendChild(tr);}}
 async function ecoBulk(en){
   if(!eco)return;
@@ -1100,13 +1123,7 @@ $("cfgOpen").onclick=async()=>{const r=await api().open_file("config");if(r&&r.e
 $("resetBtn").onclick=async()=>{
   if(!confirm("Reset all settings to defaults?\nHistory, profiles and item selections are kept."))return;
   const r=await api().reset_defaults();
-  if(r.ok){info=r.info;$("uAmt").value=info.min_unique;$("gAmt").value=info.min_gear;
-    $("outBase").value=info.output_base;$("bakCount").value=info.backup_count;
-    $("baseQ").value=info.base_quality;$("baseL").value=info.base_min_level;
-    $("regenSel").value=String(info.auto_regen_hours||0);armRegen();
-    $("botFolderLbl").textContent=info.bot_folder||"not set";
-    $("fltDirLbl").textContent=info.poe2_filter_dir||"not set";
-    uEx();gEx();toast("Settings reset to defaults");}};
+  if(r.ok){info=r.info;applyInfo(info);toast("Settings reset to defaults");}};
 $("leagueRefresh").onclick=async()=>{
   const ls=await api().leagues();if(ls.error)return toast("✗ "+ls.error);
   const sel=$("league"),cur=sel.value;sel.innerHTML="";
@@ -1246,27 +1263,33 @@ document.querySelectorAll(".page > h1").forEach(h=>{
   btn.onclick=()=>box.classList.toggle("on");});
 
 /* ── init ── */
+// Push every settings-form control from an app_info() snapshot into the DOM.
+// Shared by init, profile-load and reset so their visible switches always
+// match the config that was just applied.
+function applyInfo(i){
+  const th=["ocean","nebula","ember"].includes(i.theme)?i.theme:"gold";
+  document.documentElement.dataset.theme=th==="gold"?"":th;$("themeSel").value=th;
+  $("uAmt").value=i.min_unique||0;$("gAmt").value=i.min_gear||0;
+  $("outBase").value=i.output_base;
+  $("botFolderLbl").textContent=i.bot_folder||"not set";
+  sw("swCopy","auto_copy",i.auto_copy);
+  sw("swBases","include_bases",i.include_bases);
+  sw("swUniqExc","unique_exceptional",i.unique_exceptional);
+  sw("swFilter","copy_filter_to_game",i.copy_filter_to_game);
+  sw("swTray","minimize_to_tray",i.minimize_to_tray);
+  $("fltDirLbl").textContent=i.poe2_filter_dir||"not set";
+  $("bakCount").value=i.backup_count;
+  $("baseQ").value=i.base_quality;$("baseL").value=i.base_min_level;
+  $("regenSel").value=String(i.auto_regen_hours||0);armRegen();
+  $("swAuto").classList.toggle("on",!!i.auto_floor);
+  $("keepPct").value=String(i.auto_floor_pct||40);
+  setAutoPill(!!i.auto_floor);
+  uEx();gEx();}
 async function init(){
   info=await api().app_info();
   $("ver").textContent="v"+info.version;
-  const th=["ocean","nebula","ember"].includes(info.theme)?info.theme:"gold";
-  document.documentElement.dataset.theme=th==="gold"?"":th;$("themeSel").value=th;
-  $("uAmt").value=info.min_unique||0;$("gAmt").value=info.min_gear||0;
-  $("outBase").value=info.output_base;
-  $("botFolderLbl").textContent=info.bot_folder||"not set";
-  sw("swCopy","auto_copy",info.auto_copy);
-  sw("swBases","include_bases",info.include_bases);
-  sw("swUniqExc","unique_exceptional",info.unique_exceptional);
-  sw("swFilter","copy_filter_to_game",info.copy_filter_to_game);
-  sw("swTray","minimize_to_tray",info.minimize_to_tray);
-  $("fltDirLbl").textContent=info.poe2_filter_dir||"not set";
-  $("bakCount").value=info.backup_count;
-  $("baseQ").value=info.base_quality;$("baseL").value=info.base_min_level;
-  $("regenSel").value=String(info.auto_regen_hours||0);armRegen();
+  applyInfo(info);
   loadProfiles();
-  $("swAuto").classList.toggle("on",!!info.auto_floor);
-  $("keepPct").value=String(info.auto_floor_pct||40);
-  setAutoPill(!!info.auto_floor);
   renderSparks();
   api().check_update().then(u=>{if(u.update)showUpdBanner(u);});
   if(info.config_warning)setTimeout(()=>alert(info.config_warning),600);
