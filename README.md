@@ -131,7 +131,15 @@ pip install pytest ruff     # test:  python -m pytest -q && ruff check .
 
 ## 📝 What's new
 
-### v3.4.1 — latest
+### v3.5.0 — latest
+
+- ⚡ **Generate page rebuilt** to the new design: numbered steps, an **Auto floor switch** (floors recompute from live prices on every generate), 7-day floor sparklines, timestamped colored run log, and a "Generated successfully" panel
+- ⬇️ **Update downloader** — the sidebar status card checks GitHub and downloads the new exe straight to your Downloads folder (never touches the running install)
+- 🎨 **Theme gallery** — Gold (default), Ocean, Nebula, Ember; light mode retired
+- 🎲 **Chance Bases restored to the full list** — 6 verified targets + 11 chase targets clearly tagged "⚠ boss drop"; cards redesigned with icons and switches (Craft too, with −/+ level steppers)
+- 🖱️ Select any lines in Preview and Ctrl+C copies exactly that · hover highlights everywhere · redundant Force-refresh removed · Debug output on top with per-button hints · config/log open falls back to Notepad
+
+### v3.4.1
 
 - 🐛 Fixed the app freezing on "Loading…" (Preview & Settings pages were lost in a layout rewrite)
 - 🔧 Debug tab: compact one-screen layout with a hint under every button, output box always in view, clearer messages
@@ -159,9 +167,6 @@ pip install pytest ruff     # test:  python -m pytest -q && ruff check .
 <summary><b>Older releases</b></summary>
 
 <br>
-
-**v3.2.1**
-- 🐛 **Preview fix** — the section sidebar went missing right after generating; now every section shows immediately
 
 **v3.2.0**
 - 🔄 **All game data updates without a new release** — tablets, splinters, wombgifts, always-pick lists, chance bases and name fixes live in the self-updating `game_data.json`; bad remote data is rejected, the app keeps its built-in copy

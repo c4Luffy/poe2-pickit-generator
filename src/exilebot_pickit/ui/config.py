@@ -76,6 +76,10 @@ DEFAULT_CONFIG = {
     # Hours between automatic regenerations while the app is open (0 = off).
     "auto_regen_hours": 0,
     "include_bases": True,
+    # Auto floor: recompute both value floors from live prices on every
+    # generate ("keep top N%" percentile).
+    "auto_floor": False,
+    "auto_floor_pct": 40,
     # Pick ANY unique sitting on an exceptional base, ignoring the unique
     # value floor (good bases make even cheap uniques worth grabbing).
     "unique_exceptional": True,

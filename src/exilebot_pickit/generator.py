@@ -470,17 +470,27 @@ def build_exotic_base_rules(disabled=None) -> list:
 # unique — the most currency-efficient targets.  The rest are high-value single
 # targets (low odds, but iconic chase items).
 CHANCE_BASES: list = [
-    # Verified against maxroll's 0.5.2 chancing guide (2026-07-05): only these
-    # bases have chanceable uniques in the current drop pool. The old armour/
-    # weapon chase targets (Kaom's Heart, Indigon, Lioneye's...) are boss/
-    # restricted drops that an Orb of Chance CANNOT hit — keeping their white
-    # bases for chancing was wasted bot inventory.
+    # ── Verified chanceable in 0.5 (Maxroll 0.5.2 chancing guide) ──
     ("Rings",        "Gold Ring",        "Ventor's Gamble / Andvarius / Perandus Seal"),
     ("Belts",        "Heavy Belt",       "Headhunter"),
     ("Belts",        "Utility Belt",     "Mageblood / Ingenuity"),
     ("Belts",        "Ornate Belt",      "Ryslatha's Coil"),
     ("Amulets",      "Solar Amulet",     "Fireflower / Beacon of Azis"),
     ("Amulets",      "Gold Amulet",      "Eye of Chayula / Serpent's Egg"),
+    # ── Chase targets kept by owner request — their uniques are currently
+    #    boss/restricted drops, so an Orb of Chance may NOT produce them.
+    #    Tagged in the UI; toggle off if you trust the guides over hope. ──
+    ("Body Armours", "Conqueror Plate",  "Kaom's Heart ⚠ boss drop"),
+    ("Body Armours", "Grand Regalia",    "Morior Invictus ⚠ boss drop"),
+    ("Body Armours", "Tattered Robe",    "Ghostwrithe ⚠ boss drop"),
+    ("Body Armours", "Armoured Vest",    "Hyrri's Ire ⚠ boss drop"),
+    ("Helmets",      "Magus Tiara",      "Indigon ⚠ boss drop"),
+    ("Helmets",      "Cultist Crown",    "Crown of the Pale King ⚠ boss drop"),
+    ("Gloves",       "Fine Bracers",     "Maligaro's Virtuosity ⚠ boss drop"),
+    ("Gloves",       "Spiral Wraps",     "Hand of Wisdom and Action ⚠ boss drop"),
+    ("Boots",        "Braced Sabatons",  "Darkray Vectors ⚠ boss drop"),
+    ("Weapons",      "Heavy Bow",        "Lioneye's Glare ⚠ boss drop"),
+    ("Weapons",      "Omen Sceptre",     "Font of Power ⚠ boss drop"),
 ]
 
 

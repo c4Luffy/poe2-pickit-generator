@@ -5,18 +5,80 @@
 <title>ExileBot 2 Pickit Generator</title>
 <style>
   :root{
-    --bg:#0e0f12; --bg2:#16181d; --bg3:#1e2128; --border:#2a2e37;
-    --gold:#c8a96e; --gold-dim:#8f7a52; --text:#e8e6e1;
-    --dim:#989ba3; --ok:#4cc38a; --err:#e5534b; --warn:#d9a03f;
+    --bg:#0b0c0f; --bg2:#141519; --bg3:#1d1f25; --border:#2a2d36;
+    --gold:#d9b878; --gold-dim:#84714b; --text:#eeece7;
+    --dim:#9aa0ab; --ok:#41cd8e; --err:#f2594f; --warn:#e2a63d;
   }
-  html[data-theme="light"]{
-    /* Clean Studio: white cards on cool gray, hairline borders, no shadows —
-       game item icons read sharpest on pure white */
-    --bg:#eef0f3; --bg2:#ffffff; --bg3:#f2f4f7; --border:#dde1e6;
-    --gold:#b8860b; --gold-dim:#d4b45e; --text:#1c2128;
-    --dim:#636c76; --ok:#1a7f37; --err:#cf222e; --warn:#9a6700;
+  html[data-theme="light"] .card{box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  html[data-theme="light"] nav{box-shadow:1px 0 3px rgba(16,24,40,.04)}
+  /* ── base cards (Chance / Craft, mockup style) ── */
+  .bc2{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);
+    border-radius:13px;padding:12px 14px;cursor:pointer;
+    transition:background .13s,border-color .13s,transform .13s}
+  .bc2:hover{border-color:var(--gold-dim);transform:translateY(-1px)}
+  .bc2.dis{opacity:.45}
+  .bc2 img{width:38px;height:38px;object-fit:contain;flex-shrink:0}
+  .bc2 .m{flex:1;min-width:0}
+  .bc2 .m b{font-size:13.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bc2 .m .t{font-size:11.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bc2 .m .t .w{color:var(--warn)}
+  .stepper{display:flex;align-items:center;gap:2px;background:var(--bg3);border:1px solid var(--border);
+    border-radius:9px;padding:2px}
+  .stepper button{width:24px;height:24px;border:0;background:transparent;color:var(--dim);
+    cursor:pointer;font-size:14px;border-radius:7px}
+  .stepper button:hover{background:var(--bg2);color:var(--gold)}
+  .stepper input{width:38px;text-align:center;border:0;background:transparent;padding:2px 0;font-size:12.5px}
+  /* ── Mockup components (Generate) ── */
+  .stepb{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+    border-radius:6px;background:var(--gold);color:#fff;font-size:12px;font-weight:700;margin-right:9px}
+  .cardh{display:flex;align-items:center;font-size:12.5px;font-weight:700;letter-spacing:1.2px;
+    color:var(--gold);text-transform:uppercase;margin-bottom:10px}
+  .ftile{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .sparkrow{display:flex;align-items:flex-end;gap:12px;margin-top:10px}
+  .sparkrow svg{flex:1;height:40px;min-width:0}
+  .avg{text-align:right;white-space:nowrap}
+  .avg .k{font-size:10px;letter-spacing:1px;color:var(--dim)}
+  .avg .v{font-size:15px;font-weight:700;color:var(--gold)}
+  .pillrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .statuspill{border:1px solid var(--gold-dim);color:var(--gold);border-radius:9px;
+    padding:6px 12px;font-size:12.5px;background:color-mix(in srgb,var(--gold) 8%,transparent)}
+  .danger{color:var(--err)!important;border-color:color-mix(in srgb,var(--err) 55%,transparent)!important}
+  .okpanel{border:1px solid var(--border);border-radius:12px;background:var(--bg3);
+    padding:16px;text-align:center;width:230px;flex-shrink:0;display:none}
+  .okpanel.on{display:block}
+  .okring{width:52px;height:52px;border-radius:50%;border:3px solid var(--ok);color:var(--ok);
+    display:flex;align-items:center;justify-content:center;font-size:24px;margin:2px auto 10px}
+  .log .t{color:var(--dim);margin-right:8px}
+  .log .act{color:var(--gold)}
+  .sidecard{margin:10px 12px 0;border:1px solid var(--border);border-radius:12px;padding:11px 12px;background:var(--bg)}
+  .sidecard .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:7px}
+  .sidecard .dot.off{background:var(--err)}
+  /* ── Theme gallery — all dark, distinct personalities ── */
+  html[data-theme="ocean"] .primary,html[data-theme="nebula"] .primary,html[data-theme="ember"] .primary{color:#fff}
+  html[data-theme="ocean"]{
+    --bg:#0b1017; --bg2:#111823; --bg3:#18212e; --border:#243040;
+    --gold:#58a6ff; --gold-dim:#3d6a99; --text:#e9eef4;
+    --dim:#8fa0b3; --ok:#3fb970; --err:#f85149; --warn:#d29922;
+  }
+  html[data-theme="nebula"]{
+    --bg:#0e0b16; --bg2:#161022; --bg3:#1f172e; --border:#2e2344;
+    --gold:#b18aff; --gold-dim:#7156a8; --text:#ece8f4;
+    --dim:#9d94b3; --ok:#43c98a; --err:#f2594f; --warn:#d9a03f;
+  }
+  html[data-theme="ember"]{
+    --bg:#120d0b; --bg2:#1a1310; --bg3:#241a15; --border:#38281f;
+    --gold:#ff8a4c; --gold-dim:#a85c34; --text:#f2ece7;
+    --dim:#ab9d92; --ok:#4cba7f; --err:#e5534b; --warn:#e2a63d;
   }
   *{box-sizing:border-box;margin:0;padding:0}
+  .bcard,.chip,.set-row,.stat,.nav-btn,.ghost,.rowbtn,.primary,tr.item td{transition:background .13s,border-color .13s,transform .13s,box-shadow .13s}
+  .bcard:hover{background:var(--bg3);border-color:var(--gold-dim);transform:translateY(-1px)}
+  .chip:hover{border-color:var(--gold-dim);color:var(--text)}
+  .set-row:hover{background:color-mix(in srgb,var(--gold) 5%,transparent);border-radius:10px}
+  .stat:hover{border:1px solid var(--gold-dim)}
+  .gsec{transition:color .13s}
+  .primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px color-mix(in srgb,var(--gold) 30%,transparent)}
+  select:hover,input[type=text]:hover,input[type=number]:hover{border-color:var(--gold-dim)}
   ::-webkit-scrollbar{width:9px;height:9px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
@@ -56,10 +118,10 @@
   select:focus,input:focus{border-color:var(--gold)}
   button{border:0;border-radius:10px;padding:10px 20px;font:600 14px "Segoe UI Variable Text","Segoe UI",sans-serif;cursor:pointer}
   button:active{transform:scale(.97)}
-  .primary{background:linear-gradient(135deg,#d8b97c,#a8894f);color:#17130a;box-shadow:0 5px 18px #c8a96e2e}
+  .primary{background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 88%,white),color-mix(in srgb,var(--gold) 78%,black));color:#171208;box-shadow:0 4px 16px color-mix(in srgb,var(--gold) 22%,transparent)}
   .primary:disabled{filter:grayscale(.7) brightness(.75);cursor:default;box-shadow:none}
   .ghost{background:transparent;color:var(--gold);border:1px solid var(--gold-dim)}
-  .ghost:hover{background:#c8a96e14}
+  .ghost:hover{background:color-mix(in srgb,var(--gold) 10%,transparent);border-color:var(--gold)}
   .mini{padding:6px 12px;font-size:12.5px;border-radius:8px}
   /* floors */
   .floors{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -130,7 +192,7 @@
           position:relative;cursor:pointer;flex-shrink:0}
   .switch i{position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;
             background:var(--dim);transition:.15s}
-  .switch.on{background:#c8a96e33;border-color:var(--gold-dim)}
+  .switch.on{background:color-mix(in srgb,var(--gold) 22%,transparent);border-color:var(--gold-dim)}
   .switch.on i{left:21px;background:var(--gold)}
   /* preview */
   pre{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;
@@ -177,9 +239,21 @@
   <div class="nav-btn" data-p="set">⚙ Settings</div>
   <div class="nav-btn" data-p="dbg">🔧 Debug</div>
   <div class="nav-sp"></div>
-  <div class="theme-toggle">
-    <button id="thDark">🌙 Dark</button><button id="thLight">☀ Light</button>
+  <div style="padding:0 12px 4px">
+    <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;color:var(--dim);margin-bottom:6px">THEME</div>
+    <select id="themeSel" style="width:100%;font-size:12.5px">
+      <option value="gold">⚔ Gold</option>
+      <option value="ocean">🌊 Ocean</option>
+      <option value="nebula">🔮 Nebula</option>
+      <option value="ember">🔥 Ember</option>
+    </select>
+    <div class="sidecard">
+      <div style="font-size:12.5px;font-weight:600"><span class="dot" id="sideDot"></span><span id="sideLeague">PoE2</span></div>
+      <div class="hint" style="margin:4px 0 0;font-size:11px" id="sideUpdated">waiting for data…</div>
+      <button class="ghost mini" id="sideUpdBtn" style="width:100%;margin-top:9px">⟳ Check for updates</button>
+    </div>
   </div>
+
 </nav>
 <main>
 
@@ -187,65 +261,120 @@
 <div class="page on" id="p-gen">
   <div class="banner" id="updBanner"></div>
   <div class="banner warn" id="offBanner" style="cursor:default"></div>
-  <h1>Generate</h1><div class="sub">Live poe.ninja prices → ready-to-use Exiled Bot 2 pickit. Ctrl+G works too.</div>
-  <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:14px">
-    <div class="card" style="margin-bottom:14px"><h2>🌍 League</h2>
+  <div style="display:flex;align-items:flex-start">
+    <div><h1>Generate</h1><div class="sub">Live poe.ninja prices → ready-to-use Exiled Bot 2 pickit. Ctrl+G works too.</div></div>
+    <div class="sp" style="flex:1"></div>
+    <button class="ghost mini" id="genDocs" style="margin-top:4px">📖 Docs</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:14px">
+    <div class="card" style="margin-bottom:14px">
+      <div class="cardh"><span class="stepb">1</span>League</div>
       <div style="display:flex;gap:8px">
-        <select id="league" style="flex:1"><option>Loading…</option></select>
-        <button class="ghost mini" id="leagueRefresh" title="Re-fetch the league list (Ctrl+R)">↻</button>
+        <select id="league" style="flex:1;padding:11px 12px"><option>Loading…</option></select>
+        <button class="ghost mini" id="leagueRefresh" title="Re-fetch the league list (Ctrl+R)">⟳</button>
       </div>
       <div class="hint" style="margin:10px 0 0">Prices come from this league's live market.</div>
     </div>
-    <div class="card" style="margin-bottom:14px"><h2>👤 Profile</h2>
+    <div class="card" style="margin-bottom:14px">
+      <div class="cardh"><span class="stepb">2</span>Profile</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <select id="profSel" style="flex:1;min-width:150px"><option value="">— no profile —</option></select>
+        <select id="profSel" style="flex:1;min-width:170px;padding:11px 12px"><option value="">— no profile —</option></select>
         <button class="ghost mini" id="profSave">Save as…</button>
-        <button class="ghost mini" id="profDel">Delete</button>
+        <button class="ghost mini danger" id="profDel">Delete</button>
         <button class="ghost mini" id="profCmp">Compare</button>
       </div>
-      <div class="hint" style="margin:10px 0 0">Different setups — e.g. "Farmer" vs "Boss runner", each with its own selections and floors. <span id="profHint"></span></div>
+      <div class="hint" style="margin:10px 0 0">Different setups — e.g. "Farmer" vs "Boss runner". <span id="profHint"></span></div>
       <div id="cmpBox" style="display:none;margin-top:12px"></div>
     </div>
   </div>
-  <div class="card"><h2>💰 Minimum values</h2>
-    <div class="hint">Only pick up items worth at least this much (0 = everything). Type in Exalt or Divine — converted with the live rate.</div>
-    <div class="floors">
-      <div class="floor"><label>💎 Unique items</label>
-        <div class="row"><input id="uAmt" type="number" min="0" step="1" value="0">
-        <select id="uUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></div>
-        <div class="subv" id="uSub"></div></div>
-      <div class="floor"><label>⚖ Currency &amp; exchange items</label>
-        <div class="row"><input id="gAmt" type="number" min="0" step="1" value="0">
-        <select id="gUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></div>
-        <div class="subv" id="gSub"></div>
-        <div class="subv" style="min-height:0">Essences, catalysts, fragments, runes, omens, gems… Basic currency &amp; waystones are always picked; gear bases use quality/ilvl instead.</div></div>
+
+  <div class="card">
+    <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div>
+        <div class="cardh" style="margin-bottom:4px"><span class="stepb">3</span>Minimum values</div>
+        <div class="hint" style="margin:0">Only pick up items worth at least this much (0 = everything). Type in Exalt, Chaos or Divine — converted with the live rate.</div>
+      </div>
+      <div class="sp" style="flex:1"></div>
+      <div style="text-align:right">
+        <div style="display:flex;align-items:center;gap:9px;justify-content:flex-end">
+          <div class="switch" id="swAuto"><i></i></div>
+          <span style="font-weight:600;font-size:13.5px">Auto floor</span>
+          <select class="keep" id="keepPct">
+            <option value="10">Keep top 10%</option><option value="20">Keep top 20%</option>
+            <option value="30">Keep top 30%</option><option value="40" selected>Keep top 40%</option>
+            <option value="50">Keep top 50%</option><option value="60">Keep top 60%</option>
+            <option value="70">Keep top 70%</option><option value="80">Keep top 80%</option>
+            <option value="90">Keep top 90%</option><option value="100">Keep everything</option>
+          </select>
+        </div>
+        <div class="hint" style="margin:6px 0 0">Sets both floors from this league's actual prices.</div>
+      </div>
     </div>
-    <div class="autofloor">
-      <button class="ghost mini" id="autoBtn">✨ Auto floor</button>
-      <select class="keep" id="keepPct">
-        <option value="10">Keep top 10%</option><option value="20">Keep top 20%</option>
-        <option value="30">Keep top 30%</option><option value="40" selected>Keep top 40%</option>
-        <option value="50">Keep top 50%</option><option value="60">Keep top 60%</option>
-        <option value="70">Keep top 70%</option><option value="80">Keep top 80%</option>
-        <option value="90">Keep top 90%</option><option value="100">Keep everything</option>
-      </select>
-      <span class="hint" style="margin:0" id="autoHint">How to use: choose how much of the market to keep (e.g. "top 40%"), press ✨ Auto floor, and both minimum values are set from this league's real prices. Early league pick a high %, later tighten to 25% or less. Re-run it every few days as prices move.</span>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+      <div class="ftile">
+        <label style="font-weight:600;font-size:13.5px">💎 Unique items</label>
+        <div class="row" style="margin-top:9px"><input id="uAmt" type="number" min="0" step="1" value="0" style="font-size:16px;font-weight:600">
+          <select id="uUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></div>
+        <div class="subv" id="uSub"></div>
+        <div class="sparkrow">
+          <svg id="uSpark" viewBox="0 0 130 34" preserveAspectRatio="none"></svg>
+          <div class="avg"><div class="k">7D AVG</div><div class="v" id="uAvg">–</div></div>
+        </div>
+        <div class="hint" style="margin:7px 0 0">Source: <a href="#" id="ninjaLink" style="color:var(--gold)">poe.ninja ↗</a></div>
+      </div>
+      <div class="ftile">
+        <label style="font-weight:600;font-size:13.5px">👥 Currency &amp; exchange items</label>
+        <div class="row" style="margin-top:9px"><input id="gAmt" type="number" min="0" step="1" value="0" style="font-size:16px;font-weight:600">
+          <select id="gUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></div>
+        <div class="subv" id="gSub"></div>
+        <div class="subv" style="min-height:0">Essences, catalysts, runes, gems… Basic currency &amp; waystones are always picked.</div>
+        <div class="sparkrow">
+          <svg id="gSpark" viewBox="0 0 130 34" preserveAspectRatio="none"></svg>
+          <div class="avg"><div class="k">7D AVG</div><div class="v" id="gAvg">–</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pillrow">
+      <span class="statuspill" id="autoPill">⚡ Auto floor is off</span>
+      <span class="hint" style="margin:0" id="autoHint">Floors adapt as the economy moves. You can override the values manually.</span>
+      <div class="sp" style="flex:1"></div>
+      <button class="ghost mini" id="advBtn">⚙ Advanced options ▾</button>
+    </div>
+    <div id="advRow" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <span class="hint" style="margin:0 8px 0 0">Fine-tune what gets picked:</span>
+      <button class="ghost mini" data-nav="eco">🪙 Economy</button>
+      <button class="ghost mini" data-nav="chance">🎲 Chance</button>
+      <button class="ghost mini" data-nav="craft">🛠 Craft</button>
+      <button class="ghost mini" data-nav="exc">🧱 Exceptional</button>
+      <button class="ghost mini" data-nav="set">⚙ Settings</button>
     </div>
   </div>
-  <div class="card" style="border-color:var(--gold-dim)">
+
+  <div class="card">
+    <div class="cardh"><span class="stepb">4</span>Generate output</div>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <button class="primary" id="go" style="font-size:15.5px;padding:13px 34px;border-radius:12px">⚡ Generate Pickit</button>
-      <button class="ghost mini" id="force" title="Clear cached prices, then generate fresh">⟳ Force refresh</button>
+      <button class="primary" id="go" style="font-size:15.5px;padding:13px 34px;border-radius:11px">⚡ Generate Pickit</button>
+      <span class="hint" style="margin:0">Estimated time: ~3–8s</span>
       <div class="bar" id="bar"><i></i></div>
       <div class="sp" style="flex:1"></div>
-      <span class="hint" style="margin:0">Open:</span>
+      <span class="hint" style="margin:0">Output format</span>
       <button class="ghost mini" id="openIpd" title="The file your bot reads">.ipd</button>
       <button class="ghost mini" id="openFlt" title="In-game filter for manual play — don't feed it to the bot">.filter</button>
-      <button class="ghost mini" id="open" title="The folder with all generated files + backups">📂 Output</button>
+      <button class="ghost mini" id="open" title="All generated files + backups">📂 Output folder</button>
     </div>
-    <div style="height:12px"></div>
-    <div class="log" id="log">Ready.</div>
+    <div style="display:flex;gap:14px;margin-top:12px;align-items:stretch">
+      <div class="log" id="log" style="flex:1;min-width:0">Ready.</div>
+      <div class="okpanel" id="okPanel">
+        <div class="okring">✓</div>
+        <div style="font-weight:600">Generated successfully</div>
+        <button class="ghost mini" id="okOpen" style="margin-top:12px;width:100%">Open output folder</button>
+      </div>
+    </div>
   </div>
+
   <div class="card" id="sum" style="display:none">
     <h2>✅ Result</h2>
     <div class="stats">
@@ -423,7 +552,7 @@
   </div>
   <div style="display:flex;gap:12px;align-items:flex-start">
     <div id="pvNav" style="width:215px;flex-shrink:0;max-height:calc(90.9vh - 330px);overflow-y:auto"></div>
-    <pre id="prevBox" style="flex:1;max-height:calc(90.9vh - 330px);white-space:pre-wrap;word-break:break-word;overflow-x:hidden;min-width:0">Generate first.</pre>
+    <pre id="prevBox" style="user-select:text;cursor:text;flex:1;max-height:calc(90.9vh - 330px);white-space:pre-wrap;word-break:break-word;overflow-x:hidden;min-width:0">Generate first.</pre>
   </div>
 </div>
 
@@ -503,8 +632,14 @@ let info={}, divRate=0, eco=null, ecoCat=null, ecoSort="ex", running=false, rege
 
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");
   clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),2200);}
-function logLine(m,c){const l=$("log"),d=document.createElement("div");
-  if(c)d.className=c;d.textContent=m;l.appendChild(d);l.scrollTop=l.scrollHeight;}
+function logLine(m,c){
+  const l=$("log"),d=document.createElement("div");
+  if(!c)c=m.startsWith("✓")?"ok":m.startsWith("✗")?"err":(m.startsWith("→")||m.startsWith("✨")||m.startsWith("⬇"))?"act":"";
+  if(c)d.className=c;
+  const t=document.createElement("span");t.className="t";
+  t.textContent=new Date().toLocaleTimeString([],{hour12:false});
+  d.appendChild(t);d.appendChild(document.createTextNode(m));
+  l.appendChild(d);l.scrollTop=l.scrollHeight;}
 
 /* ── nav + theme ── */
 document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{
@@ -518,12 +653,17 @@ document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{
   if(b.dataset.p==="prev")loadPreview();
   if(b.dataset.p==="hist")loadHistory();
 });
+
+function setTheme(t){document.documentElement.dataset.theme=t==="gold"?"":t;
+  $("themeSel").value=t;api().set_setting("theme",t);}
+$("themeSel").onchange=()=>setTheme($("themeSel").value);
+
 document.addEventListener("keydown",e=>{
-  if(e.ctrlKey&&e.key.toLowerCase()==="g"){e.preventDefault();doGenerate();}});
-function setTheme(t){document.documentElement.dataset.theme=t;
-  $("thDark").classList.toggle("on",t==="dark");$("thLight").classList.toggle("on",t==="light");
-  api().set_setting("theme",t);}
-$("thDark").onclick=()=>setTheme("dark");$("thLight").onclick=()=>setTheme("light");
+  if(e.ctrlKey&&e.key.toLowerCase()==="g"){e.preventDefault();doGenerate();}
+  if(e.ctrlKey&&e.key.toLowerCase()==="c"){
+    const sel=window.getSelection().toString();
+    if(sel){e.preventDefault();copyText(sel).then(ok=>toast(ok?"Copied "+sel.split("\\n").length+" line(s)":"Clipboard blocked"));}
+  }});
 
 /* ── floors ── */
 function subCalc(a,u,s,noun){const v=parseFloat($(a).value)||0,unit=$(u).value;
@@ -544,24 +684,84 @@ function _saveFloors(){clearTimeout(_floorT);
 ["uAmt","uUnit"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();}));
 ["gAmt","gUnit"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();}));
 
-$("autoBtn").onclick=async()=>{
-  $("autoBtn").disabled=true;$("autoHint").textContent="Analysing league prices…";
+async function applyAutoFloor(){
+  $("autoHint").textContent="Analysing league prices…";
   const r=await api().suggest_floors($("league").value,$("keepPct").value);
-  $("autoBtn").disabled=false;
   if(r.error){$("autoHint").textContent="✗ "+r.error;return;}
   $("uUnit").value="Exalt";$("gUnit").value="Exalt";
   $("uAmt").value=r.unique;$("gAmt").value=r.gear;
   api().set_setting("min_exalt_unique",uEx());api().set_setting("min_exalt_gear",gEx());
-  $("autoHint").textContent=`Set from live data: uniques ≥ ${r.unique} ex (keeps ${r.kept_unique}/${r.total_unique}), rest ≥ ${r.gear} ex (keeps ${r.kept_gear}/${r.total_gear}).`;
-  toast("✨ Floors set from live league data");};
+  $("autoHint").textContent=`Keeps top ${r.keep_pct}%: uniques ≥ ${r.unique} ex (${r.kept_unique}/${r.total_unique}), rest ≥ ${r.gear} ex (${r.kept_gear}/${r.total_gear}).`;}
+function setAutoPill(on){
+  $("autoPill").textContent=on?"⚡ Auto floor is enabled":"⚡ Auto floor is off";
+  $("autoPill").style.opacity=on?"1":".55";
+  $("autoHint").textContent=on?"Floors adapt as the economy moves — recomputed on every generate. You can still override manually."
+                              :"Turn the switch on and floors recompute from live prices on every generate.";}
+$("swAuto").onclick=async()=>{
+  const on=!$("swAuto").classList.contains("on");
+  $("swAuto").classList.toggle("on",on);
+  await api().set_setting("auto_floor",on);setAutoPill(on);
+  if(on)applyAutoFloor();
+  toast(on?"⚡ Auto floor ON":"Auto floor off — floors are manual again");};
+$("keepPct").onchange=async()=>{
+  await api().set_setting("auto_floor_pct",parseInt($("keepPct").value)||40);
+  if($("swAuto").classList.contains("on"))applyAutoFloor();};
+$("genDocs").onclick=()=>api().open_url("https://github.com/c4Luffy/poe2-pickit-generator#readme");
+$("ninjaLink").onclick=e=>{e.preventDefault();api().open_url("https://poe.ninja/poe2/economy");};
+$("advBtn").onclick=()=>{
+  const r=$("advRow"),show=r.style.display==="none";
+  r.style.display=show?"block":"none";
+  $("advBtn").textContent=show?"⚙ Advanced options ▴":"⚙ Advanced options ▾";};
+document.querySelectorAll("#advRow [data-nav]").forEach(b=>b.onclick=()=>{
+  document.querySelector(`.nav-btn[data-p="${b.dataset.nav}"]`).click();});
+$("okOpen").onclick=()=>api().open_output();
+
+async function renderSparks(){
+  try{
+    const h=(await api().history()||[]).filter(e=>typeof e.uf==="number").slice(0,14).reverse();
+    const draw=(id,vals,avgId)=>{
+      const svg=$(id);if(!svg)return;
+      if(vals.length<2){
+        svg.innerHTML='<line x1="0" y1="17" x2="130" y2="17" stroke="var(--gold-dim)" stroke-width="1.5" opacity=".45"/>';
+      }else{
+        const mx=Math.max(...vals),mn=Math.min(...vals);
+        const pts=vals.map((v,i)=>((i/(vals.length-1))*130)+","+(32-((v-mn)/((mx-mn)||1))*28)).join(" ");
+        svg.innerHTML='<polyline points="'+pts+'" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linejoin="round"/>';
+      }
+      const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+      $(avgId).textContent=vals.length?avg.toFixed(2)+" ex":"–";};
+    draw("uSpark",h.map(e=>+e.uf||0),"uAvg");
+    draw("gSpark",h.map(e=>+e.gf||0),"gAvg");
+  }catch(_){/* no history yet */}}
+
+let sideOnline=true,sideTs=0;
+function sideMark(ok){sideOnline=ok;sideTs=Date.now();sideRender();}
+function sideRender(){
+  $("sideLeague").textContent="PoE2: "+($("league").value||"…");
+  $("sideDot").classList.toggle("off",!sideOnline);
+  const ago=sideTs?Math.round((Date.now()-sideTs)/60000):null;
+  $("sideUpdated").textContent=(sideOnline?"Online":"Offline / cached")+
+    (ago===null?" · waiting for data…":" · updated "+(ago<1?"just now":ago+" min ago"));}
+setInterval(sideRender,30000);
+$("sideUpdBtn").onclick=async()=>{
+  const b=$("sideUpdBtn");b.disabled=true;b.textContent="Checking…";
+  try{
+    const u=await api().check_update();
+    if(!u.update){toast("✓ You're up to date (v"+info.version+")");return;}
+    b.textContent="⬇ Downloading v"+u.version+"…";
+    const r=await api().download_update();
+    if(r.ok)toast("⬇ v"+r.version+" saved to Downloads — close this app and run the new exe");
+    else toast("✗ "+(r.error||"download failed"));
+  }finally{b.disabled=false;b.textContent="⟳ Check for updates";}};
+
 /* ── generate ── */
 async function poll(){
   const st=await api().status();
-  for(const m of st.log)logLine(m,m.startsWith("✓")?"ok":m.startsWith("✗")?"err":"");
+  for(const m of st.log)logLine(m);
   if(st.running)return setTimeout(poll,400);
   running=false;$("go").disabled=false;$("bar").classList.remove("on");
   const d=st.done||{};
-  if(d.ok){divRate=d.divine_rate||divRate;
+  if(d.ok){divRate=d.divine_rate||divRate;$("okPanel").classList.add("on");renderSparks();sideMark(true);
     $("sActive").textContent=d.active.toLocaleString();
     $("sCats").textContent=d.cats_ok+(d.cats_fail?` (+${d.cats_fail}✗)`:"");
     $("sDiv").textContent=d.divine_rate;$("sSecs").textContent=d.secs;
@@ -590,7 +790,6 @@ async function doGenerate(){
   if(running)return;running=true;$("go").disabled=true;$("bar").classList.add("on");
   await api().generate($("league").value,gEx(),uEx());poll();}
 $("go").onclick=doGenerate;
-$("force").onclick=async()=>{await api().clear_cache();eco=null;toast("Cache cleared — fetching fresh prices");doGenerate();};
 $("open").onclick=()=>api().open_output();
 $("openIpd").onclick=async()=>{const r=await api().open_file("ipd");if(r.error)toast(r.error);};
 $("openFlt").onclick=async()=>{const r=await api().open_file("filter");if(r.error)toast(r.error);};
@@ -746,12 +945,17 @@ async function loadChance(){
     if(b.cat!==lastCat){lastCat=b.cat;
       const h=document.createElement("div");h.className="gsec";h.textContent=b.cat;g.appendChild(h);}
     const d=document.createElement("div");
-    d.className="bcard"+(b.enabled?"":" dis");
-    const cIco=b.icon?`<img class="icn" loading="lazy" src="${b.icon}" style="width:30px;height:30px;float:right">`:"";
-    d.innerHTML=`${cIco}<b>${esc(b.base)}</b><div class="t">→ ${esc(b.target)}</div>`;
+    d.className="bc2"+(b.enabled?"":" dis");
+    const warn=b.target.includes("⚠");
+    const tgt=warn?b.target.replace(" ⚠ boss drop",'</span> <span class="w">⚠ boss drop — may not be chanceable</span><span>')
+                  :b.target;
+    d.innerHTML=(b.icon?`<img loading="lazy" src="${b.icon}">`:"")+
+      `<div class="m"><b>${esc(b.base)}</b><div class="t">→ <span>${tgt}</span></div></div>
+       <div class="switch${b.enabled?" on":""}"><i></i></div>`;
     d.onclick=async()=>{b.enabled=!b.enabled;
       await api().set_item("_chance",b.base,b.enabled);
-      d.className="bcard"+(b.enabled?"":" dis");chanceCount();};
+      d.className="bc2"+(b.enabled?"":" dis");
+      d.querySelector(".switch").classList.toggle("on",b.enabled);chanceCount();};
     g.appendChild(d);}
   chanceCount();}
 async function chanceBulk(en){
@@ -772,17 +976,23 @@ async function loadCraft(){
     if(b.cat!==lastCat){lastCat=b.cat;
       const h=document.createElement("div");h.className="gsec";h.textContent=b.cat;g.appendChild(h);}
     const d=document.createElement("div");
-    d.className="bcard"+(b.enabled?"":" dis");
-    const kIco=b.icon?`<img class="icn" loading="lazy" src="${b.icon}" style="width:30px;height:30px;float:right">`:"";
-    const kMeta=[b.lvl?`lvl ${b.lvl}`:"",b.stats||""].filter(x=>x).join(" · ");
-    d.innerHTML=`${kIco}<b>${esc(b.base)}</b><div class="t">${esc(kMeta)||"&nbsp;"}</div>
-      <div class="ilvl">min ilvl <input type="number" min="1" max="82" value="${b.ilvl}"></div>`;
+    d.className="bc2"+(b.enabled?"":" dis");
+    const meta=[b.lvl?("lvl "+b.lvl):"",b.stats||""].filter(x=>x).join(" · ");
+    d.innerHTML=(b.icon?`<img loading="lazy" src="${b.icon}">`:"")+
+      `<div class="m"><b>${esc(b.base)}</b><div class="t">${esc(meta)||"&nbsp;"}</div></div>
+       <div class="stepper" title="Minimum item level"><button type="button" class="sm">−</button>
+         <input type="number" min="1" max="82" value="${b.ilvl}"><button type="button" class="sp2">+</button></div>
+       <div class="switch${b.enabled?" on":""}"><i></i></div>`;
     const inp=d.querySelector("input");
+    const save=()=>api().set_craft(b.base,b.enabled,inp.value);
+    d.querySelector(".sm").onclick=e=>{e.stopPropagation();inp.value=Math.max(1,(+inp.value||82)-1);save();};
+    d.querySelector(".sp2").onclick=e=>{e.stopPropagation();inp.value=Math.min(82,(+inp.value||82)+1);save();};
     inp.onclick=e=>e.stopPropagation();
-    inp.onchange=()=>api().set_craft(b.base,b.enabled,inp.value);
+    inp.onchange=save;
     d.onclick=async()=>{b.enabled=!b.enabled;
       await api().set_craft(b.base,b.enabled,inp.value);
-      d.className="bcard"+(b.enabled?"":" dis");craftCount();};
+      d.className="bc2"+(b.enabled?"":" dis");
+      d.querySelector(".switch").classList.toggle("on",b.enabled);craftCount();};
     g.appendChild(d);}
   craftCount();}
 async function craftBulk(en){
@@ -917,8 +1127,6 @@ $("leagueRefresh").onclick=async()=>{
   const sel=$("league"),cur=sel.value;sel.innerHTML="";
   for(const l of ls){const o=document.createElement("option");o.value=l.name;o.textContent=l.display;sel.appendChild(o);}
   if(cur)sel.value=cur;toast("League list refreshed");};
-document.addEventListener("keydown",e=>{
-  if(e.ctrlKey&&e.key.toLowerCase()==="r"){e.preventDefault();$("leagueRefresh").click();}});
 
 /* ── preview ── */
 let prevLines=[],pvSections=[],pvSection=null,pvFilter="all",pvValMap={};
@@ -1056,7 +1264,8 @@ document.querySelectorAll(".page > h1").forEach(h=>{
 async function init(){
   info=await api().app_info();
   $("ver").textContent="v"+info.version;
-  setTheme(info.theme==="light"?"light":"dark");
+  const th=["ocean","nebula","ember"].includes(info.theme)?info.theme:"gold";
+  document.documentElement.dataset.theme=th==="gold"?"":th;$("themeSel").value=th;
   $("uAmt").value=info.min_unique||0;$("gAmt").value=info.min_gear||0;
   $("outBase").value=info.output_base;
   $("botFolderLbl").textContent=info.bot_folder||"not set";
@@ -1070,6 +1279,10 @@ async function init(){
   $("baseQ").value=info.base_quality;$("baseL").value=info.base_min_level;
   $("regenSel").value=String(info.auto_regen_hours||0);armRegen();
   loadProfiles();
+  $("swAuto").classList.toggle("on",!!info.auto_floor);
+  $("keepPct").value=String(info.auto_floor_pct||40);
+  setAutoPill(!!info.auto_floor);
+  renderSparks();
   api().check_update().then(u=>{if(u.update)showUpdBanner(u);});
   if(info.config_warning)setTimeout(()=>alert(info.config_warning),600);
   if(info.auto_copy&&!info.bot_folder)toast("⚠ Auto-copy is ON but no bot folder is set");
@@ -1077,7 +1290,7 @@ async function init(){
   if(ls.error){sel.innerHTML="<option>Could not load leagues</option>";logLine("✗ "+ls.error,"err");}
   else{for(const l of ls){const o=document.createElement("option");o.value=l.name;o.textContent=l.display;sel.appendChild(o);}
     if(info.league)sel.value=info.league;
-    logLine("Loaded "+ls.length+" leagues.","ok");}
+    logLine("Loaded "+ls.length+" leagues.","ok");sideMark(true);}
   const _rates=()=>api().chaos_ex(sel.value).then(r=>{chaosEx=r.ex||0;uEx();gEx();});
   sel.onchange=()=>{api().set_setting("league",sel.value);eco=null;_rates();};
   if(sel.value)_rates();

@@ -28,6 +28,7 @@ from exilebot_pickit.version import VERSION
 _SETTABLE = {
     "league", "output_base", "bot_folder", "auto_copy", "theme",
     "min_exalt_gear", "min_exalt_unique", "include_bases", "unique_exceptional",
+    "auto_floor", "auto_floor_pct",
     "base_quality", "base_min_level", "auto_regen_hours", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
     "minimize_to_tray",
@@ -71,6 +72,8 @@ class AppApi:
             "min_unique": float(c.get("min_exalt_unique", 0.0)),
             "include_bases": bool(c.get("include_bases", True)),
             "unique_exceptional": bool(c.get("unique_exceptional", True)),
+            "auto_floor": bool(c.get("auto_floor", False)),
+            "auto_floor_pct": int(c.get("auto_floor_pct", 40) or 40),
             "base_quality": int(c.get("base_quality", 25)),
             "base_min_level": int(c.get("base_min_level", 82)),
             "auto_regen_hours": int(c.get("auto_regen_hours", 0) or 0),
@@ -320,6 +323,8 @@ class AppApi:
                 "output_base": c.get("output_base", "poe2_pickit"),
                 "include_bases": bool(c.get("include_bases", True)),
                 "unique_exceptional": bool(c.get("unique_exceptional", True)),
+            "auto_floor": bool(c.get("auto_floor", False)),
+            "auto_floor_pct": int(c.get("auto_floor_pct", 40) or 40),
                 "base_quality": int(c.get("base_quality", 25)),
                 "base_min_level": int(c.get("base_min_level", 82))}
 
@@ -365,6 +370,51 @@ class AppApi:
 
     def history(self):
         return list(reversed(self.cfg.get("history", [])))[:30]
+
+    def status_info(self):
+        """Sidebar status: newest cached data age + configured league."""
+        try:
+            ci = gen.cache_info()
+            newest = max((e.get("age_secs", 9e9) for e in ci.get("entries", [])), default=None)
+        except Exception:
+            newest = None
+        return {"league": self.cfg.get("league") or "", "age_secs": newest}
+
+    def download_update(self):
+        """Download the newest release exe into the user's Downloads folder.
+        Deliberately NOT self-replacing (AV locks / half-swaps bricked installs
+        in the past) — the user runs the fresh exe themselves."""
+        try:
+            import requests
+            from exilebot_pickit.ui.updater import VERSION_URL
+            r = requests.get(VERSION_URL, timeout=10,
+                             headers={"User-Agent": f"poe2-pickit/{VERSION}",
+                                      "Accept": "application/vnd.github+json"})
+            if r.status_code != 200:
+                return {"error": f"GitHub said {r.status_code}"}
+            data = r.json() or {}
+            ver = str(data.get("tag_name") or "").lstrip("v")
+            asset = next((a for a in data.get("assets", [])
+                          if a.get("name", "").endswith(".exe")), None)
+            if not asset:
+                return {"error": "no .exe in the latest release"}
+            dl = os.path.join(os.path.expanduser("~"), "Downloads")
+            os.makedirs(dl, exist_ok=True)
+            dest = os.path.join(dl, f"ExileBot2PickitGenerator-v{ver}.exe")
+            with requests.get(asset["browser_download_url"], stream=True, timeout=120) as resp:
+                resp.raise_for_status()
+                with open(dest + ".part", "wb") as f:
+                    for chunk in resp.iter_content(1 << 18):
+                        f.write(chunk)
+            os.replace(dest + ".part", dest)
+            try:
+                import subprocess
+                subprocess.Popen(["explorer", "/select,", dest])
+            except Exception:
+                pass
+            return {"ok": True, "path": dest, "version": ver}
+        except Exception as e:
+            return {"error": str(e)[:200]}
 
     def check_update(self):
         try:
@@ -594,6 +644,14 @@ class AppApi:
     def _generate(self, league, min_gear, min_unique):
         t0 = time.time()
         try:
+            if self.cfg.get("auto_floor"):
+                sf = self.suggest_floors(league, int(self.cfg.get("auto_floor_pct", 40) or 40))
+                if not sf.get("error"):
+                    min_unique = float(sf["unique"]); min_gear = float(sf["gear"])
+                    self.cfg["min_exalt_unique"] = min_unique
+                    self.cfg["min_exalt_gear"] = self.cfg["min_exalt"] = min_gear
+                    save_config(self.cfg)
+                    self._log(f"✨ Auto floor ({sf['keep_pct']}%): uniques ≥ {min_unique} ex · rest ≥ {min_gear} ex")
             snap = self._snapshot()
             self._log(f"Fetching live prices for {league}…")
             stale = set()
@@ -773,6 +831,7 @@ class AppApi:
             hist = self.cfg.setdefault("history", [])
             hist.append({"ts": time.strftime("%Y-%m-%d %H:%M"),
                          "active": active, "commented": commented,
+                         "uf": float(min_unique), "gf": float(min_gear),
                          "divine_rate": div_rate,
                          "top_item": top_pool[0][0] if top_pool else "",
                          "top_value": round(top_pool[0][1], 1) if top_pool else 0,
