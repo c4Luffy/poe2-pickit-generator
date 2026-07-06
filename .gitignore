@@ -65,7 +65,8 @@ desktop.ini
 *.user
 
 # AI agent artifacts
-.claude/
+.claude/*
+!.claude/skills/
 
 # Logs and temp
 *.log
