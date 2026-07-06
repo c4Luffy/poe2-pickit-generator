@@ -100,16 +100,20 @@ def _quote_ipd(name: str) -> str:
 _ACCESSORY_BASES: frozenset = frozenset({
     # Rings
     "Gold Ring", "Iron Ring", "Ruby Ring", "Topaz Ring", "Sapphire Ring",
-    "Two-Stone Ring", "Prismatic Ring", "Unset Ring",
+    "Emerald Ring", "Two-Stone Ring", "Prismatic Ring", "Unset Ring",
     # Amulets
     "Coral Amulet", "Paua Amulet", "Amber Amulet", "Jade Amulet",
     "Lapis Amulet", "Gold Amulet", "Agate Amulet", "Citrine Amulet",
     "Turquoise Amulet", "Onyx Amulet", "Solar Amulet", "Stellar Amulet",
 })
 
+# Chance-base gloves not in the endgame _BASE_TYPES_BY_CATEGORY list but still
+# valid chance targets (validator must accept them).
+_CHANCE_EXTRA_BASES: frozenset = frozenset({"Moulded Mitts"})
+
 VALID_EQUIPMENT_BASES: frozenset = (
     frozenset(name for entries in _BASE_TYPES_BY_CATEGORY.values() for name, _ in entries)
-    | _ACCESSORY_BASES
+    | _ACCESSORY_BASES | _CHANCE_EXTRA_BASES
 )
 
 # Names Exiled Bot rejects outright (validation error). Seeded with the cases we
@@ -463,34 +467,20 @@ def build_exotic_base_rules(disabled=None) -> list:
 # sockets pairs + build_unique_exceptional_rules).
 
 
-# Structured list of chance orb bases — used by the GUI tab and build_chance_base_rules().
-# Each entry: (category_label, base_type, target_unique).  Bases verified against
-# poe2db / the PoE2 wiki for the current patch (0.5).  Accessories come first: they
-# sit in multi-unique pools, so even a "missed" chance often still hits a valuable
-# unique — the most currency-efficient targets.  The rest are high-value single
-# targets (low odds, but iconic chase items).
+# Structured list of chance orb bases — used by the Chance Bases tab and
+# build_chance_base_rules(). Each entry: (category_label, base_type, target_unique).
+# Curated by the owner (2026-07-06); all bases confirmed droppable in the
+# current patch against NeverSink's live filter.
 CHANCE_BASES: list = [
-    # ── Verified chanceable in 0.5 (Maxroll 0.5.2 chancing guide) ──
-    ("Rings",        "Gold Ring",        "Ventor's Gamble / Andvarius / Perandus Seal"),
-    ("Belts",        "Heavy Belt",       "Headhunter"),
-    ("Belts",        "Utility Belt",     "Mageblood / Ingenuity"),
-    ("Belts",        "Ornate Belt",      "Ryslatha's Coil"),
-    ("Amulets",      "Solar Amulet",     "Fireflower / Beacon of Azis"),
-    ("Amulets",      "Gold Amulet",      "Eye of Chayula / Serpent's Egg"),
-    # ── Chase targets kept by owner request — their uniques are currently
-    #    boss/restricted drops, so an Orb of Chance may NOT produce them.
-    #    Tagged in the UI; toggle off if you trust the guides over hope. ──
-    ("Body Armours", "Conqueror Plate",  "Kaom's Heart ⚠ boss drop"),
-    ("Body Armours", "Grand Regalia",    "Morior Invictus ⚠ boss drop"),
-    ("Body Armours", "Tattered Robe",    "Ghostwrithe ⚠ boss drop"),
-    ("Body Armours", "Armoured Vest",    "Hyrri's Ire ⚠ boss drop"),
-    ("Helmets",      "Magus Tiara",      "Indigon ⚠ boss drop"),
-    ("Helmets",      "Cultist Crown",    "Crown of the Pale King ⚠ boss drop"),
-    ("Gloves",       "Fine Bracers",     "Maligaro's Virtuosity ⚠ boss drop"),
-    ("Gloves",       "Spiral Wraps",     "Hand of Wisdom and Action ⚠ boss drop"),
-    ("Boots",        "Braced Sabatons",  "Darkray Vectors ⚠ boss drop"),
-    ("Weapons",      "Heavy Bow",        "Lioneye's Glare ⚠ boss drop"),
-    ("Weapons",      "Omen Sceptre",     "Font of Power ⚠ boss drop"),
+    ("Belts",   "Utility Belt",   "Mageblood"),
+    ("Belts",   "Heavy Belt",     "Headhunter"),
+    ("Rings",   "Gold Ring",      "Ventor's Gamble / Andvarius / Perandus Seal"),
+    ("Amulets", "Stellar Amulet", "Astramentis"),
+    ("Belts",   "Ornate Belt",    "Ryslatha's Coil"),
+    ("Amulets", "Solar Amulet",   "Fireflower"),
+    ("Rings",   "Emerald Ring",   "Thief's Torment / Death Rush"),
+    ("Amulets", "Gold Amulet",    "Eye of Chayula / Serpent's Egg"),
+    ("Gloves",  "Moulded Mitts",  "Atziri's Acuity"),
 ]
 
 

@@ -123,7 +123,7 @@ def _apply(data: dict) -> None:
             _gen.VALID_EQUIPMENT_BASES = (
                 frozenset(n for ents in _bt._BASE_TYPES_BY_CATEGORY.values()
                           for n, _ in ents)
-                | _gen._ACCESSORY_BASES
+                | _gen._ACCESSORY_BASES | _gen._CHANCE_EXTRA_BASES
             )
         except Exception:
             pass

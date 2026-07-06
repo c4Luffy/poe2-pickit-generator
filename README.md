@@ -131,7 +131,12 @@ pip install pytest ruff     # test:  python -m pytest -q && ruff check .
 
 ## 📝 What's new
 
-### v3.5.1 — latest
+### v3.5.2 — latest
+
+- 🎲 **Chance Bases rebuilt** to a focused 9-target list (Mageblood, Headhunter, Astramentis, Ryslatha's Coil, Fireflower, Ventor's, Thief's Torment, Eye of Chayula, Atziri's Acuity) — all confirmed droppable; old speculative list removed
+- 🧹 Cleaned out the boss-drop tag code and orphaned styles tied to the old list
+
+### v3.5.1
 
 - 🐛 Polish pass from live testing: wider Chance/Craft cards (no more crushed names), number inputs never clip digits, chase-target tags wrap cleanly ("⚠ boss drop · chance unconfirmed")
 - 🧱 Exceptional base list sorted by item level (highest first) inside each slot
