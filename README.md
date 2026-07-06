@@ -62,7 +62,7 @@ Everything valuable is picked by default. Don't want something? One click in the
 <br>
 
 - **Right-click** a row copies its rule · <kbd>Ctrl</kbd>+<kbd>G</kbd> generates
-- Every tab has an **ℹ what is this?** explainer — no wiki needed
+- Every tab has a **? Help** button that explains what it does
 - **No prices?** Debug → Run API test (poe.ninja may be down; the cache covers you)
 - **Bot ignores items?** Check the pickit path, or enable Auto-copy
 - Files live in `ExileBot2PickitGenerator_data` next to the `.exe`
