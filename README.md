@@ -13,10 +13,6 @@ so your bot grabs what sells **today**.
 
 <sub>One `.exe` · no Python · no installer</sub>
 
-<br>
-
-<img src="docs/app.png" width="820" alt="ExileBot 2 Pickit Generator">
-
 </div>
 
 <br>
@@ -88,11 +84,11 @@ pip install pytest ruff     # test:  python -m pytest -q && ruff check .
 
 <br>
 
-## What's new — v3.6.0
+## What's new — v3.7.0
 
-- 🧱 **Exceptional bases rebuilt** — the 122 best bases, ranked by real stats, grouped by Str / Dex / Int, with a socket-mechanic explainer
-- 🎲 **Chance Bases** — focused 8-target list (Mageblood, Headhunter, Astramentis…)
-- 🧹 Removed Talismans, Bucklers, and the uniques-on-base option
+- ⬆️ **New updater** — a clean update banner with progress bar and one-click **install & restart** (backs up the old exe first, so you never lose a working version)
+- 🎨 **App logo** in the sidebar, plus **Discord** and **Exiled Bot** links; clearer "? Help" buttons
+- 🧱 Exceptional bases = the 122 best, ranked and grouped by attribute · Chance Bases trimmed to 8
 
 → [Full changelog](https://github.com/c4Luffy/poe2-pickit-generator/releases)
 

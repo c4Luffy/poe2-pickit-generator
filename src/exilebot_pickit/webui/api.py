@@ -418,7 +418,13 @@ class AppApi:
             if not asset:
                 self._dl_finish({"error": "no .exe in the latest release"})
                 return
-            dl = os.path.join(os.path.expanduser("~"), "Downloads")
+            # Download beside the running .exe (same drive → the helper can
+            # swap it in place). In dev (not frozen) fall back to Downloads.
+            import sys as _sys
+            if getattr(_sys, "frozen", False):
+                dl = os.path.dirname(_sys.executable)
+            else:
+                dl = os.path.join(os.path.expanduser("~"), "Downloads")
             os.makedirs(dl, exist_ok=True)
             dest = os.path.join(dl, f"ExileBot2PickitGenerator-v{ver}.exe")
             with requests.get(asset["browser_download_url"], stream=True, timeout=120) as resp:
@@ -436,14 +442,79 @@ class AppApi:
                             self._dl["total_mb"] = round(total / 1048576, 1) if total else 0.0
                             self._dl["pct"] = int(done * 100 / total) if total else 0
             os.replace(dest + ".part", dest)
+            import sys as _sys
+            frozen = bool(getattr(_sys, "frozen", False))
+            if not frozen:
+                try:
+                    import subprocess
+                    subprocess.Popen(["explorer", "/select,", dest])
+                except Exception:
+                    pass
+            self._dl_finish({"ok": True, "path": dest, "version": ver, "frozen": frozen})
+        except Exception as e:
+            # download failed — the old version is completely untouched
             try:
-                import subprocess
-                subprocess.Popen(["explorer", "/select,", dest])
+                if os.path.exists(dest + ".part"):
+                    os.remove(dest + ".part")
             except Exception:
                 pass
-            self._dl_finish({"ok": True, "path": dest, "version": ver})
-        except Exception as e:
             self._dl_finish({"error": str(e)[:200]})
+
+    def install_update(self):
+        """Swap the freshly-downloaded exe in for the running one and relaunch.
+
+        A running .exe is locked by Windows, so this writes a tiny helper that
+        runs AFTER we exit: it backs up the old exe, moves the new one into its
+        place, launches it, and only then deletes the backup. If the swap fails
+        the backup is restored — the user always keeps a working version."""
+        import sys as _sys
+        res = self._dl.get("result") or {}
+        new = res.get("path")
+        if not (res.get("ok") and new and os.path.isfile(new)):
+            return {"error": "no downloaded update to install"}
+        if not getattr(_sys, "frozen", False):
+            return {"error": "self-install only works in the built .exe — "
+                             "the download is in your Downloads folder"}
+        cur = _sys.executable
+        pid = os.getpid()
+        import tempfile
+        bat = os.path.join(tempfile.gettempdir(), "exilebot_pickit_update.bat")
+        script = (
+            "@echo off\r\n"
+            "setlocal enabledelayedexpansion\r\n"
+            ":wait\r\n"
+            f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL\r\n'
+            "if not errorlevel 1 ( ping -n 2 127.0.0.1 >NUL & goto wait )\r\n"
+            f'copy /y "{cur}" "{cur}.bak" >NUL\r\n'
+            f'move /y "{new}" "{cur}" >NUL\r\n'
+            "if errorlevel 1 (\r\n"
+            f'  copy /y "{cur}.bak" "{cur}" >NUL\r\n'
+            f'  start "" "{cur}"\r\n'
+            "  del \"%~f0\" & exit\r\n"
+            ")\r\n"
+            f'del "{cur}.bak" >NUL 2>&1\r\n'
+            f'start "" "{cur}"\r\n'
+            'del "%~f0"\r\n'
+        )
+        try:
+            with open(bat, "w", encoding="ascii", errors="replace") as f:
+                f.write(script)
+            import subprocess
+            subprocess.Popen(["cmd", "/c", bat],
+                             creationflags=0x08000000)  # CREATE_NO_WINDOW
+        except Exception as e:
+            return {"error": f"couldn't start the installer: {e}"}
+
+        # close the app so the helper can replace the exe
+        def _close():
+            time.sleep(0.5)
+            try:
+                import webview
+                webview.windows[0].destroy()
+            except Exception:
+                os._exit(0)
+        threading.Thread(target=_close, daemon=True).start()
+        return {"ok": True}
 
     def check_update(self):
         try:
@@ -454,12 +525,15 @@ class AppApi:
                                       "Accept": "application/vnd.github+json"})
             if r.status_code != 200:
                 return {"update": False}
-            remote = str((r.json() or {}).get("tag_name") or "").lstrip("v").strip()
+            data = r.json() or {}
+            remote = str(data.get("tag_name") or "").lstrip("v").strip()
             if AutoUpdateMixin._should_offer_update(remote, VERSION):
-                return {"update": True, "version": remote, "url": RELEASES_URL}
-            return {"update": False}
+                notes = str(data.get("body") or "").strip()
+                return {"update": True, "version": remote, "url": RELEASES_URL,
+                        "notes": notes[:4000], "current": VERSION}
+            return {"update": False, "current": VERSION}
         except Exception:
-            return {"update": False}
+            return {"update": False, "current": VERSION}
 
     def open_url(self, url):
         # Only the app's own outbound links: the GitHub repo/releases and the
