@@ -68,10 +68,11 @@ DEFAULT_CONFIG = {
     "auto_copy": False,
     "backup_count": 5,
     "category_enabled": {},
-    "category_threshold": {},
     "history": [],
 
-    "window_geometry": "",
+    "theme": "dark",
+    "minimize_to_tray": False,
+    "window_geometry_web": "",
     "confirm_overwrite_secs": 120,
     # Hours between automatic regenerations while the app is open (0 = off).
     "auto_regen_hours": 0,

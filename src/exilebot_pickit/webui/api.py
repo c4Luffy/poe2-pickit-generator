@@ -371,15 +371,6 @@ class AppApi:
     def history(self):
         return list(reversed(self.cfg.get("history", [])))[:30]
 
-    def status_info(self):
-        """Sidebar status: newest cached data age + configured league."""
-        try:
-            ci = gen.cache_info()
-            newest = max((e.get("age_secs", 9e9) for e in ci.get("entries", [])), default=None)
-        except Exception:
-            newest = None
-        return {"league": self.cfg.get("league") or "", "age_secs": newest}
-
     def download_update(self):
         """Download the newest release exe into the user's Downloads folder.
         Deliberately NOT self-replacing (AV locks / half-swaps bricked installs
@@ -476,7 +467,7 @@ class AppApi:
         from exilebot_pickit.ui.config import DEFAULT_CONFIG
         keep = {k: self.cfg.get(k) for k in
                 ("history", "profiles", "item_states", "last_gen_prices",
-                 "window_geometry", "window_geometry_web", "minimize_to_tray",
+                 "window_geometry_web", "minimize_to_tray",
                  "active_profile", "league")}
         self.cfg.clear()
         self.cfg.update(DEFAULT_CONFIG)

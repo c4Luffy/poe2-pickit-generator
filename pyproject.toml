@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "exilebot-pickit"
-version = "2.6.39"
+dynamic = ["version"]
 description = "Generate Exiled Bot 2 pickit rules from live Path of Exile 2 economy prices"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -44,3 +44,6 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "src/exilebot_pickit/ui/app.py" = ["E722"]  # a few broad excepts guard the UI on purpose
 "src/exilebot_pickit/**/__init__.py" = []
+
+[tool.setuptools.dynamic]
+version = {attr = "exilebot_pickit.version.VERSION"}
