@@ -521,6 +521,8 @@ class AppApi:
                               "icon": STATIC_ICONS.get(n, ""),
                               "lvl": bi.get("lvl", 0),
                               "stats": bi.get("stats", "")})
+            # highest level requirement first — the real endgame bases on top
+            bases.sort(key=lambda b: -b["lvl"])
             out.append({"cat": cat, "bases": bases})
         return out
 

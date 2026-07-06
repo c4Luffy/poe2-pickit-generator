@@ -131,7 +131,13 @@ pip install pytest ruff     # test:  python -m pytest -q && ruff check .
 
 ## 📝 What's new
 
-### v3.5.0 — latest
+### v3.5.1 — latest
+
+- 🐛 Polish pass from live testing: wider Chance/Craft cards (no more crushed names), number inputs never clip digits, chase-target tags wrap cleanly ("⚠ boss drop · chance unconfirmed")
+- 🧱 Exceptional base list sorted by item level (highest first) inside each slot
+- ✅ Updater verified end-to-end — downloads the release exe to your Downloads folder
+
+### v3.5.0
 
 - ⚡ **Generate page rebuilt** to the new design: numbered steps, an **Auto floor switch** (floors recompute from live prices on every generate), 7-day floor sparklines, timestamped colored run log, and a "Generated successfully" panel
 - ⬇️ **Update downloader** — the sidebar status card checks GitHub and downloads the new exe straight to your Downloads folder (never touches the running install)

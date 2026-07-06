@@ -12,7 +12,7 @@
   html[data-theme="light"] .card{box-shadow:0 1px 2px rgba(16,24,40,.05)}
   html[data-theme="light"] nav{box-shadow:1px 0 3px rgba(16,24,40,.04)}
   /* ── base cards (Chance / Craft, mockup style) ── */
-  .bc2{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);
+  .bc2{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);
     border-radius:13px;padding:12px 14px;cursor:pointer;
     transition:background .13s,border-color .13s,transform .13s}
   .bc2:hover{border-color:var(--gold-dim);transform:translateY(-1px)}
@@ -20,14 +20,14 @@
   .bc2 img{width:38px;height:38px;object-fit:contain;flex-shrink:0}
   .bc2 .m{flex:1;min-width:0}
   .bc2 .m b{font-size:13.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .bc2 .m .t{font-size:11.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bc2 .m .t{font-size:11.5px;color:var(--dim);margin-top:2px;line-height:1.45}
   .bc2 .m .t .w{color:var(--warn)}
   .stepper{display:flex;align-items:center;gap:2px;background:var(--bg3);border:1px solid var(--border);
     border-radius:9px;padding:2px}
   .stepper button{width:24px;height:24px;border:0;background:transparent;color:var(--dim);
     cursor:pointer;font-size:14px;border-radius:7px}
   .stepper button:hover{background:var(--bg2);color:var(--gold)}
-  .stepper input{width:38px;text-align:center;border:0;background:transparent;padding:2px 0;font-size:12.5px}
+  .stepper input{width:46px;min-width:46px;text-align:center;border:0;background:transparent;padding:2px 0;font-size:13px}
   /* ── Mockup components (Generate) ── */
   .stepb{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
     border-radius:6px;background:var(--gold);color:#fff;font-size:12px;font-weight:700;margin-right:9px}
@@ -166,13 +166,14 @@
   /* native number spinners look foreign - hide them; type or use arrow keys */
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-  input[type=number]{-moz-appearance:textfield}
+  input[type=number]{-moz-appearance:textfield;min-width:56px}
+  .stepper input[type=number]{min-width:46px}
   .pill{font-size:11px;padding:2px 9px;border-radius:99px;border:1px solid var(--border);color:var(--dim);
         white-space:nowrap;display:inline-block;max-width:210px;overflow:hidden;text-overflow:ellipsis;
         vertical-align:middle}
   .pill.on{color:var(--ok);border-color:var(--ok)}
   /* bases grids */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
   .bcard{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:12px 14px;cursor:pointer}
   .bcard.dis{opacity:.45}
   .bcard b{font-size:13.5px}
@@ -340,16 +341,6 @@
     <div class="pillrow">
       <span class="statuspill" id="autoPill">⚡ Auto floor is off</span>
       <span class="hint" style="margin:0" id="autoHint">Floors adapt as the economy moves. You can override the values manually.</span>
-      <div class="sp" style="flex:1"></div>
-      <button class="ghost mini" id="advBtn">⚙ Advanced options ▾</button>
-    </div>
-    <div id="advRow" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-      <span class="hint" style="margin:0 8px 0 0">Fine-tune what gets picked:</span>
-      <button class="ghost mini" data-nav="eco">🪙 Economy</button>
-      <button class="ghost mini" data-nav="chance">🎲 Chance</button>
-      <button class="ghost mini" data-nav="craft">🛠 Craft</button>
-      <button class="ghost mini" data-nav="exc">🧱 Exceptional</button>
-      <button class="ghost mini" data-nav="set">⚙ Settings</button>
     </div>
   </div>
 
@@ -708,12 +699,6 @@ $("keepPct").onchange=async()=>{
   if($("swAuto").classList.contains("on"))applyAutoFloor();};
 $("genDocs").onclick=()=>api().open_url("https://github.com/c4Luffy/poe2-pickit-generator#readme");
 $("ninjaLink").onclick=e=>{e.preventDefault();api().open_url("https://poe.ninja/poe2/economy");};
-$("advBtn").onclick=()=>{
-  const r=$("advRow"),show=r.style.display==="none";
-  r.style.display=show?"block":"none";
-  $("advBtn").textContent=show?"⚙ Advanced options ▴":"⚙ Advanced options ▾";};
-document.querySelectorAll("#advRow [data-nav]").forEach(b=>b.onclick=()=>{
-  document.querySelector(`.nav-btn[data-p="${b.dataset.nav}"]`).click();});
 $("okOpen").onclick=()=>api().open_output();
 
 async function renderSparks(){
@@ -947,7 +932,7 @@ async function loadChance(){
     const d=document.createElement("div");
     d.className="bc2"+(b.enabled?"":" dis");
     const warn=b.target.includes("⚠");
-    const tgt=warn?b.target.replace(" ⚠ boss drop",'</span> <span class="w">⚠ boss drop — may not be chanceable</span><span>')
+    const tgt=warn?b.target.replace(" ⚠ boss drop",'</span> <span class="w">⚠ boss drop · chance unconfirmed</span><span>')
                   :b.target;
     d.innerHTML=(b.icon?`<img loading="lazy" src="${b.icon}">`:"")+
       `<div class="m"><b>${esc(b.base)}</b><div class="t">→ <span>${tgt}</span></div></div>
