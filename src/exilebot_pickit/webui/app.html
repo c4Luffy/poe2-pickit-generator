@@ -434,7 +434,20 @@
 
 <!-- ══ EXCEPTIONAL ══ -->
 <div class="page" id="p-exc">
-  <h1>Exceptional Bases</h1><div class="sub">Gear bases that can roll an extra rune socket — the strongest version of every slot. Kept as white items to craft on, and optionally ANY unique that drops on one. <span id="excCount"></span></div>
+  <h1>Exceptional Bases</h1><div class="sub">The strongest version of every gear slot — kept as white items to craft on. <span id="excCount"></span></div>
+  <div class="card" style="border-color:var(--gold-dim)"><h2>💡 How exceptional bases work</h2>
+    <div class="hint" style="margin:0">An <b>exceptional</b> base rolls <b>one extra rune socket</b> compared to a normal base — more runes = a stronger item, which is why the bot keeps them. The extra socket depends on the slot:</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px">
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="letter-spacing:2px;color:var(--gold);font-size:15px">◈◈◈</span>
+        <span><b>3 sockets</b> <span class="hint" style="margin:0">(normal 2) — body armour, 2H maces, quarterstaves, staves, bows, crossbows</span></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="letter-spacing:2px;color:var(--gold);font-size:15px">◈◈</span>
+        <span><b>2 sockets</b> <span class="hint" style="margin:0">(normal 1) — gloves, boots, helmets, shields, foci, 1H weapons</span></span>
+      </div>
+    </div>
+  </div>
   <div class="card"><h2>🧱 White bases</h2>
     <div class="hint">Exceptional bases can roll an <b>extra rune socket</b> (e.g. gloves with 2 instead of 1) — that's what makes them special and worth crafting on. Blank (Normal) ones are kept to craft or sell to crafters. No market listing, so your value floors don't apply; the quality and item-level gates below decide what's worth the pickup.</div>
     <div class="set-row"><div class="lab"><b>Pick up white exceptional bases</b><span>Normal rarity, gated by quality &amp; item level below</span></div><div class="sp"></div>
@@ -443,11 +456,6 @@
       <input type="number" id="baseQ" min="0" max="100" style="width:80px;text-align:center"></div>
     <div class="set-row"><div class="lab"><b>Minimum item level</b><span>82 = max</span></div><div class="sp"></div>
       <input type="number" id="baseL" min="1" max="82" style="width:80px;text-align:center"></div>
-  </div>
-  <div class="card"><h2>💎 Uniques on these bases</h2>
-    <div class="hint">Normally a unique below your value floor is left on the ground. This picks up <b>every</b> unique that drops on one of the bases listed below, price ignored — the exceptional version can roll an extra rune socket, so it's the better copy of that unique and usually worth the slot. Turn it off if your stash fills with cheap uniques.</div>
-    <div class="set-row"><div class="lab"><b>Pick ANY unique on an exceptional base</b><span>ignores the unique value floor — the base alone is worth the slot</span></div><div class="sp"></div>
-      <div class="switch" id="swUniqExc"><i></i></div></div>
   </div>
   <div class="card"><h2>📋 The base list</h2>
     <div class="hint">Updates automatically when a PoE2 patch adds new bases — nothing to manage here.</div>
@@ -1010,18 +1018,33 @@ async function loadExc(){
   const cats=await api().exceptional_bases();const g=$("excGrid");g.innerHTML="";
   let total=0,on=0;
   const cnt=()=>{$("excCount").textContent=`${on} / ${total} enabled.`};
+  const ATTRC={Str:"#c0554a",Dex:"#6fae5f",Int:"#5b8fd6"};
+  const chip=a=>a.split("/").filter(x=>ATTRC[x])
+    .map(x=>`<span style="background:${ATTRC[x]};color:#0d0b06;font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;letter-spacing:.4px">${x}</span>`).join(" ")||"";
   for(const c of cats){
-    const h=document.createElement("div");h.className="gsec";h.textContent=c.cat;g.appendChild(h);
+    const h=document.createElement("div");h.className="gsec";
+    const badge=c.sockets>0
+      ? `<span style="margin-left:auto;color:var(--gold);letter-spacing:1px;font-size:12px">${"◈".repeat(c.sockets)} up to ${c.sockets} sockets</span>`
+      : `<span style="margin-left:auto;color:var(--dim);font-size:11px">no rune sockets</span>`;
+    h.style.display="flex";h.style.alignItems="center";
+    h.innerHTML=`<span>${esc(c.cat)}</span>${badge}`;g.appendChild(h);
+    let lastAttr=null;
     for(const b of c.bases){total++;if(b.enabled)on++;
+      // attribute sub-header when the group changes (Str → Dex → Int → hybrids)
+      if(b.attr&&b.attr!=="—"&&b.attr!==lastAttr){lastAttr=b.attr;
+        const sh=document.createElement("div");
+        sh.style.cssText="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:8px 2px 2px;font-size:11px;color:var(--dim);letter-spacing:.5px";
+        sh.innerHTML=chip(b.attr);g.appendChild(sh);}
       const d=document.createElement("div");
       d.className="bcard"+(b.enabled?"":" dis");
-      const ico=b.icon?`<img class="icn" loading="lazy" src="${b.icon}" style="width:30px;height:30px;float:right">`:"";
+      d.style.cssText="display:flex;align-items:center;gap:11px";
+      const ico=b.icon?`<img class="icn" loading="lazy" src="${b.icon}" style="width:44px;height:44px;flex-shrink:0">`:"";
       const meta=[b.lvl?`lvl ${b.lvl}`:"",b.stats||""].filter(x=>x).join(" · ");
-      d.innerHTML=`${ico}<b>${esc(b.name)}</b><div class="t">${esc(meta)||"&nbsp;"}</div>`;
+      d.innerHTML=`${ico}<div style="min-width:0;flex:1"><b>${esc(b.name)}</b><div class="t">${esc(meta)||"&nbsp;"}</div></div>`;
       d.title="Click to include/exclude this base (white pickup + its uniques)";
       d.onclick=async()=>{b.enabled=!b.enabled;b.enabled?on++:on--;
         await api().set_item("_excbase",b.name,b.enabled);
-        d.className="bcard"+(b.enabled?"":" dis");cnt();};
+        d.className="bcard"+(b.enabled?"":" dis");d.style.display="flex";cnt();};
       g.appendChild(d);}}
   cnt();}
 
@@ -1270,7 +1293,6 @@ function applyInfo(i){
   $("botFolderLbl").textContent=i.bot_folder||"not set";
   sw("swCopy","auto_copy",i.auto_copy);
   sw("swBases","include_bases",i.include_bases);
-  sw("swUniqExc","unique_exceptional",i.unique_exceptional);
   sw("swFilter","copy_filter_to_game",i.copy_filter_to_game);
   sw("swTray","minimize_to_tray",i.minimize_to_tray);
   $("fltDirLbl").textContent=i.poe2_filter_dir||"not set";

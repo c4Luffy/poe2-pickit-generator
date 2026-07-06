@@ -107,13 +107,9 @@ _ACCESSORY_BASES: frozenset = frozenset({
     "Turquoise Amulet", "Onyx Amulet", "Solar Amulet", "Stellar Amulet",
 })
 
-# Chance-base gloves not in the endgame _BASE_TYPES_BY_CATEGORY list but still
-# valid chance targets (validator must accept them).
-_CHANCE_EXTRA_BASES: frozenset = frozenset({"Moulded Mitts"})
-
 VALID_EQUIPMENT_BASES: frozenset = (
     frozenset(name for entries in _BASE_TYPES_BY_CATEGORY.values() for name, _ in entries)
-    | _ACCESSORY_BASES | _CHANCE_EXTRA_BASES
+    | _ACCESSORY_BASES
 )
 
 # Names Exiled Bot rejects outright (validation error). Seeded with the cases we
@@ -280,6 +276,10 @@ _CRAFT_BEST_BASES: dict = {
 # Flat base_name -> defence_type lookup (used for the Craft Bases card labels).
 _CRAFT_BASE_DEFENCE = {n: dt for items in _CRAFT_BEST_BASES.values() for n, dt in items}
 
+# Craft bases are their own curated list (not the pruned exceptional-base list),
+# so their names must also count as valid equipment bases for the validator.
+VALID_EQUIPMENT_BASES = VALID_EQUIPMENT_BASES | frozenset(_CRAFT_BASE_DEFENCE)
+
 # Per-base minimum item level overrides — accessories are worth crafting on from a
 # lower ilvl than armour, so they're not gated by the global min (default 82).
 _CRAFT_BASE_ILVL_OVERRIDES: dict = {
@@ -410,26 +410,6 @@ def build_wombgift_rules(disabled=None) -> list:
     return out
 
 
-def build_unique_exceptional_rules(disabled=None) -> list:
-    """One catch-all rule per exceptional base: ANY unique on that base is
-    picked regardless of the unique value floor. Base list comes from the
-    same remote-updatable game data as the gear-base rules."""
-    _dis = set(disabled or ())
-    names = [n for n in dict.fromkeys(
-        n for ents in _BASE_TYPES_BY_CATEGORY.values() for n, _ in ents)
-        if n not in _dis]
-    if not names:
-        return []
-    out = header_major("Uniques on Exceptional Bases").splitlines() + [
-        "",
-        "// Any unique that drops on an exceptional base is kept, whatever its",
-        "// market value - the base alone makes it worth the inventory slot.",
-        "",
-    ]
-    for n in names:
-        out.append(f'[Type] == "{_quote_ipd(n)}" && [Rarity] == "Unique" # [StashItem] == "true"')
-    return out
-
 
 def build_special_item_rules(disabled=None) -> list:
     dis = set(disabled or ())
@@ -464,7 +444,7 @@ def build_exotic_base_rules(disabled=None) -> list:
 # no [Type]) were tried and REMOVED (owner, 2026-07-05): Exiled Bot treats a
 # rule without [Type] as matching EVERYTHING and would pick the whole ground.
 # Do not re-add. Exceptional pickup is per-base (build_base_rules quality/
-# sockets pairs + build_unique_exceptional_rules).
+# sockets pairs). Uniques are picked purely by their poe.ninja value.
 
 
 # Structured list of chance orb bases — used by the Chance Bases tab and
@@ -480,7 +460,6 @@ CHANCE_BASES: list = [
     ("Amulets", "Solar Amulet",   "Fireflower"),
     ("Rings",   "Emerald Ring",   "Thief's Torment / Death Rush"),
     ("Amulets", "Gold Amulet",    "Eye of Chayula / Serpent's Egg"),
-    ("Gloves",  "Moulded Mitts",  "Atziri's Acuity"),
 ]
 
 

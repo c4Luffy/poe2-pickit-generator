@@ -81,9 +81,6 @@ DEFAULT_CONFIG = {
     # generate ("keep top N%" percentile).
     "auto_floor": False,
     "auto_floor_pct": 40,
-    # Pick ANY unique sitting on an exceptional base, ignoring the unique
-    # value floor (good bases make even cheap uniques worth grabbing).
-    "unique_exceptional": True,
     "base_quality": 25,
     "base_min_level": 82,
     "item_states":  {},

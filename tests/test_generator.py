@@ -299,8 +299,8 @@ def test_chance_bases_no_duplicates():
 
 def test_new_bases_generate_gear_rules():
     """Newly added bases (Tattered Robe, Cultist Crown, etc.) must appear in build_base_rules."""
-    new_bases = ["Tattered Robe", "Cultist Crown", "Fine Bracers", "Spiral Wraps",
-                 "Braced Sabatons", "Heavy Belt", "Utility Belt", "Ornate Belt", "Omen Sceptre"]
+    new_bases = ["Soldier Cuirass", "Imperial Greathelm", "Massive Mitts", "Tasalian Greaves",
+                 "Heavy Belt", "Utility Belt", "Ornate Belt", "Hallowed Sceptre"]
     rules_text = "\n".join(gen.build_base_rules())
     for base in new_bases:
         assert f'"{base}"' in rules_text, f"{base!r} missing from build_base_rules output"
@@ -471,8 +471,8 @@ def test_webui_entry_and_api_import():
 
 def test_all_new_bases_have_correct_ilvl_placement():
     """All newly added bases must have [ItemLevel] after # in build_base_rules."""
-    new_bases = ["Fine Bracers", "Spiral Wraps", "Braced Sabatons", "Cultist Crown",
-                 "Tattered Robe", "Omen Sceptre", "Ancient Leggings", "Voltfang Talisman"]
+    new_bases = ["Polished Bracers", "Blacksteel Sabatons", "Imperial Greathelm",
+                 "Vile Robe", "Hallowed Sceptre", "Apostle Leggings"]
     rules = gen.build_base_rules()
     for base in new_bases:
         base_rules = [r for r in rules if f'"{base}"' in r and "[StashItem]" in r]
@@ -482,12 +482,3 @@ def test_all_new_bases_have_correct_ilvl_placement():
             assert "[ItemLevel]" not in before, f"[ItemLevel] before # for {base}: {rule}"
 
 
-def test_talismans_weapon_category_generates_rules():
-    """Talismans — the Druid's weapon (PoE2 0.4, Dec 2025) — a whole base category
-    that was missing from the stale data. Every base must produce a pickup rule."""
-    from exilebot_pickit.data import base_types as bt
-    tals = [n for n, _ in bt._BASE_TYPES_BY_CATEGORY.get("Talismans", ())]
-    assert len(tals) == 25, f"expected 25 talisman bases, got {len(tals)}"
-    rules = gen.build_base_rules()
-    for name in tals:
-        assert any(f'"{name}"' in r for r in rules), f"no rule generated for {name!r}"

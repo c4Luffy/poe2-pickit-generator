@@ -112,15 +112,10 @@ def test_builders_respect_disabled_names():
         assert t in full
 
 
-def test_unique_exceptional_rules():
-    lines = gen.build_unique_exceptional_rules()
-    rules = [ln for ln in lines if ln.startswith("[Type]")]
-    bases = {n for ents in gen._BASE_TYPES_BY_CATEGORY.values() for n, _ in ents}
-    assert len(rules) == len(bases)
-    for ln in rules:
-        assert '[Rarity] == "Unique"' in ln and "[StashItem]" in ln
-        assert "[UniqueName]" not in ln  # catch-all by base, not by name
-    assert gen.validate_pickit(lines)["errors"] == []
+def test_unique_exceptional_removed():
+    # "pick ANY unique on an exceptional base" was removed by the owner
+    # (uniques are picked purely by value now) — must stay gone.
+    assert not hasattr(gen, "build_unique_exceptional_rules")
 
 
 def test_exotic_base_rules():

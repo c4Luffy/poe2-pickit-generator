@@ -131,7 +131,13 @@ pip install pytest ruff     # test:  python -m pytest -q && ruff check .
 
 ## 📝 What's new
 
-### v3.5.2 — latest
+### v3.6.0 — latest
+
+- 🧱 **Exceptional bases, rebuilt** — trimmed from ~300 to the **122 best bases**: top 3 per attribute subcategory, ranked by real defence/DPS stats (from Craft of Exile data). Grouped by **Str / Dex / Int** with colour chips, best-first order, bigger icons, and a panel explaining the extra-rune-socket mechanic (how many sockets each slot gets)
+- 🎲 **Chance Bases** — focused 8-target list (Mageblood, Headhunter, Astramentis, Ryslatha's Coil, Fireflower, Ventor's, Thief's Torment, Eye of Chayula)
+- 🧹 Removed **Talismans** and **Bucklers** entirely, and the "pick ANY unique on an exceptional base" option (uniques are picked purely by value now)
+
+### v3.5.2
 
 - 🎲 **Chance Bases rebuilt** to a focused 9-target list (Mageblood, Headhunter, Astramentis, Ryslatha's Coil, Fireflower, Ventor's, Thief's Torment, Eye of Chayula, Atziri's Acuity) — all confirmed droppable; old speculative list removed
 - 🧹 Cleaned out the boss-drop tag code and orphaned styles tied to the old list

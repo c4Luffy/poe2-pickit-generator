@@ -27,7 +27,7 @@ from exilebot_pickit.version import VERSION
 # can't scribble arbitrary keys into the config file.
 _SETTABLE = {
     "league", "output_base", "bot_folder", "auto_copy", "theme",
-    "min_exalt_gear", "min_exalt_unique", "include_bases", "unique_exceptional",
+    "min_exalt_gear", "min_exalt_unique", "include_bases",
     "auto_floor", "auto_floor_pct",
     "base_quality", "base_min_level", "auto_regen_hours", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
@@ -72,7 +72,6 @@ class AppApi:
             "min_gear": float(c.get("min_exalt_gear", 0.0)),
             "min_unique": float(c.get("min_exalt_unique", 0.0)),
             "include_bases": bool(c.get("include_bases", True)),
-            "unique_exceptional": bool(c.get("unique_exceptional", True)),
             "auto_floor": bool(c.get("auto_floor", False)),
             "auto_floor_pct": int(c.get("auto_floor_pct", 40) or 40),
             "base_quality": int(c.get("base_quality", 25)),
@@ -324,8 +323,7 @@ class AppApi:
                 "min_exalt_unique": float(c.get("min_exalt_unique", 0.0)),
                 "output_base": c.get("output_base", "poe2_pickit"),
                 "include_bases": bool(c.get("include_bases", True)),
-                "unique_exceptional": bool(c.get("unique_exceptional", True)),
-            "auto_floor": bool(c.get("auto_floor", False)),
+                "auto_floor": bool(c.get("auto_floor", False)),
             "auto_floor_pct": int(c.get("auto_floor_pct", 40) or 40),
                 "base_quality": int(c.get("base_quality", 25)),
                 "base_min_level": int(c.get("base_min_level", 82))}
@@ -357,7 +355,6 @@ class AppApi:
         self.cfg["min_exalt_unique"] = prof.get("min_exalt_unique", 0.0)
         self.cfg["output_base"]      = prof.get("output_base", "poe2_pickit")
         self.cfg["include_bases"]    = prof.get("include_bases", True)
-        self.cfg["unique_exceptional"] = prof.get("unique_exceptional", True)
         self.cfg["auto_floor"]       = prof.get("auto_floor", False)
         self.cfg["auto_floor_pct"]   = prof.get("auto_floor_pct", 40)
         self.cfg["base_quality"]     = prof.get("base_quality", 25)
@@ -546,19 +543,42 @@ class AppApi:
         icon and stats — powers the Exceptional tab grid."""
         from exilebot_pickit.data.icons import STATIC_ICONS, BASE_STATS
         st = self.cfg.get("item_states", {}).get("_excbase", {})
+
+        def _profile(stats: str):
+            """Attribute label + primary-stat total from the stats string
+            ('AR 496 · EV 0 · ES 76' → ('Str/Int', 572))."""
+            ar = ev = es = 0
+            for part in stats.split("·"):
+                p = part.strip()
+                if p.startswith("AR "): ar = int(p[3:] or 0)
+                elif p.startswith("EV "): ev = int(p[3:] or 0)
+                elif p.startswith("ES "): es = int(p[3:] or 0)
+            tags = []
+            if ar: tags.append("Str")
+            if ev: tags.append("Dex")
+            if es: tags.append("Int")
+            return ("/".join(tags) or "—"), (ar + ev + es)
+
+        # fixed attribute order so groups always read Str → Dex → Int → hybrids
+        ATTR_ORDER = {"Str": 0, "Dex": 1, "Int": 2, "Str/Dex": 3,
+                      "Str/Int": 4, "Dex/Int": 5, "Str/Dex/Int": 6, "—": 9}
         out = []
         for cat, entries in gen._BASE_TYPES_BY_CATEGORY.items():
             bases = []
             for n, _s in entries:
                 bi = BASE_STATS.get(n, {})
+                stats = bi.get("stats", "")
+                attr, total = _profile(stats)
                 bases.append({"name": n,
                               "enabled": st.get(n, {}).get("enabled", True),
                               "icon": STATIC_ICONS.get(n, ""),
                               "lvl": bi.get("lvl", 0),
-                              "stats": bi.get("stats", "")})
-            # highest level requirement first — the real endgame bases on top
-            bases.sort(key=lambda b: -b["lvl"])
-            out.append({"cat": cat, "bases": bases})
+                              "stats": stats, "attr": attr, "total": total})
+            # group by attribute, best (highest stat) first inside each group
+            bases.sort(key=lambda b: (ATTR_ORDER.get(b["attr"], 8), -b["total"], -b["lvl"]))
+            # max rune sockets an exceptional of this slot can roll (0 = none)
+            sockets = max((s for _n, s in entries), default=0)
+            out.append({"cat": cat, "bases": bases, "sockets": sockets})
         return out
 
     def _excbase_disabled(self, snap):
@@ -673,7 +693,6 @@ class AppApi:
             "cat_thresh": {},          # per-category floors removed by design
             "item_states": item_states,
             "include_bases": bool(self.cfg.get("include_bases", True)),
-            "unique_exceptional": bool(self.cfg.get("unique_exceptional", True)),
             "base_quality": int(self.cfg.get("base_quality", 25)),
             "base_min_level": int(self.cfg.get("base_min_level", 82)),
         }
@@ -748,8 +767,6 @@ class AppApi:
             craft_lines, _n, _floor = asm.craft_base_section(snap)
             out += craft_lines
             excdis = self._excbase_disabled(snap)
-            if snap["unique_exceptional"]:
-                out += [""] + gen.build_unique_exceptional_rules(disabled=excdis)
             if snap["include_bases"]:
                 out += ["", gen.header_major("Exceptional Bases"), ""]
                 out += gen.build_base_rules(min_quality=snap["base_quality"],
