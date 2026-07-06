@@ -862,7 +862,21 @@ class AppApi:
         p = paths.get(kind)
         if not p or not os.path.isfile(p):
             return {"error": "file not found — generate first"}
-        os.startfile(p)   # noqa: S606
+        try:
+            os.startfile(p)   # noqa: S606
+        except OSError:
+            # no default app for the extension — fall back to Notepad
+            try:
+                import subprocess
+                subprocess.Popen(["notepad.exe", p])
+            except Exception as e:
+                return {"error": f"couldn't open: {e}"}
+        return {"ok": True}
+
+    def js_error(self, msg):
+        """UI-side error reporter — lands in debug.log for diagnosis."""
+        from exilebot_pickit.ui.config import log_info
+        log_info(f"JSERR {str(msg)[:500]}")
         return {"ok": True}
 
     def clear_history(self):
