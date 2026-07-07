@@ -546,6 +546,40 @@ class AppApi:
 
     # ── Window controls (frameless window draws its own title bar) ───────────
 
+    def _hwnd(self):
+        """Native HWND of the app window (for real OS drag/resize/snap)."""
+        import ctypes
+        import webview
+        try:
+            return int(webview.windows[0].native.Handle.ToInt32())
+        except Exception:
+            pass
+        try:  # fallback: find by title
+            return ctypes.windll.user32.FindWindowW(None, "ExileBot 2 Pickit Generator") or None
+        except Exception:
+            return None
+
+    def _nc_hit(self, code):
+        """Start a NATIVE Windows move/size loop (WM_NCLBUTTONDOWN). This is
+        what makes Aero Snap (drag to top = maximize, sides = half) and edge
+        resizing work in a frameless window."""
+        import ctypes
+        h = self._hwnd()
+        if not h:
+            return {"error": "no hwnd"}
+        ctypes.windll.user32.ReleaseCapture()
+        ctypes.windll.user32.SendMessageW(h, 0x00A1, code, 0)   # WM_NCLBUTTONDOWN
+        return {"ok": True}
+
+    def win_drag(self):
+        return self._nc_hit(2)                                   # HTCAPTION
+
+    _EDGES = {"l": 10, "r": 11, "t": 12, "tl": 13, "tr": 14,
+              "b": 15, "bl": 16, "br": 17}
+
+    def win_resize(self, edge):
+        return self._nc_hit(self._EDGES.get(str(edge), 17))
+
     def win_minimize(self):
         import webview
         webview.windows[0].minimize()
@@ -554,6 +588,14 @@ class AppApi:
     def win_max_toggle(self):
         import webview
         w = webview.windows[0]
+        # Borderless WinForms windows maximize over the taskbar by default —
+        # clamp the maximize bounds to the desktop working area first.
+        try:
+            form = w.native
+            from System.Windows.Forms import Screen
+            form.MaximizedBounds = Screen.FromHandle(form.Handle).WorkingArea
+        except Exception:
+            pass
         if getattr(self, "_maxed", False):
             w.restore()
             self._maxed = False
