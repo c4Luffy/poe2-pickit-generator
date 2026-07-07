@@ -829,19 +829,18 @@ function logLine(m,c){
   l.appendChild(d);l.scrollTop=l.scrollHeight;}
 
 /* ── window controls (frameless) ──
-   Moving: pywebview's drag region on the title bar (class on .tb-drag).
-   Resizing: pointer-captured edge handles driving window.move/resize via the
-   bridge — WebView2 owns the mouse, so native WM_NC* tricks don't work here. */
+   Moving + resizing are pointer-driven through the bridge (WebView2 owns the
+   mouse, so native OS drag/snap can't be used). Edge snapping is emulated. */
+let winMaxed=false;
+async function toggleMax(){const r=await api().win_max_toggle();winMaxed=!!(r&&r.maximized);}
 $("wMin").onclick=()=>api().win_minimize();
-$("wMax").onclick=()=>api().win_max_toggle();
+$("wMax").onclick=()=>toggleMax();
 $("wClose").onclick=()=>api().win_close();
 const _tbd=document.querySelector(".tb-drag");
-_tbd.ondblclick=()=>api().win_max_toggle();
-// Pointer-driven window drag. On release at a screen edge we emulate Aero
-// Snap: top = maximize, left/right = half screen (native snap can't see a
-// manual move, so we do it ourselves).
+_tbd.ondblclick=()=>toggleMax();
 _tbd.addEventListener("pointerdown",async e=>{
   if(e.button!==0||e.target.closest("button"))return;
+  if(winMaxed){await toggleMax();}          // dragging a maximized window restores it first
   const b=await api().win_bounds();
   const sx=e.screenX,sy=e.screenY;let moved=false,busy=false;
   _tbd.setPointerCapture(e.pointerId);
@@ -855,15 +854,18 @@ _tbd.addEventListener("pointerdown",async e=>{
   const up=ev=>{
     _tbd.removeEventListener("pointermove",mv);_tbd.removeEventListener("pointerup",up);
     if(!moved)return;
-    if(ev.screenY<=4)api().win_snap("max");
-    else if(ev.screenX<=4)api().win_snap("left");
-    else if(ev.screenX>=screen.width-5)api().win_snap("right");};
+    if(ev.screenY<=4){api().win_snap("max");winMaxed=true;}
+    else if(ev.screenX<=4){api().win_snap("left");winMaxed=false;}
+    else if(ev.screenX>=screen.width-5){api().win_snap("right");winMaxed=false;}};
   _tbd.addEventListener("pointermove",mv);_tbd.addEventListener("pointerup",up);
 });
+// Edge/corner resize: opposite edge stays anchored, min size enforced here so
+// the window can never "drift" when the clamp kicks in.
 const _RZ={l:[1,0,0,0],r:[0,1,0,0],t:[0,0,1,0],b:[0,0,0,1],
            tl:[1,0,1,0],tr:[0,1,1,0],bl:[1,0,0,1],br:[0,1,0,1]};
+const MINW=760,MINH=560;
 document.querySelectorAll(".rz").forEach(z=>z.addEventListener("pointerdown",async e=>{
-  if(e.button!==0)return;
+  if(e.button!==0||winMaxed)return;
   e.preventDefault();z.setPointerCapture(e.pointerId);
   const b=await api().win_bounds();
   const sx=e.screenX,sy=e.screenY,[L,R,T,B]=_RZ[z.dataset.e];
@@ -871,10 +873,12 @@ document.querySelectorAll(".rz").forEach(z=>z.addEventListener("pointerdown",asy
   const mv=async ev=>{
     if(busy)return;busy=true;
     const dx=ev.screenX-sx,dy=ev.screenY-sy;
-    let x=b.x,y=b.y,w=b.w,h=b.h;
-    if(R)w=b.w+dx;if(B)h=b.h+dy;
-    if(L){x=b.x+dx;w=b.w-dx;}if(T){y=b.y+dy;h=b.h-dy;}
-    try{await api().win_set_bounds(x,y,w,h);}catch(_){}
+    let x=b.x,y=b.y,w=b.w,hh=b.h;
+    if(R)w=Math.max(MINW,b.w+dx);
+    if(B)hh=Math.max(MINH,b.h+dy);
+    if(L){w=Math.max(MINW,b.w-dx);x=b.x+(b.w-w);}
+    if(T){hh=Math.max(MINH,b.h-dy);y=b.y+(b.h-hh);}
+    try{await api().win_set_bounds(x,y,w,hh);}catch(_){}
     busy=false;};
   const up=()=>{z.removeEventListener("pointermove",mv);z.removeEventListener("pointerup",up);};
   z.addEventListener("pointermove",mv);z.addEventListener("pointerup",up);
