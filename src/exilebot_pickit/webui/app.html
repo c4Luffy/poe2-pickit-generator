@@ -462,7 +462,10 @@
   <h1>Chance Bases</h1><div class="sub">White bases worth keeping for Orb of Chance — click a card to toggle. <span id="chanceCount"></span></div>
   <div class="eco-head"><button class="ghost mini" id="chanceAll">Enable all</button>
     <button class="ghost mini" id="chanceNone">Disable all</button></div>
-  <div class="grid" id="chanceGrid"></div>
+  <div class="craft-layout">
+    <div class="craft-side" id="chanceSide"></div>
+    <div class="grid" id="chanceGrid"></div>
+  </div>
 </div>
 
 <!-- ══ CRAFT ══ -->
@@ -503,7 +506,10 @@
   </div>
   <div class="card"><h2>📋 The base list</h2>
     <div class="hint">Updates automatically when a PoE2 patch adds new bases — nothing to manage here.</div>
-    <div class="grid" id="excGrid" style="margin-top:10px"></div>
+    <div class="craft-layout" style="margin-top:10px">
+      <div class="craft-side" id="excSide"></div>
+      <div class="grid" id="excGrid"></div>
+    </div>
   </div>
 </div>
 
@@ -1059,12 +1065,33 @@ document.querySelectorAll("th[data-s]").forEach(th=>th.onclick=()=>{ecoSort=th.d
 
 /* ── chance ── */
 let chanceList=[];
+let chanceFilter="all";
+const CHANCE_ORDER=["Belts","Rings","Amulets"];
 function chanceCount(){$("chanceCount").textContent=
   `${chanceList.filter(b=>b.enabled).length} / ${chanceList.length} enabled.`;}
+function buildChanceSide(){
+  const s=$("chanceSide");s.innerHTML="";
+  const present=CHANCE_ORDER.filter(c=>chanceList.some(b=>b.cat===c));
+  const count=c=>chanceList.filter(b=>b.cat===c).length;
+  const mk=(cat,label)=>{
+    const btn=document.createElement("button");
+    btn.className="cside-btn"+(chanceFilter===cat?" on":"");
+    btn.innerHTML=`<span>${esc(label)}</span>`+(cat==="all"?"":`<span class="n">${count(cat)}</span>`);
+    btn.onclick=()=>{chanceFilter=cat;buildChanceSide();renderChanceGrid();};
+    s.appendChild(btn);};
+  mk("all","All types");
+  const lbl=document.createElement("div");lbl.className="csgrp";lbl.textContent="Accessories";s.appendChild(lbl);
+  for(const c of present)mk(c,c);
+}
 async function loadChance(){
-  chanceList=await api().chance_bases();const g=$("chanceGrid");g.innerHTML="";
+  chanceList=await api().chance_bases();
+  buildChanceSide();renderChanceGrid();}
+function renderChanceGrid(){
+  const g=$("chanceGrid");g.innerHTML="";
+  const items=chanceList.filter(b=>chanceFilter==="all"||b.cat===chanceFilter)
+    .sort((a,b)=>CHANCE_ORDER.indexOf(a.cat)-CHANCE_ORDER.indexOf(b.cat));
   let lastCat=null;
-  for(const b of chanceList){
+  for(const b of items){
     if(b.cat!==lastCat){lastCat=b.cat;
       const h=document.createElement("div");h.className="gsec";h.textContent=b.cat;g.appendChild(h);}
     const d=document.createElement("div");
@@ -1158,14 +1185,43 @@ $("craftAll").onclick=()=>craftBulk(true);
 $("craftNone").onclick=()=>craftBulk(false);
 
 /* ── exceptional ── */
-async function loadExc(){
-  const cats=await api().exceptional_bases();const g=$("excGrid");g.innerHTML="";
+let excCats=[];
+let excFilter="all";
+const EXC_GROUPS=[["Armour",["Body Armours","Helmets","Gloves","Boots"]],
+  ["Weapons",["One Hand Maces","Sceptres","Spears","Wands","Two Hand Maces","Quarterstaves","Staves","Bows","Crossbows"]],
+  ["Off-hand",["Shields","Foci","Quivers"]],["Accessories",["Belts"]]];
+function excCount(){
   let total=0,on=0;
-  const cnt=()=>{$("excCount").textContent=`${on} / ${total} enabled.`};
+  for(const c of excCats)for(const b of c.bases){total++;if(b.enabled)on++;}
+  $("excCount").textContent=`${on} / ${total} enabled.`;}
+function buildExcSide(){
+  const s=$("excSide");s.innerHTML="";
+  const names=excCats.map(c=>c.cat);
+  const count=c=>{const x=excCats.find(k=>k.cat===c);return x?x.bases.length:0;};
+  const mk=(cat,label)=>{
+    const btn=document.createElement("button");
+    btn.className="cside-btn"+(excFilter===cat?" on":"");
+    btn.innerHTML=`<span>${esc(label)}</span>`+(cat==="all"?"":`<span class="n">${count(cat)}</span>`);
+    btn.onclick=()=>{excFilter=cat;buildExcSide();renderExcGrid();};
+    s.appendChild(btn);};
+  mk("all","All slots");
+  for(const [grp,members] of EXC_GROUPS){
+    const present=members.filter(c=>names.includes(c));
+    if(!present.length)continue;
+    const lbl=document.createElement("div");lbl.className="csgrp";lbl.textContent=grp;s.appendChild(lbl);
+    for(const c of present)mk(c,c);}
+}
+async function loadExc(){
+  excCats=await api().exceptional_bases();
+  buildExcSide();renderExcGrid();}
+function renderExcGrid(){
+  const g=$("excGrid");g.innerHTML="";
+  const cnt=excCount;
   const ATTRC={Str:"#c0554a",Dex:"#6fae5f",Int:"#5b8fd6"};
   const chip=a=>a.split("/").filter(x=>ATTRC[x])
     .map(x=>`<span style="background:${ATTRC[x]};color:#0d0b06;font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;letter-spacing:.4px">${x}</span>`).join(" ")||"";
-  for(const c of cats){
+  for(const c of excCats){
+    if(excFilter!=="all"&&c.cat!==excFilter)continue;
     const h=document.createElement("div");h.className="gsec";
     const badge=c.sockets>0
       ? `<span style="margin-left:auto;color:var(--gold);letter-spacing:1px;font-size:12px">${"◈".repeat(c.sockets)} up to ${c.sockets} sockets</span>`
@@ -1173,7 +1229,7 @@ async function loadExc(){
     h.style.display="flex";h.style.alignItems="center";
     h.innerHTML=`<span>${esc(c.cat)}</span>${badge}`;g.appendChild(h);
     let lastAttr=null;
-    for(const b of c.bases){total++;if(b.enabled)on++;
+    for(const b of c.bases){
       // attribute sub-header when the group changes (Str → Dex → Int → hybrids)
       if(b.attr&&b.attr!=="—"&&b.attr!==lastAttr){lastAttr=b.attr;
         const sh=document.createElement("div");
@@ -1186,7 +1242,7 @@ async function loadExc(){
       const meta=[b.lvl?`lvl ${b.lvl}`:"",b.stats||""].filter(x=>x).join(" · ");
       d.innerHTML=`${ico}<div style="min-width:0;flex:1"><b>${esc(b.name)}</b><div class="t">${esc(meta)||"&nbsp;"}</div></div>`;
       d.title="Click to include/exclude this base (white pickup + its uniques)";
-      d.onclick=async()=>{b.enabled=!b.enabled;b.enabled?on++:on--;
+      d.onclick=async()=>{b.enabled=!b.enabled;
         await api().set_item("_excbase",b.name,b.enabled);
         d.className="bcard"+(b.enabled?"":" dis");d.style.display="flex";cnt();};
       g.appendChild(d);}}
