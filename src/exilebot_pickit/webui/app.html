@@ -104,6 +104,7 @@
   main{flex:1;overflow-y:auto;padding:26px 30px}
   .page{display:none;max-width:900px;margin:0 auto}
   #p-gen{max-width:1180px}
+  #p-chance,#p-craft,#p-exc,#p-prev,#p-hist{max-width:1180px}
   .gen-cols{display:grid;grid-template-columns:1.35fr .65fr;gap:16px;align-items:start}
   .gen-left{display:flex;flex-direction:column}
   .gen-right{display:flex;flex-direction:column;gap:14px}
@@ -160,8 +161,8 @@
   .eco-rate .k{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
   .eco-rate .v{font-size:15px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums}
   .eco-rate .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 5px color-mix(in srgb,var(--ok) 18%,transparent)}
-  .eco-head{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;
-        background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:11px 13px}
+  .eco-head{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .eco-toolbar{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:11px 13px;margin-bottom:14px}
   .eco-head input{flex:1;min-width:200px}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
   #unitChips{gap:3px;margin:0;padding:4px;background:var(--bg3);border:1px solid var(--border);border-radius:13px}
@@ -470,7 +471,7 @@
     <div class="eco-rate" id="ecoRate" style="display:none"><span class="dot"></span><span class="k">1 Divine</span><span class="v" id="ecoRateV">–</span></div>
   </div>
   <div class="banner warn" id="ecoStale"></div>
-  <div class="eco-head">
+  <div class="eco-head eco-toolbar">
     <input type="text" id="ecoSearch" placeholder="🔎 Search all items…">
     <span class="chips" style="margin:0" id="unitChips">
       <span class="chip on" data-u="ex">Exalt</span>
