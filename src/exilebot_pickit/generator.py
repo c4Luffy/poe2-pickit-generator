@@ -309,9 +309,11 @@ RARE_DESIGNED: dict = {
         '([fire_spell_skill_gem_level_] >= "4" || [cold_spell_skill_gem_level_] >= "4" || [lightning_spell_skill_gem_level_] >= "4" || [chaos_spell_skill_gem_level_] >= "4")',
         '[TotalSpellElementalDamage] >= "110"']},
     "Amulets": {"sel": '[Category] == "Amulet"', "ilvl": 80, "on": True, "routes": [
-        # skill levels on amulets: T1 ONLY (+3) per owner decision
-        '[all_skill_gem_level_] >= "3"', '[spell_skill_gem_level_] >= "3"',
-        '[minion_skill_gem_level_] >= "3"', '[base_maximum_life] >= "100"', _RES3]},
+        # skill levels on amulets: T1 ONLY (+3). All four families that can
+        # roll on amulets: Spell, Minion, Melee, Projectile.
+        '[spell_skill_gem_level_] >= "3"', '[minion_skill_gem_level_] >= "3"',
+        '[melee_skill_gem_level_] >= "3"', '[projectile_skill_gem_level_] >= "3"',
+        '[base_maximum_life] >= "100"', _RES3]},
     "Rings": {"sel": '[Category] == "Ring"', "ilvl": 80, "on": True, "routes": [
         '[base_maximum_life] >= "85"', _RES3]},
     "Belts": {"sel": '[Category] == "Belt"', "ilvl": 80, "on": True, "routes": [

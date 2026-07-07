@@ -37,7 +37,8 @@ def test_skill_level_mods_are_covered():
     lines = "\n".join(gen.build_rare_rules({}))
     assert '[bow_skill_gem_level_] >= "4"' in lines          # bows
     assert '[melee_skill_gem_level_] >= "5"' in lines        # quarterstaves/2h
-    assert '[all_skill_gem_level_] >= "3"' in lines          # amulets (T1 only)
+    assert '[melee_skill_gem_level_] >= "3"' in lines         # amulets (T1 only)
+    assert '[projectile_skill_gem_level_] >= "3"' in lines    # amulets (T1 only)
     assert '[spell_skill_gem_level_] >= "4"' in lines        # casters
 
 
