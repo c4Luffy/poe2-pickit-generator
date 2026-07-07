@@ -544,6 +544,134 @@ class AppApi:
         threading.Thread(target=_close, daemon=True).start()
         return {"ok": True}
 
+    # ── Window controls (frameless window draws its own title bar) ───────────
+
+    def _is_maxed(self, w):
+        """True window state from WinForms — survives Win+Up/Down done natively."""
+        try:
+            from System.Windows.Forms import FormWindowState
+            return w.native.WindowState == FormWindowState.Maximized
+        except Exception:
+            return bool(getattr(self, "_maxed", False))
+
+    def win_bounds(self):
+        """Current window position + size + maximized state (for the JS handles)."""
+        import webview
+        w = webview.windows[0]
+        return {"x": w.x, "y": w.y, "w": w.width, "h": w.height,
+                "maxed": self._is_maxed(w)}
+
+    def win_set_bounds(self, x, y, wd, ht):
+        """Move/resize from the JS resize handles. Sizes are clamped to the
+        app minimum so a drag can't shrink the window into an unusable sliver."""
+        import webview
+        w = webview.windows[0]
+        wd, ht = max(760, int(wd)), max(560, int(ht))
+        try:
+            w.move(int(x), int(y))
+        except Exception:
+            pass
+        try:
+            w.resize(wd, ht)
+        except Exception:
+            pass
+        return {"ok": True}
+
+    def win_snap(self, pos):
+        """Emulated Aero Snap for the frameless window: 'max', 'left', 'right'."""
+        import webview
+        w = webview.windows[0]
+        try:
+            from System.Windows.Forms import Screen
+            wa = Screen.FromHandle(w.native.Handle).WorkingArea
+        except Exception:
+            return {"error": "no screen info"}
+        if pos == "max":
+            if not getattr(self, "_maxed", False):
+                return self.win_max_toggle()
+            return {"maximized": True}
+        try:
+            w.restore()
+            self._maxed = False
+        except Exception:
+            pass
+        half = int(wa.Width / 2)
+        x = wa.X if pos == "left" else wa.X + half
+        try:
+            w.move(x, wa.Y)
+            w.resize(half, wa.Height)
+        except Exception:
+            pass
+        return {"ok": True}
+
+    def win_snap_drop(self, x, y):
+        """Drag released at (x, y) in virtual-desktop coords: snap against the
+        edges of the monitor the window is actually on (multi-monitor safe)."""
+        import webview
+        w = webview.windows[0]
+        try:
+            from System.Windows.Forms import Screen
+            wa = Screen.FromHandle(w.native.Handle).WorkingArea
+        except Exception:
+            return {"ok": False}
+        x, y = int(x), int(y)
+        if y <= wa.Y + 4:
+            return self.win_snap("max")
+        if x <= wa.X + 4:
+            return self.win_snap("left")
+        if x >= wa.X + wa.Width - 5:
+            return self.win_snap("right")
+        return {"ok": True}
+
+    def win_minimize(self):
+        import webview
+        webview.windows[0].minimize()
+        return {"ok": True}
+
+    def win_max_toggle(self):
+        import webview
+        w = webview.windows[0]
+        # Borderless WinForms windows maximize over the taskbar by default —
+        # clamp the maximize bounds to the desktop working area first.
+        try:
+            form = w.native
+            from System.Windows.Forms import Screen
+            form.MaximizedBounds = Screen.FromHandle(form.Handle).WorkingArea
+        except Exception:
+            pass
+        if self._is_maxed(w):
+            w.restore()
+            self._maxed = False
+        else:
+            w.maximize()
+            self._maxed = True
+        return {"maximized": self._maxed}
+
+    def win_close(self):
+        """Same behavior as the OS close button: hide to tray when the setting
+        is on, otherwise save geometry, stop the tray and exit."""
+        import webview
+        w = webview.windows[0]
+        if getattr(self, "_tray", None) is not None and self.cfg.get("minimize_to_tray"):
+            w.hide()
+            return {"hidden": True}
+        try:
+            self.cfg["window_geometry_web"] = {"w": w.width, "h": w.height}
+            save_config(self.cfg)
+        except Exception:
+            pass
+        try:
+            if getattr(self, "_tray", None) is not None:
+                self._tray.stop()
+        except Exception:
+            pass
+
+        def _bye():
+            time.sleep(0.15)          # let the JS call return first
+            w.destroy()
+        threading.Thread(target=_bye, daemon=True).start()
+        return {"ok": True}
+
     def check_update(self):
         try:
             from exilebot_pickit.ui.updater import AutoUpdateMixin, VERSION_URL, RELEASES_URL

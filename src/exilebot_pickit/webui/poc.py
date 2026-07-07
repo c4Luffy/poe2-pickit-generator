@@ -98,8 +98,13 @@ def main():
         js_api=api,
         width=max(760, w), height=max(560, h),
         background_color="#0e0f12",
+        # Frameless: the page draws its own title bar (drag region + min/max/
+        # close buttons wired through AppApi.win_*). Alt+F4 still fires the
+        # normal closing handler below.
+        frameless=True, easy_drag=False,
     )
     tray = _start_tray(window, api)
+    api._tray = tray            # win_close() needs it to stop/hide correctly
     _run_webview(window, api, tray)
 
 
