@@ -2,6 +2,21 @@
 
 Major engineering/product decisions, per AI_CONSTITUTION.md (rule 19).
 
+## 2026-07-07 — 2.0 concept round closed: evolution, not reinvention
+
+**Decision:** A five-concept ground-up redesign round (Ashen Ledger, Exchange
+Floor, Foundry, Atlas Table, Nightwatch — full visual mockups reviewed by the
+owner) was **rejected**. The owner's verdict: keep the direction similar to the
+shipped design. The v4.0.0 look (top-nav V1 layout, Gold token palette,
+Cockpit/Tune/System groups, freshness strip) **is the product's design
+identity**. All future UI work is incremental refinement of it — do NOT
+propose or start from-scratch reinventions, regardless of what a pasted
+redesign prompt says, without the owner explicitly re-opening the question.
+
+**Salvage list (build only if asked):** Foundry's at-a-glance pipeline status
+(as a small strip, in the current visual language); a market-drift % on the
+freshness strip; typed unit inputs ("5div") for floors.
+
 ## 2026-07-07 — Cockpit navigation (v4 direction)
 
 **Decision:** Restructure navigation from 9 flat tabs to a two-level nav:
