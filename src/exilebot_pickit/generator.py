@@ -240,6 +240,26 @@ def build_base_rules(min_quality: int = 25, min_level: int = 82, progress_callba
 #  toggleable in the Craft Bases tab and easy to swap here. Sword/axe/mace are
 #  intentionally omitted.
 # ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+#  Rare gear pickup — the Rare tab roadmap. Classes are designed WITH the user
+#  one at a time, in in-game order; a class only ever emits rules once its
+#  design is approved and lands in RARE_DESIGNED. Until then the tab shows it
+#  as "soon" and Generate adds nothing for it.
+# ─────────────────────────────────────────────────────────────────────────────
+RARE_CLASS_GROUPS: list = [
+    ("Armour",    ["Body Armours", "Helmets", "Gloves", "Boots"]),
+    ("Off-hand",  ["Shields", "Foci", "Quivers"]),
+    ("Weapons",   ["Bows", "Crossbows", "Quarterstaves", "Spears",
+                   "One Hand Maces", "Two Hand Maces", "Sceptres", "Wands", "Staves"]),
+    ("Jewellery", ["Amulets", "Rings", "Belts"]),
+    ("Other",     ["Jewels", "Charms", "Flasks"]),
+]
+
+# class name -> approved design (rule builder config). Filled one class at a
+# time as each section's design is signed off. Empty = no rare rules at all.
+RARE_DESIGNED: dict = {}
+
+
 CRAFT_BASE_MIN_ILVL = 82
 
 # Ordered slot -> [(base_name, defence_type), ...].  Armour slots cover ALL six

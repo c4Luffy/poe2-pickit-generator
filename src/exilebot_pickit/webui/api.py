@@ -818,6 +818,14 @@ class AppApi:
         return {n for n, s_ in snap["item_states"].get("_excbase", {}).items()
                 if not s_.get("enabled", True)}
 
+    def rare_classes(self):
+        """Rare-tab roadmap: ordered class groups with per-class design status.
+        A class is 'designed' once its approved rules exist in the engine."""
+        return [{"group": g,
+                 "classes": [{"name": n, "designed": n in gen.RARE_DESIGNED}
+                             for n in names]}
+                for g, names in gen.RARE_CLASS_GROUPS]
+
     def craft_bases(self):
         from exilebot_pickit.data.icons import STATIC_ICONS as _ci, BASE_STATS as _bs
         st = self.cfg.get("item_states", {}).get("_craftbase", {})
@@ -999,6 +1007,7 @@ class AppApi:
             out += gen.build_chance_base_rules(asm.chance_base_disabled(snap))
             craft_lines, _n, _floor = asm.craft_base_section(snap)
             out += craft_lines
+            out += asm.rare_section(snap)      # empty until rare classes are designed
             excdis = self._excbase_disabled(snap)
             if snap["include_bases"]:
                 out += ["", gen.header_major("Exceptional Bases"), ""]
