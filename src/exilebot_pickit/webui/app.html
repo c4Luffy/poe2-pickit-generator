@@ -108,7 +108,7 @@
   main{flex:1;overflow-y:auto;padding:26px 30px}
   .page{display:none;max-width:900px;margin:0 auto}
   #p-gen{max-width:1180px}
-  #p-chance,#p-craft,#p-exc,#p-prev,#p-hist{max-width:1180px}
+  #p-chance,#p-craft,#p-exc,#p-prev,#p-hist,#p-set,#p-dbg{max-width:1180px}
   .gen-cols{display:grid;grid-template-columns:1.35fr .65fr;gap:16px;align-items:start}
   .gen-left{display:flex;flex-direction:column}
   .gen-right{display:flex;flex-direction:column;gap:14px}
@@ -637,7 +637,7 @@
     <div class="stat"><b id="pvSize">–</b><span>file size</span></div>
     <div class="stat"><b id="pvVal">–</b><span>validation</span></div>
   </div>
-  <div class="eco-head">
+  <div class="eco-head eco-toolbar">
     <input type="text" id="prevFilter" placeholder="🔎 Filter lines…">
     <span class="chips" style="margin:0" id="pvChips">
       <span class="chip on" data-f="all">All</span>
@@ -649,7 +649,7 @@
     <button class="ghost mini" id="prevCopy">Copy all</button>
   </div>
   <div style="display:flex;gap:12px;align-items:flex-start">
-    <div id="pvNav" style="width:215px;flex-shrink:0;max-height:calc(90.9vh - 330px);overflow-y:auto"></div>
+    <div id="pvNav" class="craft-side" style="width:215px;flex:0 0 215px;position:static;max-height:calc(90.9vh - 330px);overflow-y:auto"></div>
     <pre id="prevBox" style="user-select:text;cursor:text;flex:1;max-height:calc(90.9vh - 330px);white-space:pre-wrap;word-break:break-word;overflow-x:hidden;min-width:0">Generate first.</pre>
   </div>
 </div>
@@ -1424,11 +1424,11 @@ async function loadPreview(){
 function renderPvNav(){
   const n=$("pvNav");
   if(!pvSections.length){n.innerHTML="";return;}
-  n.innerHTML=`<div class="nav-btn${pvSection===null?" on":""}" data-s="">All sections</div>`+
-    pvSections.map((s,i)=>`<div class="nav-btn${pvSection===i?" on":""}" data-s="${i}"
-      style="font-size:12.5px;padding:7px 10px">${s.title.length>20?s.title.slice(0,20)+"…":s.title}
-      <span style="margin-left:auto;font-size:10.5px;color:var(--dim)">${s.active}</span></div>`).join("");
-  n.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{
+  n.innerHTML=`<button class="cside-btn${pvSection===null?" on":""}" data-s=""><span>All sections</span></button>`+
+    pvSections.map((s,i)=>`<button class="cside-btn${pvSection===i?" on":""}" data-s="${i}">
+      <span>${esc(s.title.length>20?s.title.slice(0,20)+"…":s.title)}</span>
+      <span class="n">${s.active}</span></button>`).join("");
+  n.querySelectorAll(".cside-btn").forEach(b=>b.onclick=()=>{
     pvSection=b.dataset.s===""?null:parseInt(b.dataset.s);renderPvNav();renderPreview();});}
 function pvVisible(){
   const q=($("prevFilter").value||"").toLowerCase();
