@@ -546,39 +546,54 @@ class AppApi:
 
     # ── Window controls (frameless window draws its own title bar) ───────────
 
-    def _hwnd(self):
-        """Native HWND of the app window (for real OS drag/resize/snap)."""
-        import ctypes
+    def win_bounds(self):
+        """Current window position + size (for the JS edge-resize handles)."""
         import webview
+        w = webview.windows[0]
+        return {"x": w.x, "y": w.y, "w": w.width, "h": w.height}
+
+    def win_set_bounds(self, x, y, wd, ht):
+        """Move/resize from the JS resize handles. Sizes are clamped to the
+        app minimum so a drag can't shrink the window into an unusable sliver."""
+        import webview
+        w = webview.windows[0]
+        wd, ht = max(760, int(wd)), max(560, int(ht))
         try:
-            return int(webview.windows[0].native.Handle.ToInt32())
+            w.move(int(x), int(y))
         except Exception:
             pass
-        try:  # fallback: find by title
-            return ctypes.windll.user32.FindWindowW(None, "ExileBot 2 Pickit Generator") or None
+        try:
+            w.resize(wd, ht)
         except Exception:
-            return None
-
-    def _nc_hit(self, code):
-        """Start a NATIVE Windows move/size loop (WM_NCLBUTTONDOWN). This is
-        what makes Aero Snap (drag to top = maximize, sides = half) and edge
-        resizing work in a frameless window."""
-        import ctypes
-        h = self._hwnd()
-        if not h:
-            return {"error": "no hwnd"}
-        ctypes.windll.user32.ReleaseCapture()
-        ctypes.windll.user32.SendMessageW(h, 0x00A1, code, 0)   # WM_NCLBUTTONDOWN
+            pass
         return {"ok": True}
 
-    def win_drag(self):
-        return self._nc_hit(2)                                   # HTCAPTION
-
-    _EDGES = {"l": 10, "r": 11, "t": 12, "tl": 13, "tr": 14,
-              "b": 15, "bl": 16, "br": 17}
-
-    def win_resize(self, edge):
-        return self._nc_hit(self._EDGES.get(str(edge), 17))
+    def win_snap(self, pos):
+        """Emulated Aero Snap for the frameless window: 'max', 'left', 'right'."""
+        import webview
+        w = webview.windows[0]
+        try:
+            from System.Windows.Forms import Screen
+            wa = Screen.FromHandle(w.native.Handle).WorkingArea
+        except Exception:
+            return {"error": "no screen info"}
+        if pos == "max":
+            if not getattr(self, "_maxed", False):
+                return self.win_max_toggle()
+            return {"maximized": True}
+        try:
+            w.restore()
+            self._maxed = False
+        except Exception:
+            pass
+        half = int(wa.Width / 2)
+        x = wa.X if pos == "left" else wa.X + half
+        try:
+            w.move(x, wa.Y)
+            w.resize(half, wa.Height)
+        except Exception:
+            pass
+        return {"ok": True}
 
     def win_minimize(self):
         import webview
