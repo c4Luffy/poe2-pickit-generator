@@ -1076,10 +1076,19 @@ function craftCount(){$("craftCount").textContent=
   `${craftList.filter(b=>b.enabled).length} / ${craftList.length} enabled.`;}
 async function loadCraft(){
   craftList=await api().craft_bases();const g=$("craftGrid");g.innerHTML="";
-  let lastCat=null;
+  const ATTRC={Str:"#c0554a",Dex:"#6fae5f",Int:"#5b8fd6"};
+  const attrOf=def=>def?def.split("/").map(x=>({STR:"Str",DEX:"Dex",INT:"Int"}[x]||"")).filter(x=>x).join("/"):"";
+  const chip=a=>a.split("/").filter(x=>ATTRC[x])
+    .map(x=>`<span style="background:${ATTRC[x]};color:#0d0b06;font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;letter-spacing:.4px">${x}</span>`).join(" ")||"";
+  let lastCat=null,lastAttr=null;
   for(const b of craftList){
-    if(b.cat!==lastCat){lastCat=b.cat;
+    if(b.cat!==lastCat){lastCat=b.cat;lastAttr=null;
       const h=document.createElement("div");h.className="gsec";h.textContent=b.cat;g.appendChild(h);}
+    const attr=attrOf(b.defence);
+    if(attr&&attr!==lastAttr){lastAttr=attr;
+      const sh=document.createElement("div");
+      sh.style.cssText="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:8px 2px 2px;font-size:11px;color:var(--dim);letter-spacing:.5px";
+      sh.innerHTML=chip(attr);g.appendChild(sh);}
     const d=document.createElement("div");
     d.className="bc2"+(b.enabled?"":" dis");
     const meta=[b.lvl?("lvl "+b.lvl):"",b.stats||""].filter(x=>x).join(" · ");
