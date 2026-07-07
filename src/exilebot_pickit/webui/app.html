@@ -180,8 +180,14 @@
         width:100%;transition:background .12s,color .12s}
   .cside-btn:hover{background:var(--bg3)}
   .cside-btn.on{background:color-mix(in srgb,var(--gold) 15%,transparent);color:var(--gold);font-weight:600}
-  .cside-btn .n{margin-left:auto;font-size:11px;color:var(--dim)}
+  .cside-btn .n{margin-left:auto;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
   .cside-btn.on .n{color:var(--gold)}
+  @media (max-width:820px){
+    .craft-layout{flex-direction:column}
+    .craft-side{position:static;flex:0 0 auto;flex-direction:row;flex-wrap:wrap;
+      gap:4px;width:100%;padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:6px}
+    .craft-side .csgrp{width:100%;margin:6px 4px 1px}
+    .cside-btn{width:auto}}
   .bcard{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:12px 14px;cursor:pointer}
   .bcard.dis{opacity:.45}
   .bcard b{font-size:13.5px}
@@ -1072,11 +1078,12 @@ function chanceCount(){$("chanceCount").textContent=
 function buildChanceSide(){
   const s=$("chanceSide");s.innerHTML="";
   const present=CHANCE_ORDER.filter(c=>chanceList.some(b=>b.cat===c));
-  const count=c=>chanceList.filter(b=>b.cat===c).length;
+  const stat=c=>{const a=c==="all"?chanceList:chanceList.filter(b=>b.cat===c);
+    return `${a.filter(b=>b.enabled).length}/${a.length}`;};
   const mk=(cat,label)=>{
     const btn=document.createElement("button");
     btn.className="cside-btn"+(chanceFilter===cat?" on":"");
-    btn.innerHTML=`<span>${esc(label)}</span>`+(cat==="all"?"":`<span class="n">${count(cat)}</span>`);
+    btn.innerHTML=`<span>${esc(label)}</span><span class="n">${stat(cat)}</span>`;
     btn.onclick=()=>{chanceFilter=cat;buildChanceSide();renderChanceGrid();};
     s.appendChild(btn);};
   mk("all","All types");
@@ -1102,7 +1109,7 @@ function renderChanceGrid(){
     d.onclick=async()=>{b.enabled=!b.enabled;
       await api().set_item("_chance",b.base,b.enabled);
       d.className="bc2"+(b.enabled?"":" dis");
-      d.querySelector(".switch").classList.toggle("on",b.enabled);chanceCount();};
+      d.querySelector(".switch").classList.toggle("on",b.enabled);chanceCount();buildChanceSide();};
     g.appendChild(d);}
   chanceCount();}
 async function chanceBulk(en){
@@ -1124,12 +1131,12 @@ const CRAFT_GROUPS=[["Armour",["Body Armours","Helmets","Gloves","Boots"]],
 function buildCraftSide(){
   const s=$("craftSide");s.innerHTML="";
   const cats=[...new Set(craftList.map(b=>b.cat))];
-  const count=c=>craftList.filter(b=>b.cat===c).length;
+  const stat=c=>{const a=c==="all"?craftList:craftList.filter(b=>b.cat===c);
+    return `${a.filter(b=>b.enabled).length}/${a.length}`;};
   const mk=(cat,label)=>{
     const btn=document.createElement("button");
     btn.className="cside-btn"+(craftFilter===cat?" on":"");
-    btn.innerHTML=`<span>${esc(label)}</span>`+
-      (cat==="all"?"":`<span class="n">${count(cat)}</span>`);
+    btn.innerHTML=`<span>${esc(label)}</span><span class="n">${stat(cat)}</span>`;
     btn.onclick=()=>{craftFilter=cat;buildCraftSide();renderCraftGrid();};
     s.appendChild(btn);};
   mk("all","All slots");
@@ -1175,7 +1182,7 @@ function renderCraftGrid(){
     d.onclick=async()=>{b.enabled=!b.enabled;
       await api().set_craft(b.base,b.enabled,inp.value);
       d.className="bc2"+(b.enabled?"":" dis");
-      d.querySelector(".switch").classList.toggle("on",b.enabled);craftCount();};
+      d.querySelector(".switch").classList.toggle("on",b.enabled);craftCount();buildCraftSide();};
     g.appendChild(d);}
   craftCount();}
 async function craftBulk(en){
@@ -1197,11 +1204,13 @@ function excCount(){
 function buildExcSide(){
   const s=$("excSide");s.innerHTML="";
   const names=excCats.map(c=>c.cat);
-  const count=c=>{const x=excCats.find(k=>k.cat===c);return x?x.bases.length:0;};
+  const stat=c=>{const a=c==="all"?excCats.flatMap(k=>k.bases)
+      :(excCats.find(k=>k.cat===c)||{bases:[]}).bases;
+    return `${a.filter(b=>b.enabled).length}/${a.length}`;};
   const mk=(cat,label)=>{
     const btn=document.createElement("button");
     btn.className="cside-btn"+(excFilter===cat?" on":"");
-    btn.innerHTML=`<span>${esc(label)}</span>`+(cat==="all"?"":`<span class="n">${count(cat)}</span>`);
+    btn.innerHTML=`<span>${esc(label)}</span><span class="n">${stat(cat)}</span>`;
     btn.onclick=()=>{excFilter=cat;buildExcSide();renderExcGrid();};
     s.appendChild(btn);};
   mk("all","All slots");
@@ -1244,7 +1253,7 @@ function renderExcGrid(){
       d.title="Click to include/exclude this base (white pickup + its uniques)";
       d.onclick=async()=>{b.enabled=!b.enabled;
         await api().set_item("_excbase",b.name,b.enabled);
-        d.className="bcard"+(b.enabled?"":" dis");d.style.display="flex";cnt();};
+        d.className="bcard"+(b.enabled?"":" dis");d.style.display="flex";cnt();buildExcSide();};
       g.appendChild(d);}}
   cnt();}
 
