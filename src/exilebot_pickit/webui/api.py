@@ -441,6 +441,32 @@ class AppApi:
                             self._dl["done_mb"] = round(done / 1048576, 1)
                             self._dl["total_mb"] = round(total / 1048576, 1) if total else 0.0
                             self._dl["pct"] = int(done * 100 / total) if total else 0
+            # ── integrity gate ── a corrupt/truncated exe must NEVER be installed
+            # (that bricks the app with a "failed to load python3xx.dll" error), so
+            # verify size + SHA256 against the release's SHA256SUMS.txt before the
+            # file is ever eligible for the swap. On any mismatch we raise, the
+            # .part is deleted, and the old version is left completely untouched.
+            if total and done != total:
+                raise OSError(f"incomplete download: got {done} of {total} bytes")
+            sums = next((a for a in data.get("assets", [])
+                         if a.get("name", "").lower() == "sha256sums.txt"), None)
+            want = None
+            if sums:
+                sr = requests.get(sums["browser_download_url"], timeout=30)
+                if sr.status_code == 200:
+                    for line in sr.text.splitlines():
+                        parts = line.split()
+                        if len(parts) >= 2 and parts[-1].lstrip("*") == asset["name"]:
+                            want = parts[0].lower()
+                            break
+            if want:
+                import hashlib
+                h = hashlib.sha256()
+                with open(dest + ".part", "rb") as vf:
+                    for blk in iter(lambda: vf.read(1 << 20), b""):
+                        h.update(blk)
+                if h.hexdigest().lower() != want:
+                    raise OSError("checksum mismatch — the download was corrupted")
             os.replace(dest + ".part", dest)
             import sys as _sys
             frozen = bool(getattr(_sys, "frozen", False))
