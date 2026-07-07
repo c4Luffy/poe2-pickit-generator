@@ -188,6 +188,9 @@
       gap:4px;width:100%;padding-bottom:6px;border-bottom:1px solid var(--border);margin-bottom:6px}
     .craft-side .csgrp{width:100%;margin:6px 4px 1px}
     .cside-btn{width:auto}}
+  .hrow{cursor:pointer}
+  .hrow:hover{background:var(--bg3)}
+  .hcar{display:inline-block;color:var(--gold);font-size:10px;width:11px}
   .bcard{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:12px 14px;cursor:pointer}
   .bcard.dis{opacity:.45}
   .bcard b{font-size:13.5px}
@@ -324,7 +327,7 @@
     <div class="card" style="margin-bottom:14px">
       <div class="cardh"><span class="stepb">1</span>League</div>
       <div style="display:flex;gap:8px">
-        <select id="league" style="flex:1;padding:11px 12px"><option>Loading…</option></select>
+        <select id="league" style="flex:1;padding:11px 12px"><option value="">Loading…</option></select>
         <button class="ghost mini" id="leagueRefresh" title="Re-fetch the league list (Ctrl+R)">⟳</button>
       </div>
       <div class="hint" style="margin:10px 0 0">Prices come from this league's live market.</div>
@@ -923,8 +926,11 @@ async function poll(){
     logLine(`Done in ${d.secs}s → ${d.path}`,"ok");uEx();gEx();
   } else if(d.error)logLine("✗ "+d.error,"err");}
 async function doGenerate(){
-  if(running)return;running=true;$("go").disabled=true;$("bar").classList.add("on");
-  await api().generate($("league").value,gEx(),uEx());poll();}
+  if(running)return;
+  const league=$("league").value;
+  if(!league){toast("Pick a league first — if the list is empty, check your connection and press ⟳");return;}
+  running=true;$("go").disabled=true;$("bar").classList.add("on");
+  await api().generate(league,gEx(),uEx());poll();}
 $("go").onclick=doGenerate;
 $("open").onclick=()=>api().open_output();
 $("openIpd").onclick=async()=>{const r=await api().open_file("ipd");if(r.error)toast(r.error);};
@@ -977,9 +983,12 @@ async function renderCompare(names,a,b){
 /* ── economy ── */
 let ecoUnit="ex",chaosEx=0;
 async function loadEco(){
+  if(!$("league").value){$("ecoInfo").textContent="Pick a league on the Generate tab first.";
+    $("ecoChips").innerHTML="";$("ecoBody").innerHTML='<tr><td colspan="5" class="hint" style="padding:16px">No league selected yet — choose one on the Generate tab and prices will load here.</td></tr>';
+    return;}
   $("ecoInfo").textContent="Loading prices…";
   eco=await api().economy($("league").value);
-  if(eco.error){$("ecoInfo").textContent="✗ "+eco.error;eco=null;return;}
+  if(eco.error){$("ecoInfo").textContent="✗ "+eco.error+" — check your connection and Refresh prices.";eco=null;return;}
   divRate=eco.divine_rate||divRate;
   api().chaos_ex($("league").value).then(r=>{chaosEx=r.ex||0;if(ecoUnit==="chaos")renderEco();});
   const st=$("ecoStale");
@@ -1307,14 +1316,25 @@ async function loadHistory(){
   $("htPeak").textContent=h.length?Math.max(...vals).toLocaleString():"–";
   drawHistChart(h);
   const tb=$("histRows");
-  tb.innerHTML=h.length?h.map(r=>`<tr>
-      <td>${r.ts}</td><td class="val">${(r.active||0).toLocaleString()}</td>
+  const flo=v=>{v=Number(v||0);return(v>0&&v<1?v.toFixed(2):Math.round(v).toLocaleString())+" ex";};
+  tb.innerHTML=h.length?h.map((r,i)=>{
+    const total=(r.active||0)+(r.commented||0);
+    const detail=`Value floors this run — uniques ≥ <b>${flo(r.uf)}</b> · gear ≥ <b>${flo(r.gf)}</b>`
+      +` &nbsp;·&nbsp; ${total.toLocaleString()} rules built (<b>${(r.active||0).toLocaleString()}</b> active, ${(r.commented||0).toLocaleString()} skipped below floor)`;
+    return `<tr class="hrow" data-i="${i}" title="Click for the value floors used">
+      <td><span class="hcar">▸</span> ${r.ts}</td><td class="val">${(r.active||0).toLocaleString()}</td>
       <td style="text-align:right;color:var(--dim)">${r.commented||0}</td>
       <td style="text-align:right;color:var(--dim)">${Number(r.divine_rate||0).toFixed(0)} ex</td>
       <td>${esc(r.top_item||"—")}${r.top_value?` <span class="pill">${(()=>{const dr=Number(r.divine_rate)||0,v=Number(r.top_value);
         return dr>1&&v>=dr?(v/dr>=100?Math.round(v/dr).toLocaleString():(v/dr).toFixed(1))+" div":v.toLocaleString()+" ex";})()}</span>`:""}</td>
-      <td style="text-align:right;color:var(--dim)">${r.duration||""}</td></tr>`).join(""):
-    '<tr><td colspan="6" class="hint" style="padding:14px">No runs yet.</td></tr>';}
+      <td style="text-align:right;color:var(--dim)">${r.duration||""}</td></tr>
+      <tr class="hdet" data-i="${i}" style="display:none"><td colspan="6" class="hint" style="padding:6px 14px 10px">${detail}</td></tr>`;
+  }).join(""):
+    '<tr><td colspan="6" class="hint" style="padding:14px">No runs yet.</td></tr>';
+  tb.querySelectorAll(".hrow").forEach(row=>row.onclick=()=>{
+    const det=tb.querySelector(`.hdet[data-i="${row.dataset.i}"]`);
+    const open=det.style.display==="none";det.style.display=open?"table-row":"none";
+    const car=row.querySelector(".hcar");if(car)car.textContent=open?"▾":"▸";});}
 $("histClear").onclick=async()=>{if(!confirm("Clear all run history?"))return;
   await api().clear_history();loadHistory();toast("History cleared");};
 
@@ -1520,7 +1540,9 @@ async function init(){
   if(info.config_warning)setTimeout(()=>alert(info.config_warning),600);
   if(info.auto_copy&&!info.bot_folder)toast("⚠ Auto-copy is ON but no bot folder is set");
   const ls=await api().leagues();const sel=$("league");sel.innerHTML="";
-  if(ls.error){sel.innerHTML="<option>Could not load leagues</option>";logLine("✗ "+ls.error,"err");}
+  if(ls.error){sel.innerHTML='<option value="">⚠ Couldn\'t reach poe.ninja — hit ⟳ to retry</option>';
+    logLine("✗ "+ls.error,"err");sideMark(false);
+    toast("Couldn't load leagues — check your connection, then press ⟳ next to the league box");}
   else{for(const l of ls){const o=document.createElement("option");o.value=l.name;o.textContent=l.display;sel.appendChild(o);}
     if(info.league)sel.value=info.league;
     logLine("Loaded "+ls.length+" leagues.","ok");sideMark(true);}
