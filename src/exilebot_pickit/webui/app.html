@@ -170,6 +170,18 @@
   .pill.on{color:var(--ok);border-color:var(--ok)}
   /* bases grids */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
+  .craft-layout{display:flex;gap:16px;align-items:flex-start}
+  .craft-layout .grid{flex:1;min-width:0}
+  .craft-side{flex:0 0 172px;position:sticky;top:12px;display:flex;flex-direction:column;gap:2px}
+  .craft-side .csgrp{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--dim);
+        margin:10px 8px 3px}.craft-side .csgrp:first-child{margin-top:0}
+  .cside-btn{display:flex;align-items:center;gap:8px;text-align:left;background:none;border:none;
+        color:var(--text);font:inherit;font-size:13px;padding:6px 10px;border-radius:8px;cursor:pointer;
+        width:100%;transition:background .12s,color .12s}
+  .cside-btn:hover{background:var(--bg3)}
+  .cside-btn.on{background:color-mix(in srgb,var(--gold) 15%,transparent);color:var(--gold);font-weight:600}
+  .cside-btn .n{margin-left:auto;font-size:11px;color:var(--dim)}
+  .cside-btn.on .n{color:var(--gold)}
   .bcard{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:12px 14px;cursor:pointer}
   .bcard.dis{opacity:.45}
   .bcard b{font-size:13.5px}
@@ -458,7 +470,10 @@
   <h1>Craft Bases</h1><div class="sub">Best white bases per slot at high item level — blank bases worth crafting on. Click to toggle; set the minimum item level per base. <span id="craftCount"></span></div>
   <div class="eco-head"><button class="ghost mini" id="craftAll">Enable all</button>
     <button class="ghost mini" id="craftNone">Disable all</button></div>
-  <div class="grid" id="craftGrid"></div>
+  <div class="craft-layout">
+    <div class="craft-side" id="craftSide"></div>
+    <div class="grid" id="craftGrid"></div>
+  </div>
 </div>
 
 <!-- ══ EXCEPTIONAL ══ -->
@@ -1072,16 +1087,43 @@ $("chanceNone").onclick=()=>chanceBulk(false);
 
 /* ── craft ── */
 let craftList=[];
+let craftFilter="all";
 function craftCount(){$("craftCount").textContent=
   `${craftList.filter(b=>b.enabled).length} / ${craftList.length} enabled.`;}
+// Sidebar grouping of the craft slot categories.
+const CRAFT_GROUPS=[["Armour",["Body Armours","Helmets","Gloves","Boots"]],
+  ["Weapons",["Spears","Quarterstaves","Crossbows","Bows","Staves","Wands"]],
+  ["Off-hand",["Foci"]],["Jewellery",["Amulets","Rings"]]];
+function buildCraftSide(){
+  const s=$("craftSide");s.innerHTML="";
+  const cats=[...new Set(craftList.map(b=>b.cat))];
+  const count=c=>craftList.filter(b=>b.cat===c).length;
+  const mk=(cat,label)=>{
+    const btn=document.createElement("button");
+    btn.className="cside-btn"+(craftFilter===cat?" on":"");
+    btn.innerHTML=`<span>${esc(label)}</span>`+
+      (cat==="all"?"":`<span class="n">${count(cat)}</span>`);
+    btn.onclick=()=>{craftFilter=cat;buildCraftSide();renderCraftGrid();};
+    s.appendChild(btn);};
+  mk("all","All slots");
+  for(const [grp,members] of CRAFT_GROUPS){
+    const present=members.filter(c=>cats.includes(c));
+    if(!present.length)continue;
+    const lbl=document.createElement("div");lbl.className="csgrp";lbl.textContent=grp;s.appendChild(lbl);
+    for(const c of present)mk(c,c);}
+}
 async function loadCraft(){
-  craftList=await api().craft_bases();const g=$("craftGrid");g.innerHTML="";
+  craftList=await api().craft_bases();
+  buildCraftSide();renderCraftGrid();}
+function renderCraftGrid(){
+  const g=$("craftGrid");g.innerHTML="";
   const ATTRC={Str:"#c0554a",Dex:"#6fae5f",Int:"#5b8fd6"};
   const attrOf=def=>def?def.split("/").map(x=>({STR:"Str",DEX:"Dex",INT:"Int"}[x]||"")).filter(x=>x).join("/"):"";
   const chip=a=>a.split("/").filter(x=>ATTRC[x])
     .map(x=>`<span style="background:${ATTRC[x]};color:#0d0b06;font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;letter-spacing:.4px">${x}</span>`).join(" ")||"";
   let lastCat=null,lastAttr=null;
   for(const b of craftList){
+    if(craftFilter!=="all"&&b.cat!==craftFilter)continue;
     if(b.cat!==lastCat){lastCat=b.cat;lastAttr=null;
       const h=document.createElement("div");h.className="gsec";h.textContent=b.cat;g.appendChild(h);}
     const attr=attrOf(b.defence);
