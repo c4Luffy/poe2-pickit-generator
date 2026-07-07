@@ -803,8 +803,15 @@ async function applyAutoFloor(){
   $("autoHint").textContent="Analysing league prices…";
   const r=await api().suggest_floors($("league").value,$("keepPct").value);
   if(r.error){$("autoHint").textContent="✗ "+r.error;return;}
-  $("uUnit").value="Exalt";$("gUnit").value="Exalt";
-  $("uAmt").value=r.unique;$("gAmt").value=r.gear;
+  // Respect each section's chosen unit — convert the exalt floor into it. Only
+  // fall back to Exalt if that unit's live rate isn't available yet.
+  const applyOne=(amtId,unitId,ex)=>{
+    let unit=$(unitId).value,val;
+    if(unit==="Divine"&&divRate>1)val=+(ex/divRate).toFixed(2);
+    else if(unit==="Chaos"&&chaosEx>0)val=Math.round(ex/chaosEx);
+    else{$(unitId).value="Exalt";val=Math.round(ex);}
+    $(amtId).value=val;};
+  applyOne("uAmt","uUnit",r.unique);applyOne("gAmt","gUnit",r.gear);
   api().set_setting("min_exalt_unique",uEx());api().set_setting("min_exalt_gear",gEx());
   $("autoHint").textContent=`Keeps top ${r.keep_pct}%: uniques ≥ ${r.unique} ex (${r.kept_unique}/${r.total_unique}), rest ≥ ${r.gear} ex (${r.kept_gear}/${r.total_gear}).`;}
 function setAutoPill(on){
