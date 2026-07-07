@@ -819,12 +819,38 @@ class AppApi:
                 if not s_.get("enabled", True)}
 
     def rare_classes(self):
-        """Rare-tab roadmap: ordered class groups with per-class design status.
-        A class is 'designed' once its approved rules exist in the engine."""
-        return [{"group": g,
-                 "classes": [{"name": n, "designed": n in gen.RARE_DESIGNED}
-                             for n in names]}
-                for g, names in gen.RARE_CLASS_GROUPS]
+        """Rare tab data: ordered groups; per class the user state (enabled,
+        ilvl, strict) plus the keep-routes of every strictness for display."""
+        st = self.cfg.get("item_states", {}).get("_rare", {})
+        out = []
+        for grp, names in gen.RARE_CLASS_GROUPS:
+            cl = []
+            for n in names:
+                d = gen.RARE_DESIGNED.get(n) or {}
+                s = {**gen.rare_default(n), **(st.get(n) or {})}
+                cl.append({"name": n, "designed": bool(d),
+                           "enabled": bool(s.get("enabled")),
+                           "ilvl": int(s.get("ilvl", 80)),
+                           "strict": s.get("strict", "balanced"),
+                           "has_ilvl": int(d.get("ilvl", 1)) > 1,
+                           "routes": d.get("routes") or {}})
+            out.append({"group": grp, "classes": cl})
+        return out
+
+    def set_rare(self, name, enabled, ilvl, strict):
+        if name not in gen.RARE_DESIGNED:
+            return {"error": "unknown rare class"}
+        states = self.cfg.setdefault("item_states", {}).setdefault("_rare", {})
+        e = states.setdefault(name, {})
+        e["enabled"] = bool(enabled)
+        try:
+            e["ilvl"] = max(80, min(82, int(ilvl)))
+        except (TypeError, ValueError):
+            pass
+        if strict in ("loose", "balanced", "strict"):
+            e["strict"] = strict
+        save_config(self.cfg)
+        return {"ok": True}
 
     def craft_bases(self):
         from exilebot_pickit.data.icons import STATIC_ICONS as _ci, BASE_STATS as _bs

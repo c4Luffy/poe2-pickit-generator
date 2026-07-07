@@ -295,9 +295,8 @@ def rare_section(snapshot: dict) -> list[str]:
     designs landed yet this always returns ``[]`` — the pipeline hook exists so
     each class only has to plug in here as it goes live.
     """
-    if not gen.RARE_DESIGNED:
-        return []
-    return []
+    states = snapshot.get("item_states", {}).get("_rare", {})
+    return gen.build_rare_rules(states)
 
 
 # ── Price-move alerts ─────────────────────────────────────────────────────────

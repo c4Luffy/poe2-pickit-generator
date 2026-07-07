@@ -255,9 +255,164 @@ RARE_CLASS_GROUPS: list = [
     ("Other",     ["Jewels", "Charms", "Flasks"]),
 ]
 
-# class name -> approved design (rule builder config). Filled one class at a
-# time as each section's design is signed off. Empty = no rare rules at all.
-RARE_DESIGNED: dict = {}
+# class name -> approved design. sel = the bot-side selector, ilvl = the
+# DEFAULT minimum item level for the WHOLE class (one number per class,
+# adjustable in the tab), on = default toggle, routes = post-identify keep
+# checks per strictness: the bot picks the item up, identifies it, keeps it if
+# ANY route passes and discards it otherwise. Mod ids verified against the
+# bot's own default.ipd; bracketed computed values are bot built-ins.
+_R = '[Rarity] == "Rare"'
+
+
+def _routes(loose, balanced, strict):
+    return {"loose": loose, "balanced": balanced, "strict": strict}
+
+
+RARE_DESIGNED: dict = {
+    "Body Armours": {"sel": '[Category] == "BodyArmour"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[base_maximum_life] >= "120"', '[TotalResistances] >= "80"',
+         '[base_maximum_life] >= "80" && [TotalResistances] >= "50"', '[local_spirit_+%] >= "40"'],
+        ['[base_maximum_life] >= "160"', '[TotalResistances] >= "100"',
+         '[base_maximum_life] >= "100" && [TotalResistances] >= "70"', '[local_spirit_+%] >= "50"'],
+        ['[base_maximum_life] >= "190"', '[TotalResistances] >= "115"',
+         '[base_maximum_life] >= "130" && [TotalResistances] >= "90"', '[local_spirit_+%] >= "57"'])},
+    "Helmets": {"sel": '[Category] == "Helmet"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[base_maximum_life] >= "90"', '[TotalResistances] >= "70"'],
+        ['[base_maximum_life] >= "120"', '[TotalResistances] >= "90"',
+         '[base_maximum_life] >= "80" && [TotalResistances] >= "60"'],
+        ['[base_maximum_life] >= "150"', '[TotalResistances] >= "105"',
+         '[base_maximum_life] >= "100" && [TotalResistances] >= "80"'])},
+    "Gloves": {"sel": '[Category] == "Gloves"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[base_maximum_life] >= "80"', '[TotalResistances] >= "70"', '[attack_speed_+%] >= "10"'],
+        ['[base_maximum_life] >= "110"', '[TotalResistances] >= "90"',
+         '[attack_speed_+%] >= "12" && [base_maximum_life] >= "50"'],
+        ['[base_maximum_life] >= "140"', '[TotalResistances] >= "105"',
+         '[attack_speed_+%] >= "14" && [TotalResistances] >= "60"'])},
+    "Boots": {"sel": '[Category] == "Boots"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[base_movement_velocity_+%] >= "25"'],
+        ['[base_movement_velocity_+%] >= "30"',
+         '[base_movement_velocity_+%] >= "25" && [TotalResistances] >= "60"'],
+        ['[base_movement_velocity_+%] >= "35" && ([base_maximum_life] >= "80" || [TotalResistances] >= "60")'])},
+    "Shields": {"sel": '[WeaponCategory] == "Shield"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[base_maximum_life] >= "100"', '[TotalResistances] >= "80"'],
+        ['[base_maximum_life] >= "130"', '[TotalResistances] >= "100"',
+         '[base_maximum_life] >= "90" && [TotalResistances] >= "60"'],
+        ['[base_maximum_life] >= "160"', '[TotalResistances] >= "115"'])},
+    "Foci": {"sel": '[WeaponCategory] == "Focus"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[TotalSpellElementalDamage] >= "70"', '[ComputedEnergyShield] >= "160"'],
+        ['[TotalSpellElementalDamage] >= "90"', '[ComputedEnergyShield] >= "200"',
+         '[TotalSpellElementalDamage] >= "70" && [base_maximum_mana] >= "80"'],
+        ['[TotalSpellElementalDamage] >= "110"', '[ComputedEnergyShield] >= "240"'])},
+    "Quivers": {"sel": '[WeaponCategory] == "Quiver"', "ilvl": 80, "on": False, "routes": _routes(
+        ['[attack_speed_+%] >= "10"'], ['[attack_speed_+%] >= "12"'], ['[attack_speed_+%] >= "14"'])},
+    "Bows": {"sel": '[WeaponCategory] == "Bow"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[DPS] >= "220"', '[PhysicalDPS] >= "170"'],
+        ['[DPS] >= "280"', '[PhysicalDPS] >= "220"'],
+        ['[DPS] >= "340"', '[PhysicalDPS] >= "270"'])},
+    "Crossbows": {"sel": '[WeaponCategory] == "Crossbow"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[DPS] >= "220"', '[PhysicalDPS] >= "170"'],
+        ['[DPS] >= "280"', '[PhysicalDPS] >= "220"'],
+        ['[DPS] >= "340"', '[PhysicalDPS] >= "270"'])},
+    "Quarterstaves": {"sel": '[WeaponCategory] == "Quarterstaff"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[DPS] >= "220"', '[PhysicalDPS] >= "170"'],
+        ['[DPS] >= "280"', '[PhysicalDPS] >= "220"'],
+        ['[DPS] >= "340"', '[PhysicalDPS] >= "270"'])},
+    "Spears": {"sel": '[WeaponCategory] == "Spear"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[DPS] >= "180"', '[PhysicalDPS] >= "140"'],
+        ['[DPS] >= "230"', '[PhysicalDPS] >= "180"'],
+        ['[DPS] >= "280"', '[PhysicalDPS] >= "220"'])},
+    "One Hand Maces": {"sel": '[WeaponCategory] == "OneHandMace"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[DPS] >= "180"', '[PhysicalDPS] >= "140"'],
+        ['[DPS] >= "230"', '[PhysicalDPS] >= "180"'],
+        ['[DPS] >= "280"', '[PhysicalDPS] >= "220"'])},
+    "Two Hand Maces": {"sel": '[WeaponCategory] == "TwoHandMace"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[DPS] >= "240"', '[PhysicalDPS] >= "190"'],
+        ['[DPS] >= "300"', '[PhysicalDPS] >= "240"'],
+        ['[DPS] >= "360"', '[PhysicalDPS] >= "290"'])},
+    "Sceptres": {"sel": '[WeaponCategory] == "Sceptre"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[TotalSpellElementalDamage] >= "70"'],
+        ['[TotalSpellElementalDamage] >= "90"',
+         '[TotalSpellElementalDamage] >= "70" && [base_cast_speed_+%] >= "15"'],
+        ['[TotalSpellElementalDamage] >= "110"'])},
+    "Wands": {"sel": '[WeaponCategory] == "Wand"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[TotalSpellElementalDamage] >= "70"'],
+        ['[TotalSpellElementalDamage] >= "90"',
+         '[TotalSpellElementalDamage] >= "70" && [base_cast_speed_+%] >= "15"'],
+        ['[TotalSpellElementalDamage] >= "110"'])},
+    "Staves": {"sel": '[WeaponCategory] == "Staff"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[TotalSpellElementalDamage] >= "80"'],
+        ['[TotalSpellElementalDamage] >= "100"'],
+        ['[TotalSpellElementalDamage] >= "120"'])},
+    "Amulets": {"sel": '[Category] == "Amulet"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[TotalResistances] >= "60"', '[base_maximum_life] >= "70"'],
+        ['[TotalResistances] >= "80"', '[base_maximum_life] >= "90"',
+         '([additional_strength] >= "50" || [additional_dexterity] >= "50" || [additional_intelligence] >= "50")'],
+        ['[TotalResistances] >= "95"', '[base_maximum_life] >= "110"'])},
+    "Rings": {"sel": '[Category] == "Ring"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[TotalResistances] >= "70"', '[base_maximum_life] >= "60"'],
+        ['[TotalResistances] >= "90"',
+         '[base_maximum_life] >= "70" && [TotalResistances] >= "50"'],
+        ['[TotalResistances] >= "105"'])},
+    "Belts": {"sel": '[Category] == "Belt"', "ilvl": 80, "on": True, "routes": _routes(
+        ['[base_maximum_life] >= "90"', '[TotalResistances] >= "70"'],
+        ['[base_maximum_life] >= "120"', '[TotalResistances] >= "80"',
+         '[base_maximum_life] >= "80" && [TotalResistances] >= "50"'],
+        ['[base_maximum_life] >= "150"', '[TotalResistances] >= "100"'])},
+    # Small always-worth classes: no post-ID judging, just stash when enabled.
+    # Time-Lost jewels are chase drops kept at ANY rarity.
+    "Jewels": {"sel": '[Category] == "Jewel"', "ilvl": 1, "on": True, "routes": None,
+               "extra": ['[Type] == "Time-Lost Emerald" # [StashItem] == "true"',
+                         '[Type] == "Time-Lost Ruby" # [StashItem] == "true"',
+                         '[Type] == "Time-Lost Sapphire" # [StashItem] == "true"']},
+    "Charms": {"sel": '[Category] == "Charm"', "ilvl": 1, "on": False, "routes": None},
+    "Flasks": {"sel": '[Category] == "Flask"', "ilvl": 1, "on": False, "routes": _routes(
+        ['[local_max_charges_+%] >= "50"'],
+        ['[local_max_charges_+%] >= "55"', '[local_flask_amount_to_recover_+%] >= "65"'],
+        ['[local_max_charges_+%] >= "63" && [local_flask_amount_to_recover_+%] >= "71"'])},
+}
+
+
+def rare_default(name: str) -> dict:
+    """Default state for a rare class: {enabled, ilvl, strict}."""
+    d = RARE_DESIGNED.get(name) or {}
+    return {"enabled": bool(d.get("on")), "ilvl": int(d.get("ilvl", 80)), "strict": "balanced"}
+
+
+def build_rare_rules(states: dict | None = None) -> list:
+    """Pickit lines for the Rare tab. ``states`` maps class name ->
+    {enabled, ilvl, strict}; missing keys fall back to design defaults.
+    Disabled classes emit nothing; no enabled classes -> no section at all."""
+    states = states or {}
+    body: list = []
+    for _grp, names in RARE_CLASS_GROUPS:
+        for name in names:
+            d = RARE_DESIGNED.get(name)
+            if not d:
+                continue
+            st = {**rare_default(name), **(states.get(name) or {})}
+            if not st.get("enabled"):
+                continue
+            try:
+                ilvl = int(st.get("ilvl", d["ilvl"]))
+            except (TypeError, ValueError):
+                ilvl = d["ilvl"]
+            # gear classes are hard-clamped to the owner's pickup window 80-82
+            ilvl = max(80, min(82, ilvl)) if d["ilvl"] > 1 else 1
+            strict = st.get("strict") if st.get("strict") in ("loose", "balanced", "strict") else "balanced"
+            pre = f'{d["sel"]} && {_R}'
+            # [ItemLevel] is only readable after pickup -> it lives after the #
+            lvl = f'[ItemLevel] >= "{ilvl}" && ' if ilvl > 1 else ""
+            body.append(f"// Rare - {name} ({strict}" + (f", ilvl {ilvl}+" if ilvl > 1 else "") + ")")
+            routes = d.get("routes")
+            if routes is None:
+                body.append(f'{pre} # {lvl}[StashItem] == "true"')
+            else:
+                for route in routes[strict]:
+                    body.append(f'{pre} # {lvl}{route} && [StashItem] == "true"')
+            body.extend(d.get("extra") or [])
+    if not body:
+        return []
+    return ["", header_major("Rare Items"), ""] + body
 
 
 CRAFT_BASE_MIN_ILVL = 82

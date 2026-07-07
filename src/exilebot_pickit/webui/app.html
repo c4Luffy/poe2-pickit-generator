@@ -632,8 +632,18 @@
     <div class="craft-side" id="rareSide"></div>
     <div style="flex:1;min-width:0">
       <div class="card">
-        <h2 id="rareTitle">The roadmap</h2>
-        <div class="hint" id="rareHint">Each class on the left gets its own pickup design — item level gates, stat floors, mod scoring — decided step by step. Sections flip from “soon” to “live” as they're finished. Until a class is live, Generate adds no rare rules for it.</div>
+        <h2 id="rareTitle">Pick a class</h2>
+        <div class="hint" id="rareHint">Each class has one switch, one item level (80–82, one number for the whole class) and a strictness. The bot grabs the item, identifies it, and keeps it only if a check passes — otherwise it drops it and moves on.</div>
+        <div id="rareCtl" style="display:none">
+          <div class="set-row"><div class="lab"><b>Pick up this class</b><span>Rare drops only — identified and judged by the checks below</span></div><div class="sp"></div>
+            <div class="switch" id="rareOn"><i></i></div></div>
+          <div class="set-row" id="rareIlvlRow"><div class="lab"><b>Minimum item level</b><span>80–82 — applies to the whole class</span></div><div class="sp"></div>
+            <div class="stepper"><button type="button" class="sm">−</button><input type="number" id="rareIlvl" min="80" max="82"><button type="button" class="sp2">+</button></div></div>
+          <div class="set-row"><div class="lab"><b>Strictness</b><span>How good an identified item must be to keep</span></div><div class="sp"></div>
+            <select id="rareStrict"><option value="loose">Loose</option><option value="balanced">Balanced</option><option value="strict">Strict</option></select></div>
+          <div style="margin-top:12px"><div class="hint" style="margin:0 0 6px"><b>Kept if ANY of these pass:</b></div>
+            <div id="rareRoutes" class="hint" style="margin:0;line-height:1.9"></div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1433,28 +1443,52 @@ function renderExcGrid(){
       g.appendChild(d);}}
   cnt();}
 
-/* ── rare (skeleton — classes designed one at a time) ── */
+/* ── rare items ── */
 let rareCls=null,rareSel=null;
-async function loadRare(){
-  if(!rareCls)rareCls=await api().rare_classes();
+function rareFind(n){return rareCls&&rareCls.flatMap(g=>g.classes).find(x=>x.name===n);}
+function routeText(r){return r.replace(/\[|\]/g,"").replace(/&&/g," and ").replace(/\|\|/g," or ")
+  .replace(/>=/g,"≥").replace(/_/g," ").replace(/\+%/g,"%");}
+async function loadRare(force){
+  if(!rareCls||force)rareCls=await api().rare_classes();
   const s=$("rareSide");s.innerHTML="";
-  let live=0,total=0;
+  let on=0,total=0;
   for(const g of rareCls){
     const lbl=document.createElement("div");lbl.className="csgrp";lbl.textContent=g.group;s.appendChild(lbl);
-    for(const c of g.classes){total++;if(c.designed)live++;
+    for(const c of g.classes){total++;if(c.enabled)on++;
       const b=document.createElement("button");
       b.className="cside-btn"+(rareSel===c.name?" on":"");
-      b.innerHTML=`<span>${esc(c.name)}</span><span class="n">${c.designed?"live":"soon"}</span>`;
+      b.innerHTML=`<span>${esc(c.name)}</span><span class="n">${c.enabled?(c.has_ilvl?c.ilvl+"+":"on"):"off"}</span>`;
       b.onclick=()=>{rareSel=c.name;loadRare();};
       s.appendChild(b);}}
-  $("rareCount").textContent=`${live} / ${total} sections live.`;
-  if(!rareSel){$("rareTitle").textContent="The roadmap";return;}
-  $("rareTitle").textContent=rareSel;
-  const c=rareCls.flatMap(g=>g.classes).find(x=>x.name===rareSel);
-  $("rareHint").innerHTML=c&&c.designed
-    ?`<b>${esc(rareSel)}</b> is live — its rules are included when you Generate.`
-    :`<b>${esc(rareSel)}</b> isn't designed yet — it's on the roadmap. We decide together how the bot judges rare ${esc(rareSel.toLowerCase())} (item level, stat floors, mod scoring), then it goes live here.`;
+  $("rareCount").textContent=`${on} / ${total} classes enabled.`;
+  renderRare();
 }
+function renderRare(){
+  const c=rareFind(rareSel),ctl=$("rareCtl");
+  if(!c){$("rareTitle").textContent="Pick a class";ctl.style.display="none";return;}
+  $("rareTitle").textContent=c.name;
+  ctl.style.display="block";
+  $("rareOn").classList.toggle("on",c.enabled);
+  $("rareIlvlRow").style.display=c.has_ilvl?"":"none";
+  $("rareIlvl").value=c.ilvl;
+  $("rareStrict").value=c.strict;
+  const rs=(c.routes&&c.routes[c.strict])||null;
+  $("rareRoutes").innerHTML=rs?rs.map(r=>"✓ "+esc(routeText(r))).join("<br>")
+    :"✓ Always kept when enabled — small and always worth stashing.";
+}
+async function saveRare(){
+  const c=rareFind(rareSel);if(!c)return;
+  c.enabled=$("rareOn").classList.contains("on");
+  c.ilvl=Math.max(80,Math.min(82,parseInt($("rareIlvl").value)||80));
+  c.strict=$("rareStrict").value;
+  await api().set_rare(c.name,c.enabled,c.ilvl,c.strict);
+  loadRare();
+}
+$("rareOn").onclick=()=>{$("rareOn").classList.toggle("on");saveRare();};
+$("rareStrict").onchange=saveRare;
+$("rareIlvl").onchange=saveRare;
+document.querySelector("#rareIlvlRow .sm").onclick=()=>{$("rareIlvl").value=Math.max(80,(+$("rareIlvl").value||80)-1);saveRare();};
+document.querySelector("#rareIlvlRow .sp2").onclick=()=>{$("rareIlvl").value=Math.min(82,(+$("rareIlvl").value||80)+1);saveRare();};
 
 /* ── history ── */
 function drawHistChart(h){
@@ -1686,7 +1720,7 @@ const WHATIS={
   exc:"<b>Exceptional Bases</b> are special versions of gear bases that can roll an <b>extra rune socket</b> — gloves with 2 instead of 1, and the same idea for helmets, weapons and armour. More sockets = more runes = the strongest version of that slot. Two things live here: picking up blank white ones to craft on or sell, and grabbing ANY unique that drops on one (the extra-socket copy of a unique beats the normal copy, whatever its price). The base list updates itself with game patches.",
   prev:"<b>Preview</b> shows the exact file the bot reads, after every Generate. Green lines = the bot picks it up, grey = below your value floor (skipped). Use the section list and filters to check that what you expect is actually in the file.",
   hist:"<b>History</b> logs every Generate run so you can see how your pickit evolves over the league — how many rules were active, what the top item was, and the Divine rate at the time.",
-  rare:"<b>Rare Items</b> is being built with the community — one gear class at a time, in game order. Each class gets a pickup design (item level gates, stat floors like resistances or DPS, and mod scoring), and only goes live once finished. Classes marked ‘soon’ add nothing to your pickit yet.",
+  rare:"<b>Rare Items</b> tells the bot which rare (yellow) gear is worth grabbing. Each class has one switch, one minimum item level (80–82) and a strictness. The bot picks the item up, identifies it, and keeps it only if it passes a value check — high life, resistances, movement speed, weapon DPS and so on — otherwise it drops it. Loose keeps more, Strict keeps only the best.",
   set:"<b>Settings</b> connects the generator to your bot (folder + auto-copy), keeps the pickit fresh (Auto-Regenerate + tray mode), and controls output, backups and updates. Everything saves instantly.",
   dbg:"<b>Debug</b> is for when something's wrong: test whether poe.ninja is reachable, inspect the cache, and open the log to see what happened. You'll rarely need it."};
 document.querySelectorAll(".page > h1").forEach(h=>{
