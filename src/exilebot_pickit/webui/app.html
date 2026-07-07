@@ -240,6 +240,9 @@
           border:1px solid var(--gold-dim);border-radius:99px;padding:4px 12px;cursor:pointer;
           margin-top:6px;user-select:none;transition:background .15s}
   .whatis:hover{background:color-mix(in srgb,var(--gold) 22%,transparent)}
+  .whatis-q{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
+          border-radius:50%;background:var(--gold);color:var(--bg);font-size:11px;font-weight:800;
+          line-height:1;flex:0 0 auto}
   .whatis-box{display:none;background:var(--bg2);border:1px solid var(--gold-dim);
           border-radius:12px;padding:14px 18px;margin:0 0 16px;font-size:13px;
           color:var(--text);line-height:1.65}
@@ -1361,7 +1364,7 @@ const WHATIS={
 document.querySelectorAll(".page > h1").forEach(h=>{
   const key=h.parentElement.id.replace("p-","");
   if(!WHATIS[key])return;
-  const btn=document.createElement("span");btn.className="whatis";btn.innerHTML="? &nbsp;Help";btn.title="What this page does";
+  const btn=document.createElement("span");btn.className="whatis";btn.innerHTML='<span class="whatis-q">?</span>Help';btn.title="What this page does";
   const box=document.createElement("div");box.className="whatis-box";box.innerHTML=WHATIS[key];
   h.appendChild(btn);
   const sub=h.nextElementSibling;

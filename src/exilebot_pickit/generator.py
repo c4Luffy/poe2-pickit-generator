@@ -246,7 +246,8 @@ CRAFT_BASE_MIN_ILVL = 82
 # defence types — the three pure attributes (STR=Armour, DEX=Evasion, INT=Energy
 # Shield) plus the three hybrids (STR/DEX, STR/INT, DEX/INT) — using the highest
 # item-level-82 base of each type (verified against poe2db).  Off-hand + weapons
-# keep one top base per type (attribute hybrids don't apply to them).
+# keep the top base(s) per type ranked by base phys DPS (Craft of Exile 2 data);
+# attribute hybrids don't apply to them.
 _CRAFT_BEST_BASES: dict = {
     "Body Armours":  [("Warlord Cuirass", "STR"),     ("Corsair Coat", "DEX"),
                       ("Feathered Raiment", "INT"),    ("Thane Mail", "STR/DEX"),
@@ -263,9 +264,9 @@ _CRAFT_BEST_BASES: dict = {
     "Foci":          [("Tasalian Focus", "INT")],
     "Spears":        [("Grand Spear", "STR/DEX")],
     "Quarterstaves": [("Aegis Quarterstaff", "DEX/INT"), ("Sinister Quarterstaff", "DEX/INT")],
-    "Crossbows":     [("Siege Crossbow", "STR/DEX")],
-    "Bows":          [("Fanatic Bow", "DEX"), ("Warmonger Bow", "DEX"),
-                      ("Obliterator Bow", "DEX")],
+    "Crossbows":     [("Desolate Crossbow", "STR/DEX")],
+    "Bows":          [("Obliterator Bow", "DEX"), ("Warmonger Bow", "DEX"),
+                      ("Guardian Bow", "DEX")],
     "Staves":        [("Permafrost Staff", "INT")],
     "Wands":         [("Dueling Wand", "INT")],
     # Accessories — high-value Normal bases worth crafting on from item level 75.
