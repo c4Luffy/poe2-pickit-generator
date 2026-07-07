@@ -518,7 +518,9 @@ class AppApi:
             f'  start "" "{cur}"\r\n'
             "  del \"%~f0\" & exit\r\n"
             ")\r\n"
-            f'del "{cur}.bak" >NUL 2>&1\r\n'
+            # Keep the previous exe as "<name>.bak" (a working fallback if the new
+            # build misbehaves) instead of deleting it — only ever one copy, since
+            # the next update overwrites it. The user can rename it back by hand.
             f'start "" "{cur}"\r\n'
             'del "%~f0"\r\n'
         )

@@ -450,7 +450,7 @@
     <span class="hint" style="margin:0" id="ecoInfo"></span>
   </div>
   <div style="display:flex;gap:12px;align-items:flex-start">
-    <div id="ecoChips" style="width:195px;flex-shrink:0;max-height:calc(90.9vh - 265px);overflow-y:auto"></div>
+    <div id="ecoChips" class="craft-side" style="width:195px;flex:0 0 195px;position:static;max-height:calc(90.9vh - 265px);overflow-y:auto"></div>
     <div class="card" style="padding:8px 6px;flex:1;min-width:0">
       <table><thead><tr>
         <th style="width:48%" data-s="name">Item</th>
@@ -669,6 +669,9 @@
         <div class="set-row"><div class="lab"><b>Check for updates</b>
           <span id="updLbl">Checks GitHub for a newer build.</span></div><div class="sp"></div>
           <button class="ghost mini" id="updCheck">Check now</button></div>
+        <div class="set-row"><div class="lab"><b>Update went wrong?</b>
+          <span>If the app fails to start after an update, download the latest .exe by hand and run it — it replaces the broken one.</span></div><div class="sp"></div>
+          <button class="ghost mini" id="updManual">Re-download manually</button></div>
         <div class="set-row"><div class="lab"><b>Reset settings to defaults</b>
           <span>History, profiles and item selections are kept.</span></div><div class="sp"></div>
           <button class="ghost mini" id="resetBtn">Reset…</button></div>
@@ -995,22 +998,19 @@ document.querySelectorAll("#unitChips .chip").forEach(c=>c.onclick=()=>{
 $("ecoReload").onclick=()=>{eco=null;loadEco();};
 function renderChips(){
   const c=$("ecoChips");c.innerHTML="";
-  const group=k=>k.startsWith("_ap_")?"ALWAYS PICK":(k.startsWith("unique_")?"UNIQUES":"MARKET");
+  const group=k=>k.startsWith("_ap_")?"Always pick":(k.startsWith("unique_")?"Uniques":"Market");
   let lastG=null;
   for(const cat of eco.cats){
     const g=group(cat.key);
     if(g!==lastG){lastG=g;
-      const h=document.createElement("div");
-      h.textContent=g;
-      h.style.cssText="padding:10px 10px 4px;font-size:10.5px;font-weight:600;letter-spacing:1px;color:var(--dim)";
-      c.appendChild(h);}
+      const h=document.createElement("div");h.className="csgrp";h.textContent=g;c.appendChild(h);}
     const en=eco.cat_enabled[cat.key];
-    const b=document.createElement("div");
-    b.className="nav-btn"+(cat.key===ecoCat?" on":"");
-    b.style.cssText="font-size:12.5px;padding:7px 10px"+(en?"":";opacity:.45");
+    const b=document.createElement("button");
+    b.className="cside-btn"+(cat.key===ecoCat?" on":"");
+    if(!en)b.style.opacity=".5";
     const n=cat.items?cat.items.length:0;
     const lbl=cat.key.startsWith("unique_")?cat.label.replace(/^Unique /,""):cat.label;
-    b.innerHTML=`${esc(lbl)}<span style="margin-left:auto;font-size:10.5px;color:var(--dim)">${en?n:"off"}</span>`;
+    b.innerHTML=`<span>${esc(lbl)}</span><span class="n">${en?n:"off"}</span>`;
     b.title=en?"Click to open · double-click to disable the whole category":"Category is OFF — double-click to enable";
     b.onclick=()=>{ecoCat=cat.key;renderChips();renderEco();};
     b.ondblclick=async()=>{const e2=!eco.cat_enabled[cat.key];eco.cat_enabled[cat.key]=e2;
@@ -1465,6 +1465,7 @@ $("updCheck").onclick=async()=>{$("updLbl").textContent="Checking…";
   const found=await checkForUpdate(false);
   $("updLbl").textContent=found?`⬆ v${upd.version} available — see the banner on Generate`
                                :"✓ You're up to date.";};
+$("updManual").onclick=()=>api().open_url("https://github.com/c4Luffy/poe2-pickit-generator/releases/latest");
 
 /* ── "What is this?" explainers ── */
 const WHATIS={
