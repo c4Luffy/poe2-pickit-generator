@@ -544,6 +544,49 @@ class AppApi:
         threading.Thread(target=_close, daemon=True).start()
         return {"ok": True}
 
+    # ── Window controls (frameless window draws its own title bar) ───────────
+
+    def win_minimize(self):
+        import webview
+        webview.windows[0].minimize()
+        return {"ok": True}
+
+    def win_max_toggle(self):
+        import webview
+        w = webview.windows[0]
+        if getattr(self, "_maxed", False):
+            w.restore()
+            self._maxed = False
+        else:
+            w.maximize()
+            self._maxed = True
+        return {"maximized": self._maxed}
+
+    def win_close(self):
+        """Same behavior as the OS close button: hide to tray when the setting
+        is on, otherwise save geometry, stop the tray and exit."""
+        import webview
+        w = webview.windows[0]
+        if getattr(self, "_tray", None) is not None and self.cfg.get("minimize_to_tray"):
+            w.hide()
+            return {"hidden": True}
+        try:
+            self.cfg["window_geometry_web"] = {"w": w.width, "h": w.height}
+            save_config(self.cfg)
+        except Exception:
+            pass
+        try:
+            if getattr(self, "_tray", None) is not None:
+                self._tray.stop()
+        except Exception:
+            pass
+
+        def _bye():
+            time.sleep(0.15)          # let the JS call return first
+            w.destroy()
+        threading.Thread(target=_bye, daemon=True).start()
+        return {"ok": True}
+
     def check_update(self):
         try:
             from exilebot_pickit.ui.updater import AutoUpdateMixin, VERSION_URL, RELEASES_URL
