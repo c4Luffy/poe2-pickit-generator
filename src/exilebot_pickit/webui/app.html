@@ -633,14 +633,12 @@
     <div style="flex:1;min-width:0">
       <div class="card">
         <h2 id="rareTitle">Pick a class</h2>
-        <div class="hint" id="rareHint">Each class has one switch, one item level (80–82, one number for the whole class) and a strictness. The bot grabs the item, identifies it, and keeps it only if a check passes — otherwise it drops it and moves on.</div>
+        <div class="hint" id="rareHint">Each class has one switch and one item level (80–82, one number for the whole class) — the rules are global: only items carrying a Tier 1 or Tier 2 money mod are kept. The bot grabs the item, identifies it, and keeps it only if a check passes — otherwise it drops it and moves on.</div>
         <div id="rareCtl" style="display:none">
           <div class="set-row"><div class="lab"><b>Pick up this class</b><span>Rare drops only — identified and judged by the checks below</span></div><div class="sp"></div>
             <div class="switch" id="rareOn"><i></i></div></div>
           <div class="set-row" id="rareIlvlRow"><div class="lab"><b>Minimum item level</b><span>80–82 — applies to the whole class</span></div><div class="sp"></div>
             <div class="stepper"><button type="button" class="sm">−</button><input type="number" id="rareIlvl" min="80" max="82"><button type="button" class="sp2">+</button></div></div>
-          <div class="set-row"><div class="lab"><b>Strictness</b><span>How good an identified item must be to keep</span></div><div class="sp"></div>
-            <select id="rareStrict"><option value="loose">Loose</option><option value="balanced">Balanced</option><option value="strict">Strict</option></select></div>
           <div style="margin-top:12px"><div class="hint" style="margin:0 0 6px"><b>Kept if ANY of these pass:</b></div>
             <div id="rareRoutes" class="hint" style="margin:0;line-height:1.9"></div></div>
         </div>
@@ -1471,8 +1469,7 @@ function renderRare(){
   $("rareOn").classList.toggle("on",c.enabled);
   $("rareIlvlRow").style.display=c.has_ilvl?"":"none";
   $("rareIlvl").value=c.ilvl;
-  $("rareStrict").value=c.strict;
-  const rs=(c.routes&&c.routes[c.strict])||null;
+  const rs=(c.routes&&c.routes.length)?c.routes:null;
   $("rareRoutes").innerHTML=rs?rs.map(r=>"✓ "+esc(routeText(r))).join("<br>")
     :"✓ Always kept when enabled — small and always worth stashing.";
 }
@@ -1480,12 +1477,10 @@ async function saveRare(){
   const c=rareFind(rareSel);if(!c)return;
   c.enabled=$("rareOn").classList.contains("on");
   c.ilvl=Math.max(80,Math.min(82,parseInt($("rareIlvl").value)||80));
-  c.strict=$("rareStrict").value;
-  await api().set_rare(c.name,c.enabled,c.ilvl,c.strict);
+  await api().set_rare(c.name,c.enabled,c.ilvl);
   loadRare();
 }
 $("rareOn").onclick=()=>{$("rareOn").classList.toggle("on");saveRare();};
-$("rareStrict").onchange=saveRare;
 $("rareIlvl").onchange=saveRare;
 document.querySelector("#rareIlvlRow .sm").onclick=()=>{$("rareIlvl").value=Math.max(80,(+$("rareIlvl").value||80)-1);saveRare();};
 document.querySelector("#rareIlvlRow .sp2").onclick=()=>{$("rareIlvl").value=Math.min(82,(+$("rareIlvl").value||80)+1);saveRare();};

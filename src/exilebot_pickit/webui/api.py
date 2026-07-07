@@ -831,13 +831,12 @@ class AppApi:
                 cl.append({"name": n, "designed": bool(d),
                            "enabled": bool(s.get("enabled")),
                            "ilvl": int(s.get("ilvl", 80)),
-                           "strict": s.get("strict", "balanced"),
                            "has_ilvl": int(d.get("ilvl", 1)) > 1,
-                           "routes": d.get("routes") or {}})
+                           "routes": d.get("routes") or []})
             out.append({"group": grp, "classes": cl})
         return out
 
-    def set_rare(self, name, enabled, ilvl, strict):
+    def set_rare(self, name, enabled, ilvl):
         if name not in gen.RARE_DESIGNED:
             return {"error": "unknown rare class"}
         states = self.cfg.setdefault("item_states", {}).setdefault("_rare", {})
@@ -847,8 +846,6 @@ class AppApi:
             e["ilvl"] = max(80, min(82, int(ilvl)))
         except (TypeError, ValueError):
             pass
-        if strict in ("loose", "balanced", "strict"):
-            e["strict"] = strict
         save_config(self.cfg)
         return {"ok": True}
 
