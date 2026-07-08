@@ -11,13 +11,26 @@ This is about *which base is strongest*, not whether it exists — for existence
 the current patch use `verify-game-data` (NeverSink). Do both: rank here, confirm
 the winner drops there.
 
-## The data source
+## The data source — ALWAYS fetch fresh, never reuse a local dump
 
 Craft of Exile 2 is a JS SPA (unscrapeable), but exposes raw JSON at
 `https://www.craftofexile.com/json/poe2/main/poec_data.json` (served as
 `poecd={...}` — strip the `poecd=` prefix and trailing `;`, then `json.loads`).
 Download it to the scratchpad with a python script (urllib + a browser
 User-Agent), don't WebFetch it (too big).
+
+**Never use a data file the user has sitting on disk as a source, even if it
+looks like the same shape** (e.g. an old `mods/*.json` export, a prior
+`coe.json` in the scratchpad from an earlier session). PoE2 patches change mod
+tiers/values, and a several-months-old dump WILL be wrong — this bit once: a
+stale local mod-tier folder produced wrong skill-level values for half the
+weapon classes (Crossbow +7 instead of the real +5, etc.), caught only because
+the user spot-checked one number. If the user shares a folder of game data,
+treat it as a hint about *what to verify*, not an answer — always re-fetch
+`poec_data.json` live before writing any tier/value into code, every session,
+even if a fetch was already done earlier that same session for a different
+class (data doesn't go stale in-session, but starting a fresh check on old
+in-memory data from hours/days ago is the same mistake — re-fetch if unsure).
 
 Structure:
 - `d["bgroups"]["seq"]` — `{id_bgroup, name_bgroup}` (Body Armours, Helmets, …).
