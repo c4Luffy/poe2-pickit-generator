@@ -105,7 +105,40 @@ def main():
     )
     tray = _start_tray(window, api)
     api._tray = tray            # win_close() needs it to stop/hide correctly
+    _fix_taskbar_restore(window)
     _run_webview(window, api, tray)
+
+
+def _fix_taskbar_restore(window):
+    """Work around a WinForms quirk: a FormBorderStyle.None ("frameless") form
+    minimized via WindowState=Minimized often does not visually reappear or
+    regain focus when Windows sends the restore command from a taskbar click.
+    Borderless forms skip the non-client handling a bordered form gets for
+    free, so pywebview's own state tracking (events.restored fires correctly)
+    isn't enough — the form has to be explicitly re-shown/activated.
+
+    Runs on the pywebview UI thread inside the `restored` event, so it must
+    stay fast and never raise (mirrors the try/except-everywhere convention
+    used for native-interop calls throughout this file and api.py).
+    """
+    def _on_restored():
+        try:
+            form = window.native
+            from System.Windows.Forms import FormWindowState
+            form.WindowState = FormWindowState.Normal
+            form.Show()
+            # Nudge Windows into actually repainting/bringing the borderless
+            # form to front — a plain Activate() alone is sometimes ignored
+            # right after a taskbar-driven restore.
+            form.TopMost = True
+            form.TopMost = False
+            form.Activate()
+        except Exception:
+            pass
+    try:
+        window.events.restored += _on_restored
+    except Exception:
+        pass
 
 
 def _run_webview(window, api, tray):

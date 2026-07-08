@@ -892,8 +892,8 @@ document.querySelectorAll(".rz").forEach(z=>z.addEventListener("pointerdown",asy
 
 /* ── nav + theme ── */
 // Two-level nav: 3 groups over the 9 pages. Group pill → its last-used tab.
-const NAV_GROUPS={gen:"cockpit",eco:"tune",chance:"tune",craft:"tune",exc:"tune",fracture:"tune",
-                  prev:"system",hist:"system",set:"system",dbg:"system"};
+const NAV_GROUPS={gen:"cockpit",eco:"tune",chance:"tune",craft:"tune",exc:"tune",fracture:"tune",prev:"tune",
+                  hist:"system",set:"system",dbg:"system"};
 const _lastTab={cockpit:"gen",tune:"eco",system:"prev"};
 function openPage(p){
   document.querySelectorAll(".nav-btn").forEach(x=>x.classList.remove("on"));
@@ -1472,6 +1472,9 @@ function renderFracture(){
       </div>
       <div class="t" style="margin-top:6px">${esc(t.affix)} · ${esc(t.mod_tier)} · value ${esc(t.value)}</div>
       <div class="t" style="margin-top:4px;color:var(--gold)">${esc(t.reason)}</div>
+      <pre style="margin-top:8px;padding:9px 11px;background:var(--bg3);border:1px solid var(--border);
+        border-radius:8px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;
+        color:var(--dim);font-family:'Cascadia Mono',Consolas,monospace">${esc(t.example)}</pre>
     </div>`;}).join("");
 }
 

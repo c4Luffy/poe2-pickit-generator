@@ -821,9 +821,12 @@ class AppApi:
     def fracture_classes(self):
         """Fracture Bases roadmap: item classes in game order, each with its
         verified fracture targets (empty list = no natural target exists for
-        that class, per the strict verification rule)."""
+        that class, per the strict verification rule). Each target carries an
+        illustrative example .ipd line — Fracture Bases never emits real rules."""
+        def _with_example(t):
+            return {**t, "example": gen.fracture_example_rule(t)}
         return [{"group": g,
-                 "classes": [{"name": n, "targets": gen.fracture_targets_for_class(n)}
+                 "classes": [{"name": n, "targets": [_with_example(t) for t in gen.fracture_targets_for_class(n)]}
                              for n in names]}
                 for g, names in gen.FRACTURE_CLASS_GROUPS]
 

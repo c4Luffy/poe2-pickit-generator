@@ -536,6 +536,59 @@ def fracture_score(tier: str, explicit_mod_count: int, magic_match: bool, meta_b
 _FRACTURE_TARGETS_BY_ID = {t["id"]: t for t in FRACTURE_TARGETS}
 
 
+# Bot condition expressions VERIFIED against the bot's own ModsList.html /
+# default.ipd for a subset of targets (the "_skill_gem_level_" family, plus a
+# few others confirmed earlier). Anything not in this map has no confirmed
+# bot-side stat id, so its example line uses a clearly-flagged placeholder
+# instead of inventing one — never fabricate an expression that hasn't been
+# checked against the bot's real mod list.
+_FRACTURE_VERIFIED_STAT_IDS = {
+    "amulet_skill_level": None,  # multiple families — see _AMULET_SKILL_IDS below
+    "weapon_skill_level_bow": "bow_skill_gem_level_",
+    "weapon_skill_level_crossbow": "crossbow_skill_gem_level_",
+    "weapon_skill_level_quarterstaff": "melee_skill_gem_level_",
+    "weapon_skill_level_2hmace": "melee_skill_gem_level_",
+    "weapon_skill_level_spear": "melee_skill_gem_level_",
+    "weapon_skill_level_1hmace": "melee_skill_gem_level_",
+    "weapon_skill_level_wand": "spell_skill_gem_level_",
+    "weapon_skill_level_staff": "spell_skill_gem_level_",
+    "weapon_skill_level_sceptre": "minion_skill_gem_level_",
+    "weapon_skill_level_sceptre_t2": "minion_skill_gem_level_",
+    "spirit_body": "local_spirit_+%",
+    "movement_speed": "base_movement_velocity_+%",
+    "focus_spell": "spell_skill_gem_level_",
+    "quiver_projectile": "projectile_skill_gem_level_",
+    "melee_skill_level_gloves": "melee_skill_gem_level_",
+    "focus_crit_spells": None,
+    "flasks_max_charges": "local_max_charges_+%",
+}
+_AMULET_SKILL_IDS = ("spell_skill_gem_level_", "minion_skill_gem_level_",
+                     "melee_skill_gem_level_", "projectile_skill_gem_level_")
+
+
+def fracture_example_rule(target: dict) -> str:
+    """One illustrative .ipd-style line for a Fracture Bases target — NOT a
+    real/active pickit rule (Fracture Bases never emits rules; see the
+    FRACTURE_TARGETS docstring). Uses a verified bot stat expression where one
+    has been confirmed against ModsList.html; otherwise shows an explicit
+    "unverified" placeholder rather than guessing at a bot expression id."""
+    cls = target["classes"][0]
+    rarity = "Magic" if target.get("magic_only") else "Rare"
+    stat_id = _FRACTURE_VERIFIED_STAT_IDS.get(target["id"], "__unset__")
+    tail = "// FRACTURE BASES EXAMPLE — illustration only, not an active pickit rule"
+    if target["id"] == "amulet_skill_level":
+        cond = " || ".join(f'[{sid}] >= "3"' for sid in _AMULET_SKILL_IDS)
+        cond = f"({cond})"
+    elif stat_id and stat_id != "__unset__":
+        cond = f'[{stat_id}] >= "<value: {target["value"]}>"'
+    else:
+        cond = "[UNVERIFIED_STAT_ID]"
+        tail = (f'// unverified: no bot expression confirmed for "{target["text"]}" — '
+                f'FRACTURE BASES EXAMPLE, illustration only')
+    return (f'[Category] == "{cls}" && [Rarity] == "{rarity}" # {cond} '
+            f'&& [StashItem] == "true"  {tail}')
+
+
 def classify_fracture_item(item_class: str, rarity: str, matched_target_ids: list,
                            explicit_mod_count: int, meta_base: bool = False) -> dict:
     """Classify one item for Fracture Bases purposes.

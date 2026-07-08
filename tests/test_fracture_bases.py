@@ -137,6 +137,28 @@ def test_belt_has_life_mana_and_all_four_resists():
     assert {"belt_life", "belt_mana", "belt_resist"} <= ids
 
 
+def test_example_rule_is_well_formed_and_labelled_illustrative():
+    for tgt in gen.FRACTURE_TARGETS:
+        line = gen.fracture_example_rule(tgt)
+        assert line.startswith('[Category] ==')
+        assert '[StashItem] == "true"' in line
+        assert "FRACTURE BASES EXAMPLE" in line or "FRACTURE BASES EXAMPLE" in line.split("//")[-1]             or "unverified" in line
+        # never a fabricated stat id for targets with no verified mapping
+        if gen._FRACTURE_VERIFIED_STAT_IDS.get(tgt["id"]) in (None, "__unset__") and tgt["id"] != "amulet_skill_level":
+            assert "UNVERIFIED_STAT_ID" in line
+
+
+def test_verified_stat_ids_only_used_where_actually_confirmed():
+    # Spot-check: movement speed and spirit use their confirmed bot ids.
+    move_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["movement_speed"])
+    assert "base_movement_velocity_+%" in move_line
+    spirit_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["spirit_body"])
+    assert "local_spirit_+%" in spirit_line
+    # crit chance has no confirmed id -> must show the honest placeholder, not a guess
+    crit_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["crit_chance_weapon"])
+    assert "UNVERIFIED_STAT_ID" in crit_line
+
+
 # ── Item classification samples (spec section 10) ──
 # classify_fracture_item is a pure scoring helper only — it does NOT drive
 # pickit/bot output. Fracture Bases never generates rules; see the module
