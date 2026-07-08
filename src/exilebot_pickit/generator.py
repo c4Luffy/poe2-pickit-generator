@@ -354,9 +354,10 @@ FRACTURE_TARGETS: list = [
 # Targets the spec's own verification step rejected — kept here (not shown in
 # the UI) so a future data refresh can re-check without re-deriving the answer.
 FRACTURE_EXCLUDED_UNVERIFIED = {
-    "crit_chance_gloves": "No Critical Hit Chance affix exists on Gloves in the "
-                           "current mod data — only Critical Damage Bonus rolls "
-                           "there, which the spec explicitly excludes.",
+    "crit_chance_gloves": "No Critical Hit Chance affix exists on Gloves (verified "
+                           "against live CoE data across all 6 attribute variants) — "
+                           "only Critical Damage Bonus (excluded by spec) and a fixed "
+                           "socket-rune effect, not a rollable mod, are present.",
     "focus_minion": "No natural (Base-pool) +Minion Skills mod exists on Focus. "
                      "The only Minion Skills mod found on Focus comes from the "
                      "Desecrated pool (a boss/Well of Souls mechanic, not a "
