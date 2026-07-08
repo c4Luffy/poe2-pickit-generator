@@ -140,7 +140,9 @@ def test_belt_has_life_mana_and_all_four_resists():
 def test_example_rule_is_well_formed_and_labelled_illustrative():
     for tgt in gen.FRACTURE_TARGETS:
         line = gen.fracture_example_rule(tgt)
-        assert line.startswith('[Category] ==')
+        # examples show the REAL selector: a narrowed [Type] OR-group where
+        # base data exists, else the class-wide [Category]/[WeaponCategory]
+        assert line.startswith(('([Type] ==', '[Category] ==', '[WeaponCategory] =='))
         assert '[StashItem] == "true"' in line
         assert "FRACTURE BASES EXAMPLE" in line or "FRACTURE BASES EXAMPLE" in line.split("//")[-1]             or "unverified" in line
         # never a fabricated stat id for targets with no verified mapping

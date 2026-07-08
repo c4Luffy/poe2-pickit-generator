@@ -348,13 +348,17 @@ _AMULET_SKILL_IDS = ("spell_skill_gem_level_", "minion_skill_gem_level_",
 
 
 def fracture_example_rule(target: dict) -> str:
-    """One illustrative .ipd-style line for a Fracture Bases target — NOT a
-    real/active pickit rule (Fracture Bases never emits rules; see the
-    FRACTURE_TARGETS docstring). Uses a verified bot stat expression where one
-    has been confirmed against ModsList.html; otherwise shows an explicit
-    "unverified" placeholder rather than guessing at a bot expression id."""
+    """One illustrative .ipd-style line for a Fracture Bases target. Shows the
+    SAME pre-# selector the real emitted rule uses (the top-N [Type] OR-group
+    from _fracture_class_selector, never the whole category) so the tab
+    displays exactly what the bot will get. Uses a verified bot stat
+    expression where one has been confirmed against the bot's own files;
+    otherwise shows an explicit "unverified" placeholder rather than guessing
+    at a bot expression id."""
     cls = target["classes"][0]
-    rarity = "Magic" if target.get("magic_only") else "Rare"
+    sel = _fracture_class_selector(cls) or f'[Category] == "{cls}"'
+    rarity = ('[Rarity] == "Magic"' if target.get("magic_only")
+              else '[Rarity] == "Magic" || [Rarity] == "Rare"')
     stat_id = _FRACTURE_VERIFIED_STAT_IDS.get(target["id"], "__unset__")
     tail = "// FRACTURE BASES EXAMPLE — illustration only, not an active pickit rule"
     if target["id"] == "amulet_skill_level":
@@ -366,7 +370,7 @@ def fracture_example_rule(target: dict) -> str:
         cond = "[UNVERIFIED_STAT_ID]"
         tail = (f'// unverified: no bot expression confirmed for "{target["text"]}" — '
                 f'FRACTURE BASES EXAMPLE, illustration only')
-    return (f'[Category] == "{cls}" && [Rarity] == "{rarity}" # {cond} '
+    return (f'{sel} && ({rarity}) # {cond} '
             f'&& [StashItem] == "true"  {tail}')
 
 
@@ -398,7 +402,7 @@ _FRACTURE_CLASS_SEL: dict = {
     "Flasks": '[Category] == "Flask"',
 }
 
-_FRACTURE_TOP_N = 4
+_FRACTURE_TOP_N = 3
 
 
 def _fracture_class_selector(cls: str) -> str | None:
