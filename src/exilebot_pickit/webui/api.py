@@ -1298,18 +1298,6 @@ class AppApi:
         return {"errors": [f"Line {n}: {m}" for n, m in v.get("errors", [])],
                 "warnings": [f"Line {n}: {m}" for n, m in v.get("warnings", [])]}
 
-    def profile_get(self, name):
-        """Profile snapshot summary for the Compare view."""
-        p = self.cfg.get("profiles", {}).get(name)
-        if not p:
-            return {"error": "not found"}
-        st = p.get("item_states", {})
-        return {"min_gear": p.get("min_exalt_gear", 0), "min_unique": p.get("min_exalt_unique", 0),
-                "output_base": p.get("output_base", ""), "include_bases": p.get("include_bases", True),
-                "base_quality": p.get("base_quality", 25), "base_min_level": p.get("base_min_level", 82),
-                "disabled_counts": {k: sum(1 for s in v.values() if not s.get("enabled", True))
-                                    for k, v in st.items() if isinstance(v, dict)}}
-
     def open_file(self, kind):
         """Open the last .ipd / .filter / debug log / config with the default app."""
         from exilebot_pickit.ui.config import LOG_PATH, CONFIG_PATH

@@ -19,6 +19,7 @@ def build_rare_archetype_rules(enabled: bool) -> list:
     from exilebot_pickit.generator import header_major as _header_major  # avoid circular import
     return [
         _header_major("Rare Archetypes"),
+        "",
         "//  Per-build WeightedSum rules bundled from a real working pickit.                //",
         "//  Toggle this section in Settings.                                               //",
         "",

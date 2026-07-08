@@ -467,6 +467,7 @@ def _build_fracture_pickit_rules(states: dict, _header_major) -> list:
         return []
     return [
         _header_major("Fracture Bases"),
+        "",
         "//  Magic/Rare bases matching a verified fracture-worthy affix target.             //",
         "//  Manage individual classes in the Fracture Bases tab.                           //",
         "",
