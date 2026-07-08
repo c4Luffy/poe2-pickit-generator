@@ -245,19 +245,37 @@ def test_score_formula():
 
 
 # ── Pickit-rule wiring (build_fracture_pickit_rules) ──
+# Classes default to enabled (owner preference), so isolating "only this one
+# class" requires explicitly disabling every other class in the states dict.
+
+def _all_off(**overrides):
+    states = {cls: {"enabled": False}
+              for _g, classes in gen.FRACTURE_CLASS_GROUPS for cls in classes}
+    for cls, en in overrides.items():
+        states[cls] = {"enabled": en}
+    return states
+
 
 def test_no_classes_enabled_emits_nothing():
-    assert gen.build_fracture_pickit_rules({}) == []
-    assert gen.build_fracture_pickit_rules({"Boots": {"enabled": False}}) == []
+    assert gen.build_fracture_pickit_rules(_all_off()) == []
+    assert gen.build_fracture_pickit_rules(_all_off(Boots=False)) == []
 
 
 def test_disabled_class_emits_nothing():
-    lines = gen.build_fracture_pickit_rules({"Boots": {"enabled": False}})
+    lines = gen.build_fracture_pickit_rules(_all_off(Boots=False))
     assert lines == []
 
 
+def test_class_missing_from_states_defaults_to_enabled():
+    # A class absent from the states dict entirely (e.g. never toggled by the
+    # user) must still emit its rule, matching the "on by default" UI value —
+    # regression test for a bug where missing == disabled at generate time.
+    lines = gen.build_fracture_pickit_rules({})
+    assert any("base_movement_velocity_+%" in l for l in lines)
+
+
 def test_enabled_class_with_verified_target_emits_valid_rule():
-    lines = gen.build_fracture_pickit_rules({"Boots": {"enabled": True}})
+    lines = gen.build_fracture_pickit_rules(_all_off(Boots=True))
     assert lines
     rule_lines = [l for l in lines if l.startswith("[Category]") or l.startswith("[WeaponCategory]")]
     assert rule_lines
@@ -271,18 +289,18 @@ def test_enabled_class_with_verified_target_emits_valid_rule():
 
 def test_class_with_only_unverified_targets_emits_nothing_even_when_enabled():
     # Charms/Jewels/Flasks have no fracture targets at all -> nothing to wire.
-    lines = gen.build_fracture_pickit_rules({"Charms": {"enabled": True}})
+    lines = gen.build_fracture_pickit_rules(_all_off(Charms=True))
     assert lines == []
-    lines = gen.build_fracture_pickit_rules({"Jewels": {"enabled": True}})
+    lines = gen.build_fracture_pickit_rules(_all_off(Jewels=True))
     assert lines == []
 
 
 def test_shields_enabled_emits_nothing_no_targets():
-    assert gen.build_fracture_pickit_rules({"Shields": {"enabled": True}}) == []
+    assert gen.build_fracture_pickit_rules(_all_off(Shields=True)) == []
 
 
 def test_amulets_enabled_emits_or_of_four_skill_families():
-    lines = gen.build_fracture_pickit_rules({"Amulets": {"enabled": True}})
+    lines = gen.build_fracture_pickit_rules(_all_off(Amulets=True))
     assert lines
     rule = [l for l in lines if l.startswith("[Category]")][0]
     for sid in gen._AMULET_SKILL_IDS:

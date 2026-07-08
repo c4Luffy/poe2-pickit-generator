@@ -442,8 +442,8 @@ def _build_fracture_pickit_rules(states: dict, _header_major) -> list:
     body: list = []
     for _group, classes in FRACTURE_CLASS_GROUPS:
         for cls in classes:
-            st = states.get(cls) or {}
-            if not st.get("enabled"):
+            st = states.get(cls) or fracture_default(cls)
+            if not st.get("enabled", True):
                 continue
             sel = _FRACTURE_CLASS_SEL.get(cls)
             if not sel:
