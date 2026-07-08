@@ -242,3 +242,72 @@ def test_score_formula():
     assert gen.fracture_score("S+", explicit_mod_count=3, magic_match=False, meta_base=False) == 100
     assert gen.fracture_score("S", explicit_mod_count=4, magic_match=False, meta_base=False) == 95
     assert gen.fracture_score("A+", explicit_mod_count=4, magic_match=True, meta_base=True) == 60 + 15 + 10 + 10
+
+
+# ── Pickit-rule wiring (build_fracture_pickit_rules) ──
+
+def test_no_classes_enabled_emits_nothing():
+    assert gen.build_fracture_pickit_rules({}) == []
+    assert gen.build_fracture_pickit_rules({"Boots": {"enabled": False}}) == []
+
+
+def test_disabled_class_emits_nothing():
+    lines = gen.build_fracture_pickit_rules({"Boots": {"enabled": False}})
+    assert lines == []
+
+
+def test_enabled_class_with_verified_target_emits_valid_rule():
+    lines = gen.build_fracture_pickit_rules({"Boots": {"enabled": True}})
+    assert lines
+    rule_lines = [l for l in lines if l.startswith("[Category]") or l.startswith("[WeaponCategory]")]
+    assert rule_lines
+    assert any("base_movement_velocity_+%" in l for l in rule_lines)
+    result = gen.validate_pickit(lines)
+    assert result["errors"] == []
+    for l in rule_lines:
+        assert '[StashItem] == "true"' in l
+        assert "UNVERIFIED_STAT_ID" not in l
+
+
+def test_class_with_only_unverified_targets_emits_nothing_even_when_enabled():
+    # Charms/Jewels/Flasks have no fracture targets at all -> nothing to wire.
+    lines = gen.build_fracture_pickit_rules({"Charms": {"enabled": True}})
+    assert lines == []
+    lines = gen.build_fracture_pickit_rules({"Jewels": {"enabled": True}})
+    assert lines == []
+
+
+def test_shields_enabled_emits_nothing_no_targets():
+    assert gen.build_fracture_pickit_rules({"Shields": {"enabled": True}}) == []
+
+
+def test_amulets_enabled_emits_or_of_four_skill_families():
+    lines = gen.build_fracture_pickit_rules({"Amulets": {"enabled": True}})
+    assert lines
+    rule = [l for l in lines if l.startswith("[Category]")][0]
+    for sid in gen._AMULET_SKILL_IDS:
+        assert sid in rule
+    assert "UNVERIFIED_STAT_ID" not in rule
+    result = gen.validate_pickit(lines)
+    assert result["errors"] == []
+
+
+def test_all_wired_targets_use_real_verified_stat_ids_never_placeholder():
+    all_states = {cls: {"enabled": True} for _g, classes in gen.FRACTURE_CLASS_GROUPS for cls in classes}
+    lines = gen.build_fracture_pickit_rules(all_states)
+    assert lines
+    for l in lines:
+        assert "UNVERIFIED_STAT_ID" not in l
+    result = gen.validate_pickit(lines)
+    assert result["errors"] == []
+
+
+def test_fracture_default_is_disabled():
+    assert gen.fracture_default("Boots") == {"enabled": False}
+
+
+def test_fracture_has_verified_target():
+    assert gen.fracture_has_verified_target("Boots") is True
+    assert gen.fracture_has_verified_target("Amulets") is True
+    assert gen.fracture_has_verified_target("Shields") is False
+    assert gen.fracture_has_verified_target("Charms") is False

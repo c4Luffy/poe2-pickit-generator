@@ -632,7 +632,12 @@
     <div class="craft-side" id="fracSide"></div>
     <div style="flex:1;min-width:0">
       <div class="card">
-        <h2 id="fracTitle">Pick a class</h2>
+        <div style="display:flex;align-items:center;gap:12px">
+          <h2 id="fracTitle" style="margin:0">Pick a class</h2>
+          <div class="sp" style="flex:1"></div>
+          <span class="t" id="fracToggleLabel">Pick up matching bases</span>
+          <div class="switch" id="swFracture"><i></i></div>
+        </div>
         <div class="hint" id="fracHint">Every target below is a natural Magic/Rare affix, verified against live PoE2 mod-tier data — never an Essence, crafted, Abyss, corrupted, unique, vendor, or event-only mod. A base with exactly 4 explicit modifiers is the cleanest fracture chance; more than 4 explicit mods gets a warning.</div>
         <div id="fracList"></div>
       </div>
@@ -1436,6 +1441,7 @@ function renderExcGrid(){
 
 /* ── fracture bases (verified reference, not a pickit rule) ── */
 let fracCls=null,fracSel=null,fracExamples={};
+function gen_isWired(t){return !(t.example||"").includes("UNVERIFIED_STAT_ID");}
 const FRAC_TIER_COLOR={"S+":"#e0455a","S":"#d99b3c","A+":"#5b8fd6","A":"#6fae5f"};
 async function loadFracture(force){
   if(!fracCls||force)fracCls=await api().fracture_classes();
@@ -1446,7 +1452,11 @@ async function loadFracture(force){
     for(const c of g.classes){total++;if(c.targets.length)withTargets++;
       const b=document.createElement("button");
       b.className="cside-btn"+(fracSel===c.name?" on":"");
-      b.innerHTML=`<span>${esc(c.name)}</span><span class="n">${c.targets.length||"—"}</span>`;
+      b.dataset.name=c.name;
+      const dot=c.has_verified_target
+        ?`<span style="color:${c.enabled?"var(--gold)":"var(--dim)"};font-size:9px;margin-right:5px" title="${c.enabled?"Picking up matching bases":"Not picking up (toggle off)"}">${c.enabled?"●":"○"}</span>`
+        :"";
+      b.innerHTML=`<span>${dot}${esc(c.name)}</span><span class="n">${c.targets.length||"—"}</span>`;
       b.onclick=()=>{fracSel=c.name;renderFracture();};
       s.appendChild(b);}}
   $("fracCount").textContent=`${withTargets} / ${total} classes have a verified target.`;
@@ -1454,11 +1464,26 @@ async function loadFracture(force){
   renderFracture();
 }
 function renderFracture(){
-  document.querySelectorAll("#fracSide .cside-btn").forEach(b=>b.classList.toggle("on",b.querySelector("span").textContent===fracSel));
+  document.querySelectorAll("#fracSide .cside-btn").forEach(b=>b.classList.toggle("on",b.dataset.name===fracSel));
   const c=fracCls&&fracCls.flatMap(g=>g.classes).find(x=>x.name===fracSel);
   const list=$("fracList");
-  if(!c){$("fracTitle").textContent="Pick a class";list.innerHTML="";return;}
+  const sw=$("swFracture");
+  if(!c){$("fracTitle").textContent="Pick a class";list.innerHTML="";sw.style.visibility="hidden";return;}
   $("fracTitle").textContent=c.name;
+  if(c.has_verified_target){
+    sw.style.visibility="visible";
+    sw.classList.toggle("on",!!c.enabled);
+    $("fracToggleLabel").textContent="Pick up matching Magic/Rare bases";
+    sw.onclick=async()=>{
+      c.enabled=!c.enabled;
+      sw.classList.toggle("on",c.enabled);
+      await api().set_fracture(c.name,c.enabled);
+      loadFracture(true);
+    };
+  } else {
+    sw.style.visibility="hidden";
+    $("fracToggleLabel").textContent="";
+  }
   if(!c.targets.length){
     list.innerHTML=`<div class="hint">No verified fracture target for ${esc(c.name)} — nothing here meets the strict natural-Magic/Rare-affix rule, so nothing is shown (per the "if it can't be verified, don't match it" policy).</div>`;
     return;}
@@ -1466,11 +1491,15 @@ function renderFracture(){
   list.innerHTML=c.targets.map(t=>{
     const col=FRAC_TIER_COLOR[t.tier]||"var(--gold)";
     const magic=t.magic_only?`<span class="pill" style="margin-left:8px">Magic only</span>`:"";
+    const wired=gen_isWired(t);
+    const note=wired
+      ?""
+      :`<span class="t" style="margin-left:8px;color:var(--dim)">reference only — not used for pickup (no verified bot condition yet)</span>`;
     fracExamples[t.id]=t.example;
     return `<div class="bcard" style="margin-top:10px;cursor:default">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="background:${col};color:#0d0b06;font-size:11px;font-weight:800;padding:2px 9px;border-radius:5px;letter-spacing:.3px">${esc(t.tier)}</span>
-        <b>${esc(t.text)}</b>${magic}
+        <b>${esc(t.text)}</b>${magic}${note}
       </div>
       <div class="t" style="margin-top:6px">${esc(t.affix)} · ${esc(t.mod_tier)} · value ${esc(t.value)}</div>
       <div class="t" style="margin-top:4px;color:var(--gold)">${esc(t.reason)}</div>

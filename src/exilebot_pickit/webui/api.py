@@ -822,13 +822,28 @@ class AppApi:
         """Fracture Bases roadmap: item classes in game order, each with its
         verified fracture targets (empty list = no natural target exists for
         that class, per the strict verification rule). Each target carries an
-        illustrative example .ipd line — Fracture Bases never emits real rules."""
+        illustrative example .ipd line. Classes with at least one target whose
+        bot stat id is actually confirmed (``has_verified_target``) are wired
+        into real pickit output when enabled; the rest stay reference-only."""
         def _with_example(t):
             return {**t, "example": gen.fracture_example_rule(t)}
+        fb_states = self.cfg.get("item_states", {}).get("_fracture", {})
         return [{"group": g,
-                 "classes": [{"name": n, "targets": [_with_example(t) for t in gen.fracture_targets_for_class(n)]}
+                 "classes": [{"name": n,
+                              "targets": [_with_example(t) for t in gen.fracture_targets_for_class(n)],
+                              "has_verified_target": gen.fracture_has_verified_target(n),
+                              "enabled": fb_states.get(n, gen.fracture_default(n)).get("enabled", False)}
                              for n in names]}
                 for g, names in gen.FRACTURE_CLASS_GROUPS]
+
+    def set_fracture(self, name, enabled):
+        valid = {n for _g, names in gen.FRACTURE_CLASS_GROUPS for n in names}
+        if name not in valid:
+            return {"error": "unknown class"}
+        states = self.cfg.setdefault("item_states", {}).setdefault("_fracture", {})
+        states.setdefault(name, {})["enabled"] = bool(enabled)
+        save_config(self.cfg)
+        return {"ok": True}
 
     def craft_bases(self):
         from exilebot_pickit.data.icons import STATIC_ICONS as _ci, BASE_STATS as _bs
@@ -1011,6 +1026,7 @@ class AppApi:
             out += gen.build_chance_base_rules(asm.chance_base_disabled(snap))
             craft_lines, _n, _floor = asm.craft_base_section(snap)
             out += craft_lines
+            out += asm.fracture_pickit_section(snap)
             excdis = self._excbase_disabled(snap)
             if snap["include_bases"]:
                 out += ["", gen.header_major("Exceptional Bases"), ""]

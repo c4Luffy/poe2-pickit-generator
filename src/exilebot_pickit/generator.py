@@ -589,6 +589,118 @@ def fracture_example_rule(target: dict) -> str:
             f'&& [StashItem] == "true"  {tail}')
 
 
+# Item-class -> pre-# selector, reused verbatim from the old Rare Items tab
+# (RARE_DESIGNED, removed in "Rare tab skeleton" history) — same class names,
+# same selector syntax, the closest prior art for per-class item-class gating.
+_FRACTURE_CLASS_SEL: dict = {
+    "Body Armours": '[Category] == "BodyArmour"',
+    "Helmets": '[Category] == "Helmet"',
+    "Gloves": '[Category] == "Gloves"',
+    "Boots": '[Category] == "Boots"',
+    "Shields": '[WeaponCategory] == "Shield"',
+    "Foci": '[WeaponCategory] == "Focus"',
+    "Quivers": '[WeaponCategory] == "Quiver"',
+    "Bows": '[WeaponCategory] == "Bow"',
+    "Crossbows": '[WeaponCategory] == "Crossbow"',
+    "Quarterstaves": '[WeaponCategory] == "Quarterstaff"',
+    "Spears": '[WeaponCategory] == "Spear"',
+    "One Hand Maces": '[WeaponCategory] == "OneHandMace"',
+    "Two Hand Maces": '[WeaponCategory] == "TwoHandMace"',
+    "Sceptres": '[WeaponCategory] == "Sceptre"',
+    "Wands": '[WeaponCategory] == "Wand"',
+    "Staves": '[WeaponCategory] == "Staff"',
+    "Amulets": '[Category] == "Amulet"',
+    "Rings": '[Category] == "Ring"',
+    "Belts": '[Category] == "Belt"',
+    "Jewels": '[Category] == "Jewel"',
+    "Charms": '[Category] == "Charm"',
+    "Flasks": '[Category] == "Flask"',
+}
+
+_FRACTURE_VALUE_RE = re.compile(r"\d+")
+
+
+def _fracture_value_threshold(target: dict) -> str:
+    """Lowest whole number in a target's ``value`` string, used as the ``>=``
+    threshold for the wired pickup rule (e.g. "+4" -> "4", "57-61" -> "57")."""
+    m = _FRACTURE_VALUE_RE.search(target["value"])
+    return m.group(0) if m else "1"
+
+
+def fracture_has_verified_target(item_class: str) -> bool:
+    """True if at least one of this class's fracture targets has a real,
+    non-placeholder bot stat id wired into pickit output."""
+    for t in fracture_targets_for_class(item_class):
+        sid = _FRACTURE_VERIFIED_STAT_IDS.get(t["id"], "__unset__")
+        if t["id"] == "amulet_skill_level" or (sid and sid != "__unset__"):
+            return True
+    return False
+
+
+def fracture_default(name: str) -> dict:
+    """Default per-class Fracture Bases pickup state — off by default. This is
+    a new pickup behaviour (Fracture Bases was reference-only before), so it
+    must not silently start picking up items for users on an existing config."""
+    return {"enabled": False}
+
+
+def _fracture_target_condition(target: dict) -> str | None:
+    """Post-# stat condition for one verified fracture target, or None if the
+    target has no verified bot stat id (must never be emitted as a rule)."""
+    if target["id"] == "amulet_skill_level":
+        cond = " || ".join(f'[{sid}] >= "3"' for sid in _AMULET_SKILL_IDS)
+        return f"({cond})"
+    stat_id = _FRACTURE_VERIFIED_STAT_IDS.get(target["id"], "__unset__")
+    if not stat_id or stat_id == "__unset__":
+        return None
+    return f'[{stat_id}] >= "{_fracture_value_threshold(target)}"'
+
+
+def build_fracture_pickit_rules(states: dict) -> list:
+    """Return pickit lines picking up Magic/Rare bases matching a verified
+    Fracture Bases target, for each enabled class in ``states``
+    (``{class_name: {"enabled": bool}}``).
+
+    Only targets with a real, confirmed bot stat expression in
+    ``_FRACTURE_VERIFIED_STAT_IDS`` (plus the special-cased
+    ``amulet_skill_level`` OR-of-4-families) are ever emitted — targets
+    without one stay reference-only in the Fracture Bases tab and never
+    produce a rule here, no matter the enabled state."""
+    states = states or {}
+    body: list = []
+    for _group, classes in FRACTURE_CLASS_GROUPS:
+        for cls in classes:
+            st = states.get(cls) or {}
+            if not st.get("enabled"):
+                continue
+            sel = _FRACTURE_CLASS_SEL.get(cls)
+            if not sel:
+                continue
+            cls_lines = []
+            for target in fracture_targets_for_class(cls):
+                cond = _fracture_target_condition(target)
+                if cond is None:
+                    continue  # unverified — reference-only, never wired
+                rarity = ('[Rarity] == "Magic"' if target.get("magic_only")
+                          else '[Rarity] == "Magic" || [Rarity] == "Rare"')
+                cls_lines.append(
+                    f'{sel} && ({rarity}) # {cond} && [StashItem] == "true"'
+                )
+            if not cls_lines:
+                continue
+            body.append(f"// -- {cls} " + "-" * max(0, 73 - len(cls)))
+            body.extend(cls_lines)
+            body.append("")
+    if not body:
+        return []
+    return [
+        header_major("Fracture Bases"),
+        "//  Magic/Rare bases matching a verified fracture-worthy affix target.       //",
+        "//  Manage individual classes in the Fracture Bases tab.                     //",
+        "",
+    ] + body
+
+
 def classify_fracture_item(item_class: str, rarity: str, matched_target_ids: list,
                            explicit_mod_count: int, meta_base: bool = False) -> dict:
     """Classify one item for Fracture Bases purposes.

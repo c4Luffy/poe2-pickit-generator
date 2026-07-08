@@ -287,6 +287,14 @@ def craft_base_section(snapshot: dict) -> tuple[list[str], int, int]:
     return lines, count, floor
 
 
+def fracture_pickit_section(snapshot: dict) -> list[str]:
+    """Return pickit lines for the Fracture Bases section: Magic/Rare bases
+    matching a per-class enabled, verified fracture target. Empty list if no
+    class is enabled or none of the enabled classes have a verified target."""
+    fb_states = snapshot.get("item_states", {}).get("_fracture", {})
+    return gen.build_fracture_pickit_rules(fb_states)
+
+
 # ── Price-move alerts ─────────────────────────────────────────────────────────
 
 def compute_price_alerts(categories, all_payloads: dict,
