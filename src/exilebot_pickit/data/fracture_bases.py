@@ -323,6 +323,17 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     # base_spirit_from_equipment appears throughout the owner's real working
     # reference pickit on amulet rules — bot-verified by definition.
     "amulet_spirit": "base_spirit_from_equipment",
+    # local_energy_shield / local_base_evasion_rating appear throughout the
+    # owner's real working reference pickit (body/gloves/boots ES and Evasion
+    # WeightedSums) — bot-verified by definition. Flat-roll targets only; the
+    # %-hybrid targets (es_evasion_pct_*) combine two stats in one target and
+    # stay reference-only.
+    "es_body": "local_energy_shield",
+    "evasion_body": "local_base_evasion_rating",
+    "es_helmet": "local_energy_shield",
+    "evasion_helmet": "local_base_evasion_rating",
+    "es_boots": "local_energy_shield",
+    "evasion_boots": "local_base_evasion_rating",
     "weapon_skill_level_bow": "bow_skill_gem_level_",
     "weapon_skill_level_crossbow": "crossbow_skill_gem_level_",
     "weapon_skill_level_quarterstaff": "melee_skill_gem_level_",
