@@ -240,6 +240,24 @@ def build_base_rules(min_quality: int = 25, min_level: int = 82, progress_callba
 #  toggleable in the Craft Bases tab and easy to swap here. Sword/axe/mace are
 #  intentionally omitted.
 # ─────────────────────────────────────────────────────────────────────────────
+
+# Item classes in game order, grouped — the roadmap shared by Craft Bases and
+# Fracture Bases. (Historically named RARE_CLASS_GROUPS; kept spelled out here
+# since Fracture Bases replaced the old Rare tab that first introduced it.)
+# ── Fracture Bases (re-exported from data/fracture_bases.py) ──────────────────
+from exilebot_pickit.data.fracture_bases import (  # noqa: F401
+    FRACTURE_CLASS_GROUPS, FRACTURE_TIERS, FRACTURE_TARGETS,
+    FRACTURE_EXCLUDED_UNVERIFIED, fracture_targets_for_class, fracture_score,
+    _FRACTURE_TARGETS_BY_ID, _FRACTURE_VERIFIED_STAT_IDS, _AMULET_SKILL_IDS,
+    fracture_example_rule, _FRACTURE_CLASS_SEL, _fracture_value_threshold,
+    fracture_has_verified_target, fracture_default, _fracture_target_condition,
+    build_fracture_pickit_rules, classify_fracture_item,
+)
+from exilebot_pickit.data.rare_archetypes import (  # noqa: F401
+    RARE_ARCHETYPE_LINES, build_rare_archetype_rules,
+)
+
+
 CRAFT_BASE_MIN_ILVL = 82
 
 # Ordered slot -> [(base_name, defence_type), ...].  Armour slots cover ALL six
@@ -438,7 +456,6 @@ def build_exotic_base_rules(disabled=None) -> list:
     for b in keep:
         out.append(f'[Type] == "{b}" # [StashItem] == "true"')
     return out
-
 
 
 # NOTE: type-less catch-all rules ([Quality] >= "21" / [Sockets] >= "3" with

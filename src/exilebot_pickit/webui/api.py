@@ -29,9 +29,9 @@ _SETTABLE = {
     "league", "output_base", "bot_folder", "auto_copy", "theme",
     "min_exalt_gear", "min_exalt_unique", "include_bases",
     "auto_floor", "auto_floor_pct",
-    "base_quality", "base_min_level", "auto_regen_hours", "backup_count",
+    "base_quality", "base_min_level", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
-    "minimize_to_tray",
+    "minimize_to_tray", "rare_archetypes_enabled",
 }
 
 
@@ -46,6 +46,7 @@ class AppApi:
         self._status = {"running": False, "log": [], "done": None}
         self._dl = {"active": False, "pct": 0, "done_mb": 0.0, "total_mb": 0.0, "result": None}
         self._last_lines: list = []
+        self._eco = {"running": False, "result": None}
         self.cfg = load_config()
         gen.set_disk_cache_dir(PRICE_CACHE_DIR)
         gen.prune_disk_cache(max_age_days=60)
@@ -76,13 +77,13 @@ class AppApi:
             "auto_floor_pct": int(c.get("auto_floor_pct", 40) or 40),
             "base_quality": int(c.get("base_quality", 25)),
             "base_min_level": int(c.get("base_min_level", 82)),
-            "auto_regen_hours": int(c.get("auto_regen_hours", 0) or 0),
             "copy_filter_to_game": bool(c.get("copy_filter_to_game", False)),
             "poe2_filter_dir": c.get("poe2_filter_dir", "") or _default_dir(),
             "backup_count": int(c.get("backup_count", 5)),
             "confirm_overwrite_secs": int(c.get("confirm_overwrite_secs", 120)),
             "config_warning": _config_warning(),
             "minimize_to_tray": bool(c.get("minimize_to_tray", False)),
+            "rare_archetypes_enabled": bool(c.get("rare_archetypes_enabled", False)),
         }
 
     def set_setting(self, key, value):
@@ -226,6 +227,30 @@ class AppApi:
                     "cat_enabled": cat_en}
         except Exception as e:
             return {"error": str(e)}
+
+    def economy_start(self, league):
+        """Non-blocking entry point for the Economy tab. `economy()` itself
+        does several parallel poe.ninja fetches with retry/backoff (up to ~30s
+        per stalled category) — called directly from JS on every tab open and
+        league switch, that synchronous wait was freezing the whole window
+        whenever poe.ninja was slow or rate-limited. Same fire-and-poll
+        pattern as generate()/download_update()."""
+        with self._lock:
+            if self._eco.get("running"):
+                return {"error": "already running"}
+            self._eco = {"running": True, "result": None}
+        threading.Thread(target=self._economy_worker, args=(league,), daemon=True).start()
+        return {"ok": True}
+
+    def _economy_worker(self, league):
+        result = self.economy(league)
+        with self._lock:
+            self._eco["running"] = False
+            self._eco["result"] = result
+
+    def economy_poll(self):
+        with self._lock:
+            return {"running": self._eco.get("running", False), "result": self._eco.get("result")}
 
     @staticmethod
     def _ap_groups():
@@ -545,12 +570,42 @@ class AppApi:
         return {"ok": True}
 
     # ── Window controls (frameless window draws its own title bar) ───────────
+    #
+    # js_api calls (all the win_* methods below) run on whatever thread
+    # pywebview's JS<->Python bridge dispatches them on — NOT the WinForms UI
+    # thread. pywebview's own w.move()/w.resize()/w.maximize()/w.restore()
+    # marshal internally and are safe to call from here, but touching the
+    # native `Form` object directly (MaximizedBounds, WindowState, Handle)
+    # is not: WinForms controls are documented as not thread-safe, and
+    # cross-thread property access can silently corrupt internal layout
+    # state or hang, especially under the rapid repeated calls a drag
+    # gesture produces. `_ui_invoke` marshals those specific touches onto
+    # the UI thread via Control.Invoke, same as the standard C# pattern.
+
+    @staticmethod
+    def _ui_invoke(form, fn):
+        try:
+            if form.InvokeRequired:
+                from System.Windows.Forms import MethodInvoker
+                result = {}
+
+                def _run():
+                    result["v"] = fn()
+                form.Invoke(MethodInvoker(_run))
+                return result.get("v")
+            return fn()
+        except Exception:
+            try:
+                return fn()
+            except Exception:
+                return None
 
     def _is_maxed(self, w):
         """True window state from WinForms — survives Win+Up/Down done natively."""
         try:
             from System.Windows.Forms import FormWindowState
-            return w.native.WindowState == FormWindowState.Maximized
+            form = w.native
+            return self._ui_invoke(form, lambda: form.WindowState == FormWindowState.Maximized)
         except Exception:
             return bool(getattr(self, "_maxed", False))
 
@@ -563,18 +618,33 @@ class AppApi:
 
     def win_set_bounds(self, x, y, wd, ht):
         """Move/resize from the JS resize handles. Sizes are clamped to the
-        app minimum so a drag can't shrink the window into an unusable sliver."""
+        app minimum so a drag can't shrink the window into an unusable sliver.
+
+        pywebview's own w.move()/w.resize() (WinForms backend) call the raw
+        Win32 SetWindowPos directly with NO thread marshaling at all -- unlike
+        its own maximize-toggle code right next to it, which does check
+        InvokeRequired/Invoke. This method fires on every pointermove during
+        an edge-resize drag (many times a second), each one a bare cross-
+        thread SetWindowPos call racing the UI thread's own message pump --
+        the actual root cause behind the repeated "freezes/closes while
+        resizing" reports. Route through _ui_invoke like every other native
+        touch in this file."""
         import webview
         w = webview.windows[0]
+        form = w.native
         wd, ht = max(760, int(wd)), max(560, int(ht))
-        try:
-            w.move(int(x), int(y))
-        except Exception:
-            pass
-        try:
-            w.resize(wd, ht)
-        except Exception:
-            pass
+        x, y = int(x), int(y)
+
+        def _do():
+            try:
+                w.move(x, y)
+            except Exception:
+                pass
+            try:
+                w.resize(wd, ht)
+            except Exception:
+                pass
+        self._ui_invoke(form, _do)
         return {"ok": True}
 
     def win_snap(self, pos):
@@ -583,7 +653,10 @@ class AppApi:
         w = webview.windows[0]
         try:
             from System.Windows.Forms import Screen
-            wa = Screen.FromHandle(w.native.Handle).WorkingArea
+            form = w.native
+            wa = self._ui_invoke(form, lambda: Screen.FromHandle(form.Handle).WorkingArea)
+            if wa is None:
+                raise RuntimeError("no working area")
         except Exception:
             return {"error": "no screen info"}
         if pos == "max":
@@ -611,7 +684,10 @@ class AppApi:
         w = webview.windows[0]
         try:
             from System.Windows.Forms import Screen
-            wa = Screen.FromHandle(w.native.Handle).WorkingArea
+            form = w.native
+            wa = self._ui_invoke(form, lambda: Screen.FromHandle(form.Handle).WorkingArea)
+            if wa is None:
+                raise RuntimeError("no working area")
         except Exception:
             return {"ok": False}
         x, y = int(x), int(y)
@@ -631,20 +707,33 @@ class AppApi:
     def win_max_toggle(self):
         import webview
         w = webview.windows[0]
-        # Borderless WinForms windows maximize over the taskbar by default —
-        # clamp the maximize bounds to the desktop working area first.
-        try:
-            form = w.native
-            from System.Windows.Forms import Screen
-            form.MaximizedBounds = Screen.FromHandle(form.Handle).WorkingArea
-        except Exception:
-            pass
-        if self._is_maxed(w):
-            w.restore()
-            self._maxed = False
-        else:
-            w.maximize()
-            self._maxed = True
+        form = w.native
+
+        def _toggle():
+            # Borderless WinForms windows maximize over the taskbar by
+            # default — clamp the maximize bounds to the desktop working
+            # area first. The read-state-then-act sequence also has to
+            # happen as one atomic UI-thread operation: doing the maxed
+            # check and the restore()/maximize() call as two separate
+            # cross-thread round-trips left a window for another win_*
+            # call (e.g. a drag's win_snap_drop firing right after) to see
+            # stale state and issue a conflicting native call in between.
+            from System.Windows.Forms import FormWindowState, Screen
+            try:
+                form.MaximizedBounds = Screen.FromHandle(form.Handle).WorkingArea
+            except Exception:
+                pass
+            try:
+                was_maxed = form.WindowState == FormWindowState.Maximized
+            except Exception:
+                was_maxed = bool(getattr(self, "_maxed", False))
+            if was_maxed:
+                w.restore()
+                self._maxed = False
+            else:
+                w.maximize()
+                self._maxed = True
+        self._ui_invoke(form, _toggle)
         return {"maximized": self._maxed}
 
     def win_close(self):
@@ -818,6 +907,33 @@ class AppApi:
         return {n for n, s_ in snap["item_states"].get("_excbase", {}).items()
                 if not s_.get("enabled", True)}
 
+    def fracture_classes(self):
+        """Fracture Bases roadmap: item classes in game order, each with its
+        verified fracture targets (empty list = no natural target exists for
+        that class, per the strict verification rule). Each target carries an
+        illustrative example .ipd line. Classes with at least one target whose
+        bot stat id is actually confirmed (``has_verified_target``) are wired
+        into real pickit output when enabled; the rest stay reference-only."""
+        def _with_example(t):
+            return {**t, "example": gen.fracture_example_rule(t)}
+        fb_states = self.cfg.get("item_states", {}).get("_fracture", {})
+        return [{"group": g,
+                 "classes": [{"name": n,
+                              "targets": [_with_example(t) for t in gen.fracture_targets_for_class(n)],
+                              "has_verified_target": gen.fracture_has_verified_target(n),
+                              "enabled": fb_states.get(n, gen.fracture_default(n)).get("enabled", False)}
+                             for n in names]}
+                for g, names in gen.FRACTURE_CLASS_GROUPS]
+
+    def set_fracture(self, name, enabled):
+        valid = {n for _g, names in gen.FRACTURE_CLASS_GROUPS for n in names}
+        if name not in valid:
+            return {"error": "unknown class"}
+        states = self.cfg.setdefault("item_states", {}).setdefault("_fracture", {})
+        states.setdefault(name, {})["enabled"] = bool(enabled)
+        save_config(self.cfg)
+        return {"ok": True}
+
     def craft_bases(self):
         from exilebot_pickit.data.icons import STATIC_ICONS as _ci, BASE_STATS as _bs
         st = self.cfg.get("item_states", {}).get("_craftbase", {})
@@ -928,6 +1044,7 @@ class AppApi:
             "include_bases": bool(self.cfg.get("include_bases", True)),
             "base_quality": int(self.cfg.get("base_quality", 25)),
             "base_min_level": int(self.cfg.get("base_min_level", 82)),
+            "rare_archetypes_enabled": bool(self.cfg.get("rare_archetypes_enabled", False)),
         }
 
     def _generate(self, league, min_gear, min_unique):
@@ -999,6 +1116,8 @@ class AppApi:
             out += gen.build_chance_base_rules(asm.chance_base_disabled(snap))
             craft_lines, _n, _floor = asm.craft_base_section(snap)
             out += craft_lines
+            out += asm.fracture_pickit_section(snap)
+            out += asm.rare_archetype_section(snap)
             excdis = self._excbase_disabled(snap)
             if snap["include_bases"]:
                 out += ["", gen.header_major("Exceptional Bases"), ""]
@@ -1194,18 +1313,6 @@ class AppApi:
         return {"errors": [f"Line {n}: {m}" for n, m in v.get("errors", [])],
                 "warnings": [f"Line {n}: {m}" for n, m in v.get("warnings", [])]}
 
-    def profile_get(self, name):
-        """Profile snapshot summary for the Compare view."""
-        p = self.cfg.get("profiles", {}).get(name)
-        if not p:
-            return {"error": "not found"}
-        st = p.get("item_states", {})
-        return {"min_gear": p.get("min_exalt_gear", 0), "min_unique": p.get("min_exalt_unique", 0),
-                "output_base": p.get("output_base", ""), "include_bases": p.get("include_bases", True),
-                "base_quality": p.get("base_quality", 25), "base_min_level": p.get("base_min_level", 82),
-                "disabled_counts": {k: sum(1 for s in v.values() if not s.get("enabled", True))
-                                    for k, v in st.items() if isinstance(v, dict)}}
-
     def open_file(self, kind):
         """Open the last .ipd / .filter / debug log / config with the default app."""
         from exilebot_pickit.ui.config import LOG_PATH, CONFIG_PATH
@@ -1226,6 +1333,98 @@ class AppApi:
             except Exception as e:
                 return {"error": f"couldn't open: {e}"}
         return {"ok": True}
+
+    def simulate_item(self, text):
+        """Test Item Simulator: paste in-game item text, get a structural
+        read of whether it matches a configured base/class rule. Deliberately
+        scoped — it checks item class/base name/item level/rarity against
+        Craft/Chance/Exceptional bases and the Fracture Bases reference, all
+        driven by data this app already has. It does NOT evaluate numeric mod
+        thresholds (life rolls, resistances, DPS, WeightedSum) or priced
+        Economy items — those need live prices / the bot's own identify pass,
+        so faking a verdict for them would be a fabricated result."""
+        try:
+            lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
+            if not lines:
+                return {"error": "paste an item's text first (Ctrl+C on it in-game)"}
+            fields = {}
+            name_lines = []
+            seen_rarity = False
+            for ln in lines:
+                if ln.startswith("Item Class:"):
+                    fields["class"] = ln.split(":", 1)[1].strip()
+                elif ln.startswith("Rarity:"):
+                    fields["rarity"] = ln.split(":", 1)[1].strip()
+                    seen_rarity = True
+                elif ln.startswith("Item Level:"):
+                    try:
+                        fields["ilvl"] = int(ln.split(":", 1)[1].strip())
+                    except ValueError:
+                        pass
+                elif ln == "--------":
+                    break
+                elif seen_rarity and len(name_lines) < 2:
+                    name_lines.append(ln)
+            if not fields.get("class") and not name_lines:
+                return {"error": "couldn't recognize this as PoE2 item text — "
+                                 "paste the full Ctrl+C copy, including 'Item Class:' / 'Rarity:'"}
+            base_name = name_lines[-1] if name_lines else ""
+            display_name = name_lines[0] if len(name_lines) > 1 else base_name
+            item_class = fields.get("class", "")
+            ilvl = fields.get("ilvl")
+            matches = []
+
+            cb = next((c for c in self.craft_bases() if c["base"] == base_name), None)
+            if cb:
+                ilvl_ok = ilvl is None or ilvl >= cb["ilvl"]
+                matches.append({"rule": "Craft Base", "picked": bool(cb["enabled"] and ilvl_ok),
+                                 "detail": f"toggle {'ON' if cb['enabled'] else 'OFF'} · "
+                                           f"needs ilvl >= {cb['ilvl']}"
+                                           + (f", item is {ilvl}" if ilvl is not None else "")})
+
+            chb = next((c for c in self.chance_bases() if c["base"] == base_name), None)
+            if chb:
+                matches.append({"rule": "Chance Base", "picked": bool(chb["enabled"]),
+                                 "detail": f"toggle {'ON' if chb['enabled'] else 'OFF'}"})
+
+            exb = None
+            for cat in self.exceptional_bases():
+                exb = next((b for b in cat["bases"] if b["name"] == base_name), None)
+                if exb:
+                    break
+            if exb:
+                is_normal = (fields.get("rarity") or "").lower() == "normal"
+                inc = bool(self.cfg.get("include_bases", True))
+                min_q = int(self.cfg.get("base_quality", 25))
+                min_l = int(self.cfg.get("base_min_level", 82))
+                picked = bool(exb["enabled"] and inc and is_normal and (ilvl is None or ilvl >= min_l))
+                matches.append({"rule": "Exceptional Base", "picked": picked,
+                                 "detail": f"toggle {'ON' if exb['enabled'] else 'OFF'} · "
+                                           f"needs Normal rarity, ilvl >= {min_l}, quality >= {min_q}% "
+                                           "(quality isn't in the copied text — check in-game)"})
+
+            if item_class:
+                targets = gen.fracture_targets_for_class(item_class)
+                if targets:
+                    fb_states = self.cfg.get("item_states", {}).get("_fracture", {})
+                    en = fb_states.get(item_class, gen.fracture_default(item_class)).get("enabled", False)
+                    matches.append({"rule": "Fracture Bases", "picked": None,
+                                     "detail": f"{item_class} has {len(targets)} known fracture target(s) — "
+                                               f"reference only, toggle {'ON' if en else 'OFF'}"})
+
+            if not matches:
+                matches.append({"rule": "No structural match", "picked": False,
+                                 "detail": "No configured Craft/Chance/Exceptional base has this exact name, "
+                                           "and this item class has no Fracture Bases entry."})
+
+            return {"ok": True, "class": item_class, "rarity": fields.get("rarity", ""),
+                    "ilvl": ilvl, "name": display_name, "base": base_name, "matches": matches,
+                    "note": "Structural check only — base name, item class, item level and your current "
+                            "toggle/threshold settings. Numeric mods (life, resistances, DPS, WeightedSum) "
+                            "and priced Economy/unique items aren't evaluated here; use Preview after "
+                            "generating for those."}
+        except Exception as e:
+            return {"error": str(e)}
 
     def js_error(self, msg):
         """UI-side error reporter — lands in debug.log for diagnosis."""

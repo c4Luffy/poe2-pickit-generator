@@ -157,6 +157,18 @@ def build_header_lines(league: str, gen_ts: datetime.datetime, gen_id: str,
         "// local_* mods (local_attack_speed_+%) affect only the item itself",
         "// regular mods (attack_speed_+%)       affect your entire character",
         "//",
+        "// Weighted Sums:",
+        "// -------------",
+        "// [WeightedSum(stat:weight, stat:weight, ...)] scores several stats as one",
+        "// number instead of one condition per stat: each stat's rolled value is",
+        "// multiplied by its weight, then all of them are added together.",
+        "// Example: (life roll 100, weight 2) + (mana roll 200, weight 1) = 200 + 200 = 400",
+        "// Set weights by comparing each stat's own top roll to the others (e.g. if life's",
+        "// top roll is ~2x mana's, life is worth 2 sum points per point of mana).",
+        "// The higher the total threshold you require, the stricter the pickit becomes.",
+        "// Example: [WeightedSum(base_maximum_life:2,base_maximum_mana:1)] >= \"350\" "
+        "&& [StashItem] == \"true\"",
+        "//",
         "/" * gen._W, "",
     ]
 
@@ -285,6 +297,21 @@ def craft_base_section(snapshot: dict) -> tuple[list[str], int, int]:
     lines = gen.build_craft_base_rules(disabled, min_ilvl=floor, ilvl_overrides=overrides)
     count = sum(1 for l in lines if l.startswith("[Type]"))
     return lines, count, floor
+
+
+def fracture_pickit_section(snapshot: dict) -> list[str]:
+    """Return pickit lines for the Fracture Bases section: Magic/Rare bases
+    matching a per-class enabled, verified fracture target. Empty list if no
+    class is enabled or none of the enabled classes have a verified target."""
+    fb_states = snapshot.get("item_states", {}).get("_fracture", {})
+    return gen.build_fracture_pickit_rules(fb_states)
+
+
+def rare_archetype_section(snapshot: dict) -> list[str]:
+    """Return pickit lines for the bundled Rare Archetypes section (single
+    on/off toggle, see data/rare_archetypes.py). Empty list when off."""
+    enabled = bool(snapshot.get("rare_archetypes_enabled", False))
+    return gen.build_rare_archetype_rules(enabled)
 
 
 # ── Price-move alerts ─────────────────────────────────────────────────────────
