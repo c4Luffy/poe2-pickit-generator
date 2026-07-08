@@ -293,7 +293,7 @@ _CRAFT_BEST_BASES: dict = {
     # Solar = +Spirit implicit, Gold = rarity implicit (owner-picked pair,
     # implicits verified live from CoE2; Stellar's +all-attributes dropped).
     "Amulets":       [("Solar Amulet", ""), ("Gold Amulet", "")],
-    "Rings":         [("Gold Ring", ""), ("Prismatic Ring", "")],
+    "Rings":         [("Gold Ring", "")],
 }
 
 # Flat base_name -> defence_type lookup (used for the Craft Bases card labels).
@@ -306,8 +306,7 @@ VALID_EQUIPMENT_BASES = VALID_EQUIPMENT_BASES | frozenset(_CRAFT_BASE_DEFENCE)
 # Per-base minimum item level overrides — accessories are worth crafting on from a
 # lower ilvl than armour, so they're not gated by the global min (default 82).
 _CRAFT_BASE_ILVL_OVERRIDES: dict = {
-    "Solar Amulet": 75, "Gold Amulet": 75,
-    "Gold Ring": 75, "Prismatic Ring": 75,
+    "Solar Amulet": 75, "Gold Amulet": 75, "Gold Ring": 75,
 }
 
 
