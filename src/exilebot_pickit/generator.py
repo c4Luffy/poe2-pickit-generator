@@ -286,7 +286,9 @@ _CRAFT_BEST_BASES: dict = {
     "Staves":        [("Permafrost Staff", "INT")],
     "Wands":         [("Dueling Wand", "INT")],
     # Accessories — high-value Normal bases worth crafting on from item level 75.
-    "Amulets":       [("Stellar Amulet", ""), ("Gold Amulet", "")],
+    # Solar = +Spirit implicit, Gold = rarity implicit (owner-picked pair,
+    # implicits verified live from CoE2; Stellar's +all-attributes dropped).
+    "Amulets":       [("Solar Amulet", ""), ("Gold Amulet", "")],
     "Rings":         [("Gold Ring", ""), ("Prismatic Ring", "")],
 }
 
@@ -300,7 +302,7 @@ VALID_EQUIPMENT_BASES = VALID_EQUIPMENT_BASES | frozenset(_CRAFT_BASE_DEFENCE)
 # Per-base minimum item level overrides — accessories are worth crafting on from a
 # lower ilvl than armour, so they're not gated by the global min (default 82).
 _CRAFT_BASE_ILVL_OVERRIDES: dict = {
-    "Stellar Amulet": 75, "Gold Amulet": 75,
+    "Solar Amulet": 75, "Gold Amulet": 75,
     "Gold Ring": 75, "Prismatic Ring": 75,
 }
 
