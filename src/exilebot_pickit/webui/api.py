@@ -663,18 +663,21 @@ class AppApi:
             if not getattr(self, "_maxed", False):
                 return self.win_max_toggle()
             return {"maximized": True}
-        try:
-            w.restore()
-            self._maxed = False
-        except Exception:
-            pass
         half = int(wa.Width / 2)
         x = wa.X if pos == "left" else wa.X + half
-        try:
-            w.move(x, wa.Y)
-            w.resize(half, wa.Height)
-        except Exception:
-            pass
+
+        def _snap():
+            try:
+                w.restore()
+                self._maxed = False
+            except Exception:
+                pass
+            try:
+                w.move(x, wa.Y)
+                w.resize(half, wa.Height)
+            except Exception:
+                pass
+        self._ui_invoke(form, _snap)
         return {"ok": True}
 
     def win_snap_drop(self, x, y):
