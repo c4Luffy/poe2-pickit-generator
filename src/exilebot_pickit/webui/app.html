@@ -1435,7 +1435,7 @@ function renderExcGrid(){
   cnt();}
 
 /* ── fracture bases (verified reference, not a pickit rule) ── */
-let fracCls=null,fracSel=null;
+let fracCls=null,fracSel=null,fracExamples={};
 const FRAC_TIER_COLOR={"S+":"#e0455a","S":"#d99b3c","A+":"#5b8fd6","A":"#6fae5f"};
 async function loadFracture(force){
   if(!fracCls||force)fracCls=await api().fracture_classes();
@@ -1462,9 +1462,11 @@ function renderFracture(){
   if(!c.targets.length){
     list.innerHTML=`<div class="hint">No verified fracture target for ${esc(c.name)} — nothing here meets the strict natural-Magic/Rare-affix rule, so nothing is shown (per the "if it can't be verified, don't match it" policy).</div>`;
     return;}
+  fracExamples={};
   list.innerHTML=c.targets.map(t=>{
     const col=FRAC_TIER_COLOR[t.tier]||"var(--gold)";
     const magic=t.magic_only?`<span class="pill" style="margin-left:8px">Magic only</span>`:"";
+    fracExamples[t.id]=t.example;
     return `<div class="bcard" style="margin-top:10px;cursor:default">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="background:${col};color:#0d0b06;font-size:11px;font-weight:800;padding:2px 9px;border-radius:5px;letter-spacing:.3px">${esc(t.tier)}</span>
@@ -1472,10 +1474,18 @@ function renderFracture(){
       </div>
       <div class="t" style="margin-top:6px">${esc(t.affix)} · ${esc(t.mod_tier)} · value ${esc(t.value)}</div>
       <div class="t" style="margin-top:4px;color:var(--gold)">${esc(t.reason)}</div>
-      <pre style="margin-top:8px;padding:9px 11px;background:var(--bg3);border:1px solid var(--border);
-        border-radius:8px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;
-        color:var(--dim);font-family:'Cascadia Mono',Consolas,monospace">${esc(t.example)}</pre>
+      <div style="position:relative;margin-top:8px">
+        <pre style="margin:0;padding:9px 62px 9px 11px;background:var(--bg3);border:1px solid var(--border);
+          border-radius:8px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;
+          color:var(--dim);font-family:'Cascadia Mono',Consolas,monospace">${esc(t.example)}</pre>
+        <button type="button" class="ghost mini frac-copy" data-tid="${esc(t.id)}"
+          style="position:absolute;top:6px;right:6px;font-size:10.5px;padding:3px 9px">Copy</button>
+      </div>
     </div>`;}).join("");
+  list.querySelectorAll(".frac-copy").forEach(btn=>btn.onclick=async()=>{
+    const ok=await copyText(fracExamples[btn.dataset.tid]||"");
+    const old=btn.textContent;btn.textContent=ok?"Copied":"Failed";
+    setTimeout(()=>btn.textContent=old,1200);});
 }
 
 /* ── history ── */
