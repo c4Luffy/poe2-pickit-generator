@@ -259,6 +259,11 @@ FRACTURE_TARGETS: list = [
      "value": "Fire/Cold/Lightning T1 41-45% T2 36-40%; Chaos T1 24-27% T2 20-23%",
      "text": "20-45% to Fire/Cold/Lightning/Chaos Resistance",
      "reason": "A target: any single-element resistance belt suffix — T1 or T2 both count."},
+    {"id": "flasks_max_charges", "tier": "S+", "classes": ["Flasks"],
+     "affix": "suffix", "mod_tier": "T1", "value": "63-70%",
+     "text": "63-70% increased Charges",
+     "reason": "S+ target: top-tier Flask charges mod (ilvl81, verified from live "
+               "CoE2 data — modifier id 5347, group FlaskNumCharges, Base pool)."},
 ]
 # Targets the spec's own verification step rejected — kept here (not shown in
 # the UI) so a future data refresh can re-check without re-deriving the answer.
