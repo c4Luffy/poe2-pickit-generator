@@ -229,20 +229,42 @@ def _run_webview(window, api, tray):
             tray.stop()
         return True
     window.events.closing += _on_closing
+    # Pin the WebView2 browser profile to the app's own data folder. Without
+    # this, WebView2 creates its profile relative to the exe/current dir --
+    # which breaks in two real, user-reported ways on version updates:
+    #   1. the exe sits somewhere read-only, so profile creation fails, and
+    #   2. an old copy still running (tray / not-fully-exited after the
+    #      updater swap) holds the profile lock, so the new copy can't open.
+    # Both used to surface as a misleading "WebView2 runtime is missing"
+    # dialog even though the runtime was fine.
     try:
-        webview.start()
+        from exilebot_pickit.ui.config import PRICE_CACHE_DIR
+        storage = os.path.join(os.path.dirname(PRICE_CACHE_DIR), "webview_profile")
+        os.makedirs(storage, exist_ok=True)
     except Exception:
-        # Almost always a missing WebView2 runtime (rare on updated Windows).
-        # With the Tk UI removed there is no fallback, so say exactly what to do.
+        storage = None
+    try:
+        if storage:
+            webview.start(storage_path=storage)
+        else:
+            webview.start()
+    except Exception:
+        # No fallback UI exists, so diagnose the two known causes honestly
+        # instead of always blaming a missing WebView2 runtime.
         try:
             import ctypes
             ctypes.windll.user32.MessageBoxW(
                 None,
                 "The app couldn't start its window.\n\n"
-                "This usually means the Microsoft WebView2 runtime is missing.\n"
-                "Install it (free, one minute) from:\n"
-                "https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
-                "then start the app again.",
+                "Most common causes, in order:\n\n"
+                "1. An older copy of the app is still running — check the\n"
+                "   system tray (near the clock) and Task Manager for\n"
+                "   ExileBot2PickitGenerator, close it, then start again.\n\n"
+                "2. The Microsoft WebView2 runtime is missing (rare on\n"
+                "   updated Windows). Install it free from:\n"
+                "   https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
+                "3. The app folder isn't writable — move the .exe to a\n"
+                "   normal folder like Documents and run it from there.",
                 "ExileBot 2 Pickit Generator", 0x10)
         except Exception:
             pass
