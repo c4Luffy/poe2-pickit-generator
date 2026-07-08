@@ -570,12 +570,42 @@ class AppApi:
         return {"ok": True}
 
     # ── Window controls (frameless window draws its own title bar) ───────────
+    #
+    # js_api calls (all the win_* methods below) run on whatever thread
+    # pywebview's JS<->Python bridge dispatches them on — NOT the WinForms UI
+    # thread. pywebview's own w.move()/w.resize()/w.maximize()/w.restore()
+    # marshal internally and are safe to call from here, but touching the
+    # native `Form` object directly (MaximizedBounds, WindowState, Handle)
+    # is not: WinForms controls are documented as not thread-safe, and
+    # cross-thread property access can silently corrupt internal layout
+    # state or hang, especially under the rapid repeated calls a drag
+    # gesture produces. `_ui_invoke` marshals those specific touches onto
+    # the UI thread via Control.Invoke, same as the standard C# pattern.
+
+    @staticmethod
+    def _ui_invoke(form, fn):
+        try:
+            if form.InvokeRequired:
+                from System.Windows.Forms import MethodInvoker
+                result = {}
+
+                def _run():
+                    result["v"] = fn()
+                form.Invoke(MethodInvoker(_run))
+                return result.get("v")
+            return fn()
+        except Exception:
+            try:
+                return fn()
+            except Exception:
+                return None
 
     def _is_maxed(self, w):
         """True window state from WinForms — survives Win+Up/Down done natively."""
         try:
             from System.Windows.Forms import FormWindowState
-            return w.native.WindowState == FormWindowState.Maximized
+            form = w.native
+            return self._ui_invoke(form, lambda: form.WindowState == FormWindowState.Maximized)
         except Exception:
             return bool(getattr(self, "_maxed", False))
 
@@ -608,7 +638,10 @@ class AppApi:
         w = webview.windows[0]
         try:
             from System.Windows.Forms import Screen
-            wa = Screen.FromHandle(w.native.Handle).WorkingArea
+            form = w.native
+            wa = self._ui_invoke(form, lambda: Screen.FromHandle(form.Handle).WorkingArea)
+            if wa is None:
+                raise RuntimeError("no working area")
         except Exception:
             return {"error": "no screen info"}
         if pos == "max":
@@ -636,7 +669,10 @@ class AppApi:
         w = webview.windows[0]
         try:
             from System.Windows.Forms import Screen
-            wa = Screen.FromHandle(w.native.Handle).WorkingArea
+            form = w.native
+            wa = self._ui_invoke(form, lambda: Screen.FromHandle(form.Handle).WorkingArea)
+            if wa is None:
+                raise RuntimeError("no working area")
         except Exception:
             return {"ok": False}
         x, y = int(x), int(y)
@@ -656,20 +692,33 @@ class AppApi:
     def win_max_toggle(self):
         import webview
         w = webview.windows[0]
-        # Borderless WinForms windows maximize over the taskbar by default —
-        # clamp the maximize bounds to the desktop working area first.
-        try:
-            form = w.native
-            from System.Windows.Forms import Screen
-            form.MaximizedBounds = Screen.FromHandle(form.Handle).WorkingArea
-        except Exception:
-            pass
-        if self._is_maxed(w):
-            w.restore()
-            self._maxed = False
-        else:
-            w.maximize()
-            self._maxed = True
+        form = w.native
+
+        def _toggle():
+            # Borderless WinForms windows maximize over the taskbar by
+            # default — clamp the maximize bounds to the desktop working
+            # area first. The read-state-then-act sequence also has to
+            # happen as one atomic UI-thread operation: doing the maxed
+            # check and the restore()/maximize() call as two separate
+            # cross-thread round-trips left a window for another win_*
+            # call (e.g. a drag's win_snap_drop firing right after) to see
+            # stale state and issue a conflicting native call in between.
+            from System.Windows.Forms import FormWindowState, Screen
+            try:
+                form.MaximizedBounds = Screen.FromHandle(form.Handle).WorkingArea
+            except Exception:
+                pass
+            try:
+                was_maxed = form.WindowState == FormWindowState.Maximized
+            except Exception:
+                was_maxed = bool(getattr(self, "_maxed", False))
+            if was_maxed:
+                w.restore()
+                self._maxed = False
+            else:
+                w.maximize()
+                self._maxed = True
+        self._ui_invoke(form, _toggle)
         return {"maximized": self._maxed}
 
     def win_close(self):

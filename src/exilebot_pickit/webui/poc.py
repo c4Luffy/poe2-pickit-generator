@@ -18,6 +18,37 @@ import webview
 from exilebot_pickit.webui.api import AppApi
 
 
+def _start_freeze_watchdog():
+    """Dump every thread's exact stack to <config dir>/watchdog.log every 15s,
+    overwriting each time. Three rounds of freeze reports (multi-monitor
+    restore, pointer-capture leak, drag-listener leak) have each been fixed
+    from code review alone with no live capture — if it still happens, this
+    file will show what every thread was actually doing in the ~15s before
+    the freeze, instead of guessing a fourth theory blind. Runs on its own
+    thread so it keeps dumping even if the UI thread itself is the one stuck
+    in a blocking native call (that releases the GIL, same as any blocking
+    I/O) — only a true GIL deadlock would stop it too, which is itself a
+    useful data point."""
+    import faulthandler
+    import time
+    try:
+        from exilebot_pickit.ui.config import LOG_PATH
+        path = os.path.join(os.path.dirname(LOG_PATH), "watchdog.log")
+    except Exception:
+        return
+
+    def _loop():
+        while True:
+            time.sleep(15)
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
+                    faulthandler.dump_traceback(file=f, all_threads=True)
+            except Exception:
+                pass
+    threading.Thread(target=_loop, daemon=True, name="freeze-watchdog").start()
+
+
 def _res_path(name: str) -> str:
     base = getattr(sys, "_MEIPASS", None)
     if base:
@@ -79,6 +110,7 @@ def _start_tray(window, api):
 def main():
     if not _single_instance():
         return
+    _start_freeze_watchdog()
     api = AppApi()
     geo = api.cfg.get("window_geometry_web") or {}
     w = int(geo.get("w", 1120)) if isinstance(geo, dict) else 1120
