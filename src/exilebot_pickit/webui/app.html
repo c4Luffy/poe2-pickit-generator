@@ -113,11 +113,12 @@
     color:var(--dim);text-transform:uppercase;margin-top:1px}
   .nav-mid{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
   .nav-groups{display:flex;gap:7px;padding:0;background:none;border:none}
-  .nav-grp{font-family:"Marcellus","Segoe UI",serif;font-weight:400;font-size:13px;letter-spacing:1.2px;
+  .nav-ic{width:17px;height:17px;object-fit:contain;vertical-align:-3px;margin-right:1px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6))}
+  .nav-grp{font-family:"Marcellus","Segoe UI",serif;font-weight:400;font-size:15px;letter-spacing:1.2px;
            border:1px solid color-mix(in srgb,var(--gold) 22%,var(--border));border-radius:7px;
            background:repeating-linear-gradient(90deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px),
              linear-gradient(180deg,color-mix(in srgb,var(--gold) 8%,#201c15),color-mix(in srgb,var(--gold) 3%,#0e0c08));
-           color:var(--dim);padding:9px 17px 8px;cursor:pointer;white-space:nowrap;
+           color:var(--dim);padding:10.5px 20px 9.5px;cursor:pointer;white-space:nowrap;
            box-shadow:inset 0 1px 0 rgba(255,255,255,.09),inset 0 -2px 4px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.45);
            text-shadow:0 1px 1px rgba(0,0,0,.85)}
   .nav-grp:hover{color:var(--text);border-color:color-mix(in srgb,var(--gold) 40%,var(--border))}
@@ -127,8 +128,8 @@
            text-shadow:0 0 9px color-mix(in srgb,var(--gold) 55%,transparent)}
   .nav-links{display:flex;align-items:center;gap:3px;justify-content:center;flex-wrap:wrap}
   .nav-links.solo{display:none}
-  .nav-btn{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:6px;
-           font-family:"Marcellus","Segoe UI",serif;font-size:12px;letter-spacing:1px;font-weight:400;
+  .nav-btn{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:6px;
+           font-family:"Marcellus","Segoe UI",serif;font-size:14px;letter-spacing:1px;font-weight:400;
            color:var(--dim);cursor:pointer;border:1px solid transparent;user-select:none;white-space:nowrap;
            text-shadow:0 1px 1px rgba(0,0,0,.7)}
   .nav-btn.hid{display:none}
@@ -225,7 +226,7 @@
   tr.item{cursor:pointer}
   tr.item:hover td{background:var(--bg3)}
   tr.dis td{opacity:.4;text-decoration:line-through}
-  td.val{text-align:right;font-variant-numeric:tabular-nums;color:var(--gold);white-space:nowrap}
+  td.val{text-align:right;font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap}
   /* native number spinners look foreign - hide them; type or use arrow keys */
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -372,10 +373,10 @@
   <div class="nav-links">
   <div class="nav-btn on" data-p="gen">⚡ Generate</div>
   <div class="nav-btn" data-p="eco">🪙 Economy</div>
-  <div class="nav-btn" data-p="chance">🎲 Chance</div>
+  <div class="nav-btn" data-p="chance"><img class="nav-ic" src="data:image/png;base64,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" alt=""> Chance</div>
   <div class="nav-btn" data-p="craft">🛠 Craft</div>
   <div class="nav-btn" data-p="exc">🧱 Exceptional</div>
-  <div class="nav-btn" data-p="fracture">💠 Fracture</div>
+  <div class="nav-btn" data-p="fracture"><img class="nav-ic" src="data:image/png;base64,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" alt=""> Fracture</div>
   <div class="nav-btn" data-p="prev">📜 Preview</div>
   <div class="nav-btn" data-p="hist">🕘 History</div>
   <div class="nav-btn" data-p="set">⚙ Settings</div>
@@ -638,6 +639,7 @@
           <span class="t" id="fracToggleLabel">Pick up matching bases</span>
           <div class="switch" id="swFracture"><i></i></div>
         </div>
+        <div class="hint" id="fracToggleNote" style="text-align:right;margin-top:-4px"></div>
         <div class="hint" id="fracHint">Every target below is a natural Magic/Rare affix, verified against live PoE2 mod-tier data — never an Essence, crafted, Abyss, corrupted, unique, vendor, or event-only mod. A base with exactly 4 explicit modifiers is the cleanest fracture chance; more than 4 explicit mods gets a warning.</div>
         <div id="fracList"></div>
       </div>
@@ -1468,22 +1470,20 @@ function renderFracture(){
   const c=fracCls&&fracCls.flatMap(g=>g.classes).find(x=>x.name===fracSel);
   const list=$("fracList");
   const sw=$("swFracture");
-  if(!c){$("fracTitle").textContent="Pick a class";list.innerHTML="";sw.style.visibility="hidden";return;}
+  if(!c){$("fracTitle").textContent="Pick a class";list.innerHTML="";sw.style.visibility="hidden";$("fracToggleNote").textContent="";return;}
   $("fracTitle").textContent=c.name;
-  if(c.has_verified_target){
-    sw.style.visibility="visible";
-    sw.classList.toggle("on",!!c.enabled);
-    $("fracToggleLabel").textContent="Pick up matching Magic/Rare bases";
-    sw.onclick=async()=>{
-      c.enabled=!c.enabled;
-      sw.classList.toggle("on",c.enabled);
-      await api().set_fracture(c.name,c.enabled);
-      loadFracture(true);
-    };
-  } else {
-    sw.style.visibility="hidden";
-    $("fracToggleLabel").textContent="";
-  }
+  sw.style.visibility="visible";
+  sw.classList.toggle("on",!!c.enabled);
+  $("fracToggleLabel").textContent="Pick up matching Magic/Rare bases";
+  sw.onclick=async()=>{
+    c.enabled=!c.enabled;
+    sw.classList.toggle("on",c.enabled);
+    await api().set_fracture(c.name,c.enabled);
+    loadFracture(true);
+  };
+  $("fracToggleNote").textContent=c.has_verified_target
+    ?""
+    :"No verified target yet — toggle has no effect until one is added";
   if(!c.targets.length){
     list.innerHTML=`<div class="hint">No verified fracture target for ${esc(c.name)} — nothing here meets the strict natural-Magic/Rare-affix rule, so nothing is shown (per the "if it can't be verified, don't match it" policy).</div>`;
     return;}
