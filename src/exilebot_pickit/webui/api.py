@@ -818,36 +818,14 @@ class AppApi:
         return {n for n, s_ in snap["item_states"].get("_excbase", {}).items()
                 if not s_.get("enabled", True)}
 
-    def rare_classes(self):
-        """Rare tab data: ordered groups; per class the user state (enabled,
-        ilvl, strict) plus the keep-routes of every strictness for display."""
-        st = self.cfg.get("item_states", {}).get("_rare", {})
-        out = []
-        for grp, names in gen.RARE_CLASS_GROUPS:
-            cl = []
-            for n in names:
-                d = gen.RARE_DESIGNED.get(n) or {}
-                s = {**gen.rare_default(n), **(st.get(n) or {})}
-                cl.append({"name": n, "designed": bool(d),
-                           "enabled": bool(s.get("enabled")),
-                           "ilvl": int(s.get("ilvl", 80)),
-                           "has_ilvl": int(d.get("ilvl", 1)) > 1,
-                           "routes": d.get("routes") or []})
-            out.append({"group": grp, "classes": cl})
-        return out
-
-    def set_rare(self, name, enabled, ilvl):
-        if name not in gen.RARE_DESIGNED:
-            return {"error": "unknown rare class"}
-        states = self.cfg.setdefault("item_states", {}).setdefault("_rare", {})
-        e = states.setdefault(name, {})
-        e["enabled"] = bool(enabled)
-        try:
-            e["ilvl"] = max(80, min(82, int(ilvl)))
-        except (TypeError, ValueError):
-            pass
-        save_config(self.cfg)
-        return {"ok": True}
+    def fracture_classes(self):
+        """Fracture Bases roadmap: item classes in game order, each with its
+        verified fracture targets (empty list = no natural target exists for
+        that class, per the strict verification rule)."""
+        return [{"group": g,
+                 "classes": [{"name": n, "targets": gen.fracture_targets_for_class(n)}
+                             for n in names]}
+                for g, names in gen.FRACTURE_CLASS_GROUPS]
 
     def craft_bases(self):
         from exilebot_pickit.data.icons import STATIC_ICONS as _ci, BASE_STATS as _bs
@@ -1030,7 +1008,6 @@ class AppApi:
             out += gen.build_chance_base_rules(asm.chance_base_disabled(snap))
             craft_lines, _n, _floor = asm.craft_base_section(snap)
             out += craft_lines
-            out += asm.rare_section(snap)      # empty until rare classes are designed
             excdis = self._excbase_disabled(snap)
             if snap["include_bases"]:
                 out += ["", gen.header_major("Exceptional Bases"), ""]

@@ -375,7 +375,7 @@
   <div class="nav-btn" data-p="chance">🎲 Chance</div>
   <div class="nav-btn" data-p="craft">🛠 Craft</div>
   <div class="nav-btn" data-p="exc">🧱 Exceptional</div>
-  <div class="nav-btn" data-p="rare">💛 Rare</div>
+  <div class="nav-btn" data-p="fracture">💠 Fracture</div>
   <div class="nav-btn" data-p="prev">📜 Preview</div>
   <div class="nav-btn" data-p="hist">🕘 History</div>
   <div class="nav-btn" data-p="set">⚙ Settings</div>
@@ -626,22 +626,15 @@
 </div>
 
 <!-- ══ RARE ══ -->
-<div class="page" id="p-rare">
-  <h1>Rare Items</h1><div class="sub">Rare gear pickup — built together, one class at a time, in game order. <span id="rareCount"></span></div>
+<div class="page" id="p-fracture">
+  <h1>Fracture Bases</h1><div class="sub">Which Magic/Rare bases are worth a Fracturing Orb — a verified reference, not a pickit rule. <span id="fracCount"></span></div>
   <div class="craft-layout">
-    <div class="craft-side" id="rareSide"></div>
+    <div class="craft-side" id="fracSide"></div>
     <div style="flex:1;min-width:0">
       <div class="card">
-        <h2 id="rareTitle">Pick a class</h2>
-        <div class="hint" id="rareHint">Each class has one switch and one item level (80–82, one number for the whole class) — the rules are global: only items carrying a Tier 1 or Tier 2 money mod are kept. The bot grabs the item, identifies it, and keeps it only if a check passes — otherwise it drops it and moves on.</div>
-        <div id="rareCtl" style="display:none">
-          <div class="set-row"><div class="lab"><b>Pick up this class</b><span>Rare drops only — identified and judged by the checks below</span></div><div class="sp"></div>
-            <div class="switch" id="rareOn"><i></i></div></div>
-          <div class="set-row" id="rareIlvlRow"><div class="lab"><b>Minimum item level</b><span>80–82 — applies to the whole class</span></div><div class="sp"></div>
-            <div class="stepper"><button type="button" class="sm">−</button><input type="number" id="rareIlvl" min="80" max="82"><button type="button" class="sp2">+</button></div></div>
-          <div style="margin-top:12px"><div class="hint" style="margin:0 0 6px"><b>Kept if ANY of these pass:</b></div>
-            <div id="rareRoutes" class="hint" style="margin:0;line-height:1.9"></div></div>
-        </div>
+        <h2 id="fracTitle">Pick a class</h2>
+        <div class="hint" id="fracHint">Every target below is a natural Magic/Rare affix, verified against live PoE2 mod-tier data — never an Essence, crafted, Abyss, corrupted, unique, vendor, or event-only mod. A base with exactly 4 explicit modifiers is the cleanest fracture chance; more than 4 explicit mods gets a warning.</div>
+        <div id="fracList"></div>
       </div>
     </div>
   </div>
@@ -899,7 +892,7 @@ document.querySelectorAll(".rz").forEach(z=>z.addEventListener("pointerdown",asy
 
 /* ── nav + theme ── */
 // Two-level nav: 3 groups over the 9 pages. Group pill → its last-used tab.
-const NAV_GROUPS={gen:"cockpit",eco:"tune",chance:"tune",craft:"tune",exc:"tune",rare:"tune",
+const NAV_GROUPS={gen:"cockpit",eco:"tune",chance:"tune",craft:"tune",exc:"tune",fracture:"tune",
                   prev:"system",hist:"system",set:"system",dbg:"system"};
 const _lastTab={cockpit:"gen",tune:"eco",system:"prev"};
 function openPage(p){
@@ -918,7 +911,7 @@ function openPage(p){
   if(p==="chance")loadChance();
   if(p==="craft")loadCraft();
   if(p==="exc")loadExc();
-  if(p==="rare")loadRare();
+  if(p==="fracture")loadFracture();
   if(p==="prev")loadPreview();
   if(p==="hist")loadHistory();
 }
@@ -1441,49 +1434,46 @@ function renderExcGrid(){
       g.appendChild(d);}}
   cnt();}
 
-/* ── rare items ── */
-let rareCls=null,rareSel=null;
-function rareFind(n){return rareCls&&rareCls.flatMap(g=>g.classes).find(x=>x.name===n);}
-function routeText(r){return r.replace(/\[|\]/g,"").replace(/&&/g," and ").replace(/\|\|/g," or ")
-  .replace(/>=/g,"≥").replace(/_/g," ").replace(/\+%/g,"%");}
-async function loadRare(force){
-  if(!rareCls||force)rareCls=await api().rare_classes();
-  const s=$("rareSide");s.innerHTML="";
-  let on=0,total=0;
-  for(const g of rareCls){
+/* ── fracture bases (verified reference, not a pickit rule) ── */
+let fracCls=null,fracSel=null;
+const FRAC_TIER_COLOR={"S+":"#e0455a","S":"#d99b3c","A+":"#5b8fd6","A":"#6fae5f"};
+async function loadFracture(force){
+  if(!fracCls||force)fracCls=await api().fracture_classes();
+  const s=$("fracSide");s.innerHTML="";
+  let withTargets=0,total=0;
+  for(const g of fracCls){
     const lbl=document.createElement("div");lbl.className="csgrp";lbl.textContent=g.group;s.appendChild(lbl);
-    for(const c of g.classes){total++;if(c.enabled)on++;
+    for(const c of g.classes){total++;if(c.targets.length)withTargets++;
       const b=document.createElement("button");
-      b.className="cside-btn"+(rareSel===c.name?" on":"");
-      b.innerHTML=`<span>${esc(c.name)}</span><span class="n">${c.enabled?(c.has_ilvl?c.ilvl+"+":"on"):"off"}</span>`;
-      b.onclick=()=>{rareSel=c.name;loadRare();};
+      b.className="cside-btn"+(fracSel===c.name?" on":"");
+      b.innerHTML=`<span>${esc(c.name)}</span><span class="n">${c.targets.length||"—"}</span>`;
+      b.onclick=()=>{fracSel=c.name;renderFracture();};
       s.appendChild(b);}}
-  $("rareCount").textContent=`${on} / ${total} classes enabled.`;
-  renderRare();
+  $("fracCount").textContent=`${withTargets} / ${total} classes have a verified target.`;
+  if(!fracSel)fracSel=fracCls[0]&&fracCls[0].classes[0]&&fracCls[0].classes[0].name;
+  renderFracture();
 }
-function renderRare(){
-  const c=rareFind(rareSel),ctl=$("rareCtl");
-  if(!c){$("rareTitle").textContent="Pick a class";ctl.style.display="none";return;}
-  $("rareTitle").textContent=c.name;
-  ctl.style.display="block";
-  $("rareOn").classList.toggle("on",c.enabled);
-  $("rareIlvlRow").style.display=c.has_ilvl?"":"none";
-  $("rareIlvl").value=c.ilvl;
-  const rs=(c.routes&&c.routes.length)?c.routes:null;
-  $("rareRoutes").innerHTML=rs?rs.map(r=>"✓ "+esc(routeText(r))).join("<br>")
-    :"✓ Always kept when enabled — small and always worth stashing.";
+function renderFracture(){
+  document.querySelectorAll("#fracSide .cside-btn").forEach(b=>b.classList.toggle("on",b.querySelector("span").textContent===fracSel));
+  const c=fracCls&&fracCls.flatMap(g=>g.classes).find(x=>x.name===fracSel);
+  const list=$("fracList");
+  if(!c){$("fracTitle").textContent="Pick a class";list.innerHTML="";return;}
+  $("fracTitle").textContent=c.name;
+  if(!c.targets.length){
+    list.innerHTML=`<div class="hint">No verified fracture target for ${esc(c.name)} — nothing here meets the strict natural-Magic/Rare-affix rule, so nothing is shown (per the "if it can't be verified, don't match it" policy).</div>`;
+    return;}
+  list.innerHTML=c.targets.map(t=>{
+    const col=FRAC_TIER_COLOR[t.tier]||"var(--gold)";
+    const magic=t.magic_only?`<span class="pill" style="margin-left:8px">Magic only</span>`:"";
+    return `<div class="bcard" style="margin-top:10px;cursor:default">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="background:${col};color:#0d0b06;font-size:11px;font-weight:800;padding:2px 9px;border-radius:5px;letter-spacing:.3px">${esc(t.tier)}</span>
+        <b>${esc(t.text)}</b>${magic}
+      </div>
+      <div class="t" style="margin-top:6px">${esc(t.affix)} · ${esc(t.mod_tier)} · value ${esc(t.value)}</div>
+      <div class="t" style="margin-top:4px;color:var(--gold)">${esc(t.reason)}</div>
+    </div>`;}).join("");
 }
-async function saveRare(){
-  const c=rareFind(rareSel);if(!c)return;
-  c.enabled=$("rareOn").classList.contains("on");
-  c.ilvl=Math.max(80,Math.min(82,parseInt($("rareIlvl").value)||80));
-  await api().set_rare(c.name,c.enabled,c.ilvl);
-  loadRare();
-}
-$("rareOn").onclick=()=>{$("rareOn").classList.toggle("on");saveRare();};
-$("rareIlvl").onchange=saveRare;
-document.querySelector("#rareIlvlRow .sm").onclick=()=>{$("rareIlvl").value=Math.max(80,(+$("rareIlvl").value||80)-1);saveRare();};
-document.querySelector("#rareIlvlRow .sp2").onclick=()=>{$("rareIlvl").value=Math.min(82,(+$("rareIlvl").value||80)+1);saveRare();};
 
 /* ── history ── */
 function drawHistChart(h){
@@ -1715,7 +1705,7 @@ const WHATIS={
   exc:"<b>Exceptional Bases</b> are special versions of gear bases that can roll an <b>extra rune socket</b> — gloves with 2 instead of 1, and the same idea for helmets, weapons and armour. More sockets = more runes = the strongest version of that slot. Two things live here: picking up blank white ones to craft on or sell, and grabbing ANY unique that drops on one (the extra-socket copy of a unique beats the normal copy, whatever its price). The base list updates itself with game patches.",
   prev:"<b>Preview</b> shows the exact file the bot reads, after every Generate. Green lines = the bot picks it up, grey = below your value floor (skipped). Use the section list and filters to check that what you expect is actually in the file.",
   hist:"<b>History</b> logs every Generate run so you can see how your pickit evolves over the league — how many rules were active, what the top item was, and the Divine rate at the time.",
-  rare:"<b>Rare Items</b> tells the bot which rare (yellow) gear is worth grabbing. Each class has one switch, one minimum item level (80–82) and a strictness. The bot picks the item up, identifies it, and keeps it only if it passes a value check — high life, resistances, movement speed, weapon DPS and so on — otherwise it drops it. Loose keeps more, Strict keeps only the best.",
+  fracture:"<b>Fracture Bases</b> answers one question: is this Magic or Rare base worth a Fracturing Orb? Every target is a verified natural affix — never from an Essence, crafted, Abyss, corrupted, unique, vendor or event mod pool. A base with exactly 4 explicit modifiers has the cleanest fracture chance. This is a reference guide, not a pickit rule — it doesn't change what the bot picks up.",
   set:"<b>Settings</b> connects the generator to your bot (folder + auto-copy), keeps the pickit fresh (Auto-Regenerate + tray mode), and controls output, backups and updates. Everything saves instantly.",
   dbg:"<b>Debug</b> is for when something's wrong: test whether poe.ninja is reachable, inspect the cache, and open the log to see what happened. You'll rarely need it."};
 document.querySelectorAll(".page > h1").forEach(h=>{

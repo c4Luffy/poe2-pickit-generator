@@ -287,18 +287,6 @@ def craft_base_section(snapshot: dict) -> tuple[list[str], int, int]:
     return lines, count, floor
 
 
-def rare_section(snapshot: dict) -> list[str]:
-    """Rare-gear rules for the Rare tab.
-
-    The tab is designed one class at a time with the user; a class emits rules
-    only once its approved design exists in ``gen.RARE_DESIGNED``. With no
-    designs landed yet this always returns ``[]`` — the pipeline hook exists so
-    each class only has to plug in here as it goes live.
-    """
-    states = snapshot.get("item_states", {}).get("_rare", {})
-    return gen.build_rare_rules(states)
-
-
 # ── Price-move alerts ─────────────────────────────────────────────────────────
 
 def compute_price_alerts(categories, all_payloads: dict,

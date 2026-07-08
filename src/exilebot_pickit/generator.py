@@ -240,13 +240,11 @@ def build_base_rules(min_quality: int = 25, min_level: int = 82, progress_callba
 #  toggleable in the Craft Bases tab and easy to swap here. Sword/axe/mace are
 #  intentionally omitted.
 # ─────────────────────────────────────────────────────────────────────────────
-# ─────────────────────────────────────────────────────────────────────────────
-#  Rare gear pickup — the Rare tab roadmap. Classes are designed WITH the user
-#  one at a time, in in-game order; a class only ever emits rules once its
-#  design is approved and lands in RARE_DESIGNED. Until then the tab shows it
-#  as "soon" and Generate adds nothing for it.
-# ─────────────────────────────────────────────────────────────────────────────
-RARE_CLASS_GROUPS: list = [
+
+# Item classes in game order, grouped — the roadmap shared by Craft Bases and
+# Fracture Bases. (Historically named RARE_CLASS_GROUPS; kept spelled out here
+# since Fracture Bases replaced the old Rare tab that first introduced it.)
+FRACTURE_CLASS_GROUPS: list = [
     ("Armour",    ["Body Armours", "Helmets", "Gloves", "Boots"]),
     ("Off-hand",  ["Shields", "Foci", "Quivers"]),
     ("Weapons",   ["Bows", "Crossbows", "Quarterstaves", "Spears",
@@ -254,120 +252,117 @@ RARE_CLASS_GROUPS: list = [
     ("Jewellery", ["Amulets", "Rings", "Belts"]),
     ("Other",     ["Jewels", "Charms", "Flasks"]),
 ]
+# ─────────────────────────────────────────────────────────────────────────────
+#  Fracture Bases — a lookup/reference tool (NOT a pickit-rule generator).
+#  Answers one question: "is this Magic/Rare base worth using a Fracturing Orb
+#  on?" Every target below is a natural Magic/Rare affix verified against the
+#  live PoE2 mod-tier data (Craft of Exile 2 + the extracted improved-modifier
+#  tables) and cross-checked as droppable against NeverSink's live filter.
+#  Essence/crafted/abyss/corrupted/unique/vendor/event mod pools are excluded
+#  by construction: every entry below comes from each base's normal "Base" mod
+#  group tier table, never a special pool.
+# ─────────────────────────────────────────────────────────────────────────────
+FRACTURE_TIERS = {"S+": 100, "S": 80, "A+": 60, "A": 40}
 
-# class name -> approved design. sel = the bot-side selector, ilvl = the
-# DEFAULT minimum item level for the WHOLE class (one number per class,
-# adjustable in the tab), on = default toggle, routes = post-identify keep
-# checks per strictness: the bot picks the item up, identifies it, keeps it if
-# ANY route passes and discards it otherwise. Mod ids verified against the
-# bot's own default.ipd; bracketed computed values are bot built-ins.
-_R = '[Rarity] == "Rare"'
+# Each target: tier, item classes it applies to, the exact mod text (as it
+# rolls), affix slot, required tier label, min value, and why it matters.
+FRACTURE_TARGETS: list = [
+    {"id": "amulet_skill_level", "tier": "S+", "classes": ["Amulets"],
+     "affix": "suffix", "mod_tier": "T1", "value": "+3",
+     "text": "+3 to Level of all Spell/Minion/Melee/Projectile Skills",
+     "reason": "S+ target: max +skill level amulet mod (T1, verified from data)."},
+    {"id": "weapon_skill_level_bow", "tier": "S+", "classes": ["Bows"],
+     "affix": "suffix", "mod_tier": "T1", "value": "+5",
+     "text": "+5 to Level of all Projectile Skills",
+     "reason": "S+ target: top-tier bow skill-level mod verified from data."},
+    {"id": "weapon_skill_level_crossbow", "tier": "S+", "classes": ["Crossbows"],
+     "affix": "suffix", "mod_tier": "T1", "value": "+7",
+     "text": "+7 to Level of all Projectile Skills",
+     "reason": "S+ target: top-tier crossbow skill-level mod verified from data."},
+    {"id": "weapon_skill_level_melee2h", "tier": "S+", "classes": ["Quarterstaves", "Two Hand Maces"],
+     "affix": "suffix", "mod_tier": "T1", "value": "+7",
+     "text": "+7 to Level of all Melee Skills",
+     "reason": "S+ target: top-tier 2H melee weapon skill-level mod verified from data."},
+    {"id": "weapon_skill_level_melee1h", "tier": "S+", "classes": ["Spears", "One Hand Maces"],
+     "affix": "suffix", "mod_tier": "T1", "value": "+5",
+     "text": "+5 to Level of all Melee Skills",
+     "reason": "S+ target: top-tier 1H melee weapon skill-level mod verified from data."},
+    {"id": "weapon_skill_level_caster", "tier": "S+", "classes": ["Wands", "Staves"],
+     "affix": "suffix", "mod_tier": "T1", "value": "+5",
+     "text": "+5 to Level of all Spell Skills (or a single element: Fire/Cold/Lightning/Chaos)",
+     "reason": "S+ target: top-tier caster weapon skill-level mod verified from data."},
+    {"id": "spirit_body", "tier": "S+", "classes": ["Body Armours"],
+     "affix": "suffix", "mod_tier": "T1", "value": "57-61",
+     "text": "+57-61 to Spirit",
+     "reason": "S+ target: T1 Spirit (verified natural body armour affix)."},
+    {"id": "movement_speed", "tier": "S", "classes": ["Boots"],
+     "affix": "prefix", "mod_tier": "T1", "value": "35%",
+     "text": "35% increased Movement Speed",
+     "reason": "S target: T1 movement speed boots."},
+    {"id": "rarity_helmet", "tier": "S", "classes": ["Helmets"], "magic_only": True,
+     "affix": "prefix", "mod_tier": "T1", "value": "23-25%",
+     "text": "23-25% increased Rarity of Items Found",
+     "reason": "S target: Magic helmet rarity prefix (T1, confirmed prefix from data)."},
+    {"id": "inc_phys_weapon", "tier": "A+", "classes": [
+        "Bows", "Crossbows", "Quarterstaves", "Spears", "One Hand Maces", "Two Hand Maces"],
+     "affix": "prefix", "mod_tier": "T1", "value": "170-179%",
+     "text": "170-179% increased Physical Damage",
+     "reason": "A+ target: T1 increased physical damage weapon."},
+    {"id": "added_phys_weapon", "tier": "A+", "classes": [
+        "Bows", "Crossbows", "Quarterstaves", "Spears", "One Hand Maces", "Two Hand Maces"],
+     "affix": "prefix", "mod_tier": "T1", "value": "26-39 to 44-66",
+     "text": "Adds 26-39 to 44-66 Physical Damage",
+     "reason": "A+ target: T1 added physical damage weapon."},
+    {"id": "crit_chance_weapon", "tier": "A", "classes": [
+        "Bows", "Crossbows", "Quarterstaves", "Spears", "One Hand Maces", "Two Hand Maces"],
+     "affix": "suffix", "mod_tier": "T1", "value": "+4.4-5%",
+     "text": "+4.41-5% to Critical Hit Chance",
+     "reason": "A target: T1 critical chance on a valid weapon class."},
+    {"id": "crit_chance_amulet", "tier": "A", "classes": ["Amulets"],
+     "affix": "suffix", "mod_tier": "T1", "value": "35-38%",
+     "text": "35-38% increased Critical Hit Chance",
+     "reason": "A target: T1 critical chance on a valid item class (amulet)."},
+    {"id": "quiver_projectile", "tier": "A", "classes": ["Quivers"],
+     "affix": "suffix", "mod_tier": "T1", "value": "+2",
+     "text": "+2 to Level of all Projectile Skills",
+     "reason": "A target: max projectile-skill quiver mod — data shows T1 is +2, not +1."},
+    {"id": "focus_minion", "tier": "A", "classes": ["Foci"],
+     "affix": "suffix", "mod_tier": "T1", "value": "+2",
+     "text": "+2 to Level of all Minion Skills",
+     "reason": "A target: max +2 minion skill focus."},
+    {"id": "focus_spell", "tier": "A", "classes": ["Foci"],
+     "affix": "suffix", "mod_tier": "T1", "value": "+2",
+     "text": "+2 to Level of all Spell Skills",
+     "reason": "A target: max +2 spell skill focus."},
+]
 
-# Thresholds are the MINIMUM ROLL OF TIER 2 of each mod (from the extracted
-# PoE2 mod tier tables) — so an identified item is kept only when it carries a
-# T1 or T2 roll of a money mod. DPS/spell floors approximate the same bar for
-# computed values. Mod ids come from the bot's own ModsList.html.
-_RES3 = '([base_fire_damage_resistance_%] >= "36" || [base_cold_damage_resistance_%] >= "36" || [base_lightning_damage_resistance_%] >= "36")'
-
-RARE_DESIGNED: dict = {
-    "Body Armours": {"sel": '[Category] == "BodyArmour"', "ilvl": 80, "on": True, "routes": [
-        '[base_maximum_life] >= "190"', '[local_spirit_+%] >= "54"', _RES3]},
-    "Helmets": {"sel": '[Category] == "Helmet"', "ilvl": 80, "on": True, "routes": [
-        '[base_maximum_life] >= "120"', _RES3]},
-    "Gloves": {"sel": '[Category] == "Gloves"', "ilvl": 80, "on": True, "routes": [
-        '[base_maximum_life] >= "100"', '[attack_speed_+%] >= "11"', _RES3]},
-    "Boots": {"sel": '[Category] == "Boots"', "ilvl": 80, "on": True, "routes": [
-        '[base_movement_velocity_+%] >= "30"', '[base_maximum_life] >= "100"']},
-    "Shields": {"sel": '[WeaponCategory] == "Shield"', "ilvl": 80, "on": True, "routes": [
-        '[base_maximum_life] >= "150"', _RES3]},
-    "Foci": {"sel": '[WeaponCategory] == "Focus"', "ilvl": 80, "on": True, "routes": [
-        '[TotalSpellElementalDamage] >= "90"', '[spell_skill_gem_level_] >= "4"']},
-    "Quivers": {"sel": '[WeaponCategory] == "Quiver"', "ilvl": 80, "on": False, "routes": [
-        '[projectile_skill_gem_level_] >= "2"', '[attack_speed_+%] >= "11"']},
-    "Bows": {"sel": '[WeaponCategory] == "Bow"', "ilvl": 80, "on": True, "routes": [
-        '[bow_skill_gem_level_] >= "4"', '[projectile_skill_gem_level_] >= "4"',
-        '[DPS] >= "340"', '[PhysicalDPS] >= "270"']},
-    "Crossbows": {"sel": '[WeaponCategory] == "Crossbow"', "ilvl": 80, "on": True, "routes": [
-        '[crossbow_skill_gem_level_] >= "5"', '[projectile_skill_gem_level_] >= "5"',
-        '[DPS] >= "340"', '[PhysicalDPS] >= "270"']},
-    "Quarterstaves": {"sel": '[WeaponCategory] == "Quarterstaff"', "ilvl": 80, "on": True, "routes": [
-        '[melee_skill_gem_level_] >= "5"', '[DPS] >= "340"', '[PhysicalDPS] >= "270"']},
-    "Spears": {"sel": '[WeaponCategory] == "Spear"', "ilvl": 80, "on": True, "routes": [
-        '[melee_skill_gem_level_] >= "4"', '[DPS] >= "280"', '[PhysicalDPS] >= "220"']},
-    "One Hand Maces": {"sel": '[WeaponCategory] == "OneHandMace"', "ilvl": 80, "on": True, "routes": [
-        '[melee_skill_gem_level_] >= "4"', '[DPS] >= "280"', '[PhysicalDPS] >= "220"']},
-    "Two Hand Maces": {"sel": '[WeaponCategory] == "TwoHandMace"', "ilvl": 80, "on": True, "routes": [
-        '[melee_skill_gem_level_] >= "5"', '[DPS] >= "360"', '[PhysicalDPS] >= "290"']},
-    "Sceptres": {"sel": '[WeaponCategory] == "Sceptre"', "ilvl": 80, "on": True, "routes": [
-        '[minion_skill_gem_level_] >= "3"', '[all_skill_gem_level_] >= "2"']},
-    "Wands": {"sel": '[WeaponCategory] == "Wand"', "ilvl": 80, "on": True, "routes": [
-        '[spell_skill_gem_level_] >= "4"',
-        '([fire_spell_skill_gem_level_] >= "4" || [cold_spell_skill_gem_level_] >= "4" || [lightning_spell_skill_gem_level_] >= "4" || [chaos_spell_skill_gem_level_] >= "4")',
-        '[TotalSpellElementalDamage] >= "110"']},
-    "Staves": {"sel": '[WeaponCategory] == "Staff"', "ilvl": 80, "on": True, "routes": [
-        '[spell_skill_gem_level_] >= "4"',
-        '([fire_spell_skill_gem_level_] >= "4" || [cold_spell_skill_gem_level_] >= "4" || [lightning_spell_skill_gem_level_] >= "4" || [chaos_spell_skill_gem_level_] >= "4")',
-        '[TotalSpellElementalDamage] >= "110"']},
-    "Amulets": {"sel": '[Category] == "Amulet"', "ilvl": 80, "on": True, "routes": [
-        # skill levels on amulets: T1 ONLY (+3). All four families that can
-        # roll on amulets: Spell, Minion, Melee, Projectile.
-        '[spell_skill_gem_level_] >= "3"', '[minion_skill_gem_level_] >= "3"',
-        '[melee_skill_gem_level_] >= "3"', '[projectile_skill_gem_level_] >= "3"',
-        '[base_maximum_life] >= "100"', _RES3]},
-    "Rings": {"sel": '[Category] == "Ring"', "ilvl": 80, "on": True, "routes": [
-        '[base_maximum_life] >= "85"', _RES3]},
-    "Belts": {"sel": '[Category] == "Belt"', "ilvl": 80, "on": True, "routes": [
-        '[base_maximum_life] >= "120"']},
-    # Small always-worth classes: kept whenever enabled, no judging needed.
-    "Jewels": {"sel": '[Category] == "Jewel"', "ilvl": 1, "on": True, "routes": None,
-               "extra": ['[Type] == "Time-Lost Emerald" # [StashItem] == "true"',
-                         '[Type] == "Time-Lost Ruby" # [StashItem] == "true"',
-                         '[Type] == "Time-Lost Sapphire" # [StashItem] == "true"']},
-    "Charms": {"sel": '[Category] == "Charm"', "ilvl": 1, "on": False, "routes": None},
-    "Flasks": {"sel": '[Category] == "Flask"', "ilvl": 1, "on": False, "routes": [
-        '[local_max_charges_+%] >= "63"', '[local_flask_amount_to_recover_+%] >= "71"']},
+# Targets the spec's own verification step rejected — kept here (not shown in
+# the UI) so a future data refresh can re-check without re-deriving the answer.
+FRACTURE_EXCLUDED_UNVERIFIED = {
+    "crit_chance_gloves": "No Critical Hit Chance affix exists on Gloves in the "
+                           "current mod data — only Critical Damage Bonus rolls "
+                           "there, which the spec explicitly excludes.",
 }
 
 
-def rare_default(name: str) -> dict:
-    """Default state for a rare class: {enabled, ilvl}."""
-    d = RARE_DESIGNED.get(name) or {}
-    return {"enabled": bool(d.get("on")), "ilvl": int(d.get("ilvl", 80))}
+def fracture_targets_for_class(item_class: str) -> list:
+    """Verified fracture targets applicable to one item class, S+ first."""
+    order = {"S+": 0, "S": 1, "A+": 2, "A": 3}
+    return sorted(
+        (t for t in FRACTURE_TARGETS if item_class in t["classes"]),
+        key=lambda t: order[t["tier"]])
 
 
-def build_rare_rules(states: dict | None = None) -> list:
-    """Pickit lines for the Rare tab (global T1/T2-only policy). ``states``
-    maps class name -> {enabled, ilvl}; disabled classes emit nothing."""
-    states = states or {}
-    body: list = []
-    for _grp, names in RARE_CLASS_GROUPS:
-        for name in names:
-            d = RARE_DESIGNED.get(name)
-            if not d:
-                continue
-            st = {**rare_default(name), **(states.get(name) or {})}
-            if not st.get("enabled"):
-                continue
-            try:
-                ilvl = int(st.get("ilvl", d["ilvl"]))
-            except (TypeError, ValueError):
-                ilvl = d["ilvl"]
-            # gear classes are hard-clamped to the pickup window 80-82
-            ilvl = max(80, min(82, ilvl)) if d["ilvl"] > 1 else 1
-            pre = f'{d["sel"]} && {_R}'
-            # [ItemLevel] is only readable after pickup -> it lives after the #
-            lvl = f'[ItemLevel] >= "{ilvl}" && ' if ilvl > 1 else ""
-            body.append(f"// Rare - {name} (T1/T2 only" + (f", ilvl {ilvl}+" if ilvl > 1 else "") + ")")
-            routes = d.get("routes")
-            if routes is None:
-                body.append(f'{pre} # {lvl}[StashItem] == "true"')
-            else:
-                for route in routes:
-                    body.append(f'{pre} # {lvl}{route} && [StashItem] == "true"')
-            body.extend(d.get("extra") or [])
-    if not body:
-        return []
-    return ["", header_major("Rare Items"), ""] + body
+def fracture_score(tier: str, explicit_mod_count: int, magic_match: bool, meta_base: bool) -> int:
+    """Score for a matched target: base tier value + bonuses (spec formula)."""
+    score = FRACTURE_TIERS.get(tier, 0)
+    if explicit_mod_count == 4:
+        score += 15
+    if magic_match:
+        score += 10
+    if meta_base:
+        score += 10
+    return score
 
 
 CRAFT_BASE_MIN_ILVL = 82
