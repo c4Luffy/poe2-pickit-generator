@@ -266,29 +266,27 @@ CRAFT_BASE_MIN_ILVL = 82
 # item-level-82 base of each type (verified against poe2db).  Off-hand + weapons
 # keep the top base(s) per type ranked by base phys DPS (Craft of Exile 2 data);
 # attribute hybrids don't apply to them.
+# Narrowed to the TOP 2 bases per slot (owner request, 2026-07-08), re-ranked
+# against fresh Craft of Exile 2 data that same day:
+#   armour  -> the two highest total-defence bases in the lv80 tier,
+#   weapons -> the two highest base-phys-DPS bases (Quarterstaves were truly
+#              outdated: Aegis/Sinister weren't even top-3 anymore),
+#   casters (Staves/Wands) have no DPS/defence metric to rank a runner-up by,
+#              so they stay single-entry.
 _CRAFT_BEST_BASES: dict = {
-    "Body Armours":  [("Warlord Cuirass", "STR"),     ("Corsair Coat", "DEX"),
-                      ("Feathered Raiment", "INT"),    ("Thane Mail", "STR/DEX"),
-                      ("Seastorm Mantle", "STR/INT"),  ("Austere Garb", "DEX/INT")],
-    "Helmets":       [("Imperial Greathelm", "STR"),   ("Freebooter Cap", "DEX"),
-                      ("Ancestral Tiara", "INT"),      ("Gladiatorial Helm", "STR/DEX"),
-                      ("Cryptic Crown", "STR/INT"),    ("Grinning Mask", "DEX/INT")],
-    "Gloves":        [("Massive Mitts", "STR"),        ("Polished Bracers", "DEX"),
-                      ("Sirenscale Gloves", "INT"),    ("Blacksteel Gauntlets", "STR/DEX"),
-                      ("Adherent Cuffs", "STR/INT"),   ("Secured Wraps", "DEX/INT")],
-    "Boots":         [("Tasalian Greaves", "STR"),     ("Drakeskin Boots", "DEX"),
-                      ("Sekhema Sandals", "INT"),      ("Blacksteel Sabatons", "STR/DEX"),
-                      ("Cryptic Leggings", "STR/INT"), ("Daggerfoot Shoes", "DEX/INT")],
-    "Foci":          [("Tasalian Focus", "INT")],
-    "Spears":        [("Grand Spear", "STR/DEX")],
-    "Quarterstaves": [("Aegis Quarterstaff", "DEX/INT"), ("Sinister Quarterstaff", "DEX/INT")],
-    "Crossbows":     [("Desolate Crossbow", "STR/DEX")],
-    "Bows":          [("Obliterator Bow", "DEX"), ("Warmonger Bow", "DEX"),
-                      ("Guardian Bow", "DEX")],
+    "Body Armours":  [("Thane Mail", "STR/DEX"),       ("Warlord Cuirass", "STR")],
+    "Helmets":       [("Gladiatorial Helm", "STR/DEX"), ("Imperial Greathelm", "STR")],
+    "Gloves":        [("Blacksteel Gauntlets", "STR/DEX"), ("Massive Mitts", "STR")],
+    "Boots":         [("Blacksteel Sabatons", "STR/DEX"), ("Tasalian Greaves", "STR")],
+    "Foci":          [("Tasalian Focus", "INT"), ("Sacred Focus", "INT")],
+    "Spears":        [("Flying Spear", "STR/DEX"), ("Grand Spear", "STR/DEX")],
+    "Quarterstaves": [("Dreaming Quarterstaff", "DEX/INT"), ("Razor Quarterstaff", "DEX/INT")],
+    "Crossbows":     [("Desolate Crossbow", "STR/DEX"), ("Flexed Crossbow", "STR/DEX")],
+    "Bows":          [("Obliterator Bow", "DEX"), ("Warmonger Bow", "DEX")],
     "Staves":        [("Permafrost Staff", "INT")],
     "Wands":         [("Dueling Wand", "INT")],
     # Accessories — high-value Normal bases worth crafting on from item level 75.
-    "Amulets":       [("Stellar Amulet", ""), ("Gold Amulet", ""), ("Solar Amulet", "")],
+    "Amulets":       [("Stellar Amulet", ""), ("Gold Amulet", "")],
     "Rings":         [("Gold Ring", ""), ("Prismatic Ring", "")],
 }
 
@@ -302,7 +300,7 @@ VALID_EQUIPMENT_BASES = VALID_EQUIPMENT_BASES | frozenset(_CRAFT_BASE_DEFENCE)
 # Per-base minimum item level overrides — accessories are worth crafting on from a
 # lower ilvl than armour, so they're not gated by the global min (default 82).
 _CRAFT_BASE_ILVL_OVERRIDES: dict = {
-    "Stellar Amulet": 75, "Gold Amulet": 75, "Solar Amulet": 75,
+    "Stellar Amulet": 75, "Gold Amulet": 75,
     "Gold Ring": 75, "Prismatic Ring": 75,
 }
 
