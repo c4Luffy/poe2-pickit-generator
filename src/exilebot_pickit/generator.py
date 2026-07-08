@@ -268,8 +268,8 @@ CRAFT_BASE_MIN_ILVL = 82
 # attribute hybrids don't apply to them.
 # Narrowed to the TOP 2 bases per slot (owner request, 2026-07-08), re-ranked
 # against fresh Craft of Exile 2 data that same day:
-#   armour  -> best pure-Armour + best pure-ES base per slot (owner-picked
-#              pairing), ranked by RAW defence, not drop-level tier — mod
+#   armour  -> best pure-Armour + best pure-Evasion + best pure-ES per slot
+#              (owner-picked), ranked by RAW defence, not drop-level tier — mod
 #              tiers come from item level, so a lv65-drop base with higher
 #              defence (Soldier Cuirass AR570, Vile Robe ES171) beats the
 #              lv80-drop one at the same crafted ilvl,
@@ -278,10 +278,10 @@ CRAFT_BASE_MIN_ILVL = 82
 #   casters (Staves/Wands) have no DPS/defence metric to rank a runner-up by,
 #              so they stay single-entry.
 _CRAFT_BEST_BASES: dict = {
-    "Body Armours":  [("Soldier Cuirass", "STR"),   ("Vile Robe", "INT")],
-    "Helmets":       [("Imperial Greathelm", "STR"), ("Ancestral Tiara", "INT")],
-    "Gloves":        [("Massive Mitts", "STR"),      ("Sirenscale Gloves", "INT")],
-    "Boots":         [("Tasalian Greaves", "STR"),   ("Sekhema Sandals", "INT")],
+    "Body Armours":  [("Soldier Cuirass", "STR"),    ("Slipstrike Vest", "DEX"),  ("Vile Robe", "INT")],
+    "Helmets":       [("Imperial Greathelm", "STR"), ("Freebooter Cap", "DEX"),   ("Ancestral Tiara", "INT")],
+    "Gloves":        [("Massive Mitts", "STR"),      ("Polished Bracers", "DEX"), ("Sirenscale Gloves", "INT")],
+    "Boots":         [("Tasalian Greaves", "STR"),   ("Drakeskin Boots", "DEX"),  ("Sekhema Sandals", "INT")],
     "Foci":          [("Tasalian Focus", "INT"), ("Sacred Focus", "INT")],
     "Spears":        [("Flying Spear", "STR/DEX"), ("Grand Spear", "STR/DEX")],
     "Quarterstaves": [("Dreaming Quarterstaff", "DEX/INT"), ("Razor Quarterstaff", "DEX/INT")],
