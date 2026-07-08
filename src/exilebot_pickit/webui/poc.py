@@ -5,8 +5,8 @@ Renders app.html in a WebView2 window (pywebview) on top of the existing
 Python engine. Lives alongside the shipped Tkinter app; shares its config.
 
 Tray mode: with the "minimize to tray" setting on, closing the window hides
-it to the system tray instead of exiting — the page (and its auto-regenerate
-timer) keeps running. The tray menu offers Show / Generate now / Exit.
+it to the system tray instead of exiting. The tray menu offers
+Show / Generate now / Exit.
 """
 
 import os

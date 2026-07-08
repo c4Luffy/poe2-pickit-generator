@@ -29,7 +29,7 @@ _SETTABLE = {
     "league", "output_base", "bot_folder", "auto_copy", "theme",
     "min_exalt_gear", "min_exalt_unique", "include_bases",
     "auto_floor", "auto_floor_pct",
-    "base_quality", "base_min_level", "auto_regen_hours", "backup_count",
+    "base_quality", "base_min_level", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
     "minimize_to_tray",
 }
@@ -77,7 +77,6 @@ class AppApi:
             "auto_floor_pct": int(c.get("auto_floor_pct", 40) or 40),
             "base_quality": int(c.get("base_quality", 25)),
             "base_min_level": int(c.get("base_min_level", 82)),
-            "auto_regen_hours": int(c.get("auto_regen_hours", 0) or 0),
             "copy_filter_to_game": bool(c.get("copy_filter_to_game", False)),
             "poe2_filter_dir": c.get("poe2_filter_dir", "") or _default_dir(),
             "backup_count": int(c.get("backup_count", 5)),

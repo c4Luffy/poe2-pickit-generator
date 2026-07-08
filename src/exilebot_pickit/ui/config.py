@@ -74,8 +74,6 @@ DEFAULT_CONFIG = {
     "minimize_to_tray": False,
     "window_geometry_web": "",
     "confirm_overwrite_secs": 120,
-    # Hours between automatic regenerations while the app is open (0 = off).
-    "auto_regen_hours": 0,
     "include_bases": True,
     # Auto floor: recompute both value floors from live prices on every
     # generate ("keep top N%" percentile).

@@ -773,15 +773,8 @@
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
     <div>
       <div class="card"><h2>⏰ Hands-free mode</h2>
-        <div class="set-row"><div class="lab"><b>Auto-regenerate</b>
-          <span>Fresh prices on a timer while the app runs.</span></div>
-          <div class="sp"></div>
-          <select id="regenSel"><option value="0">Off</option><option value="1">Every hour</option>
-          <option value="2">Every 2 h</option><option value="4">Every 4 h</option>
-          <option value="6">Every 6 h</option><option value="12">Every 12 h</option></select></div>
-        <div class="hint" id="regenHint" style="margin:8px 0 0"></div>
         <div class="set-row"><div class="lab"><b>Minimize to tray on close</b>
-          <span>Keeps auto-regenerate alive in the background. Right-click the tray icon for Show / Generate / Exit.</span></div>
+          <span>Keeps the app running in the background instead of exiting. Right-click the tray icon for Show / Generate / Exit.</span></div>
           <div class="sp"></div><div class="switch" id="swTray"><i></i></div></div>
       </div>
       <div class="card"><h2>💾 Output &amp; backups</h2>
@@ -843,7 +836,7 @@ const api=()=>pywebview.api;
 async function copyText(t){
   try{const r=await api().copy_text(t);if(r&&r.ok)return true;}catch(_){/* fall through */}
   try{await navigator.clipboard.writeText(t);return true;}catch(_){return false;}}
-let info={}, divRate=0, eco=null, ecoCat=null, ecoSort="ex", running=false, regenTimer=null;
+let info={}, divRate=0, eco=null, ecoCat=null, ecoSort="ex", running=false;
 
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");
   clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),2200);}
@@ -1772,13 +1765,6 @@ $("prevFilter").addEventListener("input",renderPreview);
 function sw(id,key,cur){const el=$(id);el.classList.toggle("on",cur);
   el.onclick=async()=>{const on=!el.classList.contains("on");
     el.classList.toggle("on",on);await api().set_setting(key,on);toast("Saved");};}
-function armRegen(){
-  clearInterval(regenTimer);regenTimer=null;
-  const h=parseInt($("regenSel").value)||0;
-  if(h>0){regenTimer=setInterval(()=>{if(!running)doGenerate();},h*3600*1000);
-    $("regenHint").textContent=`Armed — regenerates every ${h}h while this window is open.`;}
-  else $("regenHint").textContent="Off — only generates when you click the button.";}
-$("regenSel").onchange=async()=>{await api().set_setting("auto_regen_hours",parseInt($("regenSel").value));armRegen();toast("Saved");};
 $("botBrowse").onclick=async()=>{const r=await api().browse_folder();
   if(r.path){$("botFolderLbl").textContent=r.path;await api().set_setting("bot_folder",r.path);toast("Saved");}};
 $("baseQ").onchange=()=>{api().set_setting("base_quality",parseInt($("baseQ").value)||25);toast("Saved");};
@@ -1832,7 +1818,6 @@ function applyInfo(i){
   $("fltDirLbl").textContent=i.poe2_filter_dir||"not set";
   $("bakCount").value=i.backup_count;
   $("baseQ").value=i.base_quality;$("baseL").value=i.base_min_level;
-  $("regenSel").value=String(i.auto_regen_hours||0);armRegen();
   $("swAuto").classList.toggle("on",!!i.auto_floor);
   $("keepPct").value=String(i.auto_floor_pct||40);
   setAutoPill(!!i.auto_floor);
