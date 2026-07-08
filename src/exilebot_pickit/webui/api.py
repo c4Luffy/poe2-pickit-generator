@@ -618,18 +618,33 @@ class AppApi:
 
     def win_set_bounds(self, x, y, wd, ht):
         """Move/resize from the JS resize handles. Sizes are clamped to the
-        app minimum so a drag can't shrink the window into an unusable sliver."""
+        app minimum so a drag can't shrink the window into an unusable sliver.
+
+        pywebview's own w.move()/w.resize() (WinForms backend) call the raw
+        Win32 SetWindowPos directly with NO thread marshaling at all -- unlike
+        its own maximize-toggle code right next to it, which does check
+        InvokeRequired/Invoke. This method fires on every pointermove during
+        an edge-resize drag (many times a second), each one a bare cross-
+        thread SetWindowPos call racing the UI thread's own message pump --
+        the actual root cause behind the repeated "freezes/closes while
+        resizing" reports. Route through _ui_invoke like every other native
+        touch in this file."""
         import webview
         w = webview.windows[0]
+        form = w.native
         wd, ht = max(760, int(wd)), max(560, int(ht))
-        try:
-            w.move(int(x), int(y))
-        except Exception:
-            pass
-        try:
-            w.resize(wd, ht)
-        except Exception:
-            pass
+        x, y = int(x), int(y)
+
+        def _do():
+            try:
+                w.move(x, y)
+            except Exception:
+                pass
+            try:
+                w.resize(wd, ht)
+            except Exception:
+                pass
+        self._ui_invoke(form, _do)
         return {"ok": True}
 
     def win_snap(self, pos):
