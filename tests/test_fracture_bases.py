@@ -66,6 +66,20 @@ def test_class_with_no_verified_target_returns_empty():
     assert gen.fracture_targets_for_class("Charms") == []
 
 
+def test_gloves_has_crit_damage_but_not_crit_chance():
+    g = gen.fracture_targets_for_class("Gloves")
+    ids = [t["id"] for t in g]
+    assert "crit_damage_gloves" in ids
+    assert not any("crit_chance" in i for i in ids)
+
+
+def test_wand_staff_use_the_stronger_element_specific_skill_mod():
+    wand = [t for t in gen.FRACTURE_TARGETS if t["id"] == "weapon_skill_level_wand"][0]
+    staff = [t for t in gen.FRACTURE_TARGETS if t["id"] == "weapon_skill_level_staff"][0]
+    assert wand["value"] == "+5"      # beats the generic +4 all-Spell-Skills roll
+    assert staff["value"] == "+7"     # beats the generic +5-6 all-Spell-Skills roll
+
+
 def test_focus_minion_excluded_desecrated_pool_only():
     # The only +Minion Skills mod on Focus comes from the Desecrated pool
     # (a boss mechanic), not the natural Base mod pool — must be excluded.

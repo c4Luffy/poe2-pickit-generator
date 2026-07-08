@@ -296,13 +296,17 @@ FRACTURE_TARGETS: list = [
      "text": "+4 to Level of all Melee Skills",
      "reason": "S+ target: top-tier 1H mace skill-level mod verified from live data."},
     {"id": "weapon_skill_level_wand", "tier": "S+", "classes": ["Wands"],
-     "affix": "suffix", "mod_tier": "T1", "value": "+4",
-     "text": "+4 to Level of all Spell Skills",
-     "reason": "S+ target: top-tier wand skill-level mod verified from live data."},
+     "affix": "suffix", "mod_tier": "T1", "value": "+5",
+     "text": "+5 to Level of all Fire/Cold/Lightning/Chaos/Physical Spell Skills "
+             "(element-specific rolls higher than the generic +4 all-Spell-Skills mod)",
+     "reason": "S+ target: top-tier wand skill-level mod verified from live data — the "
+               "element-specific suffix (+5, ilvl81) beats the generic Spell Skills suffix (+4, ilvl78)."},
     {"id": "weapon_skill_level_staff", "tier": "S+", "classes": ["Staves"],
-     "affix": "suffix", "mod_tier": "T1", "value": "+5 to +6",
-     "text": "+5-6 to Level of all Spell Skills",
-     "reason": "S+ target: top-tier staff skill-level mod verified from live data."},
+     "affix": "suffix", "mod_tier": "T1", "value": "+7",
+     "text": "+7 to Level of all Fire/Cold/Lightning/Chaos/Physical Spell Skills "
+             "(element-specific rolls higher than the generic +5-6 all-Spell-Skills mod)",
+     "reason": "S+ target: top-tier staff skill-level mod verified from live data — the "
+               "element-specific suffix (+7, ilvl81) beats the generic Spell Skills suffix (+5-6, ilvl78)."},
     {"id": "weapon_skill_level_sceptre", "tier": "S+", "classes": ["Sceptres"],
      "affix": "suffix", "mod_tier": "T1", "value": "+4",
      "text": "+4 to Level of all Minion Skills",
@@ -350,6 +354,11 @@ FRACTURE_TARGETS: list = [
      "affix": "suffix", "mod_tier": "T1", "value": "+2",
      "text": "+2 to Level of all Spell Skills",
      "reason": "A target: max +2 spell skill focus."},
+    {"id": "crit_damage_gloves", "tier": "A", "classes": ["Gloves"],
+     "affix": "suffix", "mod_tier": "T1", "value": "30-34%",
+     "text": "30-34% increased Critical Damage Bonus",
+     "reason": "A target: T1 critical damage on gloves (added by owner request — "
+               "gloves have no Critical Hit Chance affix, only Critical Damage)."},
 ]
 # Targets the spec's own verification step rejected — kept here (not shown in
 # the UI) so a future data refresh can re-check without re-deriving the answer.
