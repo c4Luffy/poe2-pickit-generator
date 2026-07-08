@@ -157,6 +157,18 @@ def build_header_lines(league: str, gen_ts: datetime.datetime, gen_id: str,
         "// local_* mods (local_attack_speed_+%) affect only the item itself",
         "// regular mods (attack_speed_+%)       affect your entire character",
         "//",
+        "// Weighted Sums:",
+        "// -------------",
+        "// [WeightedSum(stat:weight, stat:weight, ...)] scores several stats as one",
+        "// number instead of one condition per stat: each stat's rolled value is",
+        "// multiplied by its weight, then all of them are added together.",
+        "// Example: (life roll 100, weight 2) + (mana roll 200, weight 1) = 200 + 200 = 400",
+        "// Set weights by comparing each stat's own top roll to the others (e.g. if life's",
+        "// top roll is ~2x mana's, life is worth 2 sum points per point of mana).",
+        "// The higher the total threshold you require, the stricter the pickit becomes.",
+        "// Example: [WeightedSum(base_maximum_life:2,base_maximum_mana:1)] >= \"350\" "
+        "&& [StashItem] == \"true\"",
+        "//",
         "/" * gen._W, "",
     ]
 
