@@ -560,9 +560,9 @@
     <div id="ecoChips" class="craft-side" style="width:195px;flex:0 0 195px;position:static;max-height:calc(90.9vh - 265px);overflow-y:auto"></div>
     <div class="card" style="padding:8px 6px;flex:1;min-width:0">
       <table><thead><tr>
-        <th style="width:48%" data-s="name">Item</th>
-        <th data-s="ex" style="text-align:right">Value (ex)</th>
-        <th data-s="chg" style="text-align:right;width:80px">Δ</th>
+        <th style="width:48%" data-s="name">Item<span class="s-ind"></span></th>
+        <th data-s="ex" style="text-align:right">Value (ex)<span class="s-ind"></span></th>
+        <th data-s="chg" style="text-align:right;width:80px">Δ<span class="s-ind"></span></th>
         <th style="text-align:center;width:95px">Picked up</th>
         <th style="width:64px"></th>
       </tr></thead><tbody id="ecoBody"></tbody></table>
@@ -630,6 +630,15 @@
 <!-- ══ RARE ══ -->
 <div class="page" id="p-fracture">
   <h1>Fracture Bases</h1><div class="sub">Which Magic/Rare bases are worth a Fracturing Orb — a verified reference, not a pickit rule. <span id="fracCount"></span></div>
+  <div class="card" style="border-color:var(--gold-dim)">
+    <div style="display:flex;align-items:center;gap:12px">
+      <h2 style="margin:0">🎯 Rare Archetypes</h2>
+      <div class="sp" style="flex:1"></div>
+      <span class="t">Pick up matching per-build rare bases</span>
+      <div class="switch" id="swRareArch"><i></i></div>
+    </div>
+    <div class="hint">A bundled set of WeightedSum rules covering Amulets, Belts, Body Armour, Boots and Gloves (ported from a real working pickit) — one on/off switch for the whole set.</div>
+  </div>
   <div class="craft-layout">
     <div class="craft-side" id="fracSide"></div>
     <div style="flex:1;min-width:0">
@@ -836,7 +845,7 @@ const api=()=>pywebview.api;
 async function copyText(t){
   try{const r=await api().copy_text(t);if(r&&r.ok)return true;}catch(_){/* fall through */}
   try{await navigator.clipboard.writeText(t);return true;}catch(_){return false;}}
-let info={}, divRate=0, eco=null, ecoCat=null, ecoSort="ex", running=false;
+let info={}, divRate=0, eco=null, ecoCat=null, ecoSort="ex", ecoDir=-1, running=false;
 
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");
   clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),2200);}
@@ -1250,8 +1259,13 @@ function renderEco(){
   const body=$("ecoBody");body.innerHTML="";
   let rows=ecoRows();
   const isStatic=!q&&(ecoCat||"").startsWith("_ap_");
-  if(!isStatic)rows.sort((a,b)=>ecoSort==="name"?a[1].name.localeCompare(b[1].name):
-    ecoSort==="chg"?(b[1].chg||0)-(a[1].chg||0):b[1].ex-a[1].ex);
+  if(!isStatic)rows.sort((a,b)=>{
+    const cmp=ecoSort==="name"?a[1].name.localeCompare(b[1].name):
+      ecoSort==="chg"?(a[1].chg||0)-(b[1].chg||0):a[1].ex-b[1].ex;
+    return ecoDir*cmp;});
+  document.querySelectorAll("th[data-s] .s-ind").forEach(s=>s.textContent="");
+  const activeTh=document.querySelector(`th[data-s="${ecoSort}"] .s-ind`);
+  if(activeTh)activeTh.textContent=ecoDir===1?" ▲":" ▼";
   for(const [cat,it] of rows.slice(0,400)){
     const tr=document.createElement("tr");tr.className="item"+(it.enabled?"":" dis");
     const ico=it.icon?`<img class="icn" loading="lazy" src="${esc(it.icon)}" onerror="this.style.display='none'">`
@@ -1283,7 +1297,10 @@ async function ecoBulk(en){
 $("ecoAll").onclick=()=>ecoBulk(true);
 $("ecoNone").onclick=()=>ecoBulk(false);
 $("ecoSearch").addEventListener("input",()=>eco&&renderEco());
-document.querySelectorAll("th[data-s]").forEach(th=>th.onclick=()=>{ecoSort=th.dataset.s;eco&&renderEco();});
+document.querySelectorAll("th[data-s]").forEach(th=>th.onclick=()=>{
+  const s=th.dataset.s;
+  if(ecoSort===s)ecoDir=-ecoDir;else{ecoSort=s;ecoDir=s==="name"?1:-1;}
+  eco&&renderEco();});
 
 /* ── chance ── */
 let chanceList=[];
@@ -1815,6 +1832,7 @@ function applyInfo(i){
   sw("swBases","include_bases",i.include_bases);
   sw("swFilter","copy_filter_to_game",i.copy_filter_to_game);
   sw("swTray","minimize_to_tray",i.minimize_to_tray);
+  sw("swRareArch","rare_archetypes_enabled",i.rare_archetypes_enabled);
   $("fltDirLbl").textContent=i.poe2_filter_dir||"not set";
   $("bakCount").value=i.backup_count;
   $("baseQ").value=i.base_quality;$("baseL").value=i.base_min_level;
