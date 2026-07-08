@@ -600,6 +600,27 @@ class AppApi:
             except Exception:
                 return None
 
+    @staticmethod
+    def _ui_post(form, fn):
+        """Fire-and-forget marshal to the UI thread (BeginInvoke, never blocks).
+
+        _ui_invoke's synchronous form.Invoke() makes the js_api thread WAIT
+        for the UI thread — if the UI thread is simultaneously busy with
+        anything that waits on the js bridge (WebView2 holds its own locks
+        during JS<->native calls), the two threads deadlock: a total, silent
+        app freeze. That's a textbook lock-inversion, and drag gestures are
+        the worst case since they queue dozens of marshaled calls per second.
+        For mutations whose return value nobody reads (move/resize/snap),
+        posting asynchronously removes the deadlock possibility outright."""
+        try:
+            from System.Windows.Forms import MethodInvoker
+            form.BeginInvoke(MethodInvoker(fn))
+        except Exception:
+            try:
+                fn()
+            except Exception:
+                pass
+
     def _is_maxed(self, w):
         """True window state from WinForms — survives Win+Up/Down done natively."""
         try:
@@ -644,7 +665,7 @@ class AppApi:
                 w.resize(wd, ht)
             except Exception:
                 pass
-        self._ui_invoke(form, _do)
+        self._ui_post(form, _do)
         return {"ok": True}
 
     def win_snap(self, pos):
@@ -677,7 +698,7 @@ class AppApi:
                 w.resize(half, wa.Height)
             except Exception:
                 pass
-        self._ui_invoke(form, _snap)
+        self._ui_post(form, _snap)
         return {"ok": True}
 
     def win_snap_drop(self, x, y):
@@ -736,8 +757,13 @@ class AppApi:
             else:
                 w.maximize()
                 self._maxed = True
-        self._ui_invoke(form, _toggle)
-        return {"maximized": self._maxed}
+        # Fire-and-forget (_ui_post): a synchronous Invoke here can deadlock
+        # against WebView2's own bridge locks (see _ui_post docstring). The
+        # returned state is the optimistic flip; _toggle re-checks the real
+        # WindowState on the UI thread before acting, so it self-corrects.
+        new_state = not bool(getattr(self, "_maxed", False))
+        self._ui_post(form, _toggle)
+        return {"maximized": new_state}
 
     def win_close(self):
         """Same behavior as the OS close button: hide to tray when the setting

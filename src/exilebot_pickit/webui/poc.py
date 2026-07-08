@@ -154,6 +154,22 @@ def _fix_taskbar_restore(window, api):
     used for native-interop calls throughout this file and api.py).
     """
     def _on_restored():
+        # pywebview fires events from its own worker thread, not the WinForms
+        # UI thread — every form.* touch below is a cross-thread access unless
+        # marshaled. BeginInvoke (fire-and-forget) rather than Invoke: a
+        # synchronous wait here could deadlock against WebView2's bridge locks
+        # exactly like the win_* handlers in api.py (see _ui_post there).
+        try:
+            form = window.native
+            from System.Windows.Forms import MethodInvoker
+            if form.InvokeRequired:
+                form.BeginInvoke(MethodInvoker(_do_restore))
+            else:
+                _do_restore()
+        except Exception:
+            pass
+
+    def _do_restore():
         try:
             form = window.native
             from System.Drawing import Point
