@@ -103,6 +103,40 @@ def test_focus_minion_excluded_desecrated_pool_only():
     assert "focus_minion" in gen.FRACTURE_EXCLUDED_UNVERIFIED
 
 
+def test_shields_still_has_no_targets_by_design():
+    assert gen.fracture_targets_for_class("Shields") == []
+
+
+def test_body_helmet_boots_have_no_pure_armour_targets():
+    # Owner rule: ES/Evasion/Hybrid only across these three classes, never Armour.
+    for cls in ("Body Armours", "Helmets", "Boots"):
+        for t in gen.fracture_targets_for_class(cls):
+            assert "Armour" not in t["text"] or "no Armour" in t["text"]
+
+
+def test_staff_sigil_of_power_excluded_not_found_anywhere():
+    ids = [t["id"] for t in gen.fracture_targets_for_class("Staves")]
+    assert not any("sigil" in i for i in ids)
+    assert "staff_sigil_of_power" in gen.FRACTURE_EXCLUDED_UNVERIFIED
+
+
+def test_quiver_now_has_the_full_requested_set():
+    ids = {t["id"] for t in gen.fracture_targets_for_class("Quivers")}
+    assert {"quiver_projectile", "quiver_crit_chance_attacks", "quiver_crit_dmg_attacks",
+            "quiver_bow_dmg", "quiver_proj_speed", "quiver_added_lightning"} <= ids
+
+
+def test_sceptre_has_spirit_allies_and_minion_life_alongside_skill_level():
+    ids = {t["id"] for t in gen.fracture_targets_for_class("Sceptres")}
+    assert {"weapon_skill_level_sceptre", "weapon_skill_level_sceptre_t2",
+            "sceptre_spirit", "sceptre_allies_dmg", "sceptre_minion_life"} <= ids
+
+
+def test_belt_has_life_mana_and_all_four_resists():
+    ids = {t["id"] for t in gen.fracture_targets_for_class("Belts")}
+    assert {"belt_life", "belt_mana", "belt_resist"} <= ids
+
+
 def test_score_formula():
     assert gen.fracture_score("S+", explicit_mod_count=3, magic_match=False, meta_base=False) == 100
     assert gen.fracture_score("S", explicit_mod_count=4, magic_match=False, meta_base=False) == 95
