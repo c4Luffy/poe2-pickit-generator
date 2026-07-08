@@ -533,6 +533,48 @@ def fracture_score(tier: str, explicit_mod_count: int, magic_match: bool, meta_b
     return score
 
 
+_FRACTURE_TARGETS_BY_ID = {t["id"]: t for t in FRACTURE_TARGETS}
+
+
+def classify_fracture_item(item_class: str, rarity: str, matched_target_ids: list,
+                           explicit_mod_count: int, meta_base: bool = False) -> dict:
+    """Classify one item for Fracture Bases purposes.
+
+    NOTE: this is a pure scoring helper — the app has no live item-scanning
+    capability, so ``matched_target_ids`` must already be pre-identified as
+    real ids from ``FRACTURE_TARGETS`` (i.e. mods already confirmed natural
+    Magic/Rare Base-pool affixes). Any mod that is generic, from a special
+    pool (Essence/crafted/Abyss/corrupted/unique/vendor/event/Desecrated), or
+    simply not in ``FRACTURE_TARGETS`` at all is NOT a valid id here and is
+    silently ignored — it produces no match, exactly like every "excluded"
+    category in the spec (hybrid phys+accuracy, generic/elemental/spell/chaos
+    damage, damage-with-ailments, etc.).
+
+    IMPORTANT: this function does not drive the pickit/bot output in any way —
+    Fracture Bases is a reference lookup only (see FRACTURE_TARGETS docstring).
+    It exists purely so "would this item be flagged in the tab" is testable.
+
+    Returns {"matches": [...], "verdict": "fracture_candidate"|"prep_candidate"
+    |"ignored", "score": int|None, "warning": str|None}.
+    """
+    matches = []
+    for tid in matched_target_ids:
+        t = _FRACTURE_TARGETS_BY_ID.get(tid)
+        if not t or item_class not in t["classes"]:
+            continue                                   # unknown/generic/wrong-class mod: ignored
+        if t.get("magic_only") and rarity != "Magic":
+            continue                                    # e.g. helmet rarity: Magic-only rule
+        matches.append(t)
+    warning = "more than 4 explicit modifiers" if explicit_mod_count > 4 else None
+    if not matches:
+        return {"matches": [], "verdict": "ignored", "score": None, "warning": warning}
+    best = min(matches, key=lambda t: {"S+": 0, "S": 1, "A+": 2, "A": 3}[t["tier"]])
+    magic_match = rarity == "Magic" and bool(best.get("magic_only"))
+    score = fracture_score(best["tier"], explicit_mod_count, magic_match, meta_base)
+    verdict = "prep_candidate" if rarity == "Magic" else "fracture_candidate"
+    return {"matches": matches, "verdict": verdict, "score": score, "warning": warning}
+
+
 CRAFT_BASE_MIN_ILVL = 82
 
 # Ordered slot -> [(base_name, defence_type), ...].  Armour slots cover ALL six

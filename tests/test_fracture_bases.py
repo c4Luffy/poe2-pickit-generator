@@ -137,6 +137,85 @@ def test_belt_has_life_mana_and_all_four_resists():
     assert {"belt_life", "belt_mana", "belt_resist"} <= ids
 
 
+# ── Item classification samples (spec section 10) ──
+# classify_fracture_item is a pure scoring helper only — it does NOT drive
+# pickit/bot output. Fracture Bases never generates rules; see the module
+# docstring on FRACTURE_TARGETS.
+
+def test_magic_boots_t1_movement_is_prep_candidate():
+    r = gen.classify_fracture_item("Boots", "Magic", ["movement_speed"], explicit_mod_count=1)
+    assert r["verdict"] == "prep_candidate"
+    assert r["matches"]
+
+
+def test_rare_boots_t1_movement_4_explicits_is_best_fracture_setup():
+    r = gen.classify_fracture_item("Boots", "Rare", ["movement_speed"], explicit_mod_count=4)
+    assert r["verdict"] == "fracture_candidate"
+    assert r["warning"] is None
+    assert r["score"] == gen.FRACTURE_TIERS["S"] + 15   # +15 for exactly 4 explicits
+
+
+def test_magic_helmet_rarity_prefix_is_prep_candidate():
+    r = gen.classify_fracture_item("Helmets", "Magic", ["rarity_helmet"], explicit_mod_count=1)
+    assert r["verdict"] == "prep_candidate"
+    assert r["matches"]
+
+
+def test_rare_helmet_rarity_ignored_by_magic_only_rule():
+    r = gen.classify_fracture_item("Helmets", "Rare", ["rarity_helmet"], explicit_mod_count=1)
+    assert r["verdict"] == "ignored"
+    assert r["matches"] == []
+
+
+def test_wand_natural_top_tier_spell_skills_is_valid():
+    r = gen.classify_fracture_item("Wands", "Rare", ["weapon_skill_level_wand"], explicit_mod_count=3)
+    assert r["verdict"] == "fracture_candidate"
+    assert r["matches"]
+
+
+def test_wand_essence_spell_skills_is_ignored():
+    # An Essence-sourced +spell-skills mod is NOT a valid target id at all —
+    # there is no "essence_*" entry in FRACTURE_TARGETS, so passing one in
+    # (as an app would after correctly excluding it upstream) matches nothing.
+    r = gen.classify_fracture_item("Wands", "Rare", ["essence_spell_skills"], explicit_mod_count=3)
+    assert r["verdict"] == "ignored"
+    assert r["matches"] == []
+
+
+def test_weapon_t1_phys_is_valid():
+    r = gen.classify_fracture_item("Bows", "Rare", ["inc_phys_weapon"], explicit_mod_count=4)
+    assert r["verdict"] == "fracture_candidate"
+    assert r["matches"]
+
+
+def test_weapon_hybrid_phys_accuracy_only_is_ignored():
+    # "#% increased Physical Damage, +# to Accuracy Rating" is a real live mod
+    # but it is NOT one of the approved targets (hybrid, not the pure T1 phys%
+    # target) — not in FRACTURE_TARGETS, so it is ignored, exactly like the
+    # spec's "ignored unless explicitly allowed later" instruction.
+    r = gen.classify_fracture_item("Bows", "Rare", ["hybrid_phys_accuracy"], explicit_mod_count=4)
+    assert r["verdict"] == "ignored"
+
+
+def test_excluded_generic_categories_never_match_anything():
+    # elemental/spell/generic/chaos damage and damage-with-ailments are not
+    # represented as FRACTURE_TARGETS ids anywhere (except the specific,
+    # already-approved wand/staff spell-damage targets) — any attempt to pass
+    # a generic id for these categories matches nothing.
+    for fake_id in ("elemental_damage_generic", "spell_damage_generic",
+                     "generic_damage", "chaos_damage_generic",
+                     "damage_with_ailments"):
+        r = gen.classify_fracture_item("Wands", "Rare", [fake_id], explicit_mod_count=3)
+        assert r["verdict"] == "ignored", fake_id
+        assert r["matches"] == []
+
+
+def test_more_than_4_explicits_warns_but_can_still_match():
+    r = gen.classify_fracture_item("Boots", "Rare", ["movement_speed"], explicit_mod_count=5)
+    assert r["verdict"] == "fracture_candidate"
+    assert r["warning"] == "more than 4 explicit modifiers"
+
+
 def test_score_formula():
     assert gen.fracture_score("S+", explicit_mod_count=3, magic_match=False, meta_base=False) == 100
     assert gen.fracture_score("S", explicit_mod_count=4, magic_match=False, meta_base=False) == 95
