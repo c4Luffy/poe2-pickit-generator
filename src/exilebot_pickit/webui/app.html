@@ -730,18 +730,6 @@
 <!-- ══ PREVIEW ══ -->
 <div class="page" id="p-prev">
   <h1>Preview</h1><div class="sub">Your last generated pickit — exactly what the bot reads.</div>
-
-  <div class="card" style="border-color:var(--gold-dim)">
-    <h2>🧪 Test Item Simulator</h2>
-    <div class="hint">Paste an item's text (Ctrl+C on it in-game) to check it against your configured Craft/Chance/Exceptional bases and Fracture Bases toggles. This checks item class, base name, item level and rarity only — it does not evaluate mod rolls (life, resistances, DPS) or priced Economy items.</div>
-    <textarea id="simInput" rows="7" style="width:100%;font-family:inherit;font-size:12.5px;padding:8px;margin-top:8px" placeholder="Item Class: Boots&#10;Rarity: Rare&#10;Widow Grasp&#10;Advanced Cloth Boots&#10;--------&#10;..."></textarea>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn" id="simRun">Check item</button>
-      <button class="ghost mini" id="simWipe">Clear</button>
-    </div>
-    <div id="simOut" style="margin-top:10px"></div>
-  </div>
-
   <div class="banner warn" id="valBanner"></div>
   <div class="stats" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
     <div class="stat"><b id="pvTotal">–</b><span>rules</span></div>
@@ -764,6 +752,17 @@
   <div style="display:flex;gap:12px;align-items:flex-start">
     <div id="pvNav" class="craft-side" style="width:215px;flex:0 0 215px;position:static;max-height:calc(90.9vh - 330px);overflow-y:auto"></div>
     <pre id="prevBox" style="user-select:text;cursor:text;flex:1;max-height:calc(90.9vh - 330px);white-space:pre-wrap;word-break:break-word;overflow-x:hidden;min-width:0">Generate first.</pre>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>🧪 Test Item Simulator</h2>
+    <div class="hint">Paste an item's text (Ctrl+C on it in-game) to check it against your configured Craft/Chance/Exceptional bases and Fracture Bases toggles. This checks item class, base name, item level and rarity only — it does not evaluate mod rolls (life, resistances, DPS) or priced Economy items.</div>
+    <textarea id="simInput" rows="7" style="width:100%;font-family:inherit;font-size:12.5px;padding:8px;margin-top:8px" placeholder="Item Class: Boots&#10;Rarity: Rare&#10;Widow Grasp&#10;Advanced Cloth Boots&#10;--------&#10;..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" id="simRun">Check item</button>
+      <button class="ghost mini" id="simWipe">Clear</button>
+    </div>
+    <div id="simOut" style="margin-top:10px"></div>
   </div>
 
 </div>
