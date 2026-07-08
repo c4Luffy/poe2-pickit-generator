@@ -311,6 +311,11 @@ FRACTURE_TARGETS: list = [
      "affix": "suffix", "mod_tier": "T1", "value": "+4",
      "text": "+4 to Level of all Minion Skills",
      "reason": "S+ target: top-tier sceptre skill-level mod verified from live data."},
+    {"id": "weapon_skill_level_sceptre_t2", "tier": "S+", "classes": ["Sceptres"],
+     "affix": "suffix", "mod_tier": "T2", "value": "+3",
+     "text": "+3 to Level of all Minion Skills",
+     "reason": "S+ target: T2 sceptre skill-level mod — owner-approved second tier "
+               "for Sceptres only (verified from live data, ilvl55)."},
     {"id": "spirit_body", "tier": "S+", "classes": ["Body Armours"],
      "affix": "prefix", "mod_tier": "T1", "value": "57-61",
      "text": "+57-61 to Spirit",
@@ -359,6 +364,11 @@ FRACTURE_TARGETS: list = [
      "text": "30-34% increased Critical Damage Bonus",
      "reason": "A target: T1 critical damage on gloves (added by owner request — "
                "gloves have no Critical Hit Chance affix, only Critical Damage)."},
+    {"id": "melee_skill_level_gloves", "tier": "A", "classes": ["Gloves"],
+     "affix": "suffix", "mod_tier": "T1", "value": "+2",
+     "text": "+2 to Level of all Melee Skills",
+     "reason": "A target: T1 melee skill-level mod on gloves (natural Base-pool suffix; "
+               "a +1 version also exists but only from the Corrupted pool, excluded)."},
 ]
 # Targets the spec's own verification step rejected — kept here (not shown in
 # the UI) so a future data refresh can re-check without re-deriving the answer.

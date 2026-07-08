@@ -66,11 +66,26 @@ def test_class_with_no_verified_target_returns_empty():
     assert gen.fracture_targets_for_class("Charms") == []
 
 
-def test_gloves_has_crit_damage_but_not_crit_chance():
+def test_gloves_has_crit_damage_and_melee_but_not_crit_chance():
     g = gen.fracture_targets_for_class("Gloves")
     ids = [t["id"] for t in g]
     assert "crit_damage_gloves" in ids
+    assert "melee_skill_level_gloves" in ids
     assert not any("crit_chance" in i for i in ids)
+
+
+def test_sceptre_has_both_t1_and_t2_skill_level():
+    s = gen.fracture_targets_for_class("Sceptres")
+    ids = {t["id"]: t for t in s}
+    assert ids["weapon_skill_level_sceptre"]["mod_tier"] == "T1"
+    assert ids["weapon_skill_level_sceptre"]["value"] == "+4"
+    assert ids["weapon_skill_level_sceptre_t2"]["mod_tier"] == "T2"
+    assert ids["weapon_skill_level_sceptre_t2"]["value"] == "+3"
+    # T2 is Sceptre-only — every other class keeps exactly one skill-level tier
+    other_multi = [t for t in gen.FRACTURE_TARGETS
+                   if t["id"].startswith("weapon_skill_level_") and "sceptre" not in t["id"]]
+    ids_seen = [t["id"].replace("_t2", "") for t in other_multi]
+    assert len(ids_seen) == len(set(ids_seen))
 
 
 def test_wand_staff_use_the_stronger_element_specific_skill_mod():
