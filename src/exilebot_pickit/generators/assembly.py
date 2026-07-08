@@ -307,12 +307,6 @@ def fracture_pickit_section(snapshot: dict) -> list[str]:
     return gen.build_fracture_pickit_rules(fb_states)
 
 
-def rare_archetype_section(snapshot: dict) -> list[str]:
-    """Return pickit lines for the bundled Rare Archetypes section (single
-    on/off toggle, see data/rare_archetypes.py). Empty list when off."""
-    enabled = bool(snapshot.get("rare_archetypes_enabled", False))
-    return gen.build_rare_archetype_rules(enabled)
-
 
 # ── Price-move alerts ─────────────────────────────────────────────────────────
 

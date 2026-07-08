@@ -253,9 +253,6 @@ from exilebot_pickit.data.fracture_bases import (  # noqa: F401
     fracture_has_verified_target, fracture_default, _fracture_target_condition,
     build_fracture_pickit_rules, classify_fracture_item,
 )
-from exilebot_pickit.data.rare_archetypes import (  # noqa: F401
-    RARE_ARCHETYPE_LINES, build_rare_archetype_rules,
-)
 
 
 CRAFT_BASE_MIN_ILVL = 82

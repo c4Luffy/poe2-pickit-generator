@@ -320,20 +320,11 @@ _FRACTURE_TARGETS_BY_ID = {t["id"]: t for t in FRACTURE_TARGETS}
 # checked against the bot's real mod list.
 _FRACTURE_VERIFIED_STAT_IDS = {
     "amulet_skill_level": None,  # multiple families — see _AMULET_SKILL_IDS below
-    # base_spirit_from_equipment appears throughout the owner's real working
-    # reference pickit on amulet rules — bot-verified by definition.
-    "amulet_spirit": "base_spirit_from_equipment",
-    # local_energy_shield / local_base_evasion_rating appear throughout the
-    # owner's real working reference pickit (body/gloves/boots ES and Evasion
-    # WeightedSums) — bot-verified by definition. Flat-roll targets only; the
-    # %-hybrid targets (es_evasion_pct_*) combine two stats in one target and
-    # stay reference-only.
-    "es_body": "local_energy_shield",
-    "evasion_body": "local_base_evasion_rating",
-    "es_helmet": "local_energy_shield",
-    "evasion_helmet": "local_base_evasion_rating",
-    "es_boots": "local_energy_shield",
-    "evasion_boots": "local_base_evasion_rating",
+    # NOTE (owner rule, 2026-07-08): reference pickit files are READ-ONLY
+    # learning material — stat ids may only be verified against the bot's own
+    # files (ModsList.html / its shipped default.ipd). amulet_spirit and the
+    # flat ES/Evasion targets were briefly wired from ids seen in a reference
+    # file; unwired again until re-verified against the bot's own docs.
     "weapon_skill_level_bow": "bow_skill_gem_level_",
     "weapon_skill_level_crossbow": "crossbow_skill_gem_level_",
     "weapon_skill_level_quarterstaff": "melee_skill_gem_level_",

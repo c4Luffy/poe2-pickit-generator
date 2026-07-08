@@ -72,7 +72,6 @@ DEFAULT_CONFIG = {
 
     "theme": "dark",
     "minimize_to_tray": False,
-    "rare_archetypes_enabled": False,
     "window_geometry_web": "",
     "confirm_overwrite_secs": 120,
     "include_bases": True,
