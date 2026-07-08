@@ -1255,6 +1255,98 @@ class AppApi:
                 return {"error": f"couldn't open: {e}"}
         return {"ok": True}
 
+    def simulate_item(self, text):
+        """Test Item Simulator: paste in-game item text, get a structural
+        read of whether it matches a configured base/class rule. Deliberately
+        scoped — it checks item class/base name/item level/rarity against
+        Craft/Chance/Exceptional bases and the Fracture Bases reference, all
+        driven by data this app already has. It does NOT evaluate numeric mod
+        thresholds (life rolls, resistances, DPS, WeightedSum) or priced
+        Economy items — those need live prices / the bot's own identify pass,
+        so faking a verdict for them would be a fabricated result."""
+        try:
+            lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
+            if not lines:
+                return {"error": "paste an item's text first (Ctrl+C on it in-game)"}
+            fields = {}
+            name_lines = []
+            seen_rarity = False
+            for ln in lines:
+                if ln.startswith("Item Class:"):
+                    fields["class"] = ln.split(":", 1)[1].strip()
+                elif ln.startswith("Rarity:"):
+                    fields["rarity"] = ln.split(":", 1)[1].strip()
+                    seen_rarity = True
+                elif ln.startswith("Item Level:"):
+                    try:
+                        fields["ilvl"] = int(ln.split(":", 1)[1].strip())
+                    except ValueError:
+                        pass
+                elif ln == "--------":
+                    break
+                elif seen_rarity and len(name_lines) < 2:
+                    name_lines.append(ln)
+            if not fields.get("class") and not name_lines:
+                return {"error": "couldn't recognize this as PoE2 item text — "
+                                 "paste the full Ctrl+C copy, including 'Item Class:' / 'Rarity:'"}
+            base_name = name_lines[-1] if name_lines else ""
+            display_name = name_lines[0] if len(name_lines) > 1 else base_name
+            item_class = fields.get("class", "")
+            ilvl = fields.get("ilvl")
+            matches = []
+
+            cb = next((c for c in self.craft_bases() if c["base"] == base_name), None)
+            if cb:
+                ilvl_ok = ilvl is None or ilvl >= cb["ilvl"]
+                matches.append({"rule": "Craft Base", "picked": bool(cb["enabled"] and ilvl_ok),
+                                 "detail": f"toggle {'ON' if cb['enabled'] else 'OFF'} · "
+                                           f"needs ilvl >= {cb['ilvl']}"
+                                           + (f", item is {ilvl}" if ilvl is not None else "")})
+
+            chb = next((c for c in self.chance_bases() if c["base"] == base_name), None)
+            if chb:
+                matches.append({"rule": "Chance Base", "picked": bool(chb["enabled"]),
+                                 "detail": f"toggle {'ON' if chb['enabled'] else 'OFF'}"})
+
+            exb = None
+            for cat in self.exceptional_bases():
+                exb = next((b for b in cat["bases"] if b["name"] == base_name), None)
+                if exb:
+                    break
+            if exb:
+                is_normal = (fields.get("rarity") or "").lower() == "normal"
+                inc = bool(self.cfg.get("include_bases", True))
+                min_q = int(self.cfg.get("base_quality", 25))
+                min_l = int(self.cfg.get("base_min_level", 82))
+                picked = bool(exb["enabled"] and inc and is_normal and (ilvl is None or ilvl >= min_l))
+                matches.append({"rule": "Exceptional Base", "picked": picked,
+                                 "detail": f"toggle {'ON' if exb['enabled'] else 'OFF'} · "
+                                           f"needs Normal rarity, ilvl >= {min_l}, quality >= {min_q}% "
+                                           "(quality isn't in the copied text — check in-game)"})
+
+            if item_class:
+                targets = gen.fracture_targets_for_class(item_class)
+                if targets:
+                    fb_states = self.cfg.get("item_states", {}).get("_fracture", {})
+                    en = fb_states.get(item_class, gen.fracture_default(item_class)).get("enabled", False)
+                    matches.append({"rule": "Fracture Bases", "picked": None,
+                                     "detail": f"{item_class} has {len(targets)} known fracture target(s) — "
+                                               f"reference only, toggle {'ON' if en else 'OFF'}"})
+
+            if not matches:
+                matches.append({"rule": "No structural match", "picked": False,
+                                 "detail": "No configured Craft/Chance/Exceptional base has this exact name, "
+                                           "and this item class has no Fracture Bases entry."})
+
+            return {"ok": True, "class": item_class, "rarity": fields.get("rarity", ""),
+                    "ilvl": ilvl, "name": display_name, "base": base_name, "matches": matches,
+                    "note": "Structural check only — base name, item class, item level and your current "
+                            "toggle/threshold settings. Numeric mods (life, resistances, DPS, WeightedSum) "
+                            "and priced Economy/unique items aren't evaluated here; use Preview after "
+                            "generating for those."}
+        except Exception as e:
+            return {"error": str(e)}
+
     def js_error(self, msg):
         """UI-side error reporter — lands in debug.log for diagnosis."""
         from exilebot_pickit.ui.config import log_info
