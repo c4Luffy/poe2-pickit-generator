@@ -458,6 +458,17 @@ def build_exotic_base_rules(disabled=None) -> list:
     return out
 
 
+def build_charm_rules(enabled: bool) -> list:
+    """Pick up every Charm unconditionally (owner request: no mod filtering
+    -- there's no verified Charm mod data to filter on, so this is a plain
+    always-pick like Tablets/Fragments, gated by one Settings toggle)."""
+    if not enabled:
+        return []
+    return header_major("Charms").splitlines() + [
+        "",
+        '[Category] == "Charm" # [StashItem] == "true"',
+    ]
+
 
 # NOTE: type-less catch-all rules ([Quality] >= "21" / [Sockets] >= "3" with
 # no [Type]) were tried and REMOVED (owner, 2026-07-05): Exiled Bot treats a

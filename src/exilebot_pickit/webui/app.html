@@ -639,6 +639,15 @@
     </div>
     <div class="hint">A bundled set of WeightedSum rules covering Amulets, Belts, Body Armour, Boots and Gloves (ported from a real working pickit) — one on/off switch for the whole set.</div>
   </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:12px">
+      <h2 style="margin:0">🧿 Charms</h2>
+      <div class="sp" style="flex:1"></div>
+      <span class="t">Pick up all Charms</span>
+      <div class="switch" id="swCharms"><i></i></div>
+    </div>
+    <div class="hint">No verified mod data exists for Charms yet, so this picks up every Charm found, unfiltered — same as Tablets/Fragments. On by default.</div>
+  </div>
   <div class="craft-layout">
     <div class="craft-side" id="fracSide"></div>
     <div style="flex:1;min-width:0">
@@ -1834,6 +1843,7 @@ function applyInfo(i){
   sw("swFilter","copy_filter_to_game",i.copy_filter_to_game);
   sw("swTray","minimize_to_tray",i.minimize_to_tray);
   sw("swRareArch","rare_archetypes_enabled",i.rare_archetypes_enabled);
+  sw("swCharms","pickup_all_charms",i.pickup_all_charms);
   $("fltDirLbl").textContent=i.poe2_filter_dir||"not set";
   $("bakCount").value=i.backup_count;
   $("baseQ").value=i.base_quality;$("baseL").value=i.base_min_level;

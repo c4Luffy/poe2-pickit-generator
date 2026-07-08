@@ -31,7 +31,7 @@ _SETTABLE = {
     "auto_floor", "auto_floor_pct",
     "base_quality", "base_min_level", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
-    "minimize_to_tray", "rare_archetypes_enabled",
+    "minimize_to_tray", "rare_archetypes_enabled", "pickup_all_charms",
 }
 
 
@@ -84,6 +84,7 @@ class AppApi:
             "config_warning": _config_warning(),
             "minimize_to_tray": bool(c.get("minimize_to_tray", False)),
             "rare_archetypes_enabled": bool(c.get("rare_archetypes_enabled", False)),
+            "pickup_all_charms": bool(c.get("pickup_all_charms", True)),
         }
 
     def set_setting(self, key, value):
@@ -1030,6 +1031,7 @@ class AppApi:
             "base_quality": int(self.cfg.get("base_quality", 25)),
             "base_min_level": int(self.cfg.get("base_min_level", 82)),
             "rare_archetypes_enabled": bool(self.cfg.get("rare_archetypes_enabled", False)),
+            "pickup_all_charms": bool(self.cfg.get("pickup_all_charms", True)),
         }
 
     def _generate(self, league, min_gear, min_unique):
@@ -1103,6 +1105,7 @@ class AppApi:
             out += craft_lines
             out += asm.fracture_pickit_section(snap)
             out += asm.rare_archetype_section(snap)
+            out += gen.build_charm_rules(snap.get("pickup_all_charms", True))
             excdis = self._excbase_disabled(snap)
             if snap["include_bases"]:
                 out += ["", gen.header_major("Exceptional Bases"), ""]
