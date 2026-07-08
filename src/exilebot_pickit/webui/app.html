@@ -1725,6 +1725,7 @@ async function loadPreview(){
   for(const m of v.warnings){const n=parseInt(m.match(/Line (\d+)/)?.[1]);if(n)pvValMap[n]=pvValMap[n]||["warn",m];}
   const b=$("valBanner");
   if(v.errors.length){b.textContent=`⚠ ${v.errors.length} validation errors — marked ⚠ inline below`;b.classList.add("on");}
+  else if(v.warnings.length){b.textContent=`⚠ ${v.warnings.length} validation warnings — marked ⚠ inline below`;b.classList.add("on");}
   else b.classList.remove("on");
   $("pvVal").textContent=v.errors.length?v.errors.length+" ✗":(v.warnings.length?v.warnings.length+" ⚠":"✓");
   renderPvNav();renderPreview();}
