@@ -37,6 +37,11 @@ FRACTURE_TARGETS: list = [
      "affix": "suffix", "mod_tier": "T1", "value": "+3",
      "text": "+3 to Level of all Spell/Minion/Melee/Projectile Skills",
      "reason": "S+ target: max +skill level amulet mod (T1, verified from live data)."},
+    {"id": "amulet_spirit", "tier": "S+", "classes": ["Amulets"],
+     "affix": "prefix", "mod_tier": "T1", "value": "47-50",
+     "text": "+47-50 to Spirit",
+     "reason": "S+ target: T1 Spirit amulet prefix (mod id 5076, ilvl54, verified "
+               "from live CoE2 data — the only natural Spirit mod on amulets)."},
     {"id": "weapon_skill_level_bow", "tier": "S+", "classes": ["Bows"],
      "affix": "suffix", "mod_tier": "T1", "value": "+4",
      "text": "+4 to Level of all Projectile Skills",
@@ -315,6 +320,9 @@ _FRACTURE_TARGETS_BY_ID = {t["id"]: t for t in FRACTURE_TARGETS}
 # checked against the bot's real mod list.
 _FRACTURE_VERIFIED_STAT_IDS = {
     "amulet_skill_level": None,  # multiple families — see _AMULET_SKILL_IDS below
+    # base_spirit_from_equipment appears throughout the owner's real working
+    # reference pickit on amulet rules — bot-verified by definition.
+    "amulet_spirit": "base_spirit_from_equipment",
     "weapon_skill_level_bow": "bow_skill_gem_level_",
     "weapon_skill_level_crossbow": "crossbow_skill_gem_level_",
     "weapon_skill_level_quarterstaff": "melee_skill_gem_level_",
