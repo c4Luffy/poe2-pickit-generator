@@ -383,6 +383,29 @@ _FRACTURE_CLASS_SEL: dict = {
     "Flasks": '[Category] == "Flask"',
 }
 
+_FRACTURE_TOP_N = 4
+
+
+def _fracture_class_selector(cls: str) -> str | None:
+    """Narrow a class-wide selector (matches EVERY Magic/Rare item of that
+    slot) down to the top _FRACTURE_TOP_N highest-level bases, using the same
+    verified exceptional-base list the Exceptional Bases tab already uses —
+    real game data, not a fabricated ranking. Falls back to the class-wide
+    selector for slots with no base-type data (Amulets, Rings, Jewels,
+    Charms, Flasks) since there's no verified way to rank those."""
+    base_sel = _FRACTURE_CLASS_SEL.get(cls)
+    if not base_sel:
+        return None
+    from exilebot_pickit.data.base_types import _BASE_TYPES_BY_CATEGORY
+    from exilebot_pickit.data.icons import BASE_STATS
+    entries = _BASE_TYPES_BY_CATEGORY.get(cls)
+    if not entries:
+        return base_sel
+    ranked = sorted(entries, key=lambda e: -BASE_STATS.get(e[0], {}).get("lvl", 0))
+    top = [name for name, _sockets in ranked[:_FRACTURE_TOP_N]]
+    return "(" + " || ".join(f'[Type] == "{t}"' for t in top) + ")"
+
+
 _FRACTURE_VALUE_RE = re.compile(r"\d+")
 
 
@@ -445,7 +468,7 @@ def _build_fracture_pickit_rules(states: dict, _header_major) -> list:
             st = states.get(cls) or fracture_default(cls)
             if not st.get("enabled", True):
                 continue
-            sel = _FRACTURE_CLASS_SEL.get(cls)
+            sel = _fracture_class_selector(cls)
             if not sel:
                 continue
             cls_lines = []

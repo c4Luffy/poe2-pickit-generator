@@ -277,7 +277,8 @@ def test_class_missing_from_states_defaults_to_enabled():
 def test_enabled_class_with_verified_target_emits_valid_rule():
     lines = gen.build_fracture_pickit_rules(_all_off(Boots=True))
     assert lines
-    rule_lines = [l for l in lines if l.startswith("[Category]") or l.startswith("[WeaponCategory]")]
+    rule_lines = [l for l in lines
+                  if l.startswith("[Category]") or l.startswith("[WeaponCategory]") or l.startswith("(")]
     assert rule_lines
     assert any("base_movement_velocity_+%" in l for l in rule_lines)
     result = gen.validate_pickit(lines)
@@ -285,6 +286,16 @@ def test_enabled_class_with_verified_target_emits_valid_rule():
     for l in rule_lines:
         assert '[StashItem] == "true"' in l
         assert "UNVERIFIED_STAT_ID" not in l
+
+
+def test_narrowed_selector_only_matches_top_bases_not_whole_category():
+    # Boots has real exceptional-base data -> the wired rule must be narrowed
+    # to an OR of specific [Type] names, never the old whole-category match.
+    lines = gen.build_fracture_pickit_rules(_all_off(Boots=True))
+    rule = next(l for l in lines if "base_movement_velocity_+%" in l)
+    assert '[Type] ==' in rule
+    assert rule.count('[Type] ==') <= 4
+    assert '[Category] == "Boots"' not in rule
 
 
 def test_class_with_only_unverified_targets_emits_nothing_even_when_enabled():
