@@ -46,6 +46,7 @@ class AppApi:
         self._status = {"running": False, "log": [], "done": None}
         self._dl = {"active": False, "pct": 0, "done_mb": 0.0, "total_mb": 0.0, "result": None}
         self._last_lines: list = []
+        self._eco = {"running": False, "result": None}
         self.cfg = load_config()
         gen.set_disk_cache_dir(PRICE_CACHE_DIR)
         gen.prune_disk_cache(max_age_days=60)
@@ -226,6 +227,30 @@ class AppApi:
                     "cat_enabled": cat_en}
         except Exception as e:
             return {"error": str(e)}
+
+    def economy_start(self, league):
+        """Non-blocking entry point for the Economy tab. `economy()` itself
+        does several parallel poe.ninja fetches with retry/backoff (up to ~30s
+        per stalled category) — called directly from JS on every tab open and
+        league switch, that synchronous wait was freezing the whole window
+        whenever poe.ninja was slow or rate-limited. Same fire-and-poll
+        pattern as generate()/download_update()."""
+        with self._lock:
+            if self._eco.get("running"):
+                return {"error": "already running"}
+            self._eco = {"running": True, "result": None}
+        threading.Thread(target=self._economy_worker, args=(league,), daemon=True).start()
+        return {"ok": True}
+
+    def _economy_worker(self, league):
+        result = self.economy(league)
+        with self._lock:
+            self._eco["running"] = False
+            self._eco["result"] = result
+
+    def economy_poll(self):
+        with self._lock:
+            return {"running": self._eco.get("running", False), "result": self._eco.get("result")}
 
     @staticmethod
     def _ap_groups():

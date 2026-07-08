@@ -1173,7 +1173,14 @@ async function loadEco(){
     $("ecoChips").innerHTML="";$("ecoBody").innerHTML='<tr><td colspan="5" class="hint" style="padding:16px">No league selected yet — choose one on the Generate tab and prices will load here.</td></tr>';
     return;}
   $("ecoInfo").textContent="Loading prices…";
-  eco=await api().economy($("league").value);
+  const started=await api().economy_start($("league").value);
+  if(started&&started.error&&started.error!=="already running"){
+    $("ecoInfo").textContent="✗ "+started.error;return;}
+  eco=await new Promise(res=>{
+    const iv=setInterval(async()=>{
+      const p=await api().economy_poll();
+      if(!p.running){clearInterval(iv);res(p.result);}
+    },250);});
   if(eco.error){$("ecoInfo").textContent="✗ "+eco.error+" — check your connection and Refresh prices.";eco=null;return;}
   divRate=eco.divine_rate||divRate;
   api().chaos_ex($("league").value).then(r=>{chaosEx=r.ex||0;if(ecoUnit==="chaos")renderEco();});
