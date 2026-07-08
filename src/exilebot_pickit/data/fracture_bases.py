@@ -357,8 +357,7 @@ def fracture_example_rule(target: dict) -> str:
     at a bot expression id."""
     cls = target["classes"][0]
     sel = _fracture_class_selector(cls) or f'[Category] == "{cls}"'
-    rarity = ('[Rarity] == "Magic"' if target.get("magic_only")
-              else '[Rarity] == "Magic" || [Rarity] == "Rare"')
+    rarities = ["Magic"] if target.get("magic_only") else ["Magic", "Rare"]
     stat_id = _FRACTURE_VERIFIED_STAT_IDS.get(target["id"], "__unset__")
     tail = "// FRACTURE BASES EXAMPLE — illustration only, not an active pickit rule"
     if target["id"] == "amulet_skill_level":
@@ -370,8 +369,9 @@ def fracture_example_rule(target: dict) -> str:
         cond = "[UNVERIFIED_STAT_ID]"
         tail = (f'// unverified: no bot expression confirmed for "{target["text"]}" — '
                 f'FRACTURE BASES EXAMPLE, illustration only')
-    return (f'{sel} && ({rarity}) # {cond} '
-            f'&& [StashItem] == "true"  {tail}')
+    return "\n".join(
+        f'{sel} && [Rarity] == "{rar}" # {cond} && [StashItem] == "true"  {tail}'
+        for rar in rarities)
 
 
 # Item-class -> pre-# selector, reused verbatim from the old Rare Items tab
@@ -495,11 +495,14 @@ def _build_fracture_pickit_rules(states: dict, _header_major) -> list:
                 cond = _fracture_target_condition(target)
                 if cond is None:
                     continue  # unverified — reference-only, never wired
-                rarity = ('[Rarity] == "Magic"' if target.get("magic_only")
-                          else '[Rarity] == "Magic" || [Rarity] == "Rare"')
-                cls_lines.append(
-                    f'{sel} && ({rarity}) # {cond} && [StashItem] == "true"'
-                )
+                # One line per rarity (owner request) — never a combined
+                # (Magic || Rare) group in a single rule.
+                rarities = (["Magic"] if target.get("magic_only")
+                            else ["Magic", "Rare"])
+                for rar in rarities:
+                    cls_lines.append(
+                        f'{sel} && [Rarity] == "{rar}" # {cond} && [StashItem] == "true"'
+                    )
             if not cls_lines:
                 continue
             body.append(f"// -- {cls} " + "-" * max(0, 73 - len(cls)))
