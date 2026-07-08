@@ -638,10 +638,10 @@ def fracture_has_verified_target(item_class: str) -> bool:
 
 
 def fracture_default(name: str) -> dict:
-    """Default per-class Fracture Bases pickup state — off by default. This is
-    a new pickup behaviour (Fracture Bases was reference-only before), so it
-    must not silently start picking up items for users on an existing config."""
-    return {"enabled": False}
+    """Default per-class Fracture Bases pickup state — on by default (owner
+    preference). Classes with no verified target never emit rules regardless
+    of this flag, so the default only has real effect on wired classes."""
+    return {"enabled": True}
 
 
 def _fracture_target_condition(target: dict) -> str | None:

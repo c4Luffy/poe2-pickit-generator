@@ -302,8 +302,12 @@ def test_all_wired_targets_use_real_verified_stat_ids_never_placeholder():
     assert result["errors"] == []
 
 
-def test_fracture_default_is_disabled():
-    assert gen.fracture_default("Boots") == {"enabled": False}
+def test_fracture_default_is_enabled():
+    # Owner preference: every class defaults ON, wired or not — a not-yet-wired
+    # class emits no rules regardless (no verified stat id to build a
+    # condition from), so the flag only has real effect once it's wired.
+    assert gen.fracture_default("Boots") == {"enabled": True}
+    assert gen.fracture_default("Shields") == {"enabled": True}
 
 
 def test_fracture_has_verified_target():
