@@ -725,16 +725,6 @@
     <pre id="dbgOut" style="max-height:calc(90.9vh - 340px);min-height:200px">Ready. Run a tool above — results appear here.</pre>
   </div>
 
-  <div class="card">
-    <h2>🧪 Test Item Simulator</h2>
-    <div class="hint">Paste an item's text (Ctrl+C on it in-game) to check it against your configured Craft/Chance/Exceptional bases and Fracture Bases toggles. This checks item class, base name, item level and rarity only — it does not evaluate mod rolls (life, resistances, DPS) or priced Economy items.</div>
-    <textarea id="simInput" rows="7" style="width:100%;font-family:inherit;font-size:12.5px;padding:8px;margin-top:8px" placeholder="Item Class: Boots&#10;Rarity: Rare&#10;Widow Grasp&#10;Advanced Cloth Boots&#10;--------&#10;..."></textarea>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn" id="simRun">Check item</button>
-      <button class="ghost mini" id="simWipe">Clear</button>
-    </div>
-    <div id="simOut" style="margin-top:10px"></div>
-  </div>
 </div>
 
 <!-- ══ PREVIEW ══ -->
@@ -762,6 +752,17 @@
   <div style="display:flex;gap:12px;align-items:flex-start">
     <div id="pvNav" class="craft-side" style="width:215px;flex:0 0 215px;position:static;max-height:calc(90.9vh - 330px);overflow-y:auto"></div>
     <pre id="prevBox" style="user-select:text;cursor:text;flex:1;max-height:calc(90.9vh - 330px);white-space:pre-wrap;word-break:break-word;overflow-x:hidden;min-width:0">Generate first.</pre>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>🧪 Test Item Simulator</h2>
+    <div class="hint">Paste an item's text (Ctrl+C on it in-game) to check it against your configured Craft/Chance/Exceptional bases and Fracture Bases toggles. This checks item class, base name, item level and rarity only — it does not evaluate mod rolls (life, resistances, DPS) or priced Economy items.</div>
+    <textarea id="simInput" rows="7" style="width:100%;font-family:inherit;font-size:12.5px;padding:8px;margin-top:8px" placeholder="Item Class: Boots&#10;Rarity: Rare&#10;Widow Grasp&#10;Advanced Cloth Boots&#10;--------&#10;..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" id="simRun">Check item</button>
+      <button class="ghost mini" id="simWipe">Clear</button>
+    </div>
+    <div id="simOut" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -1602,6 +1603,7 @@ function drawHistChart(h){
     let i=Math.round((x-PL)/((W-PL-PR)/(vals.length-1)));
     i=Math.max(0,Math.min(vals.length-1,i));
     const hc=svg.querySelector("#hcHover");
+    if(!hc)return;
     hc.setAttribute("cx",pts[i][0]);hc.setAttribute("cy",pts[i][1]);hc.style.display="block";
     tip.innerHTML=`<b style="color:var(--gold)">${vals[i].toLocaleString()}</b> active rules<br>
       <span style="color:var(--dim)">${runs[i].ts} · ${runs[i].commented} skipped · top: ${esc(runs[i].top_item||"—")}</span>`;
