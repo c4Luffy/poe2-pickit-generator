@@ -864,13 +864,26 @@ $("wMax").onclick=()=>api().win_max_toggle();
 $("wClose").onclick=()=>api().win_close();
 const _tbd=document.querySelector(".tb-drag");
 _tbd.ondblclick=()=>api().win_max_toggle();
-_tbd.addEventListener("pointerdown",async e=>{
+_tbd.addEventListener("pointerdown",e=>{
+  // NOT async: mv/up must be registered in this same synchronous tick. The
+  // previous version awaited win_bounds() before attaching them — a fast
+  // click (pointerdown immediately followed by pointerup, e.g. a slightly
+  // shaky single click) fired pointerup while nothing was listening yet, so
+  // it was silently lost. mv/up then got attached anyway once the await
+  // resolved, with nothing left to ever remove them — mv stayed permanently
+  // attached to pointermove and kept moving the window (using the stale
+  // original bounds) every time the mouse merely passed over the titlebar
+  // afterward. That's a real "window glitches/jumps on its own later" bug.
   if(e.button!==0||e.target.closest("button"))return;
-  let b=await api().win_bounds();
-  if(b.maxed){await api().win_max_toggle();b=await api().win_bounds();}  // drag restores first
-  const sx=e.screenX,sy=e.screenY;let moved=false,busy=false;
   _tbd.setPointerCapture(e.pointerId);
+  const sx=e.screenX,sy=e.screenY;let moved=false,busy=false,b=null;
+  const ready=(async()=>{
+    b=await api().win_bounds();
+    if(b.maxed){await api().win_max_toggle();b=await api().win_bounds();}  // drag restores first
+  })();
   const mv=async ev=>{
+    await ready;
+    if(!b)return;
     const dx=ev.screenX-sx,dy=ev.screenY-sy;
     if(!moved&&Math.abs(dx)+Math.abs(dy)<5)return;
     moved=true;
@@ -888,24 +901,31 @@ _tbd.addEventListener("pointerdown",async e=>{
 const _RZ={l:[1,0,0,0],r:[0,1,0,0],t:[0,0,1,0],b:[0,0,0,1],
            tl:[1,0,1,0],tr:[0,1,1,0],bl:[1,0,0,1],br:[0,1,0,1]};
 const MINW=760,MINH=560;
-document.querySelectorAll(".rz").forEach(z=>z.addEventListener("pointerdown",async e=>{
+document.querySelectorAll(".rz").forEach(z=>z.addEventListener("pointerdown",e=>{
+  // Same fix as the titlebar handler above: mv/up are attached synchronously,
+  // in this same tick, so a fast click can never lose its pointerup and leave
+  // mv permanently listening on this edge strip.
   if(e.button!==0)return;
   e.preventDefault();z.setPointerCapture(e.pointerId);
-  const b=await api().win_bounds();
-  if(b.maxed){z.releasePointerCapture(e.pointerId);return;}  // no edge-resizing a maximized window
   const sx=e.screenX,sy=e.screenY,[L,R,T,B]=_RZ[z.dataset.e];
-  let busy=false;
-  const mv=async ev=>{
-    if(busy)return;busy=true;
-    const dx=ev.screenX-sx,dy=ev.screenY-sy;
-    let x=b.x,y=b.y,w=b.w,hh=b.h;
-    if(R)w=Math.max(MINW,b.w+dx);
-    if(B)hh=Math.max(MINH,b.h+dy);
-    if(L){w=Math.max(MINW,b.w-dx);x=b.x+(b.w-w);}
-    if(T){hh=Math.max(MINH,b.h-dy);y=b.y+(b.h-hh);}
-    try{await api().win_set_bounds(x,y,w,hh);}catch(_){}
-    busy=false;};
+  let busy=false,b=null,cancelled=false;
   const up=()=>{z.removeEventListener("pointermove",mv);z.removeEventListener("pointerup",up);};
+  const mv=async ev=>{
+    if(cancelled||busy)return;busy=true;
+    try{
+      if(!b){
+        b=await api().win_bounds();
+        if(b.maxed){cancelled=true;up();return;}  // no edge-resizing a maximized window
+      }
+      const dx=ev.screenX-sx,dy=ev.screenY-sy;
+      let x=b.x,y=b.y,w=b.w,hh=b.h;
+      if(R)w=Math.max(MINW,b.w+dx);
+      if(B)hh=Math.max(MINH,b.h+dy);
+      if(L){w=Math.max(MINW,b.w-dx);x=b.x+(b.w-w);}
+      if(T){hh=Math.max(MINH,b.h-dy);y=b.y+(b.h-hh);}
+      await api().win_set_bounds(x,y,w,hh);
+    }catch(_){}
+    busy=false;};
   z.addEventListener("pointermove",mv);z.addEventListener("pointerup",up);
 }));
 
