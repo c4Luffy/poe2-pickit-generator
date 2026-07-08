@@ -34,10 +34,12 @@ def test_gloves_crit_chance_excluded_no_such_mod_in_data():
     assert "crit_chance_gloves" in gen.FRACTURE_EXCLUDED_UNVERIFIED
 
 
-def test_quiver_target_is_the_real_t1_not_the_assumed_one():
-    # Spec assumed +1 was the quiver max; live data shows T1 is actually +2.
+def test_quiver_target_is_the_real_t1():
+    # Live CoE data has exactly ONE projectile-skill mod on Quiver: +1. It is
+    # simultaneously the min and max roll, so it is T1 by definition — the
+    # original spec's +1 assumption was correct.
     q = [t for t in gen.FRACTURE_TARGETS if t["id"] == "quiver_projectile"][0]
-    assert q["value"] == "+2"
+    assert q["value"] == "+1"
 
 
 def test_amulet_skill_level_is_t1_only():
@@ -62,6 +64,14 @@ def test_fracture_targets_for_class_sorted_by_priority():
 def test_class_with_no_verified_target_returns_empty():
     # e.g. Charms/Jewels/Flasks have no verified fracture target in this data
     assert gen.fracture_targets_for_class("Charms") == []
+
+
+def test_focus_minion_excluded_desecrated_pool_only():
+    # The only +Minion Skills mod on Focus comes from the Desecrated pool
+    # (a boss mechanic), not the natural Base mod pool — must be excluded.
+    focus_targets = gen.fracture_targets_for_class("Foci")
+    assert all("minion" not in t["id"] for t in focus_targets)
+    assert "focus_minion" in gen.FRACTURE_EXCLUDED_UNVERIFIED
 
 
 def test_score_formula():
