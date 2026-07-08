@@ -892,7 +892,7 @@ document.querySelectorAll(".rz").forEach(z=>z.addEventListener("pointerdown",asy
   if(e.button!==0)return;
   e.preventDefault();z.setPointerCapture(e.pointerId);
   const b=await api().win_bounds();
-  if(b.maxed)return;                       // no edge-resizing a maximized window
+  if(b.maxed){z.releasePointerCapture(e.pointerId);return;}  // no edge-resizing a maximized window
   const sx=e.screenX,sy=e.screenY,[L,R,T,B]=_RZ[z.dataset.e];
   let busy=false;
   const mv=async ev=>{
