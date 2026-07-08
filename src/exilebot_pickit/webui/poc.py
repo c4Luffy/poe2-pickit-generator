@@ -105,11 +105,11 @@ def main():
     )
     tray = _start_tray(window, api)
     api._tray = tray            # win_close() needs it to stop/hide correctly
-    _fix_taskbar_restore(window)
+    _fix_taskbar_restore(window, api)
     _run_webview(window, api, tray)
 
 
-def _fix_taskbar_restore(window):
+def _fix_taskbar_restore(window, api):
     """Work around a WinForms quirk: a FormBorderStyle.None ("frameless") form
     minimized via WindowState=Minimized often does not visually reappear or
     regain focus when Windows sends the restore command from a taskbar click.
@@ -124,9 +124,32 @@ def _fix_taskbar_restore(window):
     def _on_restored():
         try:
             form = window.native
-            from System.Windows.Forms import FormWindowState
-            form.WindowState = FormWindowState.Normal
+            from System.Drawing import Point
+            from System.Windows.Forms import FormWindowState, Screen
+            # Restore to whatever state the window was actually in (api._maxed
+            # is kept accurate by win_max_toggle/win_snap) — forcing Normal
+            # unconditionally left a window that was maximized on a SECONDARY
+            # monitor before minimizing snapping back to a stale/never-
+            # initialized Normal position, often entirely off every monitor.
+            # The taskbar keeps showing a cached DWM thumbnail (looks "alive")
+            # but the real window is invisible and unclickable.
+            form.WindowState = (FormWindowState.Maximized if getattr(api, "_maxed", False)
+                                 else FormWindowState.Normal)
             form.Show()
+            # Safety net: if the restored bounds don't intersect ANY current
+            # monitor's working area (stale position, or a monitor that was
+            # unplugged/rearranged since), recenter on the primary screen
+            # instead of leaving the window permanently invisible.
+            try:
+                on_screen = any(scr.WorkingArea.IntersectsWith(form.Bounds)
+                                 for scr in Screen.AllScreens)
+            except Exception:
+                on_screen = True
+            if not on_screen:
+                prim = Screen.PrimaryScreen.WorkingArea
+                form.WindowState = FormWindowState.Normal
+                form.Location = Point(prim.X + (prim.Width - form.Width) // 2,
+                                       prim.Y + (prim.Height - form.Height) // 2)
             # Nudge Windows into actually repainting/bringing the borderless
             # form to front — a plain Activate() alone is sometimes ignored
             # right after a taskbar-driven restore.
