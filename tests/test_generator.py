@@ -217,15 +217,15 @@ def test_craft_base_ilvl_overrides_per_base():
     out = gen.build_craft_base_rules(min_ilvl=82, ilvl_overrides={"Dueling Wand": 90})
     assert '[ItemLevel] >= "90"' in next(l for l in out if '"Dueling Wand"' in l)
     # non-overridden armour keeps the global default
-    assert '[ItemLevel] >= "82"' in next(l for l in out if '"Warlord Cuirass"' in l)
+    assert '[ItemLevel] >= "82"' in next(l for l in out if '"Soldier Cuirass"' in l)
     # built-in accessory default still applies when the user hasn't overridden it
     assert '[ItemLevel] >= "75"' in next(l for l in out if '"Solar Amulet"' in l)
 
 
 def test_craft_base_default_ilvl_helper():
     assert gen.craft_base_default_ilvl("Solar Amulet", 82) == 75   # accessory override
-    assert gen.craft_base_default_ilvl("Warlord Cuirass", 82) == 82  # falls back to global
-    assert gen.craft_base_default_ilvl("Warlord Cuirass", 70) == 70
+    assert gen.craft_base_default_ilvl("Soldier Cuirass", 82) == 82  # falls back to global
+    assert gen.craft_base_default_ilvl("Soldier Cuirass", 70) == 70
 
 
 def test_validate_pickit_catches_ilvl_before_hash():
