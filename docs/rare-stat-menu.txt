@@ -1,0 +1,90 @@
+================================================================
+  RARE STAT MENU  (name  ->  bot stat id)
+  Every id below is verified valid in the bot's ModsList.
+================================================================
+
+  FLAT vs %  (the #1 mix-up - they are DIFFERENT ids):
+    "+50 to X"          = FLAT     (e.g. base_maximum_life)
+    "#% increased X"    = PERCENT  (e.g. maximum_life_+%)
+
+  LOCAL vs GLOBAL  (the #2 mix-up):
+    On the item that HAS the stat (armour piece, weapon) = "local_" id.
+    On jewellery (amulet/ring) the same stat is GLOBAL   = no "local_".
+    e.g. weapon crit chance = local_critical_strike_chance_+%
+         amulet crit chance = critical_strike_chance_+%
+    If an item line is unclear, paste it and I'll give the exact id.
+
+----------------------------------------------------------------
+-- DEFENSIVE : LIFE / MANA / ES --
+  Maximum Life (flat) ......... base_maximum_life
+  Maximum Life % .............. maximum_life_+%
+  Maximum Mana (flat) ......... base_maximum_mana
+  Maximum Mana % .............. maximum_mana_+%
+  Maximum ES (flat, local) .... local_energy_shield
+  Maximum ES (flat, global) ... base_maximum_energy_shield
+  Increased ES % (local) ...... local_energy_shield_+%
+  Maximum ES % (global) ....... maximum_energy_shield_+%
+
+-- DEFENSIVE : ARMOUR / EVASION / BLOCK --
+  Armour % (local) ............ local_physical_damage_reduction_rating_+%
+  Evasion % (local) ........... local_evasion_rating_+%
+  Evasion % (global) .......... evasion_rating_+%
+  Armour + ES % (hybrid) ...... local_armour_and_energy_shield_+%
+  Evasion + ES % (hybrid) ..... local_evasion_and_energy_shield_+%
+  Armour + Evasion % (hybrid) . local_armour_and_evasion_+%
+  Block Chance ................ additional_block_%
+
+-- RESISTANCES --
+  Fire Res .................... base_fire_damage_resistance_%
+  Cold Res .................... base_cold_damage_resistance_%
+  Lightning Res ............... base_lightning_damage_resistance_%
+  Chaos Res ................... base_chaos_damage_resistance_%
+  All Elemental Res ........... base_resist_all_elements_%
+
+-- UTILITY --
+  Movement Speed .............. base_movement_velocity_+%
+  Item Rarity ................. base_item_found_rarity_+%
+  Spirit (flat)  "+# Spirit" .......... base_spirit_from_equipment
+  Spirit %  "#% increased Spirit" ..... local_spirit_+%
+  Attack Speed % .............. local_attack_speed_+%
+  Accuracy (flat) ............. accuracy_rating
+  Accuracy % .................. accuracy_rating_+%
+
+-- CASTER --
+  Spell Damage % .............. spell_damage_+%
+  Cast Speed % ................ base_cast_speed_+%
+  Spell Crit Chance % ......... spell_critical_strike_chance_+%
+  Spell Crit Multi ............ base_spell_critical_strike_multiplier_+
+  Fire Damage % ............... fire_damage_+%
+  Cold Damage % ............... cold_damage_+%
+  Lightning Damage % .......... lightning_damage_+%
+  Chaos Damage % .............. chaos_damage_+%
+  Spell Fire Damage % ......... spell_fire_damage_+%
+  Spell Cold Damage % ......... spell_cold_damage_+%
+  Spell Lightning Damage % .... base_spell_lightning_damage_+%
+
+-- ATTACK / WEAPON --
+  Increased Attack Damage % ... attack_damage_+%
+  Increased Elemental Damage % elemental_damage_+%
+  Phys Damage % ............... local_physical_damage_+%
+  Attack Crit Chance % (local)  local_critical_strike_chance_+%
+  Attack Crit Multi (flat) .... base_critical_strike_multiplier_+
+  Global Crit Chance % ........ critical_strike_chance_+%
+  Added Phys (flat) ........... local_minimum_added_physical_damage
+  Added Fire (flat) ........... local_minimum_added_fire_damage
+  Added Cold (flat) ........... local_minimum_added_cold_damage
+  Added Lightning (flat) ...... local_minimum_added_lightning_damage
+  Added Chaos (flat) .......... local_minimum_added_chaos_damage
+
+-- SKILL GEM LEVELS --
+  +Spell gems   "all Spell Skills" ... spell_skill_gem_level_+
+  +Minion gems  "all Minion Skills" .. minion_skill_gem_level_+
+  +Melee gems   "all Melee Skills" ... melee_skill_gem_level_+
+  +Projectile   "all Projectile Sk" .. projectile_skill_gem_level_+
+
+----------------------------------------------------------------
+  NOT AVAILABLE (no clean id in the bot dictionary - do NOT use):
+    - #% increased Armour on jewellery (only an aggregate id exists)
+    - #% increased Critical Damage Bonus on jewellery (attack, global)
+    - #% Damage Recouped as Life/Mana  (dropped - not needed)
+================================================================
