@@ -127,6 +127,54 @@ DEPRECATED_TYPES: set = {"Aldur's Legacy"}
 _VAL_TYPE_RE   = re.compile(r'\[Type\]\s*==\s*"((?:[^"\\]|\\.)*)"')
 _VAL_UNIQUE_RE = re.compile(r'\[UniqueName\]\s*==\s*"((?:[^"\\]|\\.)*)"')
 
+# Bracket tokens that are NOT mod stat-ids: item properties the bot reads
+# directly, plus its computed/aggregate values. Anything in [ ] that isn't one
+# of these (and isn't inside a WeightedSum) must be a real mod id from the bot's
+# ModsList — validated against data/bot_stat_ids.BOT_STAT_IDS.
+_NON_MOD_TOKENS: frozenset = frozenset({
+    "Type", "Category", "WeaponCategory", "Rarity", "Quality", "Sockets",
+    "ItemLevel", "GemLevel", "UniqueName", "ItemTier", "WaystoneTier",
+    "StashItem", "StashUnid", "Salvage", "IgnoreRitual",
+    "TotalResistances", "ComputedArmour", "ComputedEvasion", "ComputedEnergyShield",
+    "DPS", "ElementalDPS", "PhysicalDPS",
+    "TotalSpellElementalDamage", "TotalFireSpellDamage",
+    "TotalColdSpellDamage", "TotalLightningSpellDamage",
+})
+_VAL_BRACKET_RE = re.compile(r'\[([^\]]+)\]')
+_VAL_WSUM_RE = re.compile(r'WeightedSum\(([^)]*)\)')
+
+_BOT_STAT_IDS_CACHE = None
+
+
+def _bot_stat_ids():
+    """Lazy-load the bot's valid stat-id set (data/bot_stat_ids). Returns None
+    if the data module is unavailable, so validation degrades gracefully rather
+    than hard-failing."""
+    global _BOT_STAT_IDS_CACHE
+    if _BOT_STAT_IDS_CACHE is None:
+        try:
+            from exilebot_pickit.data.bot_stat_ids import BOT_STAT_IDS
+            _BOT_STAT_IDS_CACHE = BOT_STAT_IDS
+        except Exception:
+            _BOT_STAT_IDS_CACHE = frozenset()
+    return _BOT_STAT_IDS_CACHE or None
+
+
+def _mod_ids_in_line(line: str):
+    """Yield every mod stat-id referenced in a rule line — bracket tokens that
+    aren't item properties/computed values, plus the stats inside any
+    WeightedSum(...)."""
+    for tok in _VAL_BRACKET_RE.findall(line):
+        tok = tok.strip()
+        if tok.startswith("WeightedSum("):
+            inner = tok[len("WeightedSum("):].rstrip(")")
+            for pair in inner.split(","):
+                stat = pair.split(":", 1)[0].strip()
+                if stat:
+                    yield stat
+        elif tok not in _NON_MOD_TOKENS:
+            yield tok
+
 
 def validate_pickit(lines) -> dict:
     """Statically validate generated pickit lines (no network).
@@ -189,6 +237,19 @@ def validate_pickit(lines) -> dict:
             if near:
                 msg += "  — did you mean: " + " or ".join(f'"{s}"' for s in near)
             errors.append((i, msg))
+
+        # Mod-id validation — mirror the exiled-bot.net validator's
+        # "Invalid mod: … Not found in stats.json". Every mod referenced in a
+        # rule (after #, and inside any WeightedSum) must be a real bot stat id.
+        valid_ids = _bot_stat_ids()
+        if valid_ids is not None:
+            for stat in _mod_ids_in_line(line):
+                if stat not in valid_ids:
+                    msg = f'Invalid mod: "{stat}" — not found in the bot\'s mod list'
+                    near = difflib.get_close_matches(stat, valid_ids, n=2, cutoff=0.7)
+                    if near:
+                        msg += "  — did you mean: " + " or ".join(f'"{s}"' for s in near)
+                    errors.append((i, msg))
 
     return {"errors": errors, "warnings": warnings}
 

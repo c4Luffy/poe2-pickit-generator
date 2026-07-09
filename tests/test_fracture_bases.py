@@ -346,3 +346,19 @@ def test_fracture_has_verified_target():
     assert gen.fracture_has_verified_target("Amulets") is True
     assert gen.fracture_has_verified_target("Shields") is False
     assert gen.fracture_has_verified_target("Charms") is False
+
+
+def test_all_emitted_mod_ids_are_valid_bot_stats():
+    """Every stat id our Fracture rules emit must exist in the bot's own mod
+    list — guards against the missing-trailing-'+' class of bug that made the
+    official exiled-bot.net validator reject every skill-level rule."""
+    from exilebot_pickit.data.bot_stat_ids import BOT_STAT_IDS
+    states = {c: {"enabled": True} for _g, cs in gen.FRACTURE_CLASS_GROUPS for c in cs}
+    lines = gen.build_fracture_pickit_rules(states)
+    bad = set()
+    for l in lines:
+        if "[StashItem]" in l and not l.startswith("//"):
+            for stat in gen._mod_ids_in_line(l):
+                if stat not in BOT_STAT_IDS:
+                    bad.add(stat)
+    assert not bad, f"emitted mod ids not in the bot mod list: {sorted(bad)}"

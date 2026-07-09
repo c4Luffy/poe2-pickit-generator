@@ -818,7 +818,7 @@
           <span>If the app fails to start after an update, download the latest .exe by hand and run it — it replaces the broken one.</span></div><div class="sp"></div>
           <button class="ghost mini" id="updManual">Re-download manually</button></div>
         <div class="set-row"><div class="lab"><b>Reset settings to defaults</b>
-          <span>History, profiles and item selections are kept.</span></div><div class="sp"></div>
+          <span>Turns every item toggle back ON. History &amp; profiles are kept.</span></div><div class="sp"></div>
           <button class="ghost mini" id="resetBtn">Reset…</button></div>
         <div class="set-row"><div class="lab"><b>Config file</b>
           <span>Open the raw settings file.</span></div><div class="sp"></div>
@@ -1689,9 +1689,13 @@ $("simRun").onclick=async()=>{
 $("simWipe").onclick=()=>{$("simInput").value="";$("simOut").innerHTML="";};
 $("cfgOpen").onclick=async()=>{const r=await api().open_file("config");if(r&&r.error)toast(r.error);};
 $("resetBtn").onclick=async()=>{
-  if(!confirm("Reset all settings to defaults?\nHistory, profiles and item selections are kept."))return;
+  if(!confirm("Reset all settings to defaults?\nThis turns every item toggle back ON. History and saved profiles are kept."))return;
   const r=await api().reset_defaults();
-  if(r.ok){info=r.info;applyInfo(info);toast("Settings reset to defaults");}};
+  if(r.ok){info=r.info;applyInfo(info);
+    // drop cached tab data so the item tabs re-fetch with the reset (all-on)
+    // state next time they're opened — otherwise stale toggles would linger.
+    eco=null;chanceList=[];craftList=[];excCats=[];fracCls=null;
+    toast("Reset — every item toggle is back ON");}};
 $("leagueRefresh").onclick=async()=>{
   const ls=await api().leagues();if(ls.error)return toast("✗ "+ls.error);
   const sel=$("league"),cur=sel.value;sel.innerHTML="";

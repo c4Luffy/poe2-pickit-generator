@@ -853,13 +853,17 @@ class AppApi:
         return {"removed": gen.prune_disk_cache(max_age_days=60)}
 
     def reset_defaults(self):
-        """Reset settings to defaults; keep history, profiles, selections and
-        price baselines — mirrors the Tk app's Reset behaviour."""
+        """Reset to defaults: turn every item/category toggle back ON and clear
+        all tuned settings (floors, quality gates, folders, etc.). Deliberately
+        does NOT keep item_states/category_enabled — those hold the user's
+        on/off toggles, and a 'reset to defaults' that preserved them left
+        everything the user had switched off still off (reported as a bug).
+        Genuine user *data* is kept: run history, saved profiles, the last
+        price snapshot, window size and current league."""
         from exilebot_pickit.ui.config import DEFAULT_CONFIG
         keep = {k: self.cfg.get(k) for k in
-                ("history", "profiles", "item_states", "last_gen_prices",
-                 "window_geometry_web", "minimize_to_tray",
-                 "active_profile", "league")}
+                ("history", "profiles", "last_gen_prices",
+                 "window_geometry_web", "league")}
         self.cfg.clear()
         self.cfg.update(DEFAULT_CONFIG)
         self.cfg.update({k: v for k, v in keep.items() if v is not None})

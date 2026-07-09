@@ -325,26 +325,30 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     # files (ModsList.html / its shipped default.ipd). amulet_spirit and the
     # flat ES/Evasion targets were briefly wired from ids seen in a reference
     # file; unwired again until re-verified against the bot's own docs.
-    "weapon_skill_level_bow": "bow_skill_gem_level_",
-    "weapon_skill_level_crossbow": "crossbow_skill_gem_level_",
-    "weapon_skill_level_quarterstaff": "melee_skill_gem_level_",
-    "weapon_skill_level_2hmace": "melee_skill_gem_level_",
-    "weapon_skill_level_spear": "melee_skill_gem_level_",
-    "weapon_skill_level_1hmace": "melee_skill_gem_level_",
-    "weapon_skill_level_wand": "spell_skill_gem_level_",
-    "weapon_skill_level_staff": "spell_skill_gem_level_",
-    "weapon_skill_level_sceptre": "minion_skill_gem_level_",
-    "weapon_skill_level_sceptre_t2": "minion_skill_gem_level_",
+    # All skill-gem-level ids carry a trailing "+" in the bot's ModsList.html
+    # (e.g. "melee_skill_gem_level_+", verified 2026-07-09). Omitting the "+"
+    # made every skill-level rule fail the official exiled-bot.net validator
+    # ("Not found in stats.json") — the "+" is part of the real id.
+    "weapon_skill_level_bow": "bow_skill_gem_level_+",
+    "weapon_skill_level_crossbow": "crossbow_skill_gem_level_+",
+    "weapon_skill_level_quarterstaff": "melee_skill_gem_level_+",
+    "weapon_skill_level_2hmace": "melee_skill_gem_level_+",
+    "weapon_skill_level_spear": "melee_skill_gem_level_+",
+    "weapon_skill_level_1hmace": "melee_skill_gem_level_+",
+    "weapon_skill_level_wand": "spell_skill_gem_level_+",
+    "weapon_skill_level_staff": "spell_skill_gem_level_+",
+    "weapon_skill_level_sceptre": "minion_skill_gem_level_+",
+    "weapon_skill_level_sceptre_t2": "minion_skill_gem_level_+",
     "spirit_body": "local_spirit_+%",
     "movement_speed": "base_movement_velocity_+%",
-    "focus_spell": "spell_skill_gem_level_",
-    "quiver_projectile": "projectile_skill_gem_level_",
-    "melee_skill_level_gloves": "melee_skill_gem_level_",
+    "focus_spell": "spell_skill_gem_level_+",
+    "quiver_projectile": "projectile_skill_gem_level_+",
+    "melee_skill_level_gloves": "melee_skill_gem_level_+",
     "focus_crit_spells": None,
     "flasks_max_charges": "local_max_charges_+%",
 }
-_AMULET_SKILL_IDS = ("spell_skill_gem_level_", "minion_skill_gem_level_",
-                     "melee_skill_gem_level_", "projectile_skill_gem_level_")
+_AMULET_SKILL_IDS = ("spell_skill_gem_level_+", "minion_skill_gem_level_+",
+                     "melee_skill_gem_level_+", "projectile_skill_gem_level_+")
 
 
 def fracture_example_rule(target: dict) -> str:
