@@ -321,10 +321,16 @@ def test_shields_enabled_emits_nothing_no_targets():
 def test_amulets_enabled_emits_or_of_four_skill_families():
     lines = gen.build_fracture_pickit_rules(_all_off(Amulets=True))
     assert lines
-    rule = [l for l in lines if l.startswith("[Category]")][0]
-    for sid in gen._AMULET_SKILL_IDS:
-        assert sid in rule
-    assert "UNVERIFIED_STAT_ID" not in rule
+    # amulets fracture only on Solar + Gold bases (owner override), each its
+    # own line, with the OR-of-4-skill-families condition after the #.
+    rule_lines = [l for l in lines if l.startswith("[Type] ==") and "[StashItem]" in l]
+    assert rule_lines
+    bases = {l.split('"')[1] for l in rule_lines}
+    assert bases == {"Solar Amulet", "Gold Amulet"}
+    for rule in rule_lines:
+        for sid in gen._AMULET_SKILL_IDS:
+            assert sid in rule
+        assert "UNVERIFIED_STAT_ID" not in rule
     result = gen.validate_pickit(lines)
     assert result["errors"] == []
 

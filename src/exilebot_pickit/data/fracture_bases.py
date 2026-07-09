@@ -407,17 +407,26 @@ _FRACTURE_CLASS_SEL: dict = {
 
 _FRACTURE_TOP_N = 3
 
+# Manual base picks for slots with no defence/ilvl ranking data (accessories).
+# Owner-chosen: amulets fracture only on Solar (+Spirit implicit) and Gold
+# (rarity implicit) bases, each as its own rule line — not the whole category.
+_FRACTURE_BASE_OVERRIDES: dict = {
+    "Amulets": ["Solar Amulet", "Gold Amulet"],
+}
+
 
 def _fracture_base_selectors(cls: str) -> list | None:
     """Return the list of pre-# selectors for a class — ONE per base, never a
-    combined OR-group (owner rule: every base gets its own rule line). For
-    slots with verified base-type data this is the top _FRACTURE_TOP_N
-    highest-level bases each as its own ``[Type] == "X"`` string; for slots
-    with no base data (Amulets, Rings, Jewels, Charms) it's the single
-    class-wide selector. Returns None for classes with no selector at all."""
+    combined OR-group (owner rule: every base gets its own rule line). Priority:
+    an explicit owner override (_FRACTURE_BASE_OVERRIDES) → the top
+    _FRACTURE_TOP_N highest-level bases from verified base-type data → the
+    single class-wide selector for slots with neither. None if no selector."""
     base_sel = _FRACTURE_CLASS_SEL.get(cls)
     if not base_sel:
         return None
+    override = _FRACTURE_BASE_OVERRIDES.get(cls)
+    if override:
+        return [f'[Type] == "{name}"' for name in override]
     from exilebot_pickit.data.base_types import _BASE_TYPES_BY_CATEGORY
     from exilebot_pickit.data.icons import BASE_STATS
     entries = _BASE_TYPES_BY_CATEGORY.get(cls)
