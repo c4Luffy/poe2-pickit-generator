@@ -7,10 +7,10 @@ def _names():
 
 
 def test_class_roadmap_unchanged_by_the_swap():
-    # Fracture Bases reuses the same 22-class, game-ordered roadmap as before.
+    # 21 fracture classes (Flasks moved to the Magic & Rare tab); game-ordered.
     names = _names()
-    assert len(names) == 22 and len(set(names)) == len(names)
-    for banned in ("Talismans", "Bucklers", "Claws", "Daggers", "Flails"):
+    assert len(names) == 21 and len(set(names)) == len(names)
+    for banned in ("Talismans", "Bucklers", "Claws", "Daggers", "Flails", "Flasks"):
         assert banned not in names
 
 

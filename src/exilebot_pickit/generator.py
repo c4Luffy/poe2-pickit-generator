@@ -314,6 +314,9 @@ from exilebot_pickit.data.fracture_bases import (  # noqa: F401
     fracture_has_verified_target, fracture_default, _fracture_target_condition,
     build_fracture_pickit_rules, classify_fracture_item,
 )
+from exilebot_pickit.data.magic_rare import (  # noqa: F401
+    MAGIC_RARE_FLASK_BASES, build_magic_rare_rules, magic_rare_flask_example_lines,
+)
 
 
 CRAFT_BASE_MIN_ILVL = 82

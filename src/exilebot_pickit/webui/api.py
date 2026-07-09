@@ -31,7 +31,7 @@ _SETTABLE = {
     "auto_floor", "auto_floor_pct",
     "base_quality", "base_min_level", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
-    "minimize_to_tray",
+    "minimize_to_tray", "magic_rare_flasks",
 }
 
 
@@ -966,6 +966,24 @@ class AppApi:
         save_config(self.cfg)
         return {"ok": True}
 
+    # ── Magic & Rare tab ──────────────────────────────────────────────────────
+
+    def magic_rare_data(self):
+        """Content for the Magic & Rare tab. Currently the best-flask section:
+        its enabled state, the flask base names, and the exact lines emitted."""
+        return {
+            "flasks": {
+                "enabled": bool(self.cfg.get("magic_rare_flasks", True)),
+                "bases": list(gen.MAGIC_RARE_FLASK_BASES),
+                "lines": gen.magic_rare_flask_example_lines(),
+            }
+        }
+
+    def set_magic_rare_flasks(self, enabled):
+        self.cfg["magic_rare_flasks"] = bool(enabled)
+        save_config(self.cfg)
+        return {"ok": True}
+
     def craft_bases(self):
         from exilebot_pickit.data.icons import STATIC_ICONS as _ci, BASE_STATS as _bs
         st = self.cfg.get("item_states", {}).get("_craftbase", {})
@@ -1076,6 +1094,7 @@ class AppApi:
             "include_bases": bool(self.cfg.get("include_bases", True)),
             "base_quality": int(self.cfg.get("base_quality", 25)),
             "base_min_level": int(self.cfg.get("base_min_level", 82)),
+            "magic_rare_flasks": bool(self.cfg.get("magic_rare_flasks", True)),
         }
 
     def _generate(self, league, min_gear, min_unique):
@@ -1148,6 +1167,7 @@ class AppApi:
             craft_lines, _n, _floor = asm.craft_base_section(snap)
             out += craft_lines
             out += asm.fracture_pickit_section(snap)
+            out += gen.build_magic_rare_rules(snap.get("magic_rare_flasks", True))
             excdis = self._excbase_disabled(snap)
             if snap["include_bases"]:
                 out += ["", gen.header_major("Exceptional Bases"), ""]

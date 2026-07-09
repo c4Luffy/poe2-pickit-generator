@@ -16,7 +16,7 @@ FRACTURE_CLASS_GROUPS: list = [
     ("Weapons",   ["Bows", "Crossbows", "Quarterstaves", "Spears",
                    "One Hand Maces", "Two Hand Maces", "Sceptres", "Wands", "Staves"]),
     ("Jewellery", ["Amulets", "Rings", "Belts"]),
-    ("Other",     ["Jewels", "Charms", "Flasks"]),
+    ("Other",     ["Jewels", "Charms"]),
 ]
 # ─────────────────────────────────────────────────────────────────────────────
 #  Fracture Bases — a lookup/reference tool (NOT a pickit-rule generator).
@@ -264,12 +264,8 @@ FRACTURE_TARGETS: list = [
      "value": "Fire/Cold/Lightning T1 41-45% T2 36-40%; Chaos T1 24-27% T2 20-23%",
      "text": "20-45% to Fire/Cold/Lightning/Chaos Resistance",
      "reason": "A target: any single-element resistance belt suffix — T1 or T2 both count."},
-    {"id": "flasks_max_charges", "tier": "S+", "classes": ["Flasks"],
-     "affix": "suffix", "mod_tier": "T1", "value": "63-70%", "magic_only": True,
-     "text": "63-70% increased Charges",
-     "reason": "S+ target: top-tier Flask charges mod (ilvl81, verified from live "
-               "CoE2 data — modifier id 5347, group FlaskNumCharges, Base pool). "
-               "Magic-only: flasks are Normal/Magic in PoE2, never Rare (owner)."},
+    # Flasks moved to the Magic & Rare tab (data/magic_rare.py) — owner
+    # request. They aren't a fracture target here anymore.
 ]
 # Targets the spec's own verification step rejected — kept here (not shown in
 # the UI) so a future data refresh can re-check without re-deriving the answer.
@@ -346,7 +342,6 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     "quiver_projectile": "projectile_skill_gem_level_+",
     "melee_skill_level_gloves": "melee_skill_gem_level_+",
     "focus_crit_spells": None,
-    "flasks_max_charges": "local_max_charges_+%",  # Magic-only, verified in ModsList
 }
 _AMULET_SKILL_IDS = ("spell_skill_gem_level_+", "minion_skill_gem_level_+",
                      "melee_skill_gem_level_+", "projectile_skill_gem_level_+")
@@ -402,7 +397,6 @@ _FRACTURE_CLASS_SEL: dict = {
     "Belts": '[Category] == "Belt"',
     "Jewels": '[Category] == "Jewel"',
     "Charms": '[Category] == "Charm"',
-    "Flasks": '[Category] == "Flask"',
 }
 
 _FRACTURE_TOP_N = 3
@@ -412,9 +406,6 @@ _FRACTURE_TOP_N = 3
 # (rarity implicit) bases, each as its own rule line — not the whole category.
 _FRACTURE_BASE_OVERRIDES: dict = {
     "Amulets": ["Solar Amulet", "Gold Amulet"],
-    # Owner: name the best flasks (top-tier Life + Mana), not [Category]==Flask.
-    # Also fixes the bot's "invalid class Flask" warning by using [Type].
-    "Flasks": ["Ultimate Life Flask", "Ultimate Mana Flask"],
 }
 
 

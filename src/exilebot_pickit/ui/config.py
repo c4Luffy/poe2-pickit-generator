@@ -72,6 +72,7 @@ DEFAULT_CONFIG = {
 
     "theme": "dark",
     "minimize_to_tray": False,
+    "magic_rare_flasks": True,
     "window_geometry_web": "",
     "confirm_overwrite_secs": 120,
     "include_bases": True,
