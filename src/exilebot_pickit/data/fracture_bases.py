@@ -356,14 +356,12 @@ def fracture_example_rule(target: dict) -> str:
     cls = target["classes"][0]
     selectors = _fracture_base_selectors(cls) or [f'[Category] == "{cls}"']
     rarities = ["Magic"] if target.get("magic_only") else ["Magic", "Rare"]
-    stat_id = _FRACTURE_VERIFIED_STAT_IDS.get(target["id"], "__unset__")
     tail = "// FRACTURE BASES EXAMPLE — illustration only, not an active pickit rule"
-    if target["id"] == "amulet_skill_level":
-        cond = " || ".join(f'[{sid}] >= "3"' for sid in _AMULET_SKILL_IDS)
-        cond = f"({cond})"
-    elif stat_id and stat_id != "__unset__":
-        cond = f'[{stat_id}] >= "<value: {target["value"]}>"'
-    else:
+    # Reuse the REAL condition builder so the shown line is byte-for-byte what
+    # the pickit emits (a concrete threshold like "57", never a "<value: …>"
+    # placeholder that the bot validator would reject as non-numeric).
+    cond = _fracture_target_condition(target)
+    if cond is None:
         cond = "[UNVERIFIED_STAT_ID]"
         tail = (f'// unverified: no bot expression confirmed for "{target["text"]}" — '
                 f'FRACTURE BASES EXAMPLE, illustration only')
