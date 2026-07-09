@@ -31,15 +31,7 @@ jobs:
           pip install -e .
 
       - name: Byte-compile all modules (catches syntax errors)
-        run: >
-          python -m py_compile src/exilebot_pickit/__main__.py src/exilebot_pickit/generator.py
-          src/exilebot_pickit/generators/assembly.py
-          src/exilebot_pickit/ui/config.py src/exilebot_pickit/ui/updater.py
-          src/exilebot_pickit/webui/api.py src/exilebot_pickit/webui/poc.py
-          src/exilebot_pickit/data/remote_data.py src/exilebot_pickit/data/icons.py
-          src/exilebot_pickit/api/client.py src/exilebot_pickit/data/corrections.py
-          src/exilebot_pickit/data/base_types.py
-          tests/test_generator.py tests/test_assembly.py tests/test_updater.py
+        run: python -m compileall -q src tests
 
       - name: Lint (high-signal rules only — see pyproject.toml)
         run: python -m ruff check .
