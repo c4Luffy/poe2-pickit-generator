@@ -495,3 +495,24 @@ def test_all_new_bases_have_correct_ilvl_placement():
             assert "[ItemLevel]" not in before, f"[ItemLevel] before # for {base}: {rule}"
 
 
+
+
+def test_loot_filter_shows_salvage_and_stashunid_not_just_stashitem():
+    """The in-game filter must SHOW every item the bot acts on (StashItem,
+    StashUnid, Salvage) — else it hides items the bot wants (community bug)."""
+    ipd = [
+        '[Type] == "Divine Orb" # [StashItem] == "true"',
+        '[Rarity] == "Normal" && [Sockets] > "0" # [Salvage] == "true"',
+        '[Rarity] == "Magic" && [Sockets] > "0" # [Salvage] == "true"',
+        '[Type] == "Some Base" # [StashUnid] == "true"',
+    ]
+    out = "\n".join(gen.build_loot_filter(ipd))
+    # StashUnid item is shown
+    assert '"Some Base"' in out
+    # salvage rules (no [Type]) become rarity+socket Show blocks, not hidden
+    assert "Rarity = Normal" in out and "Rarity = Magic" in out
+    assert "Sockets >= 1" in out          # [Sockets] > "0" -> >= 1
+    # a commented-out rule is still ignored
+    ipd2 = ['//[Rarity] == "Rare" # [Salvage] == "true"']
+    out2 = "\n".join(gen.build_loot_filter(ipd2))
+    assert "Rarity = Rare" not in out2

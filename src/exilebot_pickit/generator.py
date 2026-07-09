@@ -583,7 +583,13 @@ _LF_TYPE_RE     = re.compile(r'\[Type\]\s*==\s*"((?:[^"\\]|\\.)*)"')
 _LF_RARITY_RE   = re.compile(r'\[Rarity\]\s*==\s*"(\w+)"')
 _LF_QUALITY_RE  = re.compile(r'\[Quality\]\s*>=\s*"(\d+)"')
 _LF_SOCKETS_RE  = re.compile(r'\[Sockets\]\s*>=\s*"(\d+)"')
+_LF_SOCKETS_GT_RE = re.compile(r'\[Sockets\]\s*>\s*"(\d+)"')
 _LF_CATEGORY_RE = re.compile(r'\[Category\]\s*==\s*"(\w+)"')
+# Any bot pickup action — an item the filter MUST show so the bot can path to
+# it. Previously only [StashItem] rules were shown, which HID items the bot
+# wanted to salvage / stash-unid (reported by the community). The bot decides
+# what to do after pickup; the filter only needs to make the item visible.
+_LF_ACTION_RE   = re.compile(r'\[(StashItem|StashUnid|Salvage|Disenchant)\]')
 
 _LF_CHUNK = 30  # BaseTypes per Show block (matches reference IPD-derived filters)
 
@@ -623,19 +629,41 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None) -> list:
     by_rarity = {"Normal": [], "Magic": [], "Rare": []}
     by_quality: dict = {}     # quality int -> [names]
     by_sockets: dict = {}     # socket  int -> [names]
+    generic: list = []        # non-[Type] action rules (e.g. salvage by rarity/sockets)
     has_waystone = False
 
     for raw in ipd_lines:
         line = raw.strip()
         if not line or line.startswith("/"):
             continue              # blank, header, or commented-out (disabled) rule
-        if "[StashItem]" not in line:
-            continue
+        if not _LF_ACTION_RE.search(line):
+            continue              # not a pickup rule (no StashItem/Salvage/… action)
         mt = _LF_TYPE_RE.search(line)
         if not mt:
+            # No [Type] — a category or condition-only rule (e.g. a salvage rule
+            # gated by Rarity + Sockets). Build a generic Show from its
+            # conditions so those items aren't hidden.
             mc = _LF_CATEGORY_RE.search(line)
             if mc and mc.group(1) == "Waystone":
                 has_waystone = True
+                continue
+            conds = []
+            mr = _LF_RARITY_RE.search(line)
+            if mr and mr.group(1) != "Unique":
+                conds.append(f"Rarity = {mr.group(1)}")
+            elif mr and mr.group(1) == "Unique":
+                conds.append("Rarity = Unique")
+            ms = _LF_SOCKETS_RE.search(line)
+            msg = _LF_SOCKETS_GT_RE.search(line)
+            if ms:
+                conds.append(f"Sockets >= {ms.group(1)}")
+            elif msg:
+                conds.append(f"Sockets >= {int(msg.group(1)) + 1}")
+            mq = _LF_QUALITY_RE.search(line)
+            if mq:
+                conds.append(f"Quality >= {mq.group(1)}")
+            if conds:
+                generic.append(conds)
             continue
         name = mt.group(1).replace('\\"', '"')
         mr = _LF_RARITY_RE.search(line)
@@ -671,14 +699,30 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None) -> list:
         out += _lf_show_blocks(by_sockets[s], [f"Sockets >= {s}"])
     if has_waystone:
         out += ["Show", '    Class "Waystone"', ""]
+    # Condition-only rules (salvage / stash-unid by rarity+sockets, no [Type]),
+    # de-duped — each becomes its own Show so the bot can see those items.
+    for conds in _dedupe_cond_lists(generic):
+        out += ["Show"] + [f"    {c}" for c in conds] + [""]
 
     out += [
         "# Hide everything else",
         "Hide",
         "",
-        "# WARNING: This filter only shows items from parsed IPD rules",
-        "# Make sure to show other important items your build needs",
+        "# NOTE: Shows every item the bot acts on — StashItem, StashUnid, Salvage,",
+        "# Disenchant — so nothing the bot wants is hidden. Add anything else your",
+        "# build needs to see manually.",
     ]
+    return out
+
+
+def _dedupe_cond_lists(cond_lists):
+    """Order-preserving de-dupe of condition lists (each a list of filter lines)."""
+    seen, out = set(), []
+    for conds in cond_lists:
+        key = tuple(conds)
+        if key and key not in seen:
+            seen.add(key)
+            out.append(conds)
     return out
 
 
