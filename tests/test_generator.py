@@ -459,6 +459,19 @@ def test_build_unique_lines_sorted_high_to_low():
     assert vals == sorted(vals, reverse=True), f"uniques not sorted high→low: {vals}"
 
 
+def test_runeforged_base_stripped_from_unique_rules():
+    """Runeforged/Runemastered bases don't drop and are invalid to the bot —
+    a unique priced on one must emit a rule naming the plain droppable base."""
+    assert gen.strip_runeforged_base("Runeforged Warden Bow") == "Warden Bow"
+    assert gen.strip_runeforged_base("Runemastered Enlightened Robe") == "Enlightened Robe"
+    assert gen.strip_runeforged_base("Warden Bow") == "Warden Bow"
+    payload = {"lines": [{"name": "Some Unique",
+                          "baseType": "Runeforged Warden Bow", "primaryValue": 100.0}]}
+    out = gen.build_unique_lines(payload, 1.0, min_exalt=0.0)
+    assert any('[Type] == "Warden Bow"' in l for l in out)
+    assert not any("Runeforged" in l for l in out)
+
+
 def test_webui_entry_and_api_import():
     """The packaged entry point routes to the web UI and the bridge imports
     cleanly (no Tk dependency left)."""

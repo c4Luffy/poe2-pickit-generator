@@ -318,7 +318,7 @@ class AppApi:
         """The pickit rule line for one item — for right-click 'copy rule'."""
         safe = name.replace('"', '\\"')
         if is_unique:
-            sb = (base or "").replace('"', '\\"')
+            sb = gen.strip_runeforged_base(base or "").replace('"', '\\"')
             return (f'[Type] == "{sb}" && [Rarity] == "Unique" # [UniqueName] == "{safe}" '
                     f'&& [StashItem] == "true" // ExValue = {float(ex):.2f}')
         if cat_key == "waystones":

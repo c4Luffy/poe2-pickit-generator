@@ -264,10 +264,12 @@ FRACTURE_TARGETS: list = [
      "value": "Fire/Cold/Lightning T1 41-45% T2 36-40%; Chaos T1 24-27% T2 20-23%",
      "text": "20-45% to Fire/Cold/Lightning/Chaos Resistance",
      "reason": "A target: any single-element resistance belt suffix — T1 or T2 both count."},
-    # Flasks removed (owner request): the bot's validator flags [Category] ==
-    # "Flask" mod rules as an invalid class mapping, so a flask fracture rule
-    # can't actually be applied. Flasks stays a listed-but-target-less class,
-    # like Charms/Jewels/Shields.
+    {"id": "flasks_max_charges", "tier": "S+", "classes": ["Flasks"],
+     "affix": "suffix", "mod_tier": "T1", "value": "63-70%", "magic_only": True,
+     "text": "63-70% increased Charges",
+     "reason": "S+ target: top-tier Flask charges mod (ilvl81, verified from live "
+               "CoE2 data — modifier id 5347, group FlaskNumCharges, Base pool). "
+               "Magic-only: flasks are Normal/Magic in PoE2, never Rare (owner)."},
 ]
 # Targets the spec's own verification step rejected — kept here (not shown in
 # the UI) so a future data refresh can re-check without re-deriving the answer.
@@ -344,21 +346,20 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     "quiver_projectile": "projectile_skill_gem_level_+",
     "melee_skill_level_gloves": "melee_skill_gem_level_+",
     "focus_crit_spells": None,
+    "flasks_max_charges": "local_max_charges_+%",  # Magic-only, verified in ModsList
 }
 _AMULET_SKILL_IDS = ("spell_skill_gem_level_+", "minion_skill_gem_level_+",
                      "melee_skill_gem_level_+", "projectile_skill_gem_level_+")
 
 
 def fracture_example_rule(target: dict) -> str:
-    """One illustrative .ipd-style line for a Fracture Bases target. Shows the
-    SAME pre-# selector the real emitted rule uses (the top-N [Type] OR-group
-    from _fracture_class_selector, never the whole category) so the tab
-    displays exactly what the bot will get. Uses a verified bot stat
-    expression where one has been confirmed against the bot's own files;
-    otherwise shows an explicit "unverified" placeholder rather than guessing
-    at a bot expression id."""
+    """Illustrative .ipd lines for a Fracture Bases target — the SAME lines the
+    real emitted rule produces: ONE line per base (top-N, never an OR-group)
+    and per rarity, so the tab shows exactly what the bot gets. Uses a verified
+    bot stat expression where one has been confirmed against the bot's own
+    files; otherwise an explicit "unverified" placeholder rather than a guess."""
     cls = target["classes"][0]
-    sel = _fracture_class_selector(cls) or f'[Category] == "{cls}"'
+    selectors = _fracture_base_selectors(cls) or [f'[Category] == "{cls}"']
     rarities = ["Magic"] if target.get("magic_only") else ["Magic", "Rare"]
     stat_id = _FRACTURE_VERIFIED_STAT_IDS.get(target["id"], "__unset__")
     tail = "// FRACTURE BASES EXAMPLE — illustration only, not an active pickit rule"
@@ -373,7 +374,7 @@ def fracture_example_rule(target: dict) -> str:
                 f'FRACTURE BASES EXAMPLE, illustration only')
     return "\n".join(
         f'{sel} && [Rarity] == "{rar}" # {cond} && [StashItem] == "true"  {tail}'
-        for rar in rarities)
+        for sel in selectors for rar in rarities)
 
 
 # Item-class -> pre-# selector, reused verbatim from the old Rare Items tab
@@ -401,18 +402,19 @@ _FRACTURE_CLASS_SEL: dict = {
     "Belts": '[Category] == "Belt"',
     "Jewels": '[Category] == "Jewel"',
     "Charms": '[Category] == "Charm"',
+    "Flasks": '[Category] == "Flask"',
 }
 
 _FRACTURE_TOP_N = 3
 
 
-def _fracture_class_selector(cls: str) -> str | None:
-    """Narrow a class-wide selector (matches EVERY Magic/Rare item of that
-    slot) down to the top _FRACTURE_TOP_N highest-level bases, using the same
-    verified exceptional-base list the Exceptional Bases tab already uses —
-    real game data, not a fabricated ranking. Falls back to the class-wide
-    selector for slots with no base-type data (Amulets, Rings, Jewels,
-    Charms, Flasks) since there's no verified way to rank those."""
+def _fracture_base_selectors(cls: str) -> list | None:
+    """Return the list of pre-# selectors for a class — ONE per base, never a
+    combined OR-group (owner rule: every base gets its own rule line). For
+    slots with verified base-type data this is the top _FRACTURE_TOP_N
+    highest-level bases each as its own ``[Type] == "X"`` string; for slots
+    with no base data (Amulets, Rings, Jewels, Charms) it's the single
+    class-wide selector. Returns None for classes with no selector at all."""
     base_sel = _FRACTURE_CLASS_SEL.get(cls)
     if not base_sel:
         return None
@@ -420,10 +422,9 @@ def _fracture_class_selector(cls: str) -> str | None:
     from exilebot_pickit.data.icons import BASE_STATS
     entries = _BASE_TYPES_BY_CATEGORY.get(cls)
     if not entries:
-        return base_sel
+        return [base_sel]
     ranked = sorted(entries, key=lambda e: -BASE_STATS.get(e[0], {}).get("lvl", 0))
-    top = [name for name, _sockets in ranked[:_FRACTURE_TOP_N]]
-    return "(" + " || ".join(f'[Type] == "{t}"' for t in top) + ")"
+    return [f'[Type] == "{name}"' for name, _sockets in ranked[:_FRACTURE_TOP_N]]
 
 
 _FRACTURE_VALUE_RE = re.compile(r"\d+")
@@ -488,22 +489,24 @@ def _build_fracture_pickit_rules(states: dict, _header_major) -> list:
             st = states.get(cls) or fracture_default(cls)
             if not st.get("enabled", True):
                 continue
-            sel = _fracture_class_selector(cls)
-            if not sel:
+            selectors = _fracture_base_selectors(cls)
+            if not selectors:
                 continue
             cls_lines = []
             for target in fracture_targets_for_class(cls):
                 cond = _fracture_target_condition(target)
                 if cond is None:
                     continue  # unverified — reference-only, never wired
-                # One line per rarity (owner request) — never a combined
-                # (Magic || Rare) group in a single rule.
+                # One line per base AND per rarity (owner rule) — never a
+                # combined ([Type]||[Type]) group and never a combined
+                # (Magic||Rare) group. Every base × rarity is its own rule.
                 rarities = (["Magic"] if target.get("magic_only")
                             else ["Magic", "Rare"])
-                for rar in rarities:
-                    cls_lines.append(
-                        f'{sel} && [Rarity] == "{rar}" # {cond} && [StashItem] == "true"'
-                    )
+                for sel in selectors:
+                    for rar in rarities:
+                        cls_lines.append(
+                            f'{sel} && [Rarity] == "{rar}" # {cond} && [StashItem] == "true"'
+                        )
             if not cls_lines:
                 continue
             body.append(f"// -- {cls} " + "-" * max(0, 73 - len(cls)))

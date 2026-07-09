@@ -139,15 +139,17 @@ def test_belt_has_life_mana_and_all_four_resists():
 
 def test_example_rule_is_well_formed_and_labelled_illustrative():
     for tgt in gen.FRACTURE_TARGETS:
-        line = gen.fracture_example_rule(tgt)
-        # examples show the REAL selector: a narrowed [Type] OR-group where
-        # base data exists, else the class-wide [Category]/[WeaponCategory]
-        assert line.startswith(('([Type] ==', '[Category] ==', '[WeaponCategory] =='))
-        assert '[StashItem] == "true"' in line
-        assert "FRACTURE BASES EXAMPLE" in line or "FRACTURE BASES EXAMPLE" in line.split("//")[-1]             or "unverified" in line
-        # never a fabricated stat id for targets with no verified mapping
-        if gen._FRACTURE_VERIFIED_STAT_IDS.get(tgt["id"]) in (None, "__unset__") and tgt["id"] != "amulet_skill_level":
-            assert "UNVERIFIED_STAT_ID" in line
+        block = gen.fracture_example_rule(tgt)
+        for line in block.splitlines():
+            # every line is its own base (or class-wide for slots without base
+            # data) — NEVER a combined ([Type]||[Type]) OR-group.
+            assert line.startswith(('[Type] ==', '[Category] ==', '[WeaponCategory] =='))
+            assert " || [Type] ==" not in line   # bases never combined
+            assert '[StashItem] == "true"' in line
+            assert "FRACTURE BASES EXAMPLE" in line or "unverified" in line
+            # never a fabricated stat id for targets with no verified mapping
+            if gen._FRACTURE_VERIFIED_STAT_IDS.get(tgt["id"]) in (None, "__unset__") and tgt["id"] != "amulet_skill_level":
+                assert "UNVERIFIED_STAT_ID" in line
 
 
 def test_verified_stat_ids_only_used_where_actually_confirmed():
@@ -280,7 +282,8 @@ def test_enabled_class_with_verified_target_emits_valid_rule():
     lines = gen.build_fracture_pickit_rules(_all_off(Boots=True))
     assert lines
     rule_lines = [l for l in lines
-                  if l.startswith("[Category]") or l.startswith("[WeaponCategory]") or l.startswith("(")]
+                  if l.startswith("[Type] ==") or l.startswith("[Category]")
+                  or l.startswith("[WeaponCategory]")]
     assert rule_lines
     assert any("base_movement_velocity_+%" in l for l in rule_lines)
     result = gen.validate_pickit(lines)
@@ -290,14 +293,17 @@ def test_enabled_class_with_verified_target_emits_valid_rule():
         assert "UNVERIFIED_STAT_ID" not in l
 
 
-def test_narrowed_selector_only_matches_top_bases_not_whole_category():
-    # Boots has real exceptional-base data -> the wired rule must be narrowed
-    # to an OR of specific [Type] names, never the old whole-category match.
+def test_each_base_gets_its_own_line_never_combined():
+    # Owner rule: every base is its own rule line — never a combined
+    # ([Type] || [Type]) OR-group, and one line per rarity.
     lines = gen.build_fracture_pickit_rules(_all_off(Boots=True))
-    rule = next(l for l in lines if "base_movement_velocity_+%" in l)
-    assert '[Type] ==' in rule
-    assert rule.count('[Type] ==') <= 4
-    assert '[Category] == "Boots"' not in rule
+    rules = [l for l in lines if "base_movement_velocity_+%" in l]
+    # Boots has 3 top bases x 2 rarities (Magic/Rare) = 6 separate lines
+    assert len(rules) == 6
+    for r in rules:
+        assert r.count('[Type] ==') == 1        # exactly one base per line
+        assert ' || [Type] ==' not in r         # never OR'd together
+        assert '[Category] == "Boots"' not in r  # never the whole category
 
 
 def test_class_with_only_unverified_targets_emits_nothing_even_when_enabled():

@@ -823,6 +823,20 @@ def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: f
     return output
 
 
+def strip_runeforged_base(base_type: str) -> str:
+    """Strip a 'Runeforged '/'Runemastered ' prefix from a base-type name.
+
+    These are anvil-crafted variants that never drop as ground loot, so a
+    [Type] rule naming one is invalid to the bot ("Invalid base type"). The
+    dropped item is on the plain base — a unique on such a base still drops on
+    the plain base and is identified by [UniqueName] anyway. Owner-verified
+    against the bot's own validator (2026-07-09)."""
+    for pfx in ("Runeforged ", "Runemastered "):
+        if base_type.startswith(pfx):
+            return base_type[len(pfx):]
+    return base_type
+
+
 def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: float | None = None,
                        disabled_names=None) -> list:
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
@@ -832,7 +846,7 @@ def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: flo
     seen = set()
     for line in payload.get("lines", []):
         name = line.get("name")
-        base_type = line.get("baseType", "")
+        base_type = strip_runeforged_base(line.get("baseType", ""))
         if not name or (name, base_type) in seen:
             continue
         seen.add((name, base_type))
