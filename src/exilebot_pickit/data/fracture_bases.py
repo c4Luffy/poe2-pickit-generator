@@ -264,11 +264,10 @@ FRACTURE_TARGETS: list = [
      "value": "Fire/Cold/Lightning T1 41-45% T2 36-40%; Chaos T1 24-27% T2 20-23%",
      "text": "20-45% to Fire/Cold/Lightning/Chaos Resistance",
      "reason": "A target: any single-element resistance belt suffix — T1 or T2 both count."},
-    {"id": "flasks_max_charges", "tier": "S+", "classes": ["Flasks"],
-     "affix": "suffix", "mod_tier": "T1", "value": "63-70%",
-     "text": "63-70% increased Charges",
-     "reason": "S+ target: top-tier Flask charges mod (ilvl81, verified from live "
-               "CoE2 data — modifier id 5347, group FlaskNumCharges, Base pool)."},
+    # Flasks removed (owner request): the bot's validator flags [Category] ==
+    # "Flask" mod rules as an invalid class mapping, so a flask fracture rule
+    # can't actually be applied. Flasks stays a listed-but-target-less class,
+    # like Charms/Jewels/Shields.
 ]
 # Targets the spec's own verification step rejected — kept here (not shown in
 # the UI) so a future data refresh can re-check without re-deriving the answer.
@@ -345,7 +344,6 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     "quiver_projectile": "projectile_skill_gem_level_+",
     "melee_skill_level_gloves": "melee_skill_gem_level_+",
     "focus_crit_spells": None,
-    "flasks_max_charges": "local_max_charges_+%",
 }
 _AMULET_SKILL_IDS = ("spell_skill_gem_level_+", "minion_skill_gem_level_+",
                      "melee_skill_gem_level_+", "projectile_skill_gem_level_+")
@@ -403,7 +401,6 @@ _FRACTURE_CLASS_SEL: dict = {
     "Belts": '[Category] == "Belt"',
     "Jewels": '[Category] == "Jewel"',
     "Charms": '[Category] == "Charm"',
-    "Flasks": '[Category] == "Flask"',
 }
 
 _FRACTURE_TOP_N = 3
