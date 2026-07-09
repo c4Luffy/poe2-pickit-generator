@@ -412,6 +412,9 @@ _FRACTURE_TOP_N = 3
 # (rarity implicit) bases, each as its own rule line — not the whole category.
 _FRACTURE_BASE_OVERRIDES: dict = {
     "Amulets": ["Solar Amulet", "Gold Amulet"],
+    # Owner: name the best flasks (top-tier Life + Mana), not [Category]==Flask.
+    # Also fixes the bot's "invalid class Flask" warning by using [Type].
+    "Flasks": ["Ultimate Life Flask", "Ultimate Mana Flask"],
 }
 
 

@@ -158,7 +158,7 @@
   .page{display:none;max-width:900px;margin:0 auto}
   h1{font-family:"Marcellus","Segoe UI",serif;letter-spacing:.8px;font-weight:400}
   #p-gen{max-width:1180px}
-  #p-chance,#p-craft,#p-exc,#p-prev,#p-hist,#p-set,#p-dbg{max-width:1180px}
+  #p-chance,#p-craft,#p-exc,#p-prev,#p-hist,#p-set,#p-dbg,#p-rare{max-width:1180px}
   .gen-cols{display:grid;grid-template-columns:1.35fr .65fr;gap:16px;align-items:start}
   .gen-left{display:flex;flex-direction:column}
   .gen-right{display:flex;flex-direction:column;gap:14px}
@@ -386,6 +386,7 @@
   <div class="nav-btn" data-p="craft">🛠 Craft</div>
   <div class="nav-btn" data-p="exc">💎 Exceptional</div>
   <div class="nav-btn" data-p="fracture">💠 Fracture</div>
+  <div class="nav-btn" data-p="rare">🎯 Rare</div>
   <div class="nav-btn" data-p="prev">📜 Preview</div>
   <div class="nav-btn" data-p="hist">🕰️ History</div>
   <div class="nav-btn" data-p="set">⚙ Settings</div>
@@ -653,6 +654,21 @@
         <div class="hint" id="fracToggleNote" style="text-align:right;margin-top:-4px"></div>
         <div class="hint" id="fracHint">Every target below is a natural Magic/Rare affix, verified against live PoE2 mod-tier data — never an Essence, crafted, Abyss, corrupted, unique, vendor, or event-only mod. A base with exactly 4 explicit modifiers is the cleanest fracture chance; more than 4 explicit mods gets a warning.</div>
         <div id="fracList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RARE ══ -->
+<div class="page" id="p-rare">
+  <h1>Rare Gear</h1><div class="sub">Rare-item pickit rules, organized by gear slot. <span class="pill" style="margin-left:6px">work in progress</span></div>
+  <div class="craft-layout">
+    <div class="craft-side" id="rareSide"></div>
+    <div style="flex:1;min-width:0">
+      <div class="card">
+        <h2 id="rareTitle" style="margin:0 0 10px">Pick a slot</h2>
+        <div class="hint" id="rareHint">This tab will hold rare-gear rules built with the bot's WeightedSum scoring — every stat verified against the bot's own mod list, weights derived from live max-rolls. Nothing here is wired into the pickit yet; the slots below are the structure we'll fill in.</div>
+        <div id="rareList"></div>
       </div>
     </div>
   </div>
@@ -936,7 +952,7 @@ document.querySelectorAll(".rz").forEach(z=>z.addEventListener("pointerdown",e=>
 
 /* ── nav + theme ── */
 // Two-level nav: 3 groups over the 9 pages. Group pill → its last-used tab.
-const NAV_GROUPS={gen:"cockpit",eco:"tune",chance:"tune",craft:"tune",exc:"tune",fracture:"tune",prev:"tune",
+const NAV_GROUPS={gen:"cockpit",eco:"tune",chance:"tune",craft:"tune",exc:"tune",fracture:"tune",rare:"tune",prev:"tune",
                   hist:"system",set:"system",dbg:"system"};
 const _lastTab={cockpit:"gen",tune:"eco",system:"hist"};
 function openPage(p){
@@ -956,6 +972,7 @@ function openPage(p){
   if(p==="craft")loadCraft();
   if(p==="exc")loadExc();
   if(p==="fracture")loadFracture();
+  if(p==="rare")loadRare();
   if(p==="prev")loadPreview();
   if(p==="hist")loadHistory();
 }
@@ -1570,6 +1587,31 @@ function renderFracture(){
     const ok=await copyText(fracExamples[btn.dataset.tid]||"");
     const old=btn.textContent;btn.textContent=ok?"Copied":"Failed";
     setTimeout(()=>btn.textContent=old,1200);});
+}
+
+/* ── rare (by gear slot — structure only, rules built later) ── */
+const RARE_SLOTS=[["Armour",["Body Armour","Helmet","Gloves","Boots"]],
+  ["Jewellery",["Amulet","Ring","Belt"]],
+  ["Off-hand",["Shield","Focus","Quiver"]],
+  ["Weapons",["Bow","Crossbow","Quarterstaff","Spear","Mace","Sceptre","Wand","Staff"]]];
+let rareSel="Body Armour";
+function loadRare(){
+  const s=$("rareSide");s.innerHTML="";
+  for(const [grp,slots] of RARE_SLOTS){
+    const lbl=document.createElement("div");lbl.className="csgrp";lbl.textContent=grp;s.appendChild(lbl);
+    for(const slot of slots){
+      const b=document.createElement("button");
+      b.className="cside-btn"+(rareSel===slot?" on":"");
+      b.dataset.slot=slot;
+      b.innerHTML=`<span>${esc(slot)}</span><span class="n">—</span>`;
+      b.onclick=()=>{rareSel=slot;renderRare();};
+      s.appendChild(b);}}
+  renderRare();
+}
+function renderRare(){
+  document.querySelectorAll("#rareSide .cside-btn").forEach(b=>b.classList.toggle("on",b.dataset.slot===rareSel));
+  $("rareTitle").textContent=rareSel;
+  $("rareList").innerHTML=`<div class="hint" style="margin-top:12px">No rare rules for <b>${esc(rareSel)}</b> yet. This slot is ready — the WeightedSum rules will be built here, each stat verified against the bot's mod list and weighted from live max-rolls.</div>`;
 }
 
 /* ── history ── */
