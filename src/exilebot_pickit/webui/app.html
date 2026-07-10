@@ -87,7 +87,10 @@
   body{zoom:1.1;background:var(--bg);color:var(--text);font:14.5px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
        height:90.9vh;display:flex;flex-direction:column;overflow:hidden;transition:background .25s,color .25s}
   /* ── Custom title bar (frameless window) ── */
-  .titlebar{display:flex;align-items:stretch;height:34px;flex-shrink:0;user-select:none;
+  /* Native OS window frame is used now (see poc.py) — hide the page's own
+     custom title bar and custom resize handles so there's only one frame. */
+  .titlebar{display:none !important}
+  .titlebar-legacy{display:flex;align-items:stretch;height:34px;flex-shrink:0;user-select:none;
     background:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxNjAnIGhlaWdodD0nMTYwJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC44JyBudW1PY3RhdmVzPSczJyBzdGl0Y2hUaWxlcz0nc3RpdGNoJy8+PGZlQ29sb3JNYXRyaXggdHlwZT0nbWF0cml4JyB2YWx1ZXM9JzAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAuMDUgMCcvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxNjAnIGhlaWdodD0nMTYwJyBmaWx0ZXI9J3VybCgjbiknLz48L3N2Zz4=),
       repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px),
       linear-gradient(180deg,color-mix(in srgb,var(--gold) 6%,#0b0906),#080604);
@@ -98,7 +101,7 @@
   .tb-btns{display:flex}
   .tb-btns button{width:48px;border:none;background:none;color:var(--dim);font-size:12.5px;
     cursor:pointer;transition:background .12s,color .12s}
-  .rz{position:fixed;z-index:9999}
+  .rz{display:none !important}
   .tb-btns button:hover{background:var(--bg3);color:var(--text)}
   .tb-btns .tb-x:hover{background:#c0392b;color:#fff}
   /* ── Top nav ── */

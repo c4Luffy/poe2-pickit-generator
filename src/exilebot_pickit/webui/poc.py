@@ -130,10 +130,14 @@ def main():
         js_api=api,
         width=max(760, w), height=max(560, h),
         background_color="#0e0f12",
-        # Frameless: the page draws its own title bar (drag region + min/max/
-        # close buttons wired through AppApi.win_*). Alt+F4 still fires the
-        # normal closing handler below.
-        frameless=True, easy_drag=False,
+        # Native OS window frame (owner decision 2026-07-10): the frameless
+        # custom-title-bar window had unfixable multi-monitor bugs — freezing /
+        # "stuck in the taskbar, can't click it" on secondary screens, because
+        # borderless WinForms forms mishandle taskbar restore, activation and
+        # per-monitor moves. A standard frame lets Windows own all of that. The
+        # page's own title bar + resize handles are hidden via CSS (.titlebar /
+        # .rz) so there's exactly one title bar.
+        frameless=False,
     )
     tray = _start_tray(window, api)
     api._tray = tray            # win_close() needs it to stop/hide correctly
