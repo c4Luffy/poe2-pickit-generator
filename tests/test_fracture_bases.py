@@ -158,8 +158,9 @@ def test_verified_stat_ids_only_used_where_actually_confirmed():
     assert "base_movement_velocity_+%" in move_line
     spirit_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["spirit_body"])
     assert "local_spirit_+%" in spirit_line
-    # crit chance has no confirmed id -> must show the honest placeholder, not a guess
-    crit_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["crit_chance_weapon"])
+    # a target with genuinely no clean single bot stat id (gloves % crit damage
+    # bonus) must still show the honest placeholder, not a guess.
+    crit_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["crit_damage_gloves"])
     assert "UNVERIFIED_STAT_ID" in crit_line
 
 
@@ -322,14 +323,19 @@ def test_amulets_enabled_emits_or_of_four_skill_families():
     lines = gen.build_fracture_pickit_rules(_all_off(Amulets=True))
     assert lines
     # amulets fracture only on Solar + Gold bases (owner override), each its
-    # own line, with the OR-of-4-skill-families condition after the #.
+    # own line. Multiple amulet targets are wired now (skill-level OR, +Spirit,
+    # crit chance), so we assert the OR-of-4-skill-families rule EXISTS among
+    # them (per base), and that no rule is an unverified placeholder.
     rule_lines = [l for l in lines if l.startswith("[Type] ==") and "[StashItem]" in l]
     assert rule_lines
     bases = {l.split('"')[1] for l in rule_lines}
     assert bases == {"Solar Amulet", "Gold Amulet"}
+    for base in ("Solar Amulet", "Gold Amulet"):
+        base_rules = [r for r in rule_lines if r.split('"')[1] == base]
+        skill_rules = [r for r in base_rules
+                       if all(sid in r for sid in gen._AMULET_SKILL_IDS)]
+        assert skill_rules, f"{base} missing the OR-of-4-skill-families rule"
     for rule in rule_lines:
-        for sid in gen._AMULET_SKILL_IDS:
-            assert sid in rule
         assert "UNVERIFIED_STAT_ID" not in rule
     result = gen.validate_pickit(lines)
     assert result["errors"] == []

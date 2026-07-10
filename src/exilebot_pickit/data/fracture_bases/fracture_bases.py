@@ -319,9 +319,8 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     "amulet_skill_level": None,  # multiple families — see _AMULET_SKILL_IDS below
     # NOTE (owner rule, 2026-07-08): reference pickit files are READ-ONLY
     # learning material — stat ids may only be verified against the bot's own
-    # files (ModsList.html / its shipped default.ipd). amulet_spirit and the
-    # flat ES/Evasion targets were briefly wired from ids seen in a reference
-    # file; unwired again until re-verified against the bot's own docs.
+    # files. Every id below is confirmed present in the bot's ModsList
+    # (data/bot_stat_ids), NOT copied from any reference pickit.
     # All skill-gem-level ids carry a trailing "+" in the bot's ModsList.html
     # (e.g. "melee_skill_gem_level_+", verified 2026-07-09). Omitting the "+"
     # made every skill-level rule fail the official exiled-bot.net validator
@@ -341,7 +340,51 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     "focus_spell": "spell_skill_gem_level_+",
     "quiver_projectile": "projectile_skill_gem_level_+",
     "melee_skill_level_gloves": "melee_skill_gem_level_+",
-    "focus_crit_spells": None,
+    # Defensive flat/percent rolls — all re-verified against the bot ModsList
+    # 2026-07-10 (local flat ES = local_energy_shield, confirmed via the Boots
+    # rare-gear work; flat evasion = evasion_rating; hybrid = the *_and_* id).
+    "es_body": "local_energy_shield",
+    "es_helmet": "local_energy_shield",
+    "es_boots": "local_energy_shield",
+    "evasion_body": "evasion_rating",
+    "evasion_helmet": "evasion_rating",
+    "evasion_boots": "evasion_rating",
+    "es_evasion_hybrid_helmet": "local_evasion_and_energy_shield_+%",
+    "es_evasion_hybrid_boots": "local_evasion_and_energy_shield_+%",
+    "es_evasion_pct_body": "local_energy_shield_+%",
+    "rarity_helmet": "base_item_found_rarity_+%",
+    # Weapons / offhand / accessories.
+    "inc_phys_weapon": "local_physical_damage_+%",
+    "added_phys_weapon": "local_minimum_added_physical_damage",
+    "added_phys_weapon_2h": "local_minimum_added_physical_damage",
+    "crit_chance_weapon": "local_critical_strike_chance_+%",
+    "crit_chance_amulet": "critical_strike_chance_+%",
+    "focus_crit_spells": "spell_critical_strike_chance_+%",
+    "elemental_dmg_with_attacks": "elemental_damage_+%",
+    "added_lightning_weapon": "local_minimum_added_lightning_damage",
+    "sceptre_spirit": "local_spirit_+%",
+    "sceptre_allies_dmg": "allies_in_presence_damage_+%",
+    "crossbow_load_bolt": "number_of_crossbow_bolts",
+    "quiver_proj_speed": "base_projectile_speed_+%",
+    "quiver_bow_dmg": "bow_damage_+%",
+    "quiver_added_lightning": "local_minimum_added_lightning_damage",
+    "quiver_crit_chance_attacks": "attack_critical_strike_chance_+%",
+    "amulet_spirit": "base_spirit_from_equipment",
+    "sceptre_minion_life": "minion_maximum_life_+%",
+    "wand_crit_spells": "spell_critical_strike_chance_+%",
+    "wand_spell_dmg": "spell_damage_+%",
+    "staff_crit_spells": "spell_critical_strike_chance_+%",
+    "staff_spell_dmg": "spell_damage_+%",
+    "belt_life": "base_maximum_life",
+    "belt_mana": "base_maximum_mana",
+    # Still unverified — no clean single bot stat id exists (kept as honest
+    # placeholders; they emit no rule):
+    #   crit_damage_gloves / quiver_crit_dmg_attacks /
+    #   staff_crit_spell_dmg_bonus -> no global "% increased Critical Damage
+    #     Bonus" id in the ModsList (only the flat "+" crit-multi variants).
+    #   added_dmg_gloves -> multi-element "adds phys/fire/cold/lightning" roll,
+    #   belt_resist -> "any single Fire/Cold/Lightning/Chaos res" — neither can
+    #     be expressed as one stat threshold.
 }
 _AMULET_SKILL_IDS = ("spell_skill_gem_level_+", "minion_skill_gem_level_+",
                      "melee_skill_gem_level_+", "projectile_skill_gem_level_+")
