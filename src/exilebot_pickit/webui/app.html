@@ -545,12 +545,23 @@
   .step button{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);
     background:var(--bg3);color:var(--dim);cursor:pointer;font-size:15px;line-height:1;padding:0}
   .step button:hover{color:var(--gold);border-color:var(--gold-dim)}
-  .value{display:flex;align-items:baseline;gap:6px;justify-content:flex-end;min-width:120px}
+  .value{display:flex;align-items:center;gap:8px;justify-content:flex-end;min-width:128px}
   .value input{width:72px;background:transparent;border:none;padding:0;text-align:right;
     font:700 24px/1.1 Consolas,ui-monospace,monospace;color:var(--gold);font-variant-numeric:tabular-nums}
   .value input:focus{outline:none}
-  .value select{border:none;background:transparent;color:var(--gold-br);
-    font:700 12px/1 "Segoe UI",sans-serif;text-transform:uppercase;cursor:pointer;padding:0}
+  /* currency unit picker → a compact brass pill with a custom caret + dark
+     popup (no white native list). Caret is a neutral warm grey so it reads on
+     every theme's pill. */
+  .value select{appearance:none;-webkit-appearance:none;
+    border:1px solid var(--border);background:var(--bg3);color:var(--gold-br);
+    font:700 11px/1 "Segoe UI",sans-serif;text-transform:uppercase;letter-spacing:.05em;
+    cursor:pointer;padding:6px 23px 6px 10px;border-radius:7px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239d9589' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 9px center;background-size:9px 6px}
+  .value select:hover{border-color:var(--gold-dim);color:var(--gold)}
+  .value select:focus{outline:none;border-color:var(--gold)}
+  .value select option{background:var(--bg2);color:var(--text);font-weight:600}
+  .value select option:checked{color:var(--gold);background:var(--bg3)}
   .value .unit{color:var(--gold-br);font-size:12px;font-weight:700;text-transform:uppercase}
   .threshold .dtrack{grid-column:1/-1;height:4px;border-radius:3px;background:var(--bg);overflow:hidden;margin-top:2px}
   .threshold .dtrack i{display:block;height:100%;width:0;border-radius:3px;
