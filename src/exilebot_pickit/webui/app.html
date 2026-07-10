@@ -195,6 +195,7 @@
     background:radial-gradient(420px 180px at 88% 0%,color-mix(in srgb,var(--gold) 10%,transparent),transparent 70%)}
   .kick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative;z-index:1}
   .kick select{padding:9px 12px;font-weight:600}
+  .kick #league{border-radius:9px;background:var(--bg3);border-color:var(--border)}
   .card h2.hero-h{margin:18px 0 4px;font-family:"Marcellus","Segoe UI",serif;font-weight:400;
     font-size:29px;letter-spacing:-.01em;line-height:1.08;text-transform:none;color:var(--text)}
   .hero-p{color:var(--dim);margin:0 0 18px;max-width:46ch;font-size:13px}
@@ -212,6 +213,59 @@
   /* narrow right column: let the success panel wrap under the log */
   .card:has(#log)>div{flex-wrap:wrap}
   #okPanel{width:auto;min-width:200px;flex:1}
+  /* dial tiles (mockup): eyebrow + stepper row, big mono value, fill track */
+  .kick-eyebrow{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:600}
+  .dial .dlbl{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .dial .dlbl>span:first-child{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--dim);font-weight:700}
+  .stepper2{display:flex;gap:4px}
+  .stepper2 button{width:26px;height:26px;border-radius:7px;border:1px solid var(--border);
+    background:var(--bg2);color:var(--dim);cursor:pointer;font-size:15px;line-height:1}
+  .stepper2 button:hover{color:var(--gold);border-color:var(--gold-dim)}
+  .dial .dval{display:flex;align-items:baseline;gap:8px}
+  .dial .dval input{width:90px;background:transparent;border:none;padding:0;
+    font:700 25px/1.2 Consolas,ui-monospace,monospace;color:var(--text);font-variant-numeric:tabular-nums}
+  .dial .dval input:focus{outline:none;border-bottom:1px solid var(--gold-dim)}
+  .dial .dval select{border:none;background:transparent;color:var(--gold);font-size:12px;
+    font-weight:700;padding:0;cursor:pointer;text-transform:uppercase}
+  .dunit{color:var(--gold);font-size:12px;font-weight:700}
+  .dtrack{height:5px;border-radius:3px;background:var(--bg);margin-top:11px;overflow:hidden}
+  .dtrack i{display:block;height:100%;width:0;border-radius:3px;
+    background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width .2s}
+  .dial-extra{display:none}
+  /* LAST RUN checklist rows */
+  .lr-rows{display:flex;flex-direction:column}
+  .lr{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .lr:last-child{border-bottom:0}
+  .lric{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none;
+    font-size:14px;background:color-mix(in srgb,var(--ok) 8%,transparent);
+    border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);color:var(--ok)}
+  .lric:not(.ok){background:var(--bg3);border-color:var(--border);color:var(--dim)}
+  .lrt{flex:1;min-width:0}
+  .lrt b{font-size:13px;display:block}
+  .lrt span{font-size:11.5px;color:var(--dim)}
+  .lrv{font:600 13px/1 Consolas,ui-monospace,monospace;color:var(--gold);font-variant-numeric:tabular-nums}
+  /* section header + top-picks table (mockup "ltbl" treatment) */
+  .sec-h{display:flex;align-items:center;gap:12px;margin:26px 0 12px}
+  .sec-h h3{margin:0;font-size:14px;letter-spacing:.02em}
+  .sec-h .line{flex:1;height:1px;background:var(--border)}
+  .sec-eyebrow{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:600}
+  .ltbl{width:100%;border-collapse:collapse;background:var(--bg2);border:1px solid var(--border);
+    border-radius:13px;overflow:hidden}
+  .ltbl th{text-align:left;font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--dim);font-weight:700;padding:11px 16px;border-bottom:1px solid var(--border)}
+  .ltbl td{padding:11px 16px;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);font-size:13px}
+  .ltbl tr:last-child td{border-bottom:0}
+  .ltbl tbody tr:hover td{background:color-mix(in srgb,var(--gold) 7%,transparent)}
+  .lt-name{display:flex;align-items:center;gap:11px;font-weight:600}
+  .lt-thumb{width:26px;height:26px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);
+    display:grid;place-items:center;font-size:14px;flex:none}
+  .lt-type{color:var(--steel)}
+  .lt-val{text-align:right;font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums;font-weight:600}
+  .lt-val .u{color:var(--gold);font-size:11px}
+  .pillk{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;
+    border-radius:20px;border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);
+    color:var(--ok);background:color-mix(in srgb,var(--ok) 8%,transparent)}
   .stat b{font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
   .page.on{display:block;animation:fade .18s ease}
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -498,6 +552,7 @@
     <div class="kick">
       <select id="league" style="flex:1;padding:11px 12px"><option value="">Loading…</option></select>
       <button class="ghost mini" id="leagueRefresh" title="Re-fetch the league list (Ctrl+R)">⟳</button>
+      <span class="kick-eyebrow">Live trade league</span>
       <span class="sp" style="flex:1"></span>
       <select id="profSel" style="flex:1;min-width:170px;padding:11px 12px"><option value="">— no profile —</option></select>
       <button class="ghost mini" id="profSave">Save as…</button>
@@ -525,27 +580,39 @@
       <span class="hint" style="margin:0" id="autoHint">Floors adapt as the economy moves. You can override the values manually.</span>
     </div>
     <div class="floors">
-      <div class="ftile">
-        <label style="font-weight:600;font-size:13.5px">💎 Unique items</label>
-        <div class="row" style="margin-top:9px"><input id="uAmt" type="number" min="0" step="1" value="0" style="font-size:16px;font-weight:600">
-          <select id="uUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></div>
-        <div class="subv" id="uSub"></div>
-        <div class="sparkrow">
-          <svg id="uSpark" viewBox="0 0 130 34" preserveAspectRatio="none"></svg>
-          <div class="avg"><div class="k">7D AVG</div><div class="v" id="uAvg">–</div></div>
-        </div>
-        <div class="hint" style="margin:7px 0 0">Source: <a href="#" id="ninjaLink" style="color:var(--gold)">poe.ninja ↗</a></div>
-      </div>
-      <div class="ftile">
-        <label style="font-weight:600;font-size:13.5px">👥 Currency &amp; exchange items</label>
-        <div class="row" style="margin-top:9px"><input id="gAmt" type="number" min="0" step="1" value="0" style="font-size:16px;font-weight:600">
-          <select id="gUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></div>
-        <div class="subv" id="gSub"></div>
-        <div class="subv" style="min-height:0">Essences, catalysts, runes, gems… Basic currency &amp; waystones are always picked.</div>
-        <div class="sparkrow">
+      <div class="ftile dial">
+        <div class="dlbl"><span>Gear floor</span>
+          <span class="stepper2"><button type="button" data-stp="gAmt|-1">−</button><button type="button" data-stp="gAmt|1">+</button></span></div>
+        <div class="dval"><input id="gAmt" type="number" min="0" step="1" value="0" style="font-size:16px;font-weight:600"><select id="gUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></div>
+        <div class="dtrack"><i id="gTrack"></i></div>
+        <div class="dial-extra"><div class="subv" id="gSub"></div><div class="sparkrow">
           <svg id="gSpark" viewBox="0 0 130 34" preserveAspectRatio="none"></svg>
           <div class="avg"><div class="k">7D AVG</div><div class="v" id="gAvg">–</div></div>
-        </div>
+        </div></div>
+      </div>
+      <div class="ftile dial">
+        <div class="dlbl"><span>Unique floor</span>
+          <span class="stepper2"><button type="button" data-stp="uAmt|-1">−</button><button type="button" data-stp="uAmt|1">+</button></span></div>
+        <div class="dval"><input id="uAmt" type="number" min="0" step="1" value="0" style="font-size:16px;font-weight:600"><select id="uUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></div>
+        <div class="dtrack"><i id="uTrack"></i></div>
+        <div class="dial-extra"><div class="subv" id="uSub"></div><div class="sparkrow">
+          <svg id="uSpark" viewBox="0 0 130 34" preserveAspectRatio="none"></svg>
+          <div class="avg"><div class="k">7D AVG</div><div class="v" id="uAvg">–</div></div>
+        </div><div class="hint" style="margin:7px 0 0">Source: <a href="#" id="ninjaLink" style="color:var(--gold)">poe.ninja ↗</a></div></div>
+      </div>
+      <div class="ftile dial">
+        <div class="dlbl"><span>Base quality</span>
+          <span class="stepper2"><button type="button" data-stp="bqGen|-1">−</button><button type="button" data-stp="bqGen|1">+</button></span></div>
+        <div class="dval"><input id="bqGen" type="number" min="0" max="30" step="1" value="25"><span class="dunit">%</span></div>
+        <div class="dtrack"><i id="bqTrack"></i></div>
+        
+      </div>
+      <div class="ftile dial">
+        <div class="dlbl"><span>Base min level</span>
+          <span class="stepper2"><button type="button" data-stp="blGen|-1">−</button><button type="button" data-stp="blGen|1">+</button></span></div>
+        <div class="dval"><input id="blGen" type="number" min="1" max="100" step="1" value="82"><span class="dunit">ILVL</span></div>
+        <div class="dtrack"><i id="blTrack"></i></div>
+        
       </div>
     </div>
     <div class="outrow">
@@ -559,6 +626,32 @@
   </section>
   </div>
   <div class="gen-right">
+  <div class="card" id="sum" style="display:none">
+    <div class="cardh">Last run</div>
+    <div class="lr-rows">
+      <div class="lr"><div class="lric ok">✓</div>
+        <div class="lrt"><b>Fetched poe.ninja prices</b><span>Currency, uniques, bases</span></div>
+        <span class="lrv" id="sCats">–</span></div>
+      <div class="lr"><div class="lric ok">✓</div>
+        <div class="lrt"><b>Assembled pickit rules</b><span>All categories</span></div>
+        <span class="lrv" id="lrRules">–</span></div>
+      <div class="lr"><div class="lric ok" id="lrValIc">✓</div>
+        <div class="lrt"><b>Validated stat ids</b><span id="sVal">–</span></div>
+        <span class="lrv" id="lrValid">✓</span></div>
+      <div class="lr"><div class="lric">📂</div>
+        <div class="lrt"><b>Written to output</b><span id="lrWhere">.ipd + .filter</span></div>
+        <span class="lrv" id="lrWrite">OK</span></div>
+    </div>
+    <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-top:14px">
+      <div class="stat"><b id="sActive">–</b><span>active</span></div>
+      <div class="stat"><b id="sSkip" style="color:var(--steel)">–</b><span>skipped</span></div>
+      <div class="stat"><b id="sValidT">✓</b><span>valid</span></div>
+    </div>
+    <div class="hint" style="margin-top:8px"><span id="sDiv">–</span> ex / divine · <span id="sSecs">–</span>s</div>
+    <div class="toprow" id="sTop"></div>
+    <div class="toprow" id="sDiff"></div>
+    <div class="toprow" id="sMoves"></div>
+  </div>
   <div class="card">
     <div class="cardh">📜 Live log</div>
     <div style="display:flex;gap:14px;margin-top:12px;align-items:stretch">
@@ -570,22 +663,16 @@
       </div>
     </div>
   </div>
+  </div>
+  </div>
 
-  <div class="card" id="sum" style="display:none">
-    <h2>✅ Result</h2>
-    <div class="stats">
-      <div class="stat"><b id="sActive">–</b><span>active rules</span></div>
-      <div class="stat"><b id="sCats">–</b><span>categories</span></div>
-      <div class="stat"><b id="sDiv">–</b><span>ex / divine</span></div>
-      <div class="stat"><b id="sSecs">–</b><span>seconds</span></div>
-    </div>
-    <div class="toprow" id="sTop"></div>
-    <div class="toprow" id="sVal"></div>
-    <div class="toprow" id="sDiff"></div>
-    <div class="toprow" id="sMoves"></div>
-  </div>
-  </div>
-  </div>
+  <div class="sec-h"><h3>Economy — top picks right now</h3><div class="line"></div>
+    <span class="sec-eyebrow">live poe.ninja</span></div>
+  <table class="ltbl" id="topPicksT" style="display:none">
+    <thead><tr><th>Item</th><th>Type</th><th style="text-align:right">Value</th>
+      <th style="text-align:right">In pickit</th></tr></thead>
+    <tbody id="topPicks"></tbody>
+  </table>
 </div>
 
 <!-- ══ ECONOMY ══ -->
@@ -1069,6 +1156,35 @@ function _saveFloors(){clearTimeout(_floorT);
 ["uAmt","uUnit"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();}));
 ["gAmt","gUnit"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();}));
 
+/* ── console dials: − / + steppers, fill tracks, base quality/level sync ── */
+document.querySelectorAll("[data-stp]").forEach(b=>b.onclick=()=>{
+  const [id,d]=b.dataset.stp.split("|");const el=$(id);
+  el.value=Math.max(0,(parseFloat(el.value)||0)+parseFloat(d));
+  el.dispatchEvent(new Event("input",{bubbles:true}));});
+function updTracks(){
+  const w=(id,v,mx)=>{const t=$(id);if(t)t.style.width=Math.max(0,Math.min(100,v/mx*100))+"%";};
+  w("uTrack",parseFloat($("uAmt").value)||0,5);
+  w("gTrack",parseFloat($("gAmt").value)||0,5);
+  w("bqTrack",parseFloat($("bqGen").value)||0,30);
+  w("blTrack",parseFloat($("blGen").value)||0,100);}
+["uAmt","gAmt","bqGen","blGen"].forEach(i=>$(i).addEventListener("input",updTracks));
+$("bqGen").addEventListener("input",()=>{const v=parseInt($("bqGen").value)||25;
+  $("baseQ").value=v;api().set_setting("base_quality",v);});
+$("blGen").addEventListener("input",()=>{const v=parseInt($("blGen").value)||82;
+  $("baseL").value=v;api().set_setting("base_min_level",v);});
+
+/* top-picks table under the console (filled from a generate's `top`) */
+function fillTopPicks(top){
+  const tb=$("topPicks");
+  if(!top||!top.length){$("topPicksT").style.display="none";return;}
+  const em={"Unique":"🏹","Base":"🧿","Currency":"🟡"};
+  const fmt=x=>x>=100?Math.round(x).toLocaleString():x;
+  tb.innerHTML=top.map(t=>`<tr><td><span class="lt-name"><span class="lt-thumb">${em[t.cat]||"🟡"}</span>${esc(t.name)}</span></td>`+
+    `<td class="lt-type">${esc(t.cat||"")}</td>`+
+    `<td class="lt-val">${fmt(t.ex)} <span class="u">EX</span></td>`+
+    `<td style="text-align:right"><span class="pillk">● keep</span></td></tr>`).join("");
+  $("topPicksT").style.display="table";}
+
 async function applyAutoFloor(){
   $("autoHint").textContent="Analysing league prices…";
   const r=await api().suggest_floors($("league").value,$("keepPct").value);
@@ -1113,8 +1229,18 @@ function updFresh(){
 setInterval(updFresh,60000);
 async function initFresh(){
   try{const h=await api().history();
-    if(h&&h.length&&h[0].ts){const d=new Date(h[0].ts.replace(" ","T"));
-      if(!isNaN(d)){_freshAt=d.getTime();updFresh();}}}catch(_){}}
+    if(h&&h.length){
+      const r=h[0];
+      if(r.ts){const d=new Date(r.ts.replace(" ","T"));
+        if(!isNaN(d)){_freshAt=d.getTime();updFresh();}}
+      /* restore the LAST RUN card from the newest history row so the right
+         column isn't empty before the first generate of this session */
+      $("sActive").textContent=(r.active||0).toLocaleString();
+      $("sSkip").textContent=(r.commented||0).toLocaleString();
+      $("lrRules").textContent=((r.active||0)+(r.commented||0)).toLocaleString();
+      if(r.divine_rate)$("sDiv").textContent=r.divine_rate;
+      if(r.duration)$("sSecs").textContent=String(r.duration).replace(/s$/,"");
+      $("sum").style.display="block";}}catch(_){}}
 
 async function renderSparks(){
   try{
@@ -1238,6 +1364,16 @@ async function poll(){
     $("sVal").textContent=d.val_errors?`⚠ Validation: ${d.val_errors} errors, ${d.val_warnings} warnings`:
       (d.val_warnings?`⚠ Validation: ${d.val_warnings} warnings`:"✓ Validation passed")+
       (d.copied?"  ·  ✓ deployed to bot folder":"");
+    /* LAST RUN checklist + KPI tiles + top-picks table */
+    $("lrRules").textContent=((d.active||0)+(d.commented||0)).toLocaleString();
+    $("sSkip").textContent=(d.commented||0).toLocaleString();
+    $("sValidT").textContent=d.val_errors?"✗":"✓";
+    $("sValidT").style.color=d.val_errors?"var(--err)":"var(--ok)";
+    $("lrValid").textContent=d.val_errors?d.val_errors+" ✗":"✓";
+    $("lrValIc").textContent=d.val_errors?"✗":"✓";
+    $("lrWhere").textContent=d.copied?".ipd + .filter · copied to bot":".ipd + .filter";
+    $("lrWrite").textContent="OK";
+    fillTopPicks(d.top||[]);
     $("sum").style.display="block";
     const ob=$("offBanner");
     if(d.stale){ob.textContent=`⚠ poe.ninja was partly unreachable — ${d.stale} categories used cached prices. Prices may be out of date.`;ob.classList.add("on");}
@@ -1955,8 +2091,10 @@ function sw(id,key,cur){const el=$(id);el.classList.toggle("on",cur);
     el.classList.toggle("on",on);await api().set_setting(key,on);toast("Saved");};}
 $("botBrowse").onclick=async()=>{const r=await api().browse_folder();
   if(r.path){$("botFolderLbl").textContent=r.path;await api().set_setting("bot_folder",r.path);toast("Saved");}};
-$("baseQ").onchange=()=>{api().set_setting("base_quality",parseInt($("baseQ").value)||25);toast("Saved");};
-$("baseL").onchange=()=>{api().set_setting("base_min_level",parseInt($("baseL").value)||82);toast("Saved");};
+$("baseQ").onchange=()=>{const v=parseInt($("baseQ").value)||25;
+  $("bqGen").value=v;updTracks();api().set_setting("base_quality",v);toast("Saved");};
+$("baseL").onchange=()=>{const v=parseInt($("baseL").value)||82;
+  $("blGen").value=v;updTracks();api().set_setting("base_min_level",v);toast("Saved");};
 $("outBase").onchange=()=>{api().set_setting("output_base",$("outBase").value.trim()||"poe2_pickit");toast("Saved");};
 $("bakCount").onchange=()=>{api().set_setting("backup_count",parseInt($("bakCount").value)||0);toast("Saved");};
 $("fltBrowse").onclick=async()=>{const r=await api().browse_folder();
@@ -2007,6 +2145,8 @@ function applyInfo(i){
   $("fltDirLbl").textContent=i.poe2_filter_dir||"not set";
   $("bakCount").value=i.backup_count;
   $("baseQ").value=i.base_quality;$("baseL").value=i.base_min_level;
+  $("bqGen").value=i.base_quality;$("blGen").value=i.base_min_level;
+  updTracks();
   $("swAuto").classList.toggle("on",!!i.auto_floor);
   $("keepPct").value=String(i.auto_floor_pct||40);
   setAutoPill(!!i.auto_floor);
