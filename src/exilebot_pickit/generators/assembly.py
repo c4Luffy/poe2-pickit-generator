@@ -256,17 +256,20 @@ def build_category_lines(key: str, is_unique: bool, payload: dict,
                                     ritual_threshold=ritual_th)
 
 
-def top_items_from_lines(lines) -> list[tuple[str, float]]:
-    """Pull ``(name, exalt_value)`` pairs out of active rules that carry an
-    ``ExValue =`` comment — used to surface the most valuable picks."""
-    out: list[tuple[str, float]] = []
+def top_items_from_lines(lines) -> list[tuple[str, float, str]]:
+    """Pull ``(name, exalt_value, kind)`` triples out of active rules that
+    carry an ``ExValue =`` comment — used to surface the most valuable picks.
+    ``kind`` is a coarse display label derived from the rule itself."""
+    out: list[tuple[str, float, str]] = []
     for l in lines:
         if l.startswith("//") or "[StashItem]" not in l:
             continue
         name = extract_rule_name(l)
         vm = _EXVALUE_RE.search(l)
         if name and vm:
-            out.append((name, float(vm.group(1))))
+            kind = ("Unique" if "[UniqueName]" in l else
+                    "Base" if '[Rarity] == "Normal"' in l else "Currency")
+            out.append((name, float(vm.group(1)), kind))
     return out
 
 
