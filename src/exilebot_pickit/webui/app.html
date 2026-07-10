@@ -232,6 +232,7 @@
   .dtrack{height:5px;border-radius:3px;background:var(--bg);margin-top:11px;overflow:hidden}
   .dtrack i{display:block;height:100%;width:0;border-radius:3px;
     background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width .2s}
+  .dhint{margin-top:9px;font-size:11px;line-height:1.4;color:var(--dim)}
   .dial-extra{display:none}
   /* LAST RUN checklist rows */
   .lr-rows{display:flex;flex-direction:column}
@@ -434,8 +435,9 @@
   .modal-bd{padding:18px 20px;overflow-y:auto;font-size:13.5px;line-height:1.6;white-space:pre-wrap}
   .modal-bd h3{color:var(--gold);font-size:14px;margin:2px 0 8px}
   .modal-ft{padding:13px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
-  .hrow{display:flex;gap:10px;color:var(--dim);font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--border)}
-  .hrow:last-child{border-bottom:0}
+  /* .hrow is a <tr> — never display:flex (that breaks it out of table layout
+     and de-aligns the columns from <thead>). Separators come from the td rule. */
+  .hrow{color:var(--dim);font-size:12.5px}
   .hrow b{color:var(--text);font-weight:600}
   .whatis{float:right;display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;
           color:var(--gold);background:color-mix(in srgb,var(--gold) 11%,transparent);
@@ -454,6 +456,60 @@
          color:var(--text);border-radius:10px;padding:11px 18px;font-size:13px;opacity:0;
          transition:opacity .25s;pointer-events:none;z-index:9}
   .toast.on{opacity:1}
+
+  /* ══ Exile's Ledger — shared treatments for the remaining tabs ══════════
+     Append-only: these override the older rules above by source order, so no
+     existing rule had to be edited. Everything uses palette variables, so all
+     three themes keep working. */
+  /* Panels get the mockup's gradient + 13px radius */
+  .card{background:linear-gradient(180deg,var(--bg2),color-mix(in srgb,var(--bg2) 86%,#000));border-radius:13px}
+  .bc2,.bcard{background:linear-gradient(180deg,var(--bg2),color-mix(in srgb,var(--bg2) 88%,#000))}
+  .eco-toolbar{border-radius:13px;background:linear-gradient(180deg,var(--bg2),color-mix(in srgb,var(--bg2) 88%,#000))}
+  /* Section headers: bold title + hairline filling the row (Generate opts out) */
+  .page:not(#p-gen) .card h2{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700;
+    letter-spacing:0;text-transform:none;color:var(--text)}
+  .page:not(#p-gen) .card h2::after{content:"";flex:1;height:1px;background:var(--border)}
+  .gsec{display:flex;align-items:center;gap:12px;color:var(--text);font-size:14px;font-weight:700;
+    text-transform:none;letter-spacing:0;border-bottom:0;padding-bottom:0;margin:14px 2px 2px}
+  .gsec::after{content:"";flex:1;height:1px;background:var(--border)}
+  .gsec>span+span{order:2}
+  /* uppercase dim eyebrows */
+  .eyeb,#fracToggleLabel,#p-rare .card span.t{font-size:10px;font-weight:700;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--dim);white-space:nowrap}
+  /* Data tables (Economy + History) */
+  th{font-size:10px;letter-spacing:.12em;font-weight:700;color:var(--dim);white-space:nowrap}
+  th:hover{color:var(--text)}
+  /* the rail narrows the table — pin the columns so the copy button can never
+     be pushed off-screen, and ellipsise a long item name instead */
+  #p-eco table{width:100%;table-layout:fixed}
+  #ecoBody td:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #p-eco td.val,#p-eco td:nth-child(3){white-space:nowrap;overflow:hidden}
+  #p-eco td.val{padding-right:10px}
+  #ecoBody .icn{vertical-align:middle;margin-right:9px}
+  tr.item:hover td,.hrow:hover td{background:color-mix(in srgb,var(--gold) 6%,transparent)}
+  .hrow:hover{background:transparent}
+  #ecoBody tr.item td:first-child{font-weight:600}
+  td.val{font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums;font-weight:600}
+  td.val .u{font-size:10.5px;font-weight:700;color:var(--gold);margin-left:3px}
+  #histRows td:nth-child(3),#histRows td:nth-child(4),#histRows td:nth-child(6){
+    font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .chg{font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .icn{border-radius:6px;background:var(--bg3);box-shadow:0 0 0 1px var(--border)}
+  /* status pills: green "keep" / muted "skip" */
+  .pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;color:var(--dim);
+    background:var(--bg2);border:1px solid var(--border);
+    font-family:"Segoe UI Variable Text","Segoe UI",sans-serif}
+  .pill.on{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 35%,transparent);
+    background:color-mix(in srgb,var(--ok) 10%,transparent)}
+  /* category/base tags inside the Economy name column read as type → steel */
+  #ecoBody td:first-child .pill{color:var(--steel);border-color:color-mix(in srgb,var(--steel) 30%,transparent);
+    background:color-mix(in srgb,var(--steel) 8%,transparent)}
+  input[type=number],.stepper input{font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .cside-btn .n{font-family:Consolas,ui-monospace,monospace}
+  /* theme-safe replacements for hard-coded palette values */
+  .chip.on{background:color-mix(in srgb,var(--gold) 8%,transparent)}
+  .banner{background:color-mix(in srgb,var(--gold) 13%,transparent)}
+  .banner.warn{background:color-mix(in srgb,var(--warn) 11%,transparent)}
 </style>
 </head>
 <body>
@@ -600,19 +656,19 @@
           <div class="avg"><div class="k">7D AVG</div><div class="v" id="uAvg">–</div></div>
         </div><div class="hint" style="margin:7px 0 0">Source: <a href="#" id="ninjaLink" style="color:var(--gold)">poe.ninja ↗</a></div></div>
       </div>
-      <div class="ftile dial">
+      <div class="ftile dial" title="Exceptional bases: minimum quality roll to pick up (rolls 21–30%)">
         <div class="dlbl"><span>Base quality</span>
           <span class="stepper2"><button type="button" data-stp="bqGen|-1">−</button><button type="button" data-stp="bqGen|1">+</button></span></div>
-        <div class="dval"><input id="bqGen" type="number" min="0" max="30" step="1" value="25"><span class="dunit">%</span></div>
+        <div class="dval"><input id="bqGen" type="number" min="21" max="30" step="1" value="25"><span class="dunit">%</span></div>
         <div class="dtrack"><i id="bqTrack"></i></div>
-        
+        <div class="dhint">Exceptional bases — quality rolls 21–30%</div>
       </div>
-      <div class="ftile dial">
+      <div class="ftile dial" title="Exceptional bases: minimum item level to pick up (top bases drop at ilvl 80–82)">
         <div class="dlbl"><span>Base min level</span>
           <span class="stepper2"><button type="button" data-stp="blGen|-1">−</button><button type="button" data-stp="blGen|1">+</button></span></div>
-        <div class="dval"><input id="blGen" type="number" min="1" max="100" step="1" value="82"><span class="dunit">ILVL</span></div>
+        <div class="dval"><input id="blGen" type="number" min="80" max="82" step="1" value="82"><span class="dunit">ILVL</span></div>
         <div class="dtrack"><i id="blTrack"></i></div>
-        
+        <div class="dhint">Exceptional bases — item level 80–82</div>
       </div>
     </div>
     <div class="outrow">
@@ -698,11 +754,11 @@
     <div id="ecoChips" class="craft-side" style="width:195px;flex:0 0 195px;position:static;max-height:calc(90.9vh - 200px);overflow-y:auto"></div>
     <div class="card" style="padding:8px 6px;flex:1;min-width:0">
       <table><thead><tr>
-        <th style="width:48%" data-s="name">Item<span class="s-ind"></span></th>
-        <th data-s="ex" style="text-align:right">Value (ex)<span class="s-ind"></span></th>
-        <th data-s="chg" style="text-align:right;width:80px">Δ<span class="s-ind"></span></th>
-        <th style="text-align:center;width:95px">Picked up</th>
-        <th style="width:64px"></th>
+        <th data-s="name" style="width:34%">Item<span class="s-ind"></span></th>
+        <th data-s="ex" style="text-align:right">Value<span class="s-ind"></span></th>
+        <th data-s="chg" style="text-align:right;width:64px">Δ<span class="s-ind"></span></th>
+        <th style="text-align:center;width:84px">In pickit</th>
+        <th style="width:54px"></th>
       </tr></thead><tbody id="ecoBody"></tbody></table>
     </div>
   </div>
@@ -751,10 +807,10 @@
     <div class="hint">Exceptional bases can roll an <b>extra rune socket</b> (e.g. gloves with 2 instead of 1) — that's what makes them special and worth crafting on. Blank (Normal) ones are kept to craft or sell to crafters. No market listing, so your value floors don't apply; the quality and item-level gates below decide what's worth the pickup.</div>
     <div class="set-row"><div class="lab"><b>Pick up white exceptional bases</b><span>Normal rarity, gated by quality &amp; item level below</span></div><div class="sp"></div>
       <div class="switch" id="swBases"><i></i></div></div>
-    <div class="set-row"><div class="lab"><b>Minimum quality %</b></div><div class="sp"></div>
-      <input type="number" id="baseQ" min="0" max="100" style="width:80px;text-align:center"></div>
-    <div class="set-row"><div class="lab"><b>Minimum item level</b><span>82 = max</span></div><div class="sp"></div>
-      <input type="number" id="baseL" min="1" max="82" style="width:80px;text-align:center"></div>
+    <div class="set-row"><div class="lab"><b>Minimum quality %</b><span>Exceptional bases roll 21–30% quality</span></div><div class="sp"></div>
+      <input type="number" id="baseQ" min="21" max="30" style="width:80px;text-align:center"></div>
+    <div class="set-row"><div class="lab"><b>Minimum item level</b><span>Top bases drop at ilvl 80–82 · 82 = max</span></div><div class="sp"></div>
+      <input type="number" id="baseL" min="80" max="82" style="width:80px;text-align:center"></div>
   </div>
   <div class="card"><h2>📋 The base list</h2>
     <div class="hint">Updates automatically when a PoE2 patch adds new bases — nothing to manage here.</div>
@@ -1157,21 +1213,28 @@ function _saveFloors(){clearTimeout(_floorT);
 ["gAmt","gUnit"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();}));
 
 /* ── console dials: − / + steppers, fill tracks, base quality/level sync ── */
+// Steppers honour each input's own min/max (quality 21-30, ilvl 80-82, floors 0+).
 document.querySelectorAll("[data-stp]").forEach(b=>b.onclick=()=>{
   const [id,d]=b.dataset.stp.split("|");const el=$(id);
-  el.value=Math.max(0,(parseFloat(el.value)||0)+parseFloat(d));
+  const lo=el.min===""?0:parseFloat(el.min), hi=el.max===""?Infinity:parseFloat(el.max);
+  el.value=Math.max(lo,Math.min(hi,(parseFloat(el.value)||0)+parseFloat(d)));
   el.dispatchEvent(new Event("input",{bubbles:true}));});
 function updTracks(){
-  const w=(id,v,mx)=>{const t=$(id);if(t)t.style.width=Math.max(0,Math.min(100,v/mx*100))+"%";};
-  w("uTrack",parseFloat($("uAmt").value)||0,5);
-  w("gTrack",parseFloat($("gAmt").value)||0,5);
-  w("bqTrack",parseFloat($("bqGen").value)||0,30);
-  w("blTrack",parseFloat($("blGen").value)||0,100);}
+  // fill maps each dial across its OWN range, so a 21-30 quality dial reads
+  // empty at 21 and full at 30 instead of always looking ~80% full.
+  const w=(id,v,lo,hi)=>{const t=$(id);
+    if(t)t.style.width=Math.max(0,Math.min(100,(v-lo)/((hi-lo)||1)*100))+"%";};
+  w("uTrack",parseFloat($("uAmt").value)||0,0,5);
+  w("gTrack",parseFloat($("gAmt").value)||0,0,5);
+  w("bqTrack",parseFloat($("bqGen").value)||21,21,30);
+  w("blTrack",parseFloat($("blGen").value)||80,80,82);}
 ["uAmt","gAmt","bqGen","blGen"].forEach(i=>$(i).addEventListener("input",updTracks));
-$("bqGen").addEventListener("input",()=>{const v=parseInt($("bqGen").value)||25;
-  $("baseQ").value=v;api().set_setting("base_quality",v);});
-$("blGen").addEventListener("input",()=>{const v=parseInt($("blGen").value)||82;
-  $("baseL").value=v;api().set_setting("base_min_level",v);});
+const _clamp=(el,lo,hi,dflt)=>{const v=parseInt(el.value);
+  return isNaN(v)?dflt:Math.max(lo,Math.min(hi,v));};
+$("bqGen").addEventListener("change",()=>{const v=_clamp($("bqGen"),21,30,25);
+  $("bqGen").value=v;$("baseQ").value=v;updTracks();api().set_setting("base_quality",v);});
+$("blGen").addEventListener("change",()=>{const v=_clamp($("blGen"),80,82,82);
+  $("blGen").value=v;$("baseL").value=v;updTracks();api().set_setting("base_min_level",v);});
 
 /* top-picks table under the console (filled from a generate's `top`) */
 function fillTopPicks(top){
@@ -1441,10 +1504,12 @@ async function loadEco(){
   renderChips();renderEco();
   $("ecoInfo").textContent=`1 div = ${eco.divine_rate} ex`;
   $("ecoRateV").textContent=`${eco.divine_rate} ex`;$("ecoRate").style.display="flex";}
+// Returns HTML (single call site, inside an innerHTML template): the unit gets
+// its own span so it can be tinted gold, mockup-style.
 function fmtVal(ex){
-  if(ecoUnit==="div"&&divRate>1)return (ex/divRate).toFixed(2)+" div";
-  if(ecoUnit==="chaos"&&chaosEx>0)return Math.round(ex/chaosEx).toLocaleString()+" c";
-  return ex.toLocaleString()+" ex";}
+  if(ecoUnit==="div"&&divRate>1)return (ex/divRate).toFixed(2)+'<span class="u">div</span>';
+  if(ecoUnit==="chaos"&&chaosEx>0)return Math.round(ex/chaosEx).toLocaleString()+'<span class="u">c</span>';
+  return ex.toLocaleString()+'<span class="u">ex</span>';}
 document.querySelectorAll("#unitChips .chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll("#unitChips .chip").forEach(x=>x.classList.remove("on"));
   c.classList.add("on");ecoUnit=c.dataset.u;eco&&renderEco();});
@@ -1502,9 +1567,9 @@ function renderEco(){
     const nm=ico+esc(it.name)+(q?` <span class="pill" title="${esc(cat.label)}">${esc(cat.label)}</span>`:"")+
       (it.base?` <span class="pill" title="${esc(it.base)}">${esc(it.base)}</span>`:"");
     const chg=it.chg==null?"":`<span class="chg ${it.chg>=0?"up":"dn"}">${it.chg>=0?"▲":"▼"} ${Math.abs(it.chg)}%</span>`;
-    tr.innerHTML=`<td>${nm}</td><td class="val">${it.static?'<span class="pill">always picked</span>':fmtVal(it.ex)}</td>
+    tr.innerHTML=`<td title="${esc(it.name)}">${nm}</td><td class="val">${it.static?'<span class="pill">always picked</span>':fmtVal(it.ex)}</td>
       <td style="text-align:right">${chg}</td>
-      <td style="text-align:center"><span class="pill ${it.enabled?"on":""}">${it.enabled?"yes":"no"}</span></td>
+      <td style="text-align:center"><span class="pill ${it.enabled?"on":""}">${it.enabled?"● keep":"skip"}</span></td>
       <td><button class="rowbtn">copy</button></td>`;
     tr.querySelector(".rowbtn").onclick=async e=>{e.stopPropagation();
       const rule=await api().rule_for(cat.key,it.name,cat.unique,it.base||"",it.ex);
@@ -1851,7 +1916,7 @@ function drawHistChart(h){
   const line=pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
   const first=runs[0].ts.split(" ")[0],last=runs[runs.length-1].ts;
   svg.innerHTML=g+
-    `<polygon points="${PL},${H-PB} ${line} ${W-PR},${H-PB}" fill="rgba(200,169,110,.12)"/>
+    `<polygon points="${PL},${H-PB} ${line} ${W-PR},${H-PB}" fill="var(--gold)" fill-opacity=".12"/>
      <polyline points="${line}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linejoin="round"/>`+
     pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===pts.length-1?4:2.5}" fill="var(--gold)"
        ${i===pts.length-1?'stroke="var(--bg2)" stroke-width="2"':''}/>`).join("")+
@@ -2091,10 +2156,10 @@ function sw(id,key,cur){const el=$(id);el.classList.toggle("on",cur);
     el.classList.toggle("on",on);await api().set_setting(key,on);toast("Saved");};}
 $("botBrowse").onclick=async()=>{const r=await api().browse_folder();
   if(r.path){$("botFolderLbl").textContent=r.path;await api().set_setting("bot_folder",r.path);toast("Saved");}};
-$("baseQ").onchange=()=>{const v=parseInt($("baseQ").value)||25;
-  $("bqGen").value=v;updTracks();api().set_setting("base_quality",v);toast("Saved");};
-$("baseL").onchange=()=>{const v=parseInt($("baseL").value)||82;
-  $("blGen").value=v;updTracks();api().set_setting("base_min_level",v);toast("Saved");};
+$("baseQ").onchange=()=>{const v=_clamp($("baseQ"),21,30,25);
+  $("baseQ").value=v;$("bqGen").value=v;updTracks();api().set_setting("base_quality",v);toast("Saved");};
+$("baseL").onchange=()=>{const v=_clamp($("baseL"),80,82,82);
+  $("baseL").value=v;$("blGen").value=v;updTracks();api().set_setting("base_min_level",v);toast("Saved");};
 $("outBase").onchange=()=>{api().set_setting("output_base",$("outBase").value.trim()||"poe2_pickit");toast("Saved");};
 $("bakCount").onchange=()=>{api().set_setting("backup_count",parseInt($("bakCount").value)||0);toast("Saved");};
 $("fltBrowse").onclick=async()=>{const r=await api().browse_folder();
@@ -2144,8 +2209,11 @@ function applyInfo(i){
   sw("swTray","minimize_to_tray",i.minimize_to_tray);
   $("fltDirLbl").textContent=i.poe2_filter_dir||"not set";
   $("bakCount").value=i.backup_count;
-  $("baseQ").value=i.base_quality;$("baseL").value=i.base_min_level;
-  $("bqGen").value=i.base_quality;$("blGen").value=i.base_min_level;
+  // clamp legacy configs into the real exceptional-base ranges (21-30 / 80-82)
+  const _bq=Math.max(21,Math.min(30,parseInt(i.base_quality)||25));
+  const _bl=Math.max(80,Math.min(82,parseInt(i.base_min_level)||82));
+  $("baseQ").value=_bq;$("baseL").value=_bl;
+  $("bqGen").value=_bq;$("blGen").value=_bl;
   updTracks();
   $("swAuto").classList.toggle("on",!!i.auto_floor);
   $("keepPct").value=String(i.auto_floor_pct||40);
