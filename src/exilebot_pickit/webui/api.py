@@ -821,6 +821,30 @@ class AppApi:
         webbrowser.open(u)
         return {"ok": True}
 
+    def output_path(self):
+        """Full path of the generated .ipd (the file the bot reads)."""
+        base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
+        return {"path": os.path.join(OUTPUT_DIR, base + ".ipd"), "dir": OUTPUT_DIR}
+
+    def open_output_folder(self):
+        """Open the pickit output folder in the OS file browser, selecting the
+        .ipd if it exists (Explorer /select). Best-effort, never fatal."""
+        import sys
+        base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
+        ipd = os.path.join(OUTPUT_DIR, base + ".ipd")
+        try:
+            if sys.platform.startswith("win") and os.path.exists(ipd):
+                import subprocess
+                subprocess.Popen(["explorer", "/select,", os.path.normpath(ipd)])
+            elif sys.platform.startswith("win"):
+                os.startfile(OUTPUT_DIR)          # noqa: S606 (folder, no args)
+            else:
+                import webbrowser
+                webbrowser.open("file://" + OUTPUT_DIR)
+            return {"ok": True}
+        except Exception:
+            return {"error": "could not open folder", "dir": OUTPUT_DIR}
+
     def debug_info(self):
         from exilebot_pickit.ui.config import LOG_PATH, CONFIG_PATH
         ci = gen.cache_info()

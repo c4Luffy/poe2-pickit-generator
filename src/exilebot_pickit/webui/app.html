@@ -102,6 +102,14 @@
   .tb-btns button{width:48px;border:none;background:none;color:var(--dim);font-size:12.5px;
     cursor:pointer;transition:background .12s,color .12s}
   .rz{display:none !important}
+  /* clickable validation error list (Preview tab) + jump-to-line flash */
+  .val-item{cursor:pointer;font:12px/1.5 Consolas,monospace;padding:3px 9px;border-radius:5px;
+    border:1px solid var(--border);background:var(--bg3);display:block}
+  .val-item:hover{border-color:var(--gold)}
+  .val-item.err{color:var(--err)}
+  .val-item.warn{color:var(--warn)}
+  .pv-flash{background:color-mix(in srgb,var(--gold) 32%,transparent);border-radius:3px;
+    outline:1px solid var(--gold)}
   .tb-btns button:hover{background:var(--bg3);color:var(--text)}
   .tb-btns .tb-x:hover{background:#c0392b;color:#fff}
   /* ── Top nav ── */
@@ -763,6 +771,7 @@
 <div class="page" id="p-prev">
   <h1>Preview</h1><div class="sub">Your last generated pickit — exactly what the bot reads.</div>
   <div class="banner warn" id="valBanner"></div>
+  <div id="valList" style="display:none;flex-direction:column;gap:4px;margin:-4px 0 12px"></div>
   <div class="stats" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
     <div class="stat"><b id="pvTotal">–</b><span>rules</span></div>
     <div class="stat"><b id="pvActive">–</b><span>active</span></div>
@@ -780,6 +789,8 @@
       <span class="chip" data-f="base">Bases</span>
     </span>
     <button class="ghost mini" id="prevCopy">Copy all</button>
+    <button class="ghost mini" id="prevOpenDir" title="Open the pickit output folder">📂 Open folder</button>
+    <button class="ghost mini" id="prevCopyPath" title="Copy the .ipd file path">📋 Copy path</button>
   </div>
   <div style="display:flex;gap:12px;align-items:flex-start">
     <div id="pvNav" class="craft-side" style="width:215px;flex:0 0 215px;position:static;max-height:calc(90.9vh - 330px);overflow-y:auto"></div>
@@ -1800,7 +1811,25 @@ async function loadPreview(){
   else if(v.warnings.length){b.textContent=`⚠ ${v.warnings.length} validation warnings — marked ⚠ inline below`;b.classList.add("on");}
   else b.classList.remove("on");
   $("pvVal").textContent=v.errors.length?v.errors.length+" ✗":(v.warnings.length?v.warnings.length+" ⚠":"✓");
+  // clickable list: each error/warning that carries a line number jumps to it
+  const vl=$("valList");
+  const items=[...v.errors.map(m=>["err",m]),...v.warnings.map(m=>["warn",m])]
+    .map(([t,m])=>[t,m,parseInt(m.match(/Line (\d+)/)?.[1])]).filter(x=>x[2]);
+  if(items.length){
+    vl.style.display="flex";
+    vl.innerHTML=items.map(([t,m,n])=>`<span class="val-item ${t}" data-ln="${n}">▸ ${esc(m)}</span>`).join("");
+    vl.querySelectorAll(".val-item").forEach(s=>s.onclick=()=>pvJump(parseInt(s.dataset.ln)));
+  }else{vl.style.display="none";vl.innerHTML="";}
   renderPvNav();renderPreview();}
+function pvJump(n){
+  // clear section/filter so the target line is actually rendered, then scroll to it
+  pvSection=null;pvFilter="all";$("prevFilter").value="";
+  document.querySelectorAll("#pvChips .chip").forEach(c=>c.classList.toggle("on",c.dataset.f==="all"));
+  renderPvNav();renderPreview();
+  requestAnimationFrame(()=>{
+    const el=document.getElementById("pvln-"+n);
+    if(el){el.scrollIntoView({block:"center",behavior:"smooth"});
+      el.classList.add("pv-flash");setTimeout(()=>el.classList.remove("pv-flash"),1600);}});}
 function renderPvNav(){
   const n=$("pvNav");
   if(!pvSections.length){n.innerHTML="";return;}
@@ -1829,7 +1858,7 @@ function renderPreview(){
   const html=shown.slice(0,6000).map(([n,l])=>{
     let e=l.replace(/&/g,"&amp;").replace(/</g,"&lt;");
     const vm=pvValMap[n];
-    if(vm)e=`<span style="color:${vm[0]==="err"?"var(--err)":"var(--warn)"}" title="${vm[1].replace(/"/g,"&quot;")}">⚠ ${e}</span>`;
+    if(vm)e=`<span id="pvln-${n}" style="color:${vm[0]==="err"?"var(--err)":"var(--warn)"}" title="${vm[1].replace(/"/g,"&quot;")}">⚠ ${e}</span>`;
     if(l.startsWith("////")||(l.startsWith("//")&&(l.match(/\/\//g)||[]).length>2))return`<span class="l-h">${e}</span>`;
     if(l.startsWith("//")){if(l.includes("[StashItem]"))c++;return vm?e:`<span class="l-c">${e}</span>`;}
     if(l.includes("[StashItem]")){a++;return vm?e:`<span class="l-a">${e}</span>`;}
@@ -1849,6 +1878,13 @@ $("prevCopy").onclick=async()=>{
   const lines=all?prevLines:pvVisible().map(([,l])=>l);
   const r=await copyText(lines.join("\n"));
   toast(r?(all?"Whole pickit copied":lines.length+" visible lines copied"):"Clipboard blocked");};
+$("prevOpenDir").onclick=async()=>{
+  const r=await api().open_output_folder();
+  toast(r&&r.ok?"📂 Opened output folder":"Couldn't open folder"+(r&&r.dir?": "+r.dir:""));};
+$("prevCopyPath").onclick=async()=>{
+  const r=await api().output_path();
+  const ok=r&&r.path&&await copyText(r.path);
+  toast(ok?"📋 Path copied: "+r.path:"Clipboard blocked");};
 $("prevFilter").addEventListener("input",renderPreview);
 
 /* ── settings ── */
