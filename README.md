@@ -25,6 +25,14 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
+> ### 🏺 What's new in v4.4.0 — the "Exile's Ledger" redesign
+> A new **left rail**, a **Generate console** with live run status and dial-style
+> value floors, a live *"prices fetched X ago"* indicator, and a new
+> obsidian-and-gold look (now the default theme). Also fixes History table
+> columns not lining up with their headers.
+>
+> **[→ Full changelog](CHANGELOG.md)**
+
 <details>
 <summary><b>Build from source</b></summary>
 
