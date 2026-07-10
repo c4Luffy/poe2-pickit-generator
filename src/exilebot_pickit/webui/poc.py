@@ -93,7 +93,7 @@ def _start_tray(window, api):
 
     def _exit(icon, item):
         icon.stop()
-        api.cfg["window_geometry_web"] = {"w": window.width, "h": window.height}
+        api.cfg["window_geometry_web"] = _win_geometry(window)
         from exilebot_pickit.ui.config import save_config
         save_config(api.cfg)
         window.destroy()
@@ -107,6 +107,36 @@ def _start_tray(window, api):
     return icon
 
 
+def _win_geometry(window):
+    """Best-effort {x,y,w,h} of the window for save/restore. Reads the native
+    WinForms bounds (position + size); falls back to pywebview width/height."""
+    try:
+        b = window.native.Bounds
+        return {"x": int(b.X), "y": int(b.Y), "w": int(b.Width), "h": int(b.Height)}
+    except Exception:
+        try:
+            return {"w": int(window.width), "h": int(window.height)}
+        except Exception:
+            return {}
+
+
+def _saved_position(geo):
+    """Restore the saved top-left ONLY if it still lands on a connected screen
+    (a monitor may have been unplugged/rearranged since). Returns {} otherwise,
+    so create_window centers on the primary screen."""
+    if not (isinstance(geo, dict) and "x" in geo and "y" in geo):
+        return {}
+    try:
+        x, y = int(geo["x"]), int(geo["y"])
+        for scr in webview.screens:
+            sx, sy = int(getattr(scr, "x", 0)), int(getattr(scr, "y", 0))
+            if sx - 8 <= x <= sx + scr.width - 40 and sy - 8 <= y <= sy + scr.height - 40:
+                return {"x": x, "y": y}
+    except Exception:
+        pass
+    return {}
+
+
 def main():
     if not _single_instance():
         return
@@ -115,6 +145,7 @@ def main():
     geo = api.cfg.get("window_geometry_web") or {}
     w = int(geo.get("w", 1120)) if isinstance(geo, dict) else 1120
     h = int(geo.get("h", 860)) if isinstance(geo, dict) else 860
+    pos = _saved_position(geo)
     # Clamp to the primary screen so the window never opens taller/wider than
     # the desktop (default 860px is too tall for a 1366x768 laptop).
     try:
@@ -129,6 +160,7 @@ def main():
         else os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.html"),
         js_api=api,
         width=max(760, w), height=max(560, h),
+        x=pos.get("x"), y=pos.get("y"),      # restore last position (or center)
         background_color="#0e0f12",
         # Native OS window frame (owner decision 2026-07-10): the frameless
         # custom-title-bar window had unfixable multi-monitor bugs — freezing /
@@ -225,7 +257,7 @@ def _run_webview(window, api, tray):
             return False        # cancel the close
         try:
             from exilebot_pickit.ui.config import save_config
-            api.cfg["window_geometry_web"] = {"w": window.width, "h": window.height}
+            api.cfg["window_geometry_web"] = _win_geometry(window)
             save_config(api.cfg)
         except Exception:
             pass

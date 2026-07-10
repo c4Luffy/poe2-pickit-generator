@@ -110,6 +110,8 @@
   .val-item.warn{color:var(--warn)}
   .pv-flash{background:color-mix(in srgb,var(--gold) 32%,transparent);border-radius:3px;
     outline:1px solid var(--gold)}
+  /* click-to-copy affordance on rule lines */
+  #prevBox .l-a:hover,#prevBox .l-c:hover{background:color-mix(in srgb,var(--gold) 9%,transparent)}
   .tb-btns button:hover{background:var(--bg3);color:var(--text)}
   .tb-btns .tb-x:hover{background:#c0392b;color:#fff}
   /* ── Top nav ── */
@@ -790,6 +792,7 @@
     </span>
     <button class="ghost mini" id="prevCopy">Copy all</button>
     <button class="ghost mini" id="prevOpenDir" title="Open the pickit output folder">📂 Open folder</button>
+    <button class="ghost mini" id="prevBotDir" title="Open the configured Exiled Bot folder">🤖 Bot folder</button>
     <button class="ghost mini" id="prevCopyPath" title="Copy the .ipd file path">📋 Copy path</button>
   </div>
   <div style="display:flex;gap:12px;align-items:flex-start">
@@ -1881,10 +1884,23 @@ $("prevCopy").onclick=async()=>{
 $("prevOpenDir").onclick=async()=>{
   const r=await api().open_output_folder();
   toast(r&&r.ok?"📂 Opened output folder":"Couldn't open folder"+(r&&r.dir?": "+r.dir:""));};
+$("prevBotDir").onclick=async()=>{
+  const r=await api().open_bot_folder();
+  toast(r&&r.ok?"🤖 Opened bot folder":
+    (r&&r.error==="no bot folder set"?"No bot folder set — add one in Settings":
+     "Couldn't open bot folder"+(r&&r.dir?": "+r.dir:"")));};
 $("prevCopyPath").onclick=async()=>{
   const r=await api().output_path();
   const ok=r&&r.path&&await copyText(r.path);
   toast(ok?"📋 Path copied: "+r.path:"Clipboard blocked");};
+// #3 QoL: click any single rule line to copy just that rule (skips when the
+// user is selecting text, so normal select-to-copy still works).
+$("prevBox").addEventListener("click",e=>{
+  if(!window.getSelection().isCollapsed)return;
+  const sp=e.target.closest(".l-a,.l-c,[id^='pvln-']");
+  if(!sp||!sp.textContent.includes("[StashItem]"))return;
+  const line=sp.textContent.replace(/^⚠\s*/,"");
+  copyText(line).then(ok=>toast(ok?"Rule copied":"Clipboard blocked"));});
 $("prevFilter").addEventListener("input",renderPreview);
 
 /* ── settings ── */

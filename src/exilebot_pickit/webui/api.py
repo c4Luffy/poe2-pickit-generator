@@ -845,6 +845,25 @@ class AppApi:
         except Exception:
             return {"error": "could not open folder", "dir": OUTPUT_DIR}
 
+    def open_bot_folder(self):
+        """Open the configured Exiled Bot folder (where the .ipd is copied) in
+        the OS file browser. Returns a hint if no bot folder is set."""
+        import sys
+        folder = (self.cfg.get("bot_folder") or "").strip()
+        if not folder:
+            return {"error": "no bot folder set"}
+        if not os.path.isdir(folder):
+            return {"error": "bot folder not found", "dir": folder}
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(folder)          # noqa: S606 (folder, no args)
+            else:
+                import webbrowser
+                webbrowser.open("file://" + folder)
+            return {"ok": True}
+        except Exception:
+            return {"error": "could not open folder", "dir": folder}
+
     def debug_info(self):
         from exilebot_pickit.ui.config import LOG_PATH, CONFIG_PATH
         ci = gen.cache_info()
