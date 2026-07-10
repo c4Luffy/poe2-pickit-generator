@@ -31,11 +31,32 @@ def _set_dpi_awareness() -> None:
             continue
 
 
+def _tune_webview2() -> None:
+    """Disable Chromium's native window-occlusion detection in WebView2.
+
+    Chromium (which WebView2 embeds) throttles rendering to ~zero when it thinks
+    a window is occluded. On multi-monitor setups that detection misfires — the
+    window on a secondary screen (or the main one after a while) is wrongly
+    judged hidden, so WebView2 stops painting and the UI *looks* frozen while the
+    process is actually fine. Electron/VS Code/Discord all ship this same switch.
+
+    The flag is read from WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS at environment
+    creation, so it must be set before the GUI (and thus WebView2) starts. We
+    append to any value the user already set rather than clobbering it."""
+    import os
+    key = "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"
+    flags = "--disable-features=CalculateNativeWinOcclusion"
+    existing = os.environ.get(key, "")
+    if "CalculateNativeWinOcclusion" not in existing:
+        os.environ[key] = (existing + " " + flags).strip()
+
+
 if "--cli" in _sys.argv:
     _sys.argv.remove("--cli")
     from exilebot_pickit.generator import main
     _sys.exit(main())
 
 _set_dpi_awareness()
+_tune_webview2()
 from exilebot_pickit.webui.poc import main
 _sys.exit(main())
