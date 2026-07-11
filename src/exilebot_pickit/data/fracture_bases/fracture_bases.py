@@ -203,8 +203,10 @@ FRACTURE_TARGETS: list = [
      "reason": "A target: projectile speed quiver prefix — T1 or T2 both count."},
     {"id": "quiver_added_lightning", "tier": "A", "classes": ["Quivers"],
      "affix": "prefix", "mod_tier": "T1/T2", "value": "T1 1-4/60-71 / T2 1-3/48-59",
+     "threshold": "48",   # gate on the MAX roll (min rolls start at 1 on every tier)
      "text": "Adds # to # Lightning damage to Attacks",
-     "reason": "A target: added lightning damage quiver prefix — T1 or T2 both count."},
+     "reason": "A target: added lightning damage quiver prefix — T1 or T2 both count "
+               "(gated on the maximum roll: T2 max is 48-59, verified live CoE)."},
     {"id": "crossbow_load_bolt", "tier": "S", "classes": ["Crossbows"],
      "affix": "suffix", "mod_tier": "T1", "value": "2",
      "text": "Loads 2 additional bolts",
@@ -215,10 +217,19 @@ FRACTURE_TARGETS: list = [
      "text": "87-139% increased Elemental Damage with Attacks (value varies by weapon speed class)",
      "reason": "A+ target: T1 elemental damage with attacks — a strong prefix on martial weapons."},
     {"id": "added_lightning_weapon", "tier": "A+", "classes": [
-        "Crossbows", "Quarterstaves", "Spears", "One Hand Maces", "Two Hand Maces"],
-     "affix": "prefix", "mod_tier": "T1/T2", "value": "varies by class, e.g. Crossbow T1 1-19/310-358",
+        "Spears", "One Hand Maces"],
+     "affix": "prefix", "mod_tier": "T1/T2", "value": "T1 max 202-234 / T2 max 157-196",
+     "threshold": "157",  # gate on the MAX roll (min rolls start at 1 on every tier)
      "text": "Adds # to # Lightning Damage",
-     "reason": "A+ target: added lightning damage weapon prefix — T1 or T2 both count."},
+     "reason": "A+ target: added lightning on a 1H-class weapon — T1 or T2 both count "
+               "(T2 max roll 157-196 at ilvl75, verified live CoE)."},
+    {"id": "added_lightning_weapon_2h", "tier": "A+", "classes": [
+        "Crossbows", "Quarterstaves", "Two Hand Maces"],
+     "affix": "prefix", "mod_tier": "T1/T2", "value": "T1 max 310-358 / T2 max 239-300",
+     "threshold": "239",  # 2H-class rolls a separate, higher table
+     "text": "Adds # to # Lightning Damage",
+     "reason": "A+ target: added lightning on a 2H-class weapon — T1 or T2 both count "
+               "(T2 max roll 239-300 at ilvl75, verified live CoE)."},
     {"id": "sceptre_spirit", "tier": "S+", "classes": ["Sceptres"],
      "affix": "prefix", "mod_tier": "T1/T2", "value": "T1 61-65% / T2 56-60%",
      "text": "56-65% increased Spirit",
@@ -361,13 +372,14 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     "crit_chance_amulet": "critical_strike_chance_+%",
     "focus_crit_spells": "spell_critical_strike_chance_+%",
     "elemental_dmg_with_attacks": "elemental_damage_+%",
-    "added_lightning_weapon": "local_minimum_added_lightning_damage",
+    "added_lightning_weapon": "local_maximum_added_lightning_damage",
+    "added_lightning_weapon_2h": "local_maximum_added_lightning_damage",
     "sceptre_spirit": "local_spirit_+%",
     "sceptre_allies_dmg": "allies_in_presence_damage_+%",
     "crossbow_load_bolt": "number_of_crossbow_bolts",
     "quiver_proj_speed": "base_projectile_speed_+%",
     "quiver_bow_dmg": "bow_damage_+%",
-    "quiver_added_lightning": "local_minimum_added_lightning_damage",
+    "quiver_added_lightning": "local_maximum_added_lightning_damage",
     "quiver_crit_chance_attacks": "attack_critical_strike_chance_+%",
     "amulet_spirit": "base_spirit_from_equipment",
     "sceptre_minion_life": "minion_maximum_life_+%",
@@ -409,7 +421,8 @@ def fracture_example_rule(target: dict) -> str:
         tail = (f'// unverified: no bot expression confirmed for "{target["text"]}" — '
                 f'FRACTURE BASES EXAMPLE, illustration only')
     return "\n".join(
-        f'{sel} && [Rarity] == "{rar}" # {cond} && [StashItem] == "true"  {tail}'
+        f'{sel} && [Rarity] == "{rar}" && [ItemTier] >= "{FRACTURE_MIN_ITEM_TIER}" '
+        f'# {cond} && [StashItem] == "true"  {tail}'
         for sel in selectors for rar in rarities)
 
 
@@ -441,6 +454,11 @@ _FRACTURE_CLASS_SEL: dict = {
 }
 
 _FRACTURE_TOP_N = 3
+
+# Ground-label gate for every emitted fracture rule: [ItemTier] is readable
+# BEFORE pickup (unlike ItemLevel), so the bot skips low-tier drops instead of
+# hauling them home to vendor. Tier 4+ ≈ endgame bases (owner-tested value).
+FRACTURE_MIN_ITEM_TIER = 4
 
 # Manual base picks for slots with no defence/ilvl ranking data (accessories).
 # Owner-chosen: amulets fracture only on Solar (+Spirit implicit) and Gold
@@ -475,10 +493,19 @@ _FRACTURE_VALUE_RE = re.compile(r"\d+")
 
 
 def _fracture_value_threshold(target: dict) -> str:
-    """Lowest whole number in a target's ``value`` string, used as the ``>=``
-    threshold for the wired pickup rule (e.g. "+4" -> "4", "57-61" -> "57")."""
-    m = _FRACTURE_VALUE_RE.search(target["value"])
-    return m.group(0) if m else "1"
+    """Lowest qualifying roll in a target's ``value`` string, used as the
+    ``>=`` threshold for the wired pickup rule (e.g. "+4" -> "4",
+    "57-61" -> "57", "T1 35-38% / T2 30-34%" -> "30").
+
+    Tier tags like "T1"/"T2" are stripped FIRST — the old version matched the
+    1 in "T1", emitting useless ``>= "1"`` thresholds (owner-caught bug,
+    2026-07-10). For multi-tier values the minimum across every listed range
+    is correct: the owner's rule for those targets is "T1 or T2 both count"."""
+    if target.get("threshold"):          # explicit override wins (used where
+        return str(target["threshold"])  # the value string can't express it)
+    cleaned = re.sub(r"\bT\d+\b", " ", target["value"])
+    nums = [int(n) for n in re.findall(r"\d+", cleaned)]
+    return str(min(nums)) if nums else "1"
 
 
 def fracture_has_verified_target(item_class: str) -> bool:
@@ -537,10 +564,16 @@ def _build_fracture_pickit_rules(states: dict, _header_major) -> list:
             if not selectors:
                 continue
             cls_lines = []
+            # Dedupe: same base+rarity+stat with two thresholds keeps only the
+            # LOWEST (a ">= 3" rule makes a ">= 4" twin pointless — the pair of
+            # sceptre skill-level targets used to emit both, owner-caught).
+            best: dict = {}
+            order: list = []
             for target in fracture_targets_for_class(cls):
                 cond = _fracture_target_condition(target)
                 if cond is None:
                     continue  # unverified — reference-only, never wired
+                m = re.match(r'^\[([^\]]+)\] >= "(\d+)"$', cond)
                 # One line per base AND per rarity (owner rule) — never a
                 # combined ([Type]||[Type]) group and never a combined
                 # (Magic||Rare) group. Every base × rarity is its own rule.
@@ -548,9 +581,21 @@ def _build_fracture_pickit_rules(states: dict, _header_major) -> list:
                             else ["Magic", "Rare"])
                 for sel in selectors:
                     for rar in rarities:
-                        cls_lines.append(
-                            f'{sel} && [Rarity] == "{rar}" # {cond} && [StashItem] == "true"'
-                        )
+                        key = (sel, rar, m.group(1)) if m else (sel, rar, cond)
+                        thr = int(m.group(2)) if m else None
+                        if key not in best:
+                            best[key] = thr
+                            order.append(key)
+                        elif thr is not None and best[key] is not None:
+                            best[key] = min(best[key], thr)
+            for key in order:
+                sel, rar, stat = key
+                thr = best[key]
+                cond = f'[{stat}] >= "{thr}"' if thr is not None else stat
+                cls_lines.append(
+                    f'{sel} && [Rarity] == "{rar}" && [ItemTier] >= "{FRACTURE_MIN_ITEM_TIER}" '
+                    f'# {cond} && [StashItem] == "true"'
+                )
             if not cls_lines:
                 continue
             body.append(f"// -- {cls} " + "-" * max(0, 73 - len(cls)))
