@@ -920,7 +920,7 @@
     <div style="flex:1;min-width:0">
       <div class="card">
         <h2 id="rareTitle" style="margin:0 0 10px">Pick a slot</h2>
-        <div class="hint">Rare-gear WeightedSum rules by slot are coming — every stat verified against the bot's mod list, weights from live max-rolls. The slots are the structure we'll fill in.</div>
+        <div class="hint">Rare-gear WeightedSum rules, built slot by slot — every stat verified against the bot's mod list, weights from live max-rolls. Slots marked with a count are drafted; the rest are up next.</div>
         <div id="rareList"></div>
       </div>
     </div>
@@ -1952,6 +1952,7 @@ async function loadRare(){
       b.innerHTML=`<span>${esc(slot)}</span><span class="n">—</span>`;
       b.onclick=()=>{rareSel=slot;renderRare();};
       s.appendChild(b);}}
+  try{window.rareRecipes=await api().rare_recipes();}catch(e){window.rareRecipes={};}
   renderRare();
   // Best-flasks section
   const d=await api().magic_rare_data();const f=d&&d.flasks;
@@ -1962,9 +1963,31 @@ $("swMrFlasks").onclick=async()=>{
   const el=$("swMrFlasks");const on=!el.classList.contains("on");
   el.classList.toggle("on",on);await api().set_magic_rare_flasks(on);toast(on?"Best flasks: ON":"Best flasks: OFF");};
 function renderRare(){
-  document.querySelectorAll("#rareSide .cside-btn").forEach(b=>b.classList.toggle("on",b.dataset.slot===rareSel));
+  document.querySelectorAll("#rareSide .cside-btn").forEach(b=>{
+    b.classList.toggle("on",b.dataset.slot===rareSel);
+    const rec=(window.rareRecipes||{})[b.dataset.slot];
+    const n=b.querySelector(".n");if(n)n.textContent=rec?rec.lines.length:"—";});
   $("rareTitle").textContent=rareSel;
-  $("rareList").innerHTML=`<div class="hint" style="margin-top:12px">No rare rules for <b>${esc(rareSel)}</b> yet. This slot is ready — the WeightedSum rules will be built here, each stat verified against the bot's mod list and weighted from live max-rolls.</div>`;
+  const r=(window.rareRecipes||{})[rareSel];
+  if(!r){
+    $("rareList").innerHTML=`<div class="hint" style="margin-top:12px">No rules built for <b>${esc(rareSel)}</b> yet — we're building the slots one at a time, in the order on the left. Each stat gets verified against the bot's mod list and weighted from live max-rolls.</div>`;
+    return;}
+  const wrows=r.weights.map(w=>`<tr><td>${esc(w.label)}</td>
+      <td style="text-align:right;font-family:Consolas,ui-monospace,monospace;font-weight:600">${w.w}</td>
+      <td style="color:var(--dim);font-size:11px;font-family:Consolas,ui-monospace,monospace">${esc(w.stat)}</td></tr>`).join("");
+  $("rareList").innerHTML=
+    `<div style="margin:10px 0"><span class="pill" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent);background:color-mix(in srgb,var(--warn) 8%,transparent)">DRAFT — approved locally, not in your generated pickit yet</span></div>
+     <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;margin:12px 0 14px">
+       <div><div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">WEIGHTEDSUM ≥</div>
+         <div style="font-family:Georgia,serif;font-size:24px;color:var(--gold)">${esc(r.threshold)}</div></div>
+       <div><div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">MIN ITEM TIER</div>
+         <div style="font-family:Georgia,serif;font-size:24px;color:var(--gold)">${esc(r.item_tier)}</div></div>
+       <div style="flex:1;min-width:220px"><div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">BASES (ONE RULE EACH)</div>
+         <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${r.bases.map(b=>`<span class="pill">${esc(b)}</span>`).join("")}</div></div>
+     </div>
+     <table style="width:100%"><thead><tr><th>Stat</th><th style="text-align:right">Weight</th><th>Bot stat id</th></tr></thead><tbody>${wrows}</tbody></table>
+     <div class="hint" style="margin-top:8px">Weight = 100 ÷ live T1 max-roll, so a perfect roll of any stat ≈ 100 points. The threshold is "how many perfect stats' worth" an item must carry.</div>
+     <pre style="margin-top:10px;font:11.5px/1.7 Consolas,ui-monospace,monospace;white-space:pre-wrap;word-break:break-word;color:var(--dim)">${esc(r.lines.join("\n"))}</pre>`;
 }
 
 /* ── history ── */

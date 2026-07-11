@@ -6,6 +6,37 @@ download lives.
 
 ---
 
+## [v4.10.0] — 2026-07-12 — Rare gear recipes: the armour set, in draft
+
+The Magic & Rare tab starts showing its real content: per-slot **WeightedSum
+recipes** for rare gear, built stat by stat and audited against the game's
+own mod database and the live poe.ninja ladder meta.
+
+### Added
+- **Recipe cards in Magic & Rare.** Body Armour, Helmet, Gloves and Boots now
+  show their full draft recipe: the WeightedSum threshold, minimum item tier,
+  the exact bases (one rule per base), every scored stat with its weight and
+  bot stat id, and the exact rule lines — ready to copy. Slots still being
+  designed say so. Sidebar counts show which slots are drafted.
+- **The four armour recipes themselves.** Each slot got its own recipe from
+  what actually sells (poe.ninja Runes of Aldur ladder, 124k characters):
+  - *Body Armour* — Life (the game's biggest roll, T1 214) + flat Spirit +
+    4 resistances + the body-exclusive %ES tier.
+  - *Helmet* — +2 Minion Skills (helmet-exclusive), Rarity, global crit,
+    Life/res backbone.
+  - *Gloves* — Attack Speed, +2 Melee Skills, Crit Damage Bonus, Rarity,
+    Life/res backbone.
+  - *Boots* — Movement Speed (30/35 dominate by design), Life, Rarity,
+    full res + ES package.
+  Every weight = 100 ÷ the stat's live T1 max-roll; every stat id verified in
+  the bot's ModsList.
+
+### Important
+- **These recipes are DRAFT — they are NOT in generated pickits yet.** The
+  jewellery, off-hand and weapon slots are still being built; the whole set
+  ships into real pickit output together after a final review. Generated
+  `.ipd` files are unchanged by this release.
+
 ## [v4.9.3] — 2026-07-12
 ### Fixed
 - **Fracture "spirit body" rules could never match.** The "+57-61 to Spirit"
@@ -245,6 +276,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.10.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.10.0
 [v4.9.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.3
 [v4.9.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.2
 [v4.9.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.1

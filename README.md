@@ -36,12 +36,12 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
-> ### 🔩 What's new in v4.9.2 — every Fracture target now emits real rules
-> The last five "unverified" Fracture targets (staff/glove/quiver crit
-> damage, glove added damage, belt resistances) are now **verified against
-> the game's own mod database** and emit validator-clean rules — 441
-> fracture rules, zero placeholders. Also new this week: the **History
-> tab redesign** (v4.9.0) and **floor sliders up to 50** (v4.9.1).
+> ### ⚖️ What's new in v4.10.0 — rare gear recipes, armour set in draft
+> The Magic & Rare tab now shows real **per-slot WeightedSum recipes** —
+> Body Armour, Helmet, Gloves and Boots, each designed from the live
+> poe.ninja ladder meta and audited against the game's own mod database.
+> Draft view for now (pickit output unchanged) — **jewellery and weapons
+> are coming next**, then the whole set goes live in generated pickits.
 >
 > **[→ Full changelog](CHANGELOG.md)**
 

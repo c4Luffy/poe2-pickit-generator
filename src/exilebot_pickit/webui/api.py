@@ -400,6 +400,25 @@ class AppApi:
     def history(self):
         return list(reversed(self.cfg.get("history", [])))[:30]
 
+    def rare_recipes(self):
+        """Draft rare-gear WeightedSum recipes per slot, for the Magic & Rare
+        tab's review view. LOCAL preview only — these rules are NOT wired into
+        pickit output until the owner reviews every section and ships."""
+        from exilebot_pickit.data.rare import rules as rare_rules
+        out = {}
+        for slot, spec in rare_rules.RARE_GEAR.items():
+            out[slot] = {
+                "bases": list(spec["bases"]),
+                "threshold": spec["threshold"],
+                "item_tier": spec["item_tier"],
+                "weights": [
+                    {"stat": sid, "w": w,
+                     "label": rare_rules.STAT_LABELS.get(sid, sid)}
+                    for sid, w in spec["weights"].items()],
+                "lines": rare_rules.rare_gear_example_lines(slot),
+            }
+        return out
+
     def download_update(self):
         """Start downloading the newest release exe on a worker thread and return
         immediately; the page polls download_progress() to drive a progress bar.
