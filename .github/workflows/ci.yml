@@ -40,6 +40,9 @@ jobs:
         run: python -m pytest -v
 
       - name: Validate [ItemLevel] placement in all generated rules
+        # [ItemLevel] belongs BEFORE the # (ground-side filter): the bot reads
+        # game memory, so ilvl is known pre-pickup — its own editor lists Item
+        # Level under BEFORE IDENTIFY (owner-verified 2026-07-11).
         run: |
           python - <<'EOF'
           import exilebot_pickit.generator as gen
@@ -48,13 +51,13 @@ jobs:
           for line in gen.build_craft_base_rules():
               if "[StashItem]" in line and "#" in line:
                   before = line.split("#", 1)[0]
-                  assert "[ItemLevel]" not in before, f"[ItemLevel] before # in craft base rule:\n  {line}"
+                  assert "[ItemLevel]" in before, f"[ItemLevel] missing from pre-# in craft base rule:\n  {line}"
 
           # Gear bases
           for line in gen.build_base_rules():
               if "[ItemLevel]" in line and "#" in line:
                   before = line.split("#", 1)[0]
-                  assert "[ItemLevel]" not in before, f"[ItemLevel] before # in gear base rule:\n  {line}"
+                  assert "[ItemLevel]" in before, f"[ItemLevel] missing from pre-# in gear base rule:\n  {line}"
 
           print("All [ItemLevel] placements OK")
           EOF

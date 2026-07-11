@@ -2,20 +2,31 @@
 
 # ⚔️ ExileBot 2 Pickit Generator
 
-Turns live [poe.ninja](https://poe.ninja) prices into a ready-to-use Exiled Bot 2 pickit —
-so your bot grabs what sells **today**.
+### Live [poe.ninja](https://poe.ninja) prices in → a complete, validated Exiled Bot 2 pickit out.
+**Your bot grabs what sells *today* — 2,000+ rules rebuilt in seconds.**
 
-[![Release](https://img.shields.io/github/v/release/c4Luffy/poe2-pickit-generator?label=latest&color=2ea043)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?color=blue)](https://github.com/c4Luffy/poe2-pickit-generator/releases)
-[![License](https://img.shields.io/badge/license-MIT-lightgrey)](#license)
+[![Release](https://img.shields.io/github/v/release/c4Luffy/poe2-pickit-generator?label=LATEST&style=for-the-badge&color=c99a4a&labelColor=1a1a1a)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&color=829d78&labelColor=1a1a1a)](https://github.com/c4Luffy/poe2-pickit-generator/releases)
+[![License](https://img.shields.io/badge/LICENSE-MIT-9d9589?style=for-the-badge&labelColor=1a1a1a)](#license)
 
 <br>
 
-## &rarr; [🌐 &nbsp;Visit the website](https://c4luffy.github.io/poe2-pickit-generator/) &nbsp;·&nbsp; [⬇️ Download for Windows](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
+<a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest">
+<img src="docs/screenshot.png" width="880" alt="The Generate console — live prices, recipe thresholds with drag sliders, last-run status"></a>
+
+<br><br>
+
+## [⬇️ &nbsp;Download for Windows](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest) &nbsp;·&nbsp; [🌐 Website](https://c4luffy.github.io/poe2-pickit-generator/)
 
 **[💬 Discord](https://discord.gg/T7DU3Afve6)** · **[🤖 Exiled Bot](https://exiled-bot.net/)**
 
-<sub>One `.exe` · no Python · no installer</sub>
+<sub>One `.exe` · no Python · no installer · updates itself</sub>
+
+<br>
+
+| 📈 **Live economy** | 🎯 **Smart pickup** | 🧠 **Validated** | 🕰️ **Set & forget** |
+|:---:|:---:|:---:|:---:|
+| Prices pulled fresh from poe.ninja every generate | Junk never leaves the ground — ilvl & tier filter *before* pickup | Every stat id checked against the bot's own dictionary | Regenerate any time the market moves — one click |
 
 </div>
 
