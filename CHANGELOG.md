@@ -6,6 +6,24 @@ download lives.
 
 ---
 
+## [v4.9.2] — 2026-07-12 — Every Fracture target now emits real rules
+
+### Fixed
+- **The five remaining "unverified" Fracture targets are verified and wired.**
+  PoE2 renamed the display text to "Critical Damage Bonus", but the engine
+  kept the legacy stat ids — confirmed in the game's own mod database (GGPK
+  dump, tier rolls match each target exactly) and re-checked against the
+  bot's ModsList:
+  - Staff *Critical Spell Damage Bonus* → `base_spell_critical_strike_multiplier_+` ≥ 53
+  - Gloves *Critical Damage Bonus* → `base_critical_strike_multiplier_+` ≥ 30
+  - Quiver *Critical Damage Bonus for Attack Damage* → `attack_critical_strike_multiplier_+` ≥ 30
+  - Gloves *Adds Phys/Fire/Cold/Lightning to Attacks* → one rule with an
+    OR-group of max-roll gates (≥ 18 / 33 / 25 / 48 — T2 minimums)
+  - Belt *single-element Resistance* → one rule with an OR-group
+    (elemental ≥ 36, chaos ≥ 20)
+- The Fracture section now emits **441 rules, zero validation errors, zero
+  placeholders** (was 411 rules plus 30 `UNVERIFIED_STAT_ID` example lines).
+
 ## [v4.9.1] — 2026-07-11
 - **Floor sliders now drag up to 50** in every unit (Exalt / Chaos / Divine) —
   they were capped at 5, which made higher value floors impossible to reach by
@@ -219,6 +237,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.9.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.2
 [v4.9.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.1
 [v4.9.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.0
 [v4.8.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.8.0

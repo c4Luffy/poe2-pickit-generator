@@ -1,5 +1,6 @@
 """Fracture Bases: verified-target lookup table shape and exclusion rules."""
 from exilebot_pickit import generator as gen
+from exilebot_pickit.data.fracture_bases import fracture_bases
 
 
 def _names():
@@ -148,7 +149,9 @@ def test_example_rule_is_well_formed_and_labelled_illustrative():
             assert '[StashItem] == "true"' in line
             assert "FRACTURE BASES EXAMPLE" in line or "unverified" in line
             # never a fabricated stat id for targets with no verified mapping
-            if gen._FRACTURE_VERIFIED_STAT_IDS.get(tgt["id"]) in (None, "__unset__") and tgt["id"] != "amulet_skill_level":
+            if (gen._FRACTURE_VERIFIED_STAT_IDS.get(tgt["id"]) in (None, "__unset__")
+                    and tgt["id"] != "amulet_skill_level"
+                    and tgt["id"] not in fracture_bases._FRACTURE_OR_GROUP_IDS):
                 assert "UNVERIFIED_STAT_ID" in line
 
 
@@ -158,10 +161,27 @@ def test_verified_stat_ids_only_used_where_actually_confirmed():
     assert "base_movement_velocity_+%" in move_line
     spirit_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["spirit_body"])
     assert "local_spirit_+%" in spirit_line
-    # a target with genuinely no clean single bot stat id (gloves % crit damage
-    # bonus) must still show the honest placeholder, not a guess.
+    # The crit-damage family resolved 2026-07-11: PoE2 renamed the DISPLAY
+    # text to "Critical Damage Bonus" but the engine kept the legacy
+    # *_critical_strike_multiplier_+ ids (verified in the game's own mod
+    # database, repoe-fork poe2 mods.json, and present in the bot ModsList).
     crit_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["crit_damage_gloves"])
-    assert "UNVERIFIED_STAT_ID" in crit_line
+    assert '[base_critical_strike_multiplier_+] >= "30"' in crit_line
+    staff_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["staff_crit_spell_dmg_bonus"])
+    assert '[base_spell_critical_strike_multiplier_+] >= "53"' in staff_line
+    quiver_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["quiver_crit_dmg_attacks"])
+    assert '[attack_critical_strike_multiplier_+] >= "30"' in quiver_line
+    # Multi-element targets emit ONE rule with an OR-group of per-stat
+    # thresholds (T2 minimums — "T1 or T2 both count"), never a placeholder.
+    glove_dmg = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["added_dmg_gloves"])
+    assert '([attack_maximum_added_physical_damage] >= "18"' in glove_dmg
+    assert '[attack_maximum_added_lightning_damage] >= "48")' in glove_dmg
+    belt = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["belt_resist"])
+    assert '([base_fire_damage_resistance_%] >= "36"' in belt
+    assert '[base_chaos_damage_resistance_%] >= "20")' in belt
+    # and nothing anywhere still emits the placeholder
+    for tgt in gen.FRACTURE_TARGETS:
+        assert "UNVERIFIED_STAT_ID" not in gen.fracture_example_rule(tgt)
 
 
 # ── Item classification samples (spec section 10) ──

@@ -36,12 +36,12 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
-> ### 📈 What's new in v4.9.0 — History gets the Workbench treatment
-> The run chart is a real market-history view now: gradient fill, average
-> line, peak marker, snap-to-run crosshair — plus a **divine-rate sparkline**
-> and a **Δ column** showing exactly what each run changed. On top of
-> v4.8.0's keyboard shortcuts + settings export/import.
-> *(v4.9.1: floor sliders now drag up to 50 ex/chaos/div — was 5.)*
+> ### 🔩 What's new in v4.9.2 — every Fracture target now emits real rules
+> The last five "unverified" Fracture targets (staff/glove/quiver crit
+> damage, glove added damage, belt resistances) are now **verified against
+> the game's own mod database** and emit validator-clean rules — 441
+> fracture rules, zero placeholders. Also new this week: the **History
+> tab redesign** (v4.9.0) and **floor sliders up to 50** (v4.9.1).
 >
 > **[→ Full changelog](CHANGELOG.md)**
 

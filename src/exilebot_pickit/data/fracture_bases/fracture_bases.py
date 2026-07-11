@@ -389,17 +389,48 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     "staff_spell_dmg": "spell_damage_+%",
     "belt_life": "base_maximum_life",
     "belt_mana": "base_maximum_mana",
-    # Still unverified — no clean single bot stat id exists (kept as honest
-    # placeholders; they emit no rule):
-    #   crit_damage_gloves / quiver_crit_dmg_attacks /
-    #   staff_crit_spell_dmg_bonus -> no global "% increased Critical Damage
-    #     Bonus" id in the ModsList (only the flat "+" crit-multi variants).
-    #   added_dmg_gloves -> multi-element "adds phys/fire/cold/lightning" roll,
-    #   belt_resist -> "any single Fire/Cold/Lightning/Chaos res" — neither can
-    #     be expressed as one stat threshold.
+    # Crit-damage family, resolved 2026-07-11: PoE2 renamed the DISPLAY text
+    # to "Critical Damage Bonus" but the ENGINE ids are still the legacy
+    # *_critical_strike_multiplier_+ family — confirmed in the game's own mod
+    # database (repoe-fork poe2 mods.json GGPK dump: gloves CriticalMultiplier5
+    # rolls 30-34 base_critical_strike_multiplier_+, quiver
+    # AttackCriticalStrikeMultiplier6 rolls 35-39, staff
+    # SpellCriticalStrikeMultiplierTwoHand6 rolls 53-59 — all matching these
+    # targets' value strings exactly), then re-checked present in the bot's
+    # ModsList. The *_critical_hit_damage_bonus ids that ALSO sit in the
+    # ModsList are not the rollable item mods — never switch to them.
+    "crit_damage_gloves": "base_critical_strike_multiplier_+",
+    "quiver_crit_dmg_attacks": "attack_critical_strike_multiplier_+",
+    "staff_crit_spell_dmg_bonus": "base_spell_critical_strike_multiplier_+",
 }
 _AMULET_SKILL_IDS = ("spell_skill_gem_level_+", "minion_skill_gem_level_+",
                      "melee_skill_gem_level_+", "projectile_skill_gem_level_+")
+
+# Multi-stat targets: ONE rule whose post-# condition is an OR-group — the
+# same (a || b) syntax the amulet_skill_level rule already uses (validator-
+# proven). Per-stat thresholds because the qualifying roll differs per
+# element. Rolls verified 2026-07-11 against the game's own mod database
+# (repoe-fork poe2 mods.json); every stat id re-checked in the bot ModsList.
+_FRACTURE_OR_GROUP_IDS = {
+    # Owner rule "T1 or T2 both count" -> threshold is the T2 minimum roll.
+    # Added damage gates on the MAX-roll stat (min rolls are tiny) — same
+    # approach as the added-lightning weapon targets. T2 = AddedX8 (ilvl 65):
+    # phys max 18-26, fire max 33-36, cold max 25-31, lightning max 48-59.
+    "added_dmg_gloves": (
+        ("attack_maximum_added_physical_damage", "18"),
+        ("attack_maximum_added_fire_damage", "33"),
+        ("attack_maximum_added_cold_damage", "25"),
+        ("attack_maximum_added_lightning_damage", "48"),
+    ),
+    # Any single-element res, T1 or T2: elemental T2 = 36-40 (Resist7),
+    # chaos T2 = 20-23 (ChaosResist5) — matches this target's value string.
+    "belt_resist": (
+        ("base_fire_damage_resistance_%", "36"),
+        ("base_cold_damage_resistance_%", "36"),
+        ("base_lightning_damage_resistance_%", "36"),
+        ("base_chaos_damage_resistance_%", "20"),
+    ),
+}
 
 
 def fracture_example_rule(target: dict) -> str:
@@ -513,7 +544,8 @@ def fracture_has_verified_target(item_class: str) -> bool:
     non-placeholder bot stat id wired into pickit output."""
     for t in fracture_targets_for_class(item_class):
         sid = _FRACTURE_VERIFIED_STAT_IDS.get(t["id"], "__unset__")
-        if t["id"] == "amulet_skill_level" or (sid and sid != "__unset__"):
+        if (t["id"] == "amulet_skill_level" or t["id"] in _FRACTURE_OR_GROUP_IDS
+                or (sid and sid != "__unset__")):
             return True
     return False
 
@@ -530,6 +562,10 @@ def _fracture_target_condition(target: dict) -> str | None:
     target has no verified bot stat id (must never be emitted as a rule)."""
     if target["id"] == "amulet_skill_level":
         cond = " || ".join(f'[{sid}] >= "3"' for sid in _AMULET_SKILL_IDS)
+        return f"({cond})"
+    group = _FRACTURE_OR_GROUP_IDS.get(target["id"])
+    if group:
+        cond = " || ".join(f'[{sid}] >= "{thr}"' for sid, thr in group)
         return f"({cond})"
     stat_id = _FRACTURE_VERIFIED_STAT_IDS.get(target["id"], "__unset__")
     if not stat_id or stat_id == "__unset__":
