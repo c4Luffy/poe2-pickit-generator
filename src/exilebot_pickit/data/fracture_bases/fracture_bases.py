@@ -346,7 +346,11 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     "weapon_skill_level_staff": "spell_skill_gem_level_+",
     "weapon_skill_level_sceptre": "minion_skill_gem_level_+",
     "weapon_skill_level_sceptre_t2": "minion_skill_gem_level_+",
-    "spirit_body": "local_spirit_+%",
+    # Body Spirit is the FLAT stat (base_spirit_from_equipment, T1 57-61,
+    # body/amulet only — confirmed in the game's mod database 2026-07-12).
+    # local_spirit_+% is SCEPTRE-ONLY; the old mapping emitted a rule that
+    # could never match a body armour.
+    "spirit_body": "base_spirit_from_equipment",
     "movement_speed": "base_movement_velocity_+%",
     "focus_spell": "spell_skill_gem_level_+",
     "quiver_projectile": "projectile_skill_gem_level_+",

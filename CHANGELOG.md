@@ -6,6 +6,14 @@ download lives.
 
 ---
 
+## [v4.9.3] — 2026-07-12
+### Fixed
+- **Fracture "spirit body" rules could never match.** The "+57-61 to Spirit"
+  body-armour target was mapped to `local_spirit_+%` — a SCEPTRE-only percent
+  stat. Bodies roll FLAT Spirit (`base_spirit_from_equipment`, body/amulet
+  only — confirmed in the game's mod database). The six emitted body-Spirit
+  rules now use the right id and actually fire.
+
 ## [v4.9.2] — 2026-07-12 — Every Fracture target now emits real rules
 
 ### Fixed
@@ -237,6 +245,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.9.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.3
 [v4.9.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.2
 [v4.9.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.1
 [v4.9.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.0

@@ -159,8 +159,12 @@ def test_verified_stat_ids_only_used_where_actually_confirmed():
     # Spot-check: movement speed and spirit use their confirmed bot ids.
     move_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["movement_speed"])
     assert "base_movement_velocity_+%" in move_line
+    # Body Spirit is FLAT (base_spirit_from_equipment; body/amulet only) —
+    # local_spirit_+% is sceptre-only and could never match a body armour.
     spirit_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["spirit_body"])
-    assert "local_spirit_+%" in spirit_line
+    assert '[base_spirit_from_equipment] >= "57"' in spirit_line
+    sceptre_line = gen.fracture_example_rule(gen._FRACTURE_TARGETS_BY_ID["sceptre_spirit"])
+    assert "local_spirit_+%" in sceptre_line
     # The crit-damage family resolved 2026-07-11: PoE2 renamed the DISPLAY
     # text to "Critical Damage Bonus" but the engine kept the legacy
     # *_critical_strike_multiplier_+ ids (verified in the game's own mod
