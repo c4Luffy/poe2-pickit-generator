@@ -1368,6 +1368,27 @@ class AppApi:
             except Exception:
                 pass
             save_config(self.cfg)
+            # name -> poe.ninja icon URL, from the payloads already fetched this
+            # run (no extra network) — used by the UI's top-picks table.
+            icon_by: dict = {}
+            try:
+                for _p in payloads.values():
+                    if not isinstance(_p, dict):
+                        continue
+                    for _ln in _p.get("lines", []):
+                        _nm, _ic = _ln.get("name"), _ln.get("icon")
+                        if _nm and _ic and _nm not in icon_by:
+                            icon_by[_nm] = _ic
+                    for _it in _p.get("items", []):
+                        _nm = _it.get("name")
+                        _nm = gen.ITEM_NAME_CORRECTIONS.get(_nm, _nm) if _nm else None
+                        _img = _it.get("image") or ""
+                        if _img.startswith("/"):
+                            _img = "https://web.poecdn.com" + _img
+                        if _nm and _img and _nm not in icon_by:
+                            icon_by[_nm] = _img
+            except Exception:
+                icon_by = {}
             with self._lock:
                 self._status["running"] = False
                 self._status["done"] = {
@@ -1376,7 +1397,8 @@ class AppApi:
                     "divine_rate": round(div_rate, 1),
                     "secs": round(time.time() - t0, 1),
                     "top": [{"name": t[0], "ex": round(t[1], 1),
-                             "cat": (t[2] if len(t) > 2 else "")} for t in top_pool[:5]],
+                             "cat": (t[2] if len(t) > 2 else ""),
+                             "icon": icon_by.get(t[0], "")} for t in top_pool[:5]],
                     "val_errors": len(validation.get("errors", [])),
                     "val_warnings": len(validation.get("warnings", [])),
                     "copied": copied,
