@@ -37,10 +37,11 @@ Everything — features, quick start and FAQ — lives on the
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
 > ### ⚒️ What's new in v4.5.0 — "Exile's Workbench" + smarter ground filtering
-> **The bot now skips junk on the ground**: base rules filter `[ItemLevel]`
-> *before* pickup, fracture rules gate on item tier, and ten broken thresholds
-> were fixed after live bot testing. Plus a warmer brass-and-bone redesign with
-> drag-slider value floors, real item icons, and prices in ex / div / chaos.
+> **Generated pickits now filter junk on the ground**: rules gate `[ItemLevel]`
+> *before* pickup, so Exiled Bot 2 leaves low-level bases where they drop.
+> Fracture rules gate on item tier, and ten broken thresholds were fixed after
+> testing the generated file in the bot. Plus a warmer brass-and-bone redesign
+> with drag-slider value floors, real item icons, and prices in ex / div / chaos.
 >
 > **[→ Full changelog](CHANGELOG.md)**
 

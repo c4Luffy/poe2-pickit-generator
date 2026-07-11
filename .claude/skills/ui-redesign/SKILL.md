@@ -46,14 +46,17 @@ Always run `ui-edit-check` after EVERY edit here too.
    that only exist inside a `innerHTML` string) together — a dangling `$("id")`
    fails the id-audit.
 
-## Theme discipline (don't break the 4 themes)
+## Theme discipline (don't break the 3 themes)
 
 8. **Only use CSS variables** (`--bg`, `--bg2`, `--bg3`, `--border`, `--text`,
-   `--dim`, `--gold`, `--gold-dim`, `--ok`, `--err`, `--warn`) — never hardcode a
-   hex. The 4 themes (Gold=default `:root`, plus `html[data-theme=ocean|nebula|
-   ember]`) redefine those tokens. To shift the palette, edit the token values
-   in `:root` only (that's Gold); leave the other three blocks alone and they
-   keep working.
+   `--dim`, `--gold`, `--gold-dim`, `--gold-br`, `--ok`, `--err`, `--warn`,
+   `--steel`) — never hardcode a hex. Three themes: `:root` = the default
+   Workbench brass (identical to `html[data-theme=relic]`), plus
+   `html[data-theme=ocean]` (Frost) and `html[data-theme=nebula]` (Blood).
+   Legacy names gold/ember map to relic in setTheme. To shift the palette,
+   change `:root` AND relic together; every theme block must define the full
+   13-token set (a static audit script exists — parse each block and compare).
+   Note the nav is a LEFT RAIL (not a top bar) since v4.4.0.
 9. **Reuse the shared component classes** for consistency: `.craft-side` +
    `.cside-btn` (+ `.n` count span) for any left sidebar; `.eco-toolbar` for a
    rounded toolbar panel; `.eco-header` + `.eco-rate` for a slim page header.

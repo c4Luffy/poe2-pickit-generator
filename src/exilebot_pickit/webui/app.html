@@ -90,19 +90,8 @@
   /* ── Custom title bar (frameless window) ── */
   /* Native OS window frame is used now (see poc.py) — hide the page's own
      custom title bar and custom resize handles so there's only one frame. */
-  .titlebar{display:none !important}
-  .titlebar-legacy{display:flex;align-items:stretch;height:34px;flex-shrink:0;user-select:none;
-    background:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxNjAnIGhlaWdodD0nMTYwJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC44JyBudW1PY3RhdmVzPSczJyBzdGl0Y2hUaWxlcz0nc3RpdGNoJy8+PGZlQ29sb3JNYXRyaXggdHlwZT0nbWF0cml4JyB2YWx1ZXM9JzAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAuMDUgMCcvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxNjAnIGhlaWdodD0nMTYwJyBmaWx0ZXI9J3VybCgjbiknLz48L3N2Zz4=),
-      repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px),
-      linear-gradient(180deg,color-mix(in srgb,var(--gold) 6%,#0b0906),#080604);
-    border-bottom:1px solid color-mix(in srgb,var(--gold) 20%,var(--border))}
-  .tb-drag{flex:1;display:flex;align-items:center;gap:8px;padding:0 12px;min-width:0}
-  .tb-title{font-family:"Marcellus","Segoe UI",serif;font-size:10.5px;letter-spacing:1.6px;
-    color:color-mix(in srgb,var(--gold) 55%,var(--dim));white-space:nowrap;overflow:hidden}
-  .tb-btns{display:flex}
   .tb-btns button{width:48px;border:none;background:none;color:var(--dim);font-size:12.5px;
     cursor:pointer;transition:background .12s,color .12s}
-  .rz{display:none !important}
   /* clickable validation error list (Preview tab) + jump-to-line flash */
   .val-item{cursor:pointer;font:12px/1.5 Consolas,monospace;padding:3px 9px;border-radius:5px;
     border:1px solid var(--border);background:var(--bg3);display:block}
@@ -185,39 +174,25 @@
      area is still too narrow for two (breakpoint = viewport CSS px). */
   @media(max-width:1320px){.gen-cols{grid-template-columns:1fr}}
   /* ── Generate console (Exile's Ledger) ── */
-  .topbar{display:flex;align-items:baseline;gap:14px;padding:2px 0 14px;margin-bottom:18px;
-    border-bottom:1px solid var(--border)}
   .topbar h1{margin:0;font-size:24px}
   .topbar .sub{color:var(--dim);font-size:13px}
   .fresh{display:inline-flex;align-items:center;gap:8px;font:12px/1 Consolas,ui-monospace,monospace;
     color:var(--dim);white-space:nowrap}
   .pulse{width:7px;height:7px;border-radius:50%;background:var(--ok);
     box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 18%,transparent)}
-  .hero{position:relative;overflow:hidden}
-  .hero::after{content:"";position:absolute;inset:0;pointer-events:none;
-    background:radial-gradient(420px 180px at 88% 0%,color-mix(in srgb,var(--gold) 10%,transparent),transparent 70%)}
-  .kick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative;z-index:1}
   .kick select{padding:9px 12px;font-weight:600}
   .kick #league{border-radius:9px;background:var(--bg3);border-color:var(--border)}
   .card h2.hero-h{margin:18px 0 4px;font-family:"Marcellus","Segoe UI",serif;font-weight:400;
     font-size:29px;letter-spacing:-.01em;line-height:1.08;text-transform:none;color:var(--text)}
-  .hero-p{color:var(--dim);margin:0 0 18px;max-width:46ch;font-size:13px}
-  .cta{display:flex;align-items:stretch;gap:12px;flex-wrap:wrap;position:relative;z-index:1}
   .cta .primary{flex:1;min-width:230px;font-size:15px;font-weight:800;padding:14px;border-radius:11px}
-  .autobox{display:flex;align-items:center;gap:9px;border:1px solid var(--border);background:var(--bg3);
-    border-radius:11px;padding:6px 13px}
-  .floors{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
   .floors .ftile label{font-size:10.5px !important;letter-spacing:.14em;text-transform:uppercase;
     color:var(--dim);font-weight:700 !important}
   .floors .ftile input{font:700 24px/1.2 Consolas,ui-monospace,monospace !important;
     font-variant-numeric:tabular-nums}
-  .outrow{display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;
-    border-top:1px solid var(--border);flex-wrap:wrap;position:relative;z-index:1}
   /* narrow right column: let the success panel wrap under the log */
   .card:has(#log)>div{flex-wrap:wrap}
   #okPanel{width:auto;min-width:200px;flex:1}
   /* dial tiles (mockup): eyebrow + stepper row, big mono value, fill track */
-  .kick-eyebrow{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:600}
   .dial .dlbl{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
   .dial .dlbl>span:first-child{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
     color:var(--dim);font-weight:700}
@@ -227,11 +202,9 @@
   .dial .dval input:focus{outline:none;border-bottom:1px solid var(--gold-dim)}
   .dial .dval select{border:none;background:transparent;color:var(--gold);font-size:12px;
     font-weight:700;padding:0;cursor:pointer;text-transform:uppercase}
-  .dunit{color:var(--gold);font-size:12px;font-weight:700}
   .dtrack{height:5px;border-radius:3px;background:var(--bg);margin-top:11px;overflow:hidden}
   .dtrack i{display:block;height:100%;width:0;border-radius:3px;
     background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width .2s}
-  .dhint{margin-top:9px;font-size:11px;line-height:1.4;color:var(--dim)}
   .dial-extra{display:none}
   /* LAST RUN checklist rows */
   .lr-rows{display:flex;flex-direction:column}
@@ -291,7 +264,6 @@
   .ghost:hover{background:color-mix(in srgb,var(--gold) 10%,transparent);border-color:var(--gold)}
   .mini{padding:6px 12px;font-size:12.5px;border-radius:8px}
   /* floors */
-  .floors{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .floor label{display:block;font-size:13px;font-weight:600;margin-bottom:7px}
   .floor .row{display:flex;gap:7px}
   .floor input{width:100%;text-align:right}
@@ -599,24 +571,6 @@
 </style>
 </head>
 <body>
-<div class="titlebar">
-  <div class="tb-drag">
-    <span class="tb-title">ExileBot 2 Pickit Generator</span>
-  </div>
-  <div class="tb-btns">
-    <button id="wMin" title="Minimize">─</button>
-    <button id="wMax" title="Maximize / restore">☐</button>
-    <button id="wClose" class="tb-x" title="Close">✕</button>
-  </div>
-</div>
-<div class="rz" data-e="t"  style="top:0;left:10px;right:10px;height:5px;cursor:n-resize"></div>
-<div class="rz" data-e="b"  style="bottom:0;left:10px;right:10px;height:6px;cursor:s-resize"></div>
-<div class="rz" data-e="l"  style="left:0;top:10px;bottom:10px;width:5px;cursor:w-resize"></div>
-<div class="rz" data-e="r"  style="right:0;top:10px;bottom:10px;width:5px;cursor:e-resize"></div>
-<div class="rz" data-e="tl" style="top:0;left:0;width:12px;height:12px;cursor:nw-resize"></div>
-<div class="rz" data-e="tr" style="top:0;right:0;width:12px;height:12px;cursor:ne-resize"></div>
-<div class="rz" data-e="bl" style="bottom:0;left:0;width:12px;height:12px;cursor:sw-resize"></div>
-<div class="rz" data-e="br" style="bottom:0;right:0;width:14px;height:14px;cursor:se-resize"></div>
 <nav>
   <div class="brand"><div class="sigil">E</div><div><b>Pickit Generator</b><span class="verline"><span id="ver"></span> · Exiled Bot 2</span></div></div>
   <div class="nav-mid">
@@ -1170,76 +1124,6 @@ function logLine(m,c){
 /* ── window controls (frameless) ──
    Moving + resizing are pointer-driven through the bridge (WebView2 owns the
    mouse, so native OS drag/snap can't be used). Edge snapping is emulated. */
-$("wMin").onclick=()=>api().win_minimize();
-$("wMax").onclick=()=>api().win_max_toggle();
-$("wClose").onclick=()=>api().win_close();
-const _tbd=document.querySelector(".tb-drag");
-_tbd.ondblclick=()=>api().win_max_toggle();
-_tbd.addEventListener("pointerdown",e=>{
-  // NOT async: mv/up must be registered in this same synchronous tick. The
-  // previous version awaited win_bounds() before attaching them — a fast
-  // click (pointerdown immediately followed by pointerup, e.g. a slightly
-  // shaky single click) fired pointerup while nothing was listening yet, so
-  // it was silently lost. mv/up then got attached anyway once the await
-  // resolved, with nothing left to ever remove them — mv stayed permanently
-  // attached to pointermove and kept moving the window (using the stale
-  // original bounds) every time the mouse merely passed over the titlebar
-  // afterward. That's a real "window glitches/jumps on its own later" bug.
-  if(e.button!==0||e.target.closest("button"))return;
-  _tbd.setPointerCapture(e.pointerId);
-  const sx=e.screenX,sy=e.screenY;let moved=false,busy=false,b=null;
-  const ready=(async()=>{
-    b=await api().win_bounds();
-    if(b.maxed){await api().win_max_toggle();b=await api().win_bounds();}  // drag restores first
-  })();
-  const mv=async ev=>{
-    await ready;
-    if(!b)return;
-    const dx=ev.screenX-sx,dy=ev.screenY-sy;
-    if(!moved&&Math.abs(dx)+Math.abs(dy)<5)return;
-    moved=true;
-    if(busy)return;busy=true;
-    try{await api().win_set_bounds(b.x+dx,b.y+dy,b.w,b.h);}catch(_){}
-    busy=false;};
-  const up=ev=>{
-    _tbd.removeEventListener("pointermove",mv);_tbd.removeEventListener("pointerup",up);
-    if(!moved)return;
-    api().win_snap_drop(ev.screenX,ev.screenY);};  // per-monitor edge detection in Python
-  _tbd.addEventListener("pointermove",mv);_tbd.addEventListener("pointerup",up);
-});
-// Edge/corner resize: opposite edge stays anchored, min size enforced here so
-// the window can never "drift" when the clamp kicks in.
-const _RZ={l:[1,0,0,0],r:[0,1,0,0],t:[0,0,1,0],b:[0,0,0,1],
-           tl:[1,0,1,0],tr:[0,1,1,0],bl:[1,0,0,1],br:[0,1,0,1]};
-const MINW=760,MINH=560;
-document.querySelectorAll(".rz").forEach(z=>z.addEventListener("pointerdown",e=>{
-  // Same fix as the titlebar handler above: mv/up are attached synchronously,
-  // in this same tick, so a fast click can never lose its pointerup and leave
-  // mv permanently listening on this edge strip.
-  if(e.button!==0)return;
-  e.preventDefault();z.setPointerCapture(e.pointerId);
-  const sx=e.screenX,sy=e.screenY,[L,R,T,B]=_RZ[z.dataset.e];
-  let busy=false,b=null,cancelled=false;
-  const up=()=>{z.removeEventListener("pointermove",mv);z.removeEventListener("pointerup",up);};
-  const mv=async ev=>{
-    if(cancelled||busy)return;busy=true;
-    try{
-      if(!b){
-        b=await api().win_bounds();
-        if(b.maxed){cancelled=true;up();return;}  // no edge-resizing a maximized window
-      }
-      const dx=ev.screenX-sx,dy=ev.screenY-sy;
-      let x=b.x,y=b.y,w=b.w,hh=b.h;
-      if(R)w=Math.max(MINW,b.w+dx);
-      if(B)hh=Math.max(MINH,b.h+dy);
-      if(L){w=Math.max(MINW,b.w-dx);x=b.x+(b.w-w);}
-      if(T){hh=Math.max(MINH,b.h-dy);y=b.y+(b.h-hh);}
-      await api().win_set_bounds(x,y,w,hh);
-    }catch(_){}
-    busy=false;};
-  z.addEventListener("pointermove",mv);z.addEventListener("pointerup",up);
-}));
-
 /* ── nav + theme ── */
 // Left rail: 3 section headers, every tab always visible beneath its header.
 // Clicking a header jumps to that section's last-used tab.
