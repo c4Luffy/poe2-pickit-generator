@@ -6,6 +6,31 @@ download lives.
 
 ---
 
+## [v4.6.0] — 2026-07-11 — See what changed, redo what worked
+
+Three quality-of-life features for the daily generate loop.
+
+### Added
+- **"🆕 Changed" filter in Preview.** After a generate, rules the run added are
+  tinted green, a new filter chip shows only them, and items that dropped out
+  of the pickit are listed struck-through — so you can see exactly how the
+  market moved your pickit instead of reading a one-line summary.
+- **"Re-run with these floors" in History.** Expand any past run and one click
+  restores that run's exact value floors (switching Adaptive floors off so
+  they stick) and generates again.
+- **Auto-floor preview.** With Adaptive market floors OFF, changing "Keep top
+  N%" now shows what the floors *would* be ("uniques ≥ 2.4 ex · everything
+  else ≥ 0.8 ex") without applying anything — no more enabling it blind.
+
+### Housekeeping
+- Removed ~350 lines of dead code left from the frameless-window era (hidden
+  title bar, resize handles, their JS and API endpoints) plus stale docs and
+  an obsolete project skill. No behavior change.
+- Website now shows the actual app (Generate-console screenshot) and the
+  v4.5.0 ground-filtering feature.
+
+---
+
 ## [v4.5.0] — 2026-07-11 — "Exile's Workbench" + smarter ground filtering
 
 The look was rebuilt to the warmer **Workbench** design (aged brass & bone,
@@ -141,6 +166,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.6.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.6.0
 [v4.5.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.5.0
 [v4.4.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.4.0
 [v4.3.6]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.3.6

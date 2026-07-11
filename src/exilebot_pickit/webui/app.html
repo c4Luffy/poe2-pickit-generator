@@ -102,6 +102,8 @@
     outline:1px solid var(--gold)}
   /* click-to-copy affordance on rule lines */
   #prevBox .l-a:hover,#prevBox .l-c:hover{background:color-mix(in srgb,var(--gold) 9%,transparent)}
+  /* rules added by the latest generate (session diff) */
+  #prevBox .l-new{color:var(--ok);background:color-mix(in srgb,var(--ok) 7%,transparent);border-radius:3px}
   .tb-btns button:hover{background:var(--bg3);color:var(--text)}
   .tb-btns .tb-x:hover{background:#c0392b;color:#fff}
   /* ── Top nav ── */
@@ -989,6 +991,7 @@
   <h1>Preview</h1><div class="sub">Your last generated pickit — exactly what the bot reads.</div>
   <div class="banner warn" id="valBanner"></div>
   <div id="valList" style="display:none;flex-direction:column;gap:4px;margin:-4px 0 12px"></div>
+  <div id="pvDiff" class="hint" style="display:none;margin:-4px 0 12px"></div>
   <div class="stats" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
     <div class="stat"><b id="pvTotal">–</b><span>rules</span></div>
     <div class="stat"><b id="pvActive">–</b><span>active</span></div>
@@ -1004,6 +1007,7 @@
       <span class="chip" data-f="skip">Skipped</span>
       <span class="chip" data-f="uniq">Uniques</span>
       <span class="chip" data-f="base">Bases</span>
+      <span class="chip" data-f="new" title="Rules added by the latest generate (this session)">🆕 Changed</span>
     </span>
     <button class="ghost mini" id="prevCopy">Copy all</button>
     <button class="ghost mini" id="prevOpenDir" title="Open the pickit output folder">📂 Open folder</button>
@@ -1269,7 +1273,7 @@ function setAutoPill(on){
   $("autoPill").textContent=on?"⚡ Auto floor is enabled":"⚡ Auto floor is off";
   $("autoPill").style.opacity=on?"1":".55";
   $("autoHint").textContent=on?"Floors adapt as the economy moves — recomputed on every generate. You can still override manually."
-                              :"Turn the switch on and floors recompute from live prices on every generate.";}
+                              :"Off. Change “Keep top” to preview what the floors would be — nothing is applied until you flip the switch.";}
 $("swAuto").onclick=async()=>{
   const on=!$("swAuto").classList.contains("on");
   $("swAuto").classList.toggle("on",on);
@@ -1278,7 +1282,21 @@ $("swAuto").onclick=async()=>{
   toast(on?"⚡ Auto floor ON":"Auto floor off — floors are manual again");};
 $("keepPct").onchange=async()=>{
   await api().set_setting("auto_floor_pct",parseInt($("keepPct").value)||40);
-  if($("swAuto").classList.contains("on"))applyAutoFloor();};
+  if($("swAuto").classList.contains("on"))applyAutoFloor();
+  else previewAutoFloor();};
+/* Preview what Auto floor WOULD set — same computation, nothing applied.
+   Runs when the switch is OFF and the "Keep top" percentile changes, so you
+   never have to enable it blind. */
+async function previewAutoFloor(){
+  if(!$("league").value)return;
+  $("autoHint").textContent="Checking what these floors would be…";
+  try{
+    const r=await api().suggest_floors($("league").value,$("keepPct").value);
+    if(r.error){$("autoHint").textContent="✗ "+r.error;return;}
+    $("autoHint").textContent=
+      `Would set: uniques ≥ ${r.unique} ex · everything else ≥ ${r.gear} ex `+
+      `(keeps top ${r.keep_pct}%). Nothing applied — flip the switch to use it.`;
+  }catch(_){$("autoHint").textContent="Couldn't preview floors — check the connection.";}}
 $("genDocs").onclick=()=>api().open_url("https://github.com/c4Luffy/poe2-pickit-generator#readme");
 $("ninjaLink").onclick=e=>{e.preventDefault();api().open_url("https://poe.ninja/poe2/economy");};
 $("okOpen").onclick=()=>api().open_output();
@@ -1439,6 +1457,7 @@ async function poll(){
     $("lrWhere").textContent=d.copied?".ipd + .filter · copied to bot":".ipd + .filter";
     $("lrWrite").textContent="OK";
     fillTopPicks(d.top||[]);
+    lastDiff={added:new Set(d.added||[]),removed:d.removed||[]};
     setSeal("ok","Last run complete",`${(d.active||0).toLocaleString()} rules · ${d.secs}s · validated`);
     $("sum").style.display="block";
     const ob=$("offBanner");
@@ -1966,7 +1985,9 @@ async function loadHistory(){
   tb.innerHTML=h.length?h.map((r,i)=>{
     const total=(r.active||0)+(r.commented||0);
     const detail=`Value floors this run — uniques ≥ <b>${flo(r.uf)}</b> · gear ≥ <b>${flo(r.gf)}</b>`
-      +` &nbsp;·&nbsp; ${total.toLocaleString()} rules built (<b>${(r.active||0).toLocaleString()}</b> active, ${(r.commented||0).toLocaleString()} skipped below floor)`;
+      +` &nbsp;·&nbsp; ${total.toLocaleString()} rules built (<b>${(r.active||0).toLocaleString()}</b> active, ${(r.commented||0).toLocaleString()} skipped below floor)`
+      +` &nbsp;&nbsp;<button class="ghost mini hrerun" data-uf="${Number(r.uf)||0}" data-gf="${Number(r.gf)||0}" data-ts="${esc(r.ts||"")}"`
+      +` title="Restore this run's floors and generate again">↻ Re-run with these floors</button>`;
     return `<tr class="hrow" data-i="${i}" title="Click for the value floors used">
       <td><span class="hcar">▸</span> ${r.ts}</td><td class="val">${(r.active||0).toLocaleString()}</td>
       <td style="text-align:right;color:var(--dim)">${r.commented||0}</td>
@@ -1980,7 +2001,23 @@ async function loadHistory(){
   tb.querySelectorAll(".hrow").forEach(row=>row.onclick=()=>{
     const det=tb.querySelector(`.hdet[data-i="${row.dataset.i}"]`);
     const open=det.style.display==="none";det.style.display=open?"table-row":"none";
-    const car=row.querySelector(".hcar");if(car)car.textContent=open?"▾":"▸";});}
+    const car=row.querySelector(".hcar");if(car)car.textContent=open?"▾":"▸";});
+  // "Re-run with these floors": restore that run's exact floors (in Exalt),
+  // switch Auto floor OFF so they aren't recomputed over, then generate.
+  tb.querySelectorAll(".hrerun").forEach(b=>b.onclick=async ev=>{
+    ev.stopPropagation();
+    const uf=parseFloat(b.dataset.uf)||0, gf=parseFloat(b.dataset.gf)||0;
+    if($("swAuto").classList.contains("on")){
+      $("swAuto").classList.remove("on");
+      await api().set_setting("auto_floor",false);setAutoPill(false);}
+    $("uUnit").value="Exalt";$("gUnit").value="Exalt";
+    $("uAmt").value=uf;$("gAmt").value=gf;
+    uEx();gEx();updTracks();
+    await api().set_setting("min_exalt_unique",uf);
+    await api().set_setting("min_exalt_gear",gf);
+    openPage("gen");
+    toast("Floors restored from "+(b.dataset.ts||"that run")+" — generating…");
+    doGenerate();});}
 $("histClear").onclick=async()=>{if(!confirm("Clear all run history?"))return;
   await api().clear_history();loadHistory();toast("History cleared");};
 
@@ -2048,6 +2085,16 @@ function updMktLeague(){const t=$("mktLeague"),s=$("league");
 
 /* ── preview ── */
 let prevLines=[],pvSections=[],pvSection=null,pvFilter="all",pvValMap={};
+/* what the latest generate changed (session-only; mirrors assembly.extract_rule_name) */
+let lastDiff=null;
+function ruleName(l){
+  const um=l.match(/\[UniqueName\]\s*==\s*"((?:[^"\\]|\\.)*)"/);
+  if(um)return um[1].replace(/\\"/g,'"');
+  const nm=l.match(/"((?:[^"\\]|\\.)*)"/);
+  return nm?nm[1].replace(/\\"/g,'"'):null;}
+function isNewRule(l){
+  return !!(lastDiff&&lastDiff.added.size&&l.includes("[StashItem]")&&!l.startsWith("//")
+            &&lastDiff.added.has(ruleName(l)));}
 function parseSections(){
   pvSections=[];let cur=null;
   const bar=l=>/^\/{10,}$/.test(l.trim());
@@ -2068,6 +2115,7 @@ function pvLineOK(l){
     case "skip":return isRule&&l.startsWith("//");
     case "uniq":return isRule&&(l.includes("[UniqueName]")||l.includes('[Rarity] == "Unique"'));
     case "base":return isRule&&(l.includes("[Quality]")||l.includes("[Sockets]")||l.includes('[Rarity] == "Normal"'));
+    case "new":return isNewRule(l);
     default:return true;}}
 async function loadPreview(){
   prevLines=await api().preview();parseSections();
@@ -2089,6 +2137,14 @@ async function loadPreview(){
     vl.innerHTML=items.map(([t,m,n])=>`<span class="val-item ${t}" data-ln="${n}">▸ ${esc(m)}</span>`).join("");
     vl.querySelectorAll(".val-item").forEach(s=>s.onclick=()=>pvJump(parseInt(s.dataset.ln)));
   }else{vl.style.display="none";vl.innerHTML="";}
+  // what the latest generate changed (only known after a generate this session)
+  const pd=$("pvDiff");
+  if(lastDiff&&(lastDiff.added.size||lastDiff.removed.length)){
+    const parts=[];
+    if(lastDiff.added.size)parts.push(`🆕 <b>${lastDiff.added.size}</b> added — use the "🆕 Changed" filter to see them`);
+    if(lastDiff.removed.length)parts.push(`➖ dropped since last pickit: <s>${lastDiff.removed.map(esc).join("</s>, <s>")}</s>`);
+    pd.innerHTML=parts.join(" &nbsp;·&nbsp; ");pd.style.display="block";
+  }else{pd.style.display="none";pd.innerHTML="";}
   renderPvNav();renderPreview();}
 function pvJump(n){
   // clear section/filter so the target line is actually rendered, then scroll to it
@@ -2130,7 +2186,9 @@ function renderPreview(){
     if(vm)e=`<span id="pvln-${n}" style="color:${vm[0]==="err"?"var(--err)":"var(--warn)"}" title="${vm[1].replace(/"/g,"&quot;")}">⚠ ${e}</span>`;
     if(l.startsWith("////")||(l.startsWith("//")&&(l.match(/\/\//g)||[]).length>2))return`<span class="l-h">${e}</span>`;
     if(l.startsWith("//")){if(l.includes("[StashItem]"))c++;return vm?e:`<span class="l-c">${e}</span>`;}
-    if(l.includes("[StashItem]")){a++;return vm?e:`<span class="l-a">${e}</span>`;}
+    if(l.includes("[StashItem]")){a++;
+      if(!vm&&isNewRule(l))return`<span class="l-a l-new" title="Added by the latest generate">${e}</span>`;
+      return vm?e:`<span class="l-a">${e}</span>`;}
     return e;}).join("\n");
   $("prevBox").innerHTML=html||"Nothing matches this filter.";
   const tot=prevLines.filter(l=>l.includes("[StashItem]")).length;
