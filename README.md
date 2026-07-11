@@ -36,11 +36,10 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
-> ### 🆕 What's new in v4.7.0 — backup restore + new-league detection
-> **Restore any pickit backup in one click** (Settings — the replaced file is
-> backed up first, nothing is ever lost), and a **banner offers to switch the
-> moment poe.ninja lists a brand-new league**. On top of v4.6.0's change-diff
-> filter, History re-run, and Auto-floor preview.
+> ### ⌨️ What's new in v4.8.0 — shortcuts, settings backup, diagnostics
+> `Ctrl+1–9` switches tabs and `Ctrl+F` jumps to search; **export/import your
+> whole setup as one file**; and Debug gets a one-click **Copy diagnostics**
+> for bug reports. On top of v4.7.0's backup restore + new-league banner.
 >
 > **[→ Full changelog](CHANGELOG.md)**
 

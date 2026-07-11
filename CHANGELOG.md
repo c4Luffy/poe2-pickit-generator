@@ -6,6 +6,17 @@ download lives.
 
 ---
 
+## [v4.8.0] — 2026-07-11 — Shortcuts, settings backup, one-click diagnostics
+
+### Added
+- **Keyboard shortcuts.** `Ctrl+1–9` switches tabs (Generate → Magic & Rare),
+  `Ctrl+F` focuses the current tab's search box, `Ctrl+G` still generates.
+- **Export / import settings (Settings).** Your whole setup — floors, toggles,
+  profiles, exclusions — saved to one JSON file and restorable on any PC.
+  Imports only accept known settings keys and apply instantly, no restart.
+- **Copy diagnostics (Debug).** One click copies version, settings summary,
+  cache state and the recent log — paste it when reporting a problem.
+
 ## [v4.7.0] — 2026-07-11 — Backup restore + new-league detection
 
 ### Added
@@ -180,6 +191,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.8.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.8.0
 [v4.7.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.7.0
 [v4.6.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.6.0
 [v4.5.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.5.0

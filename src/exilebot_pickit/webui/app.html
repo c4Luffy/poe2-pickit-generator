@@ -971,6 +971,8 @@
         <div style="display:flex;flex-direction:column;gap:6px">
           <button class="ghost mini" id="dbgLog">Open debug log</button>
         <div style="font-size:11px;color:var(--dim);margin-top:4px;line-height:1.35">Every action &amp; error — attach when reporting a bug.</div>
+          <button class="ghost mini" id="dbgDiag">📋 Copy diagnostics</button>
+        <div style="font-size:11px;color:var(--dim);margin-top:4px;line-height:1.35">Version, settings summary &amp; recent log — paste it when asking for help.</div>
           <button class="ghost mini" id="dbgCfg">Open config file</button>
         <div style="font-size:11px;color:var(--dim);margin-top:4px;line-height:1.35">Your settings as JSON — edit only with app closed.</div>
         </div>
@@ -1068,6 +1070,11 @@
           <div class="sp"></div>
           <button class="ghost mini" id="bakRefresh">↻ Refresh list</button></div>
         <div id="bakList" class="hint" style="margin:2px 0 4px"></div>
+        <div class="set-row"><div class="lab"><b>Backup your settings</b>
+          <span>Floors, toggles, profiles, exclusions — one file, movable to another PC.</span></div>
+          <div class="sp"></div>
+          <button class="ghost mini" id="cfgExport">⬆ Export…</button>
+          <button class="ghost mini" id="cfgImport">⬇ Import…</button></div>
       </div>
     </div>
     <div>
@@ -1174,8 +1181,18 @@ document.querySelectorAll("#themeSeg button").forEach(b=>b.onclick=()=>setTheme(
 $("lnkDiscord").onclick=()=>api().open_url("https://discord.gg/T7DU3Afve6");
 $("lnkSite").onclick=()=>api().open_url("https://exiled-bot.net/");
 
+/* keyboard: Ctrl+G generate · Ctrl+1..9 switch tabs · Ctrl+F focus search */
+const TAB_ORDER=["gen","prev","hist","eco","chance","craft","exc","fracture","rare"];
+const PAGE_SEARCH={eco:"ecoSearch",prev:"prevFilter"};   // per-tab search boxes
 document.addEventListener("keydown",e=>{
   if(e.ctrlKey&&e.key.toLowerCase()==="g"){e.preventDefault();doGenerate();}
+  if(e.ctrlKey&&e.key>="1"&&e.key<="9"){
+    const p=TAB_ORDER[parseInt(e.key)-1];
+    if(p){e.preventDefault();openPage(p);}}
+  if(e.ctrlKey&&e.key.toLowerCase()==="f"){
+    const cur=document.querySelector(".page.on");
+    const sid=cur&&PAGE_SEARCH[cur.id.replace("p-","")];
+    if(sid){e.preventDefault();const el=$(sid);el.focus();el.select();}}
   if(e.ctrlKey&&e.key.toLowerCase()==="c"){
     const sel=window.getSelection().toString();
     if(sel){e.preventDefault();copyText(sel).then(ok=>toast(ok?"Copied "+sel.split("\\n").length+" line(s)":"Clipboard blocked"));}
@@ -2057,6 +2074,20 @@ $("dbgClear").onclick=async()=>{await api().clear_cache();toast("Price cache cle
 $("dbgPrune").onclick=async()=>{const r=await api().prune_cache();toast(r.removed?`Pruned ${r.removed} old cache file(s)`:"Cache is already clean — nothing older than 60 days");};
 $("dbgCopy").onclick=async()=>{const r=await copyText($("dbgOut").textContent);toast(r?"Copied":"Clipboard blocked");};
 $("dbgLog").onclick=async()=>{const r=await api().open_file("log");if(r&&r.error)toast(r.error);};
+$("dbgDiag").onclick=async()=>{
+  const d=await api().debug_info();
+  const i=info||{};
+  const txt=[
+    `ExileBot 2 Pickit Generator ${i.version?"v"+i.version:""} — diagnostics`,
+    `league: ${i.league||"—"} · theme: ${i.theme||"—"} · auto-floor: ${i.auto_floor?("on ("+i.auto_floor_pct+"%)"):"off"}`,
+    `floors: gear ${i.min_gear} ex · uniques ${i.min_unique} ex · base q${i.base_quality} ilvl${i.base_min_level}`,
+    `bot folder: ${i.bot_folder?"set":"not set"} · auto-copy: ${i.auto_copy?"on":"off"} · output: ${i.output_base}.ipd`,
+    `cache: ${JSON.stringify(d.cache)}`,
+    `config: ${d.config_path}`,
+    ``, `— last log lines —`,
+    ...(d.log||[]).slice(-30)
+  ].join("\n");
+  toast(await copyText(txt)?"📋 Diagnostics copied — paste anywhere":"Clipboard blocked");};
 $("dbgCfg").onclick=async()=>{const r=await api().open_file("config");if(r&&r.error)toast(r.error);};
 $("dbgWipe").onclick=()=>dbg("Ready.");
 $("simRun").onclick=async()=>{
@@ -2266,6 +2297,18 @@ async function loadBackups(){
     toast(`✓ Restored — ${(r.active||0).toLocaleString()} active rules${r.copied?" · copied to bot":""}`);
     loadBackups();});}
 $("bakRefresh").onclick=loadBackups;
+/* settings export / import */
+$("cfgExport").onclick=async()=>{
+  const r=await api().export_settings();
+  if(r.cancelled)return;
+  toast(r.ok?"✓ Settings exported to "+r.path:"✗ "+r.error);};
+$("cfgImport").onclick=async()=>{
+  if(!confirm("Import settings from a backup file?\nYour current settings will be overwritten (floors, toggles, profiles…)."))return;
+  const r=await api().import_settings();
+  if(r.cancelled)return;
+  if(r.error)return toast("✗ "+r.error);
+  info=r.info;applyInfo(info);loadProfiles();eco=null;
+  toast(`✓ Imported ${r.applied} settings — applied instantly`);};
 $("fltBrowse").onclick=async()=>{const r=await api().browse_folder();
   if(r.path){$("fltDirLbl").textContent=r.path;await api().set_setting("poe2_filter_dir",r.path);toast("Saved");}};
 $("updCheck").onclick=async()=>{$("updLbl").textContent="Checking…";

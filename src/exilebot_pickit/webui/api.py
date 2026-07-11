@@ -625,6 +625,56 @@ class AppApi:
         except Exception:
             return {"error": "could not open folder", "dir": OUTPUT_DIR}
 
+    def export_settings(self):
+        """Save the whole setup (floors, toggles, profiles, exclusions…) to a
+        JSON file the user picks — for backup or moving to another PC. Caches
+        and window geometry are excluded."""
+        import json as _json
+        import webview
+        w = webview.windows[0]
+        default = f"pickit-settings-{time.strftime('%Y%m%d')}.json"
+        path = w.create_file_dialog(webview.SAVE_DIALOG, save_filename=default)
+        if not path:
+            return {"cancelled": True}
+        if isinstance(path, (list, tuple)):
+            path = path[0]
+        data = {k: v for k, v in self.cfg.items()
+                if k not in ("last_gen_prices", "window_geometry_web")}
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                _json.dump(data, f, indent=2)
+            return {"ok": True, "path": str(path)}
+        except OSError as e:
+            return {"error": str(e)}
+
+    def import_settings(self):
+        """Load a settings JSON exported above. Only keys that exist in
+        DEFAULT_CONFIG are applied (typo/garbage keys are ignored), and the
+        result goes through the same type-coercion guard as startup."""
+        import json as _json
+        import webview
+        from exilebot_pickit.ui.config import DEFAULT_CONFIG, _coerce_types
+        w = webview.windows[0]
+        res = w.create_file_dialog(webview.OPEN_DIALOG,
+                                   file_types=("Settings backup (*.json)",))
+        if not res:
+            return {"cancelled": True}
+        try:
+            with open(res[0], encoding="utf-8") as f:
+                data = _json.load(f)
+        except (OSError, ValueError) as e:
+            return {"error": f"couldn't read that file: {e}"}
+        if not isinstance(data, dict):
+            return {"error": "that file isn't a settings backup"}
+        applied = 0
+        for k, v in data.items():
+            if k in DEFAULT_CONFIG and k != "window_geometry_web":
+                self.cfg[k] = v
+                applied += 1
+        _coerce_types(self.cfg)
+        save_config(self.cfg)
+        return {"ok": True, "applied": applied, "info": self.app_info()}
+
     def list_backups(self):
         """Rotated .ipd backups (newest first) for the Settings restore picker."""
         base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
