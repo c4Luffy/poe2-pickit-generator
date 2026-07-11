@@ -31,7 +31,7 @@ _SETTABLE = {
     "auto_floor", "auto_floor_pct",
     "base_quality", "base_min_level", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
-    "minimize_to_tray", "magic_rare_flasks",
+    "minimize_to_tray", "magic_rare_flasks", "known_leagues",
 }
 
 
@@ -83,6 +83,7 @@ class AppApi:
             "confirm_overwrite_secs": int(c.get("confirm_overwrite_secs", 120)),
             "config_warning": _config_warning(),
             "minimize_to_tray": bool(c.get("minimize_to_tray", False)),
+            "known_leagues": list(c.get("known_leagues") or []),
         }
 
     def set_setting(self, key, value):
@@ -623,6 +624,56 @@ class AppApi:
             return {"ok": True}
         except Exception:
             return {"error": "could not open folder", "dir": OUTPUT_DIR}
+
+    def list_backups(self):
+        """Rotated .ipd backups (newest first) for the Settings restore picker."""
+        base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
+        bdir = os.path.join(OUTPUT_DIR, "backups")
+        out = []
+        try:
+            for f in os.listdir(bdir):
+                if not (f.startswith(base + "-") and f.endswith(".ipd")):
+                    continue
+                st = os.stat(os.path.join(bdir, f))
+                out.append({"name": f, "kb": round(st.st_size / 1024),
+                            "ts": time.strftime("%Y-%m-%d %H:%M",
+                                                time.localtime(st.st_mtime))})
+        except OSError:
+            pass
+        out.sort(key=lambda b: b["name"], reverse=True)
+        return out
+
+    def restore_backup(self, name):
+        """Make a rotated backup the current pickit again. The pickit being
+        replaced is itself backed up first, so a restore never loses anything."""
+        base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
+        bdir = os.path.join(OUTPUT_DIR, "backups")
+        name = os.path.basename(str(name))            # no path traversal
+        src = os.path.join(bdir, name)
+        if not (name.startswith(base + "-") and name.endswith(".ipd")
+                and os.path.isfile(src)):
+            return {"error": "backup not found"}
+        ipd = os.path.join(OUTPUT_DIR, base + ".ipd")
+        try:
+            if os.path.isfile(ipd):                    # save what we're replacing
+                os.makedirs(bdir, exist_ok=True)
+                stamp = time.strftime("%Y%m%d-%H%M%S")
+                shutil.copy2(ipd, os.path.join(bdir, f"{base}-{stamp}.ipd"))
+            shutil.copy2(src, ipd)
+            with open(ipd, encoding="utf-8") as f:
+                content = f.read()
+            gen.write_text_atomic(os.path.join(OUTPUT_DIR, "latest.ipd"), content)
+            self._last_lines = content.splitlines()   # Preview shows the restored file
+            copied = False
+            bot = (self.cfg.get("bot_folder") or "").strip()
+            if self.cfg.get("auto_copy") and bot and os.path.isdir(bot):
+                shutil.copy2(ipd, os.path.join(bot, os.path.basename(ipd)))
+                copied = True
+            active = sum(1 for l in self._last_lines
+                         if l and not l.startswith("//") and "[StashItem]" in l)
+            return {"ok": True, "name": name, "active": active, "copied": copied}
+        except OSError as e:
+            return {"error": str(e)}
 
     def open_bot_folder(self):
         """Open the configured Exiled Bot folder (where the .ipd is copied) in

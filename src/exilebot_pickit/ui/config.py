@@ -73,6 +73,9 @@ DEFAULT_CONFIG = {
     "theme": "dark",
     "minimize_to_tray": False,
     "magic_rare_flasks": True,
+    # League names already seen in the dropdown — one NOT in this list
+    # triggers the "new league detected" banner on the Generate tab.
+    "known_leagues": [],
     "window_geometry_web": "",
     "confirm_overwrite_secs": 120,
     "include_bases": True,

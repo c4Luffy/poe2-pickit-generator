@@ -6,6 +6,20 @@ download lives.
 
 ---
 
+## [v4.7.0] — 2026-07-11 — Backup restore + new-league detection
+
+### Added
+- **Restore a backup (Settings).** The app already keeps rotating `.ipd`
+  backups on every generate — now there's a list (date · size) with a
+  one-click **Restore**. The pickit being replaced is itself backed up first,
+  so a restore can never lose anything; `latest.ipd`, Preview, and (if
+  auto-copy is on) your bot folder are all updated.
+- **New-league banner (Generate).** When poe.ninja starts listing a league
+  the app has never seen — league launch day — a banner offers a one-click
+  **Switch**. Dismiss it and it stays dismissed.
+
+---
+
 ## [v4.6.0] — 2026-07-11 — See what changed, redo what worked
 
 Three quality-of-life features for the daily generate loop.
@@ -166,6 +180,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.7.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.7.0
 [v4.6.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.6.0
 [v4.5.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.5.0
 [v4.4.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.4.0

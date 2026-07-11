@@ -637,6 +637,9 @@
     <div class="pt" id="uPt" style="display:none"></div>
   </div>
   <div class="banner warn" id="offBanner" style="cursor:default"></div>
+  <div class="banner" id="lgNew" style="cursor:default"><span id="lgNewTx"></span>
+    <button class="ghost mini" id="lgNewGo" style="margin-left:10px">Switch</button>
+    <button class="ghost mini" id="lgNewNo">Dismiss</button></div>
 
   <div class="page-head">
     <h1>Generate</h1><span class="sub">Turn live prices into a bot pickit</span>
@@ -1060,6 +1063,11 @@
         <div class="set-row"><div class="lab"><b>Keep backups</b>
           <span>Previous pickits in output/backups (0 = off).</span></div><div class="sp"></div>
           <input type="number" id="bakCount" min="0" max="20" style="width:70px;text-align:center"></div>
+        <div class="set-row"><div class="lab"><b>Restore a backup</b>
+          <span>Replaces the current .ipd — the one being replaced is backed up first.</span></div>
+          <div class="sp"></div>
+          <button class="ghost mini" id="bakRefresh">↻ Refresh list</button></div>
+        <div id="bakList" class="hint" style="margin:2px 0 4px"></div>
       </div>
     </div>
     <div>
@@ -1151,6 +1159,7 @@ function openPage(p){
   if(p==="rare")loadRare();
   if(p==="prev")loadPreview();
   if(p==="hist")loadHistory();
+  if(p==="set")loadBackups();
 }
 document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>openPage(b.dataset.p));
 document.querySelectorAll(".nav-grp").forEach(gp=>gp.onclick=()=>openPage(_lastTab[gp.dataset.g]));
@@ -2240,6 +2249,23 @@ $("baseL").onchange=()=>{const v=_clamp($("baseL"),80,82,82);
   $("baseL").value=v;$("blGen").value=v;updTracks();api().set_setting("base_min_level",v);toast("Saved");};
 $("outBase").onchange=()=>{api().set_setting("output_base",$("outBase").value.trim()||"poe2_pickit");toast("Saved");};
 $("bakCount").onchange=()=>{api().set_setting("backup_count",parseInt($("bakCount").value)||0);toast("Saved");};
+/* backup restore picker (Settings) */
+async function loadBackups(){
+  const el=$("bakList");
+  const rows=await api().list_backups();
+  if(!rows||!rows.length){el.textContent="No backups yet — one is saved every time you generate.";return;}
+  el.innerHTML=rows.map(b=>
+    `<div class="set-row" style="padding:5px 0">
+       <span style="font:12px Consolas,monospace">${esc(b.ts)} · ${b.kb} KB</span>
+       <div class="sp"></div>
+       <button class="ghost mini bak-r" data-n="${esc(b.name)}">Restore</button></div>`).join("");
+  el.querySelectorAll(".bak-r").forEach(btn=>btn.onclick=async()=>{
+    if(!confirm("Restore this backup as the current pickit?\nThe pickit being replaced is backed up first — nothing is lost."))return;
+    const r=await api().restore_backup(btn.dataset.n);
+    if(r.error)return toast("✗ "+r.error);
+    toast(`✓ Restored — ${(r.active||0).toLocaleString()} active rules${r.copied?" · copied to bot":""}`);
+    loadBackups();});}
+$("bakRefresh").onclick=loadBackups;
 $("fltBrowse").onclick=async()=>{const r=await api().browse_folder();
   if(r.path){$("fltDirLbl").textContent=r.path;await api().set_setting("poe2_filter_dir",r.path);toast("Saved");}};
 $("updCheck").onclick=async()=>{$("updLbl").textContent="Checking…";
@@ -2313,7 +2339,25 @@ async function init(){
     toast("Couldn't load leagues — check your connection, then press ⟳ next to the league box");}
   else{for(const l of ls){const o=document.createElement("option");o.value=l.name;o.textContent=l.display;sel.appendChild(o);}
     if(info.league)sel.value=info.league;
-    logLine("Loaded "+ls.length+" leagues.","ok");sideMark(true);}
+    logLine("Loaded "+ls.length+" leagues.","ok");sideMark(true);
+    // New-league banner: a league we've never seen (e.g. league launch day).
+    // First run just records the list; the banner nags until switched/dismissed.
+    try{
+      const known=new Set(info.known_leagues||[]);
+      const names=ls.map(l=>l.name);
+      if(!known.size)api().set_setting("known_leagues",names);
+      else{
+        const fresh=ls.filter(l=>!known.has(l.name)&&l.name!==sel.value);
+        if(fresh.length){
+          $("lgNewTx").textContent="🆕 New league detected: "+fresh.map(f=>f.display).join(", ");
+          $("lgNew").classList.add("on");
+          const commit=()=>{api().set_setting("known_leagues",names);$("lgNew").classList.remove("on");};
+          $("lgNewGo").onclick=()=>{sel.value=fresh[0].name;sel.onchange();commit();
+            toast("Switched to "+fresh[0].display);};
+          $("lgNewNo").onclick=commit;
+        }else api().set_setting("known_leagues",names);
+      }
+    }catch(_){}}
   const _rates=()=>api().chaos_ex(sel.value).then(r=>{chaosEx=r.ex||0;uEx();gEx();});
   sel.onchange=()=>{api().set_setting("league",sel.value);eco=null;_rates();updMktLeague();};
   updMktLeague();
