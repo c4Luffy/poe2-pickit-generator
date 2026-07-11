@@ -178,38 +178,43 @@ def test_divine_value_from_exalt():
 # and conditions AFTER # after picking up. [ItemLevel] is only readable
 # post-pickup, so it MUST live after the # separator.
 
-def test_craft_base_ilvl_is_after_hash():
-    """[ItemLevel] must appear in the action block (after #), not the filter block."""
+# NOTE (2026-07-11): [ItemLevel] moved BEFORE the # across all base rules —
+# the bot reads game memory, so ilvl is known pre-pickup (its own editor lists
+# Item Level under BEFORE IDENTIFY). Pre-# filtering means low-level bases are
+# never picked up at all, instead of hauled home and vendored after identify.
+
+def test_craft_base_ilvl_is_before_hash():
+    """[ItemLevel] must be a pre-pickup filter (before #) — owner format."""
     rules = [l for l in gen.build_craft_base_rules() if "[StashItem]" in l]
     assert rules, "No craft base rules generated"
     for rule in rules:
         before, after = rule.split("#", 1)
-        assert "[ItemLevel]" not in before, (
-            f"[ItemLevel] is in the pre-pickup filter (BEFORE #) — bug!\n  {rule}"
+        assert "[ItemLevel]" in before, (
+            f"[ItemLevel] missing from the pre-pickup filter (BEFORE #)\n  {rule}"
         )
-        assert "[ItemLevel]" in after, (
-            f"[ItemLevel] missing from action block (AFTER #)\n  {rule}"
+        assert "[ItemLevel]" not in after, (
+            f"[ItemLevel] duplicated in the action block (AFTER #)\n  {rule}"
         )
 
 
-def test_build_base_rules_ilvl_is_after_hash():
+def test_build_base_rules_ilvl_is_before_hash():
     """Same check for endgame gear bases from build_base_rules()."""
     rules = [l for l in gen.build_base_rules() if "[ItemLevel]" in l]
     assert rules, "No base rules with [ItemLevel] found"
     for rule in rules:
         before, after = rule.split("#", 1)
-        assert "[ItemLevel]" not in before, (
-            f"[ItemLevel] in pre-pickup filter (BEFORE #) in base rule:\n  {rule}"
+        assert "[ItemLevel]" in before, (
+            f"[ItemLevel] missing from pre-pickup filter (BEFORE #) in base rule:\n  {rule}"
         )
 
 
-def test_craft_base_custom_ilvl_reflected_in_action_block():
-    """A custom min_ilvl value must appear after # not before."""
+def test_craft_base_custom_ilvl_reflected_in_filter_block():
+    """A custom min_ilvl value must appear before # (ground filter)."""
     rules = [l for l in gen.build_craft_base_rules(min_ilvl=75) if "[StashItem]" in l]
     for rule in rules:
         before, after = rule.split("#", 1)
-        assert '[ItemLevel] >= "75"' not in before
-        assert '[ItemLevel] >= "75"' in after
+        assert '[ItemLevel] >= "75"' in before
+        assert '[ItemLevel] >= "75"' not in after
 
 
 def test_craft_base_ilvl_overrides_per_base():
@@ -228,14 +233,16 @@ def test_craft_base_default_ilvl_helper():
     assert gen.craft_base_default_ilvl("Soldier Cuirass", 70) == 70
 
 
-def test_validate_pickit_catches_ilvl_before_hash():
-    """Validator should warn/error on [ItemLevel] appearing before #."""
-    bad = '[Type] == "Glorious Plate" && [Rarity] == "Normal" && [ItemLevel] >= "82" # [StashItem] == "true"'
-    result = gen.validate_pickit([bad])
-    # After fix the validator should flag this pattern
+def test_validate_pickit_allows_ilvl_before_hash():
+    """[ItemLevel] before # is VALID — the bot reads game memory, so it knows a
+    ground item's level pre-pickup (confirmed 2026-07-11 from the bot's own
+    editor: Item Level is offered under BEFORE IDENTIFY). The validator must
+    NOT flag it — pre-# filtering skips low-ilvl drops on the ground."""
+    good = '[Type] == "Glorious Plate" && [Rarity] == "Normal" && [ItemLevel] >= "82" # [StashItem] == "true"'
+    result = gen.validate_pickit([good])
     flagged = result["errors"] + result["warnings"]
-    assert any("ItemLevel" in m for _, m in flagged), (
-        "Validator did not flag [ItemLevel] before # — consider adding this check"
+    assert not any("ItemLevel" in m for _, m in flagged), (
+        f"Validator wrongly flagged pre-# ItemLevel: {flagged}"
     )
 
 
@@ -395,11 +402,13 @@ def test_prune_disk_cache_keeps_recent_files(tmp_path):
 
 
 def test_craft_base_rules_custom_ilvl_in_rule():
-    """build_craft_base_rules(min_ilvl=75) must emit rules with ilvl 75 after #."""
+    """build_craft_base_rules(min_ilvl=75) must emit the ilvl gate BEFORE the #
+    (owner format — the bot filters on the ground, so low-ilvl bases are never
+    picked up at all instead of vendored after identify)."""
     rules = [l for l in gen.build_craft_base_rules(min_ilvl=75) if "[StashItem]" in l]
     for rule in rules:
-        after = rule.split("#", 1)[1]
-        assert '[ItemLevel] >= "75"' in after, f"ilvl 75 missing from action block: {rule}"
+        before = rule.split("#", 1)[0]
+        assert '[ItemLevel] >= "75"' in before, f"ilvl 75 missing from pre-# block: {rule}"
 
 
 # ── Round 6: CLI flags, sort order, base-level default ───────────────────────
@@ -483,7 +492,8 @@ def test_webui_entry_and_api_import():
 
 
 def test_all_new_bases_have_correct_ilvl_placement():
-    """All newly added bases must have [ItemLevel] after # in build_base_rules."""
+    """Exceptional-base rules gate [ItemLevel] BEFORE the # (owner format) so
+    the bot skips low-level bases on the ground instead of vendoring them."""
     new_bases = ["Polished Bracers", "Blacksteel Sabatons", "Imperial Greathelm",
                  "Vile Robe", "Hallowed Sceptre", "Apostle Leggings"]
     rules = gen.build_base_rules()
@@ -492,7 +502,7 @@ def test_all_new_bases_have_correct_ilvl_placement():
         assert base_rules, f"No rules generated for {base!r}"
         for rule in base_rules:
             before = rule.split("#", 1)[0]
-            assert "[ItemLevel]" not in before, f"[ItemLevel] before # for {base}: {rule}"
+            assert "[ItemLevel]" in before, f"[ItemLevel] missing from pre-# for {base}: {rule}"
 
 
 

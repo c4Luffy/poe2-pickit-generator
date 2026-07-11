@@ -205,12 +205,10 @@ def validate_pickit(lines) -> dict:
             errors.append((i, "Rule has no [StashItem] action"))
             continue
 
-        # [ItemLevel] is only readable after pickup — must appear AFTER the #
-        # separator. Flag as a warning if found in the condition block (before #).
-        if "[ItemLevel]" in line and "#" in line:
-            pre_hash = line.split("#", 1)[0]
-            if "[ItemLevel]" in pre_hash:
-                warnings.append((i, "[ItemLevel] appears before # — move it to the action block after #"))
+        # [ItemLevel] IS valid before the # — the bot reads game memory, so it
+        # knows a ground item's level pre-pickup. Confirmed 2026-07-11 from the
+        # bot's own editor: "Item Level" is offered in the BEFORE IDENTIFY
+        # condition list. (An older warning here claimed otherwise — wrong.)
 
         m  = _VAL_TYPE_RE.search(line)
         mu = _VAL_UNIQUE_RE.search(line)
@@ -282,9 +280,9 @@ def build_base_rules(min_quality: int = 25, min_level: int = 82, progress_callba
             if name in _dis:
                 continue
             safe = _quote_ipd(name)
-            cat_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" && [ItemTier] >= "{CRAFT_MIN_ITEM_TIER}" # [ItemLevel] >= "{min_level}" && [StashItem] == "true"')
+            cat_rules.add(f'[Type] == "{safe}" && [Quality] >= "{min_quality}" && [ItemLevel] >= "{min_level}" # [StashItem] == "true"')
             if sock > 0:
-                cat_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" && [ItemTier] >= "{CRAFT_MIN_ITEM_TIER}" # [ItemLevel] >= "{min_level}" && [StashItem] == "true"')
+                cat_rules.add(f'[Type] == "{safe}" && [Sockets] >= "{sock}" && [ItemLevel] >= "{min_level}" # [StashItem] == "true"')
         all_lines.extend(sorted(cat_rules))
         all_lines.append("")
 
@@ -294,11 +292,12 @@ def build_base_rules(min_quality: int = 25, min_level: int = 82, progress_callba
 # ─────────────────────────────────────────────────────────────────────────────
 #  Craft bases — pick the BEST WHITE (Normal) base of each defence type per slot
 #  at high item level, as blank bases worth crafting on. Curated (not the full
-#  base list) to keep the stash from filling up. Emitted as:
-#    [Type] == "Name" && [Rarity] == "Normal" && [ItemTier] >= "4" # [ItemLevel] >= "82" && [StashItem] == "true"
-#  ([ItemTier] is on the ground label, so low-tier drops are skipped BEFORE
-#   pickup; [ItemLevel] is only known after pickup, so the exact gate stays
-#   post-# — see validate_pickit's warning about pre-# ItemLevel.)
+#  base list) to keep the stash from filling up. Emitted as (owner format):
+#    [Type] == "Name" && [Rarity] == "Normal" && [ItemLevel] >= "82" # [StashItem] == "true"
+#  [ItemLevel] before the # = the bot filters on the GROUND (it reads game
+#  memory, so ilvl is known pre-pickup — confirmed from the bot's own editor,
+#  which lists Item Level under BEFORE IDENTIFY). Low-level bases are never
+#  picked up at all, instead of being hauled home and vendored after ID.
 #
 #  These are best-effort meta picks (verified to exist in the base list); they are
 #  toggleable in the Craft Bases tab and easy to swap here. Sword/axe/mace are
@@ -323,11 +322,6 @@ from exilebot_pickit.data.magic_rare import (  # noqa: F401
 
 
 CRAFT_BASE_MIN_ILVL = 82
-
-# Ground-label tier gate for craft/exceptional base rules: [ItemTier] is
-# readable BEFORE pickup (ItemLevel is not), so the bot skips low-tier drops
-# on the ground instead of hauling every white base home to vendor it.
-CRAFT_MIN_ITEM_TIER = 4
 
 # Ordered slot -> [(base_name, defence_type), ...].  Armour slots cover ALL six
 # defence types — the three pure attributes (STR=Armour, DEX=Evasion, INT=Energy
@@ -415,8 +409,7 @@ def build_craft_base_rules(disabled=None, min_ilvl: int = CRAFT_BASE_MIN_ILVL,
             ilvl = overrides.get(name, _CRAFT_BASE_ILVL_OVERRIDES.get(name, min_ilvl))
             body.append(
                 f'[Type] == "{safe}" && [Rarity] == "Normal" '
-                f'&& [ItemTier] >= "{CRAFT_MIN_ITEM_TIER}" '
-                f'# [ItemLevel] >= "{ilvl}" && [StashItem] == "true"'
+                f'&& [ItemLevel] >= "{ilvl}" # [StashItem] == "true"'
             )
         body.append("")
     if not body:
