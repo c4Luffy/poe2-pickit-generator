@@ -6,6 +6,29 @@ download lives.
 
 ---
 
+## [v4.9.0] — 2026-07-11 — History gets the Workbench treatment
+
+The run-history page was rebuilt into a proper market-history view. Pure UI —
+no engine changes, generated pickits are byte-identical.
+
+### Redesigned
+- **The run chart is a real chart now.** Gradient area fill, a dotted
+  average line, the peak run marked with a diamond, and the latest value
+  labeled right on the chart — no hover needed to know where you stand.
+  Hovering snaps a crosshair to the nearest run with a richer tooltip:
+  rules, ▲/▼ change vs the previous run, skipped, divine rate, top item.
+- **Divine-rate sparkline** under the run chart — same timeline, its own
+  scale. Watch "1 Div = X ex" drift across the league at a glance.
+- **Tiles learned deltas.** "Last run rules" shows ▲ +58 / ▼ 12 vs the
+  previous run in green/red; "peak rules" shows the date it happened.
+- **The table tells you what moved.** New **Δ column** — a green `+335` /
+  red `-5` pill per run vs the run before it — and friendly dates
+  ("7 h ago"; the exact timestamp is on hover).
+
+### Unchanged on purpose
+- ↻ Re-run with these floors, Clear history, and the 50-run log all work
+  exactly as before.
+
 ## [v4.8.0] — 2026-07-11 — Shortcuts, settings backup, one-click diagnostics
 
 ### Added
@@ -191,6 +214,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.9.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.0
 [v4.8.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.8.0
 [v4.7.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.7.0
 [v4.6.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.6.0
