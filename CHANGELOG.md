@@ -6,6 +6,11 @@ download lives.
 
 ---
 
+## [v4.9.1] — 2026-07-11
+- **Floor sliders now drag up to 50** in every unit (Exalt / Chaos / Divine) —
+  they were capped at 5, which made higher value floors impossible to reach by
+  dragging. Typing a value still works exactly as before.
+
 ## [v4.9.0] — 2026-07-11 — History gets the Workbench treatment
 
 The run-history page was rebuilt into a proper market-history view. Pure UI —
@@ -214,6 +219,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.9.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.1
 [v4.9.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.0
 [v4.8.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.8.0
 [v4.7.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.7.0

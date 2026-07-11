@@ -41,6 +41,7 @@ press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a comp
 > line, peak marker, snap-to-run crosshair — plus a **divine-rate sparkline**
 > and a **Δ column** showing exactly what each run changed. On top of
 > v4.8.0's keyboard shortcuts + settings export/import.
+> *(v4.9.1: floor sliders now drag up to 50 ex/chaos/div — was 5.)*
 >
 > **[→ Full changelog](CHANGELOG.md)**
 
