@@ -6,6 +6,49 @@ download lives.
 
 ---
 
+## [v4.5.0] — 2026-07-11 — "Exile's Workbench" + smarter ground filtering
+
+The look was rebuilt to the warmer **Workbench** design (aged brass & bone,
+serif headings), and — more importantly — the pickit engine got real fixes
+found by running the generated file in the actual bot.
+
+### Pickit engine (the important part)
+- **Item level now filters on the ground.** Base rules moved `[ItemLevel]`
+  before the `#` — the bot reads game memory, so it knows a ground item's
+  level before pickup (its own editor lists Item Level under BEFORE
+  IDENTIFY). Low-level craft/exceptional bases are simply never picked up,
+  instead of being hauled home, identified, and vendored.
+  `[Type] == "Gold Ring" && [Rarity] == "Normal" && [ItemLevel] >= "75" # [StashItem] == "true"`
+- **Fracture rules gate `[ItemTier] >= "4"`** before the `#`, so low-tier
+  magic/rare bases stay on the ground too.
+- **Fixed useless `>= "1"` thresholds** on ten fracture targets — the parser
+  was reading the "1" out of tier tags like "T1 35–38%". Quiver crit is now
+  ≥ 30, bow damage ≥ 43, sceptre spirit ≥ 56, and so on.
+- **Added-lightning targets now gate on the maximum roll** (the minimum is 1
+  on every tier, so it filtered nothing): quivers ≥ 48, one-hand weapons
+  ≥ 157, two-hand ≥ 239 — verified live from Craft of Exile.
+- **Duplicate rules deduped** (the sceptre skill-level pair emitted both
+  ≥ 4 and ≥ 3 versions of the same rule).
+- **"Aldur's Legacy" un-flagged** — it's a live Runes of Aldur league unique
+  the pickit should (and does) grab; the old "deprecated" warning was bogus.
+  Validation is now 100% clean.
+
+### Redesigned — "Exile's Workbench"
+- Aged **brass & bone palette** with Georgia serif headings (the approved
+  Codex mockup), now the default and Relic theme; Frost/Blood retuned to
+  match. Active nav tab is a thin brass left-border.
+- **Generate is a "pickit recipe"**: each threshold is a labeled row with a
+  plain-English description ("Exceptional base roll, 21–30%"), a big brass
+  value, and a **drag-slider track** — the −/+ steppers are gone.
+- **Last-run panel** with a status seal (◷ → ✓/✗ live), checklist and run
+  stats; **market strip** (live league · divine rate · last-run moves ·
+  refresh) under the console.
+- **Top picks show real poe.ninja item art** instead of emoji, and each value
+  reads in **exalt + divine + chaos**.
+- Currency unit picker is a proper dark brass pill (no more white OS popup).
+
+---
+
 ## [v4.4.0] — 2026-07-10 — "Exile's Ledger" UI overhaul
 
 A complete visual redesign, built from an approved mockup. Every control and
@@ -98,6 +141,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.5.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.5.0
 [v4.4.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.4.0
 [v4.3.6]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.3.6
 [v4.3.5]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.3.5

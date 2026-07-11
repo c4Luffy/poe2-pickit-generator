@@ -122,7 +122,10 @@ KNOWN_INVALID_TYPES: set = {
 }
 
 # Names Exiled Bot still accepts but marks as deprecated (validation warning).
-DEPRECATED_TYPES: set = {"Aldur's Legacy"}
+# "Aldur's Legacy" was removed 2026-07-11: it's a live Runes of Aldur league
+# unique (priced six figures on poe.ninja) the owner explicitly wants picked —
+# flagging it made every validation show a bogus warning.
+DEPRECATED_TYPES: set = set()
 
 _VAL_TYPE_RE   = re.compile(r'\[Type\]\s*==\s*"((?:[^"\\]|\\.)*)"')
 _VAL_UNIQUE_RE = re.compile(r'\[UniqueName\]\s*==\s*"((?:[^"\\]|\\.)*)"')

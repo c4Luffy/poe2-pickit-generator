@@ -25,11 +25,11 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
-> ### 🏺 What's new in v4.4.0 — the "Exile's Ledger" redesign
-> A new **left rail**, a **Generate console** with live run status and dial-style
-> value floors, a live *"prices fetched X ago"* indicator, and a new
-> obsidian-and-gold look (now the default theme). Also fixes History table
-> columns not lining up with their headers.
+> ### ⚒️ What's new in v4.5.0 — "Exile's Workbench" + smarter ground filtering
+> **The bot now skips junk on the ground**: base rules filter `[ItemLevel]`
+> *before* pickup, fracture rules gate on item tier, and ten broken thresholds
+> were fixed after live bot testing. Plus a warmer brass-and-bone redesign with
+> drag-slider value floors, real item icons, and prices in ex / div / chaos.
 >
 > **[→ Full changelog](CHANGELOG.md)**
 
