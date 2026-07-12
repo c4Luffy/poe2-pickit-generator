@@ -6,6 +6,15 @@ download lives.
 
 ---
 
+## [v4.17.2] — 2026-07-12 — Transparent logo, no black box
+
+### Changed
+- **The app logo no longer sits on a black background.** The mascot is now on a
+  transparent background everywhere it appears — the website logo, the app icon
+  `.png`, and the `.ico` used for the window and taskbar. Cut with an ML matting
+  pass, so the character's own dark armour and cape are kept, not keyed out with
+  the background.
+
 ## [v4.17.1] — 2026-07-12 — Item icons sit clean
 
 ### Fixed
@@ -689,6 +698,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.17.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.2
 [v4.17.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.1
 [v4.17.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.0
 [v4.16.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.16.0
