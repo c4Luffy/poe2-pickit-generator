@@ -915,12 +915,17 @@
     <pre id="mrFlaskLines" style="margin-top:10px;font:12px/1.6 Consolas,monospace;color:var(--dim);white-space:pre-wrap;word-break:break-word"></pre>
   </div>
 
+  <div class="card" style="margin-top:14px;display:flex;align-items:center;gap:12px">
+    <div style="flex:1"><b>Rare-gear rules in your pickit</b>
+      <div class="hint" style="margin-top:2px">All 17 slot recipes below are written into every generated pickit. Turn off to generate without them.</div></div>
+    <div class="sw" id="swRareGear"><i></i></div>
+  </div>
   <div class="craft-layout" style="margin-top:14px">
     <div class="craft-side" id="rareSide"></div>
     <div style="flex:1;min-width:0">
       <div class="card">
         <h2 id="rareTitle" style="margin:0 0 10px">Pick a slot</h2>
-        <div class="hint">Rare-gear WeightedSum rules, built slot by slot — every stat verified against the bot's mod list, weights from live max-rolls. Slots marked with a count are drafted; the rest are up next.</div>
+        <div class="hint">Rare-gear WeightedSum rules — every stat verified against the bot's mod list, weights from live max-rolls. All 17 slots are written into every generated pickit (toggle above to turn the whole set off).</div>
         <div id="rareList"></div>
       </div>
     </div>
@@ -1935,10 +1940,10 @@ function renderFracture(){
     setTimeout(()=>btn.textContent=old,1200);});
 }
 
-/* ── rare (by gear slot — structure only, rules built later) ── */
+/* ── rare (by gear slot — WeightedSum recipes, written into every pickit) ── */
 const RARE_SLOTS=[["Armour",["Body Armour","Helmet","Gloves","Boots"]],
   ["Jewellery",["Amulet","Ring","Belt"]],
-  ["Off-hand",["Shield","Focus","Quiver"]],
+  ["Off-hand",["Focus","Quiver"]],
   ["Weapons",["Bow","Crossbow","Quarterstaff","Spear","Mace","Sceptre","Wand","Staff"]]];
 let rareSel="Body Armour";
 async function loadRare(){
@@ -1952,13 +1957,21 @@ async function loadRare(){
       b.innerHTML=`<span>${esc(slot)}</span><span class="n">—</span>`;
       b.onclick=()=>{rareSel=slot;renderRare();};
       s.appendChild(b);}}
-  try{window.rareRecipes=await api().rare_recipes();}catch(e){window.rareRecipes={};}
+  try{const rrsp=await api().rare_recipes();
+    window.rareRecipes=(rrsp&&rrsp.slots)||{};window.rareGearOn=!!(rrsp&&rrsp.enabled);
+  }catch(e){window.rareRecipes={};window.rareGearOn=true;}  // default matches config (on) so the switch never reads OFF while rules still generate
+  $("swRareGear").classList.toggle("on",!!window.rareGearOn);
   renderRare();
   // Best-flasks section
   const d=await api().magic_rare_data();const f=d&&d.flasks;
   if(f){$("swMrFlasks").classList.toggle("on",!!f.enabled);
     $("mrFlaskLines").textContent=(f.lines||[]).join("\n");}
 }
+$("swRareGear").onclick=async()=>{
+  const el=$("swRareGear");const on=!el.classList.contains("on");
+  el.classList.toggle("on",on);window.rareGearOn=on;
+  await api().set_setting("rare_gear_enabled",on);renderRare();
+  toast(on?"Rare gear rules: ON — regenerate to apply":"Rare gear rules: OFF — regenerate to apply");};
 $("swMrFlasks").onclick=async()=>{
   const el=$("swMrFlasks");const on=!el.classList.contains("on");
   el.classList.toggle("on",on);await api().set_magic_rare_flasks(on);toast(on?"Best flasks: ON":"Best flasks: OFF");};
@@ -1970,13 +1983,16 @@ function renderRare(){
   $("rareTitle").textContent=rareSel;
   const r=(window.rareRecipes||{})[rareSel];
   if(!r){
-    $("rareList").innerHTML=`<div class="hint" style="margin-top:12px">No rules built for <b>${esc(rareSel)}</b> yet — we're building the slots one at a time, in the order on the left. Each stat gets verified against the bot's mod list and weighted from live max-rolls.</div>`;
+    $("rareList").innerHTML=`<div class="hint" style="margin-top:12px">Couldn't load the recipe for <b>${esc(rareSel)}</b> — reopen this tab to retry.</div>`;
     return;}
   const wrows=r.weights.map(w=>`<tr><td>${esc(w.label)}</td>
       <td style="text-align:right;font-family:Consolas,ui-monospace,monospace;font-weight:600">${w.w}</td>
       <td style="color:var(--dim);font-size:11px;font-family:Consolas,ui-monospace,monospace">${esc(w.stat)}</td></tr>`).join("");
+  const live=!!window.rareGearOn;
   $("rareList").innerHTML=
-    `<div style="margin:10px 0"><span class="pill" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent);background:color-mix(in srgb,var(--warn) 8%,transparent)">DRAFT — approved locally, not in your generated pickit yet</span></div>
+    `<div style="margin:10px 0"><span class="pill" style="${live
+      ?"color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent);background:color-mix(in srgb,var(--ok) 8%,transparent)"
+      :"color:var(--dim)"}">${live?"LIVE — written into every generated pickit":"OFF — not in generated pickits (switch above)"}</span></div>
      <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;margin:12px 0 14px">
        <div><div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">WEIGHTEDSUM ≥</div>
          <div style="font-family:Georgia,serif;font-size:24px;color:var(--gold)">${esc(r.threshold)}</div></div>

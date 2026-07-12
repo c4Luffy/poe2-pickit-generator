@@ -31,7 +31,7 @@ _SETTABLE = {
     "auto_floor", "auto_floor_pct",
     "base_quality", "base_min_level", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
-    "minimize_to_tray", "magic_rare_flasks", "known_leagues",
+    "minimize_to_tray", "magic_rare_flasks", "known_leagues", "rare_gear_enabled",
 }
 
 
@@ -401,13 +401,14 @@ class AppApi:
         return list(reversed(self.cfg.get("history", [])))[:30]
 
     def rare_recipes(self):
-        """Draft rare-gear WeightedSum recipes per slot, for the Magic & Rare
-        tab's review view. LOCAL preview only — these rules are NOT wired into
-        pickit output until the owner reviews every section and ships."""
+        """Rare-gear WeightedSum recipes per slot, for the Magic & Rare tab.
+        These rules ARE written into every generated pickit when
+        ``rare_gear_enabled`` is on (the master switch above the slot list);
+        the returned ``enabled`` flag reflects that setting."""
         from exilebot_pickit.data.rare import rules as rare_rules
-        out = {}
+        slots = {}
         for slot, spec in rare_rules.RARE_GEAR.items():
-            out[slot] = {
+            slots[slot] = {
                 "bases": list(spec["bases"]),
                 "threshold": spec["threshold"],
                 "item_tier": spec["item_tier"],
@@ -417,7 +418,8 @@ class AppApi:
                     for sid, w in spec["weights"].items()],
                 "lines": rare_rules.rare_gear_example_lines(slot),
             }
-        return out
+        return {"enabled": bool(self.cfg.get("rare_gear_enabled", True)),
+                "slots": slots}
 
     def download_update(self):
         """Start downloading the newest release exe on a worker thread and return
@@ -1037,6 +1039,7 @@ class AppApi:
             "base_quality": int(self.cfg.get("base_quality", 25)),
             "base_min_level": int(self.cfg.get("base_min_level", 82)),
             "magic_rare_flasks": bool(self.cfg.get("magic_rare_flasks", True)),
+            "rare_gear_enabled": bool(self.cfg.get("rare_gear_enabled", True)),
         }
 
     def _generate(self, league, min_gear, min_unique):
@@ -1110,6 +1113,13 @@ class AppApi:
             out += craft_lines
             out += asm.fracture_pickit_section(snap)
             out += gen.build_magic_rare_rules(snap.get("magic_rare_flasks", True))
+            # Rare-gear WeightedSum recipes (17 slots, owner-reviewed 2026-07-12).
+            if snap.get("rare_gear_enabled", True):
+                from exilebot_pickit.data.rare.rules import rare_gear_body
+                _rg = rare_gear_body()
+                if _rg:
+                    out += ["", gen.header_major("Rare Gear — WeightedSum recipes"), ""]
+                    out += _rg
             excdis = self._excbase_disabled(snap)
             if snap["include_bases"]:
                 out += ["", gen.header_major("Exceptional Bases"), ""]

@@ -6,6 +6,39 @@ download lives.
 
 ---
 
+## [v4.11.0] — 2026-07-12 — Rare gear goes LIVE: all 17 slots, in every pickit
+
+The rare-gear WeightedSum recipes are done and **written into every generated
+pickit**. All 17 gear slots — armour, jewellery, off-hand and every weapon —
+now score rare drops by what actually sells, so the bot keeps the rares worth
+picking up and leaves the vendor trash on the floor.
+
+### Added
+- **Rare gear in generated pickits.** The full 17-slot recipe set (Body Armour,
+  Helmet, Gloves, Boots, Amulet, Ring, Belt, Focus, Quiver, Bow, Crossbow,
+  Quarterstaff, Spear, Mace, Sceptre, Wand, Staff) is written into every `.ipd` —
+  51 rules, three bases a slot. Each rule keeps a rare only if it clears a
+  **WeightedSum** of the stats that matter for that slot (threshold 250 ≈ 2.5
+  perfect rolls).
+- **Master on/off switch** at the top of the Magic & Rare tab — turn the whole
+  rare-gear set off and regenerate to get a pickit without it.
+- **Headless `--cli` mode** now writes the rare-gear section too.
+- **LIVE badges** on every slot card, replacing the draft marker.
+
+### Recipes
+- Every slot was built from its own poe.ninja ladder meta and the game's mod
+  database (2026-07-12), not cloned from a template. Weapons score weapon-local
+  **crit chance** (percent scale) alongside crit multiplier, added damage, skill
+  levels and the "Surpassing" +1-projectile chase; the wand's **+4 to all spell
+  skills** and the staff's **+5–6** are in. All 63 scored stat ids are verified
+  present in the bot's ModsList.
+
+### Fixed
+- Five renamed fracture stat ids that silently never matched — projectile skill
+  levels on bows/crossbows, +bolts, quiver bow-damage, and body flat-Spirit —
+  now use the engine's real current ids.
+- Amethyst Ring added to the base-type validator whitelist.
+
 ## [v4.10.0] — 2026-07-12 — Rare gear recipes: the armour set, in draft
 
 The Magic & Rare tab starts showing its real content: per-slot **WeightedSum
@@ -276,6 +309,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.11.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.0
 [v4.10.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.10.0
 [v4.9.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.3
 [v4.9.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.2

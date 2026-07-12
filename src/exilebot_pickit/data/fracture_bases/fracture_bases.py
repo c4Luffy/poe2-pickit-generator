@@ -336,8 +336,11 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     # (e.g. "melee_skill_gem_level_+", verified 2026-07-09). Omitting the "+"
     # made every skill-level rule fail the official exiled-bot.net validator
     # ("Not found in stats.json") — the "+" is part of the real id.
-    "weapon_skill_level_bow": "bow_skill_gem_level_+",
-    "weapon_skill_level_crossbow": "crossbow_skill_gem_level_+",
+    # Bows roll "+X to Level of all PROJECTILE Skills" — bow_skill_gem_level_+
+    # is not a rollable game mod (final audit 2026-07-12, same renamed-id
+    # family as spirit_body).
+    "weapon_skill_level_bow": "projectile_skill_gem_level_+",
+    "weapon_skill_level_crossbow": "projectile_skill_gem_level_+",  # same fix as bow
     "weapon_skill_level_quarterstaff": "melee_skill_gem_level_+",
     "weapon_skill_level_2hmace": "melee_skill_gem_level_+",
     "weapon_skill_level_spear": "melee_skill_gem_level_+",
@@ -380,9 +383,11 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     "added_lightning_weapon_2h": "local_maximum_added_lightning_damage",
     "sceptre_spirit": "local_spirit_+%",
     "sceptre_allies_dmg": "allies_in_presence_damage_+%",
-    "crossbow_load_bolt": "number_of_crossbow_bolts",
+    # The rollable game stat is base_number_of_crossbow_bolts (audit 2026-07-12).
+    "crossbow_load_bolt": "base_number_of_crossbow_bolts",
     "quiver_proj_speed": "base_projectile_speed_+%",
-    "quiver_bow_dmg": "bow_damage_+%",
+    # The rollable game stat is damage_+%_with_bow_skills (audit 2026-07-12).
+    "quiver_bow_dmg": "damage_+%_with_bow_skills",
     "quiver_added_lightning": "local_maximum_added_lightning_damage",
     "quiver_crit_chance_attacks": "attack_critical_strike_chance_+%",
     "amulet_spirit": "base_spirit_from_equipment",

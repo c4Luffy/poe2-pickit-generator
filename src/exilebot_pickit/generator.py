@@ -101,6 +101,7 @@ _ACCESSORY_BASES: frozenset = frozenset({
     # Rings
     "Gold Ring", "Iron Ring", "Ruby Ring", "Topaz Ring", "Sapphire Ring",
     "Emerald Ring", "Two-Stone Ring", "Prismatic Ring", "Unset Ring",
+    "Amethyst Ring",
     # Amulets
     "Coral Amulet", "Paua Amulet", "Amber Amulet", "Jade Amulet",
     "Lapis Amulet", "Gold Amulet", "Agate Amulet", "Citrine Amulet",
@@ -1174,6 +1175,19 @@ def main():
 
     # ── Chance Orb Bases ──────────────────────────────────────────────────────
     output_lines.extend(build_chance_base_rules())
+
+    # ── Rare Gear — WeightedSum recipes ───────────────────────────────────────
+    # Always-on in the CLI (like tablets/wombgifts/chance bases). The GUI gates
+    # this behind the rare_gear_enabled switch; the headless path has no config,
+    # so it always ships the full 17-slot set. Same section header as the GUI.
+    from .data.rare.rules import rare_gear_body
+    _rare_lines = rare_gear_body()
+    if _rare_lines:
+        output_lines.append("")
+        output_lines.append(header_major("Rare Gear — WeightedSum recipes"))
+        output_lines.append("")
+        output_lines.extend(_rare_lines)
+        output_lines.append("")
 
     # ── Base types (optional) ─────────────────────────────────────────────────
     if args.include_bases:

@@ -73,6 +73,8 @@ DEFAULT_CONFIG = {
     "theme": "dark",
     "minimize_to_tray": False,
     "magic_rare_flasks": True,
+    # Master switch for the rare-gear WeightedSum recipes (17 slots).
+    "rare_gear_enabled": True,
     # League names already seen in the dropdown — one NOT in this list
     # triggers the "new league detected" banner on the Generate tab.
     "known_leagues": [],
