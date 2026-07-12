@@ -185,30 +185,38 @@ footer{border-top:1px solid var(--bd);padding:40px 0;text-align:center;color:var
     <div class="card"><div class="ic">🎯</div><h3>Junk stays on the ground</h3><p>Generated rules filter item level and tier <em>before</em> pickup, so the bot never wastes a trip hauling low-level bases home to vendor them.</p></div>
     <div class="card"><div class="ic">🆕</div><h3>See what changed</h3><p>After every generate, a "Changed" filter highlights the rules the market just added — and lists what dropped out. History can re-run any past setup in one click.</p></div>
     <div class="card"><div class="ic">🛟</div><h3>Never lose a pickit</h3><p>Rotating backups with one-click restore, settings export/import to move your whole setup between PCs, and a copy-paste diagnostics block for quick help.</p></div>
+    <div class="card"><div class="ic">🩺</div><h3>Catches what the game breaks</h3><p>PoE2 renames stats every patch. When it does, a rule still <em>looks</em> right but matches nothing — the bot silently walks past loot with no error anywhere. The app checks itself against the game's own mod and item tables at launch, and tells you exactly which rules have gone dead.</p></div>
+    <div class="card"><div class="ic">⚖️</div><h3>Rare gear, actually scored</h3><p>All 17 gear slots have a recipe: a rare is kept only if its stats add up to a worthwhile score. Each weight is derived from the stat's real top roll in the game data — not guesswork — and every scored stat is verified against the bot's own mod list.</p></div>
+    <div class="card"><div class="ic">📖</div><h3>Setup guide, in the app</h3><p>Connecting the bot takes three steps, not two — and the third one nobody guesses. The guide walks you through it, explains what each value floor really gates, and gives you a checklist for when the bot seems to be ignoring good loot.</p></div>
   </div>
   <p style="text-align:center;margin-top:22px;color:var(--dim)">
     New things ship often — <a href="https://github.com/c4Luffy/poe2-pickit-generator/blob/main/CHANGELOG.md">read the full changelog →</a></p>
 </div></section>
 
 <section id="start"><div class="wrap">
-  <div class="sec-h"><h2>Up and running in 3 steps</h2></div>
+  <div class="sec-h"><h2>Up and running in 4 steps</h2><p>The last one is the step everybody misses — and it's the difference between the bot using your pickit and quietly ignoring it.</p></div>
   <div class="steps">
     <div class="step"><h3>Download &amp; open</h3><p>Grab the <span class="mono">.exe</span> and double-click. Windows warning? → More info → Run anyway.</p></div>
     <div class="step"><h3>Pick league, Generate</h3><p>Choose your current league and press ⚡ Generate. Live prices in, pickit out.</p></div>
-    <div class="step"><h3>Point the bot</h3><p>Set Exiled Bot 2's pickit path to the <span class="mono">.ipd</span> — or turn on Auto-copy and forget it.</p></div>
+    <div class="step"><h3>Point the app at the bot</h3><p>Settings → set the bot's <span class="mono">Configuration\default\Pickit</span> folder, and turn <b>Auto-copy</b> on.</p></div>
+    <div class="step"><h3>⚠️ Tell the bot which file</h3><p>Open the bot's <span class="mono">Configuration\default\pickit.ini</span> and set <span class="mono">active_profile=poe2_pickit</span> — it must match the app's output name.</p></div>
+  </div>
+  <div class="note" style="margin-top:22px;padding:16px 18px;border:1px solid var(--gold-dim,#8a7a55);border-radius:10px;background:rgba(200,169,110,.07)">
+    <b>Why step 4 matters:</b> Exiled Bot only ever loads the one <span class="mono">.ipd</span> named by <span class="mono">active_profile</span>. Get it wrong and auto-copy still says “success”, the file really does land in the folder — and <b>the bot carries on reading whatever old pickit it was already on.</b> Nothing looks broken, and nothing you generate is ever used. The in-app <b>📖 Setup guide</b> walks you through all four steps.
   </div>
 </div></section>
 
 <section><div class="wrap">
-  <div class="sec-h"><h2>Eleven tabs, one job each</h2></div>
+  <div class="sec-h"><h2>Twelve tabs, one job each</h2></div>
   <div class="tabs">
     <div class="tab"><span class="e">⚡</span><div><b>Generate</b><span>League, floors, auto floor</span></div></div>
+    <div class="tab"><span class="e">📖</span><div><b>Setup guide</b><span>Four steps, in the app</span></div></div>
     <div class="tab"><span class="e">💰</span><div><b>Economy</b><span>Every item, live prices</span></div></div>
     <div class="tab"><span class="e">🎲</span><div><b>Chance</b><span>Bases worth an Orb of Chance</span></div></div>
     <div class="tab"><span class="e">🛠</span><div><b>Craft</b><span>Best white bases to craft on</span></div></div>
     <div class="tab"><span class="e">💎</span><div><b>Exceptional</b><span>Best bases, ranked</span></div></div>
     <div class="tab"><span class="e">💠</span><div><b>Fracture</b><span>Verified fracture-worthy affix targets</span></div></div>
-    <div class="tab"><span class="e">🎯</span><div><b>Magic &amp; Rare</b><span>Best flasks + rare-gear rules by slot</span></div></div>
+    <div class="tab"><span class="e">🎯</span><div><b>Magic &amp; Rare</b><span>Rare gear scored by slot, 17 recipes</span></div></div>
     <div class="tab"><span class="e">📜</span><div><b>Preview</b><span>The exact bot file + item simulator</span></div></div>
     <div class="tab"><span class="e">🕰️</span><div><b>History</b><span>Every run, charted</span></div></div>
     <div class="tab"><span class="e">⚙️</span><div><b>Settings</b><span>Bot folder, backups</span></div></div>
@@ -220,7 +228,7 @@ footer{border-top:1px solid var(--bd);padding:40px 0;text-align:center;color:var
   <div class="sec-h"><h2>Good to know</h2></div>
   <details open><summary>Is it safe? Windows flagged the download</summary><p>It's an unsigned free tool, so Windows shows a caution — click <b>More info → Run anyway</b>. The full source is public on GitHub, and it only talks to poe.ninja and GitHub.</p></details>
   <details><summary>No prices are loading</summary><p>Open the Debug tab → Run API test. If poe.ninja is down, the app falls back to its saved price cache and keeps working.</p></details>
-  <details><summary>My bot isn't picking things up</summary><p>Check that Exiled Bot 2's pickit path points at the generated <span class="mono">.ipd</span>, or turn on <b>Auto-copy</b> in Settings so it deploys automatically.</p></details>
+  <details><summary>My bot isn't picking things up</summary><p>Nine times out of ten it's <b>step 4</b>: open the bot's <span class="mono">Configuration\default\pickit.ini</span> and check that <span class="mono">active_profile</span> matches the app's <b>Output file name</b> (<span class="mono">poe2_pickit</span> by default). The bot loads <em>only</em> the file named there — if it doesn't match, Auto-copy still says “success” and the bot keeps reading an old pickit.</p><p>Then, in order: did you <b>press Generate</b> after changing anything (Preview warns when it's showing an old run)? Is <b>Settings → Game data health</b> clean — a game patch can silently kill rules? And is your <b>Currency &amp; items floor</b> set so high it's binning runes and essences?</p></details>
   <details><summary>Does it play the game or trade for me?</summary><p>No. It only writes the pickit file (and an optional loot filter). It never touches your account — prices are read-only from poe.ninja.</p></details>
   <details><summary>Handy shortcuts</summary><p><kbd>Ctrl</kbd>+<kbd>G</kbd> generates · <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>9</kbd> switches tabs · <kbd>Ctrl</kbd>+<kbd>F</kbd> jumps to search · click any rule in Preview to copy it · every tab has an <b>ℹ what is this?</b> explainer.</p></details>
 </div></section>
