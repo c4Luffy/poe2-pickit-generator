@@ -6,6 +6,35 @@ download lives.
 
 ---
 
+## [v4.13.0] — 2026-07-12 — In-app setup guide (and the trap it exists to prevent)
+
+New **📖 Setup guide** tab. Four steps to go from a fresh download to a bot that's
+actually reading your pickit — plus the one thing nobody guesses.
+
+### The trap
+Connecting the bot takes **three** actions, not two. Everybody does the first two:
+
+1. Settings → point at the bot's Pickit folder
+2. Settings → Auto-copy → ON
+3. **Open the bot's `Configuration\default\pickit.ini` and set
+   `active_profile=poe2_pickit`** ← this one
+
+Skip step 3 and the bot only ever loads the single `.ipd` named by
+`active_profile`. Auto-copy still reports success, the file really does land in
+the folder — and **the bot carries on reading whatever old pickit it was already
+on.** Nothing looks broken and nothing you generate is ever used. The owner's own
+bot had been running a pickit from the previous day.
+
+### Added
+- **Setup guide tab** (System group): the four steps, with step 3 broken out and
+  explained; what the two value floors actually gate (and that rare gear is
+  *scored*, not priced, so no floor touches it); what every tab is for; and a
+  "the bot seems to be ignoring good loot" checklist — regenerate → check
+  `active_profile` → run the Game data health check → check your floors.
+- **First-run nudge** on the Generate tab when no bot folder is set: *"Your bot
+  isn't connected yet — generating writes a pickit, but nothing will reach Exiled
+  Bot until you set it up."* It clears itself as soon as the folder is chosen.
+
 ## [v4.12.4] — 2026-07-12 — Concurrent saves were corrupting your settings file
 
 The Debug log told on it: **318 `load_config` failures and 107 `save_config`
@@ -551,6 +580,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.13.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.13.0
 [v4.12.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.4
 [v4.12.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.3
 [v4.12.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.2
