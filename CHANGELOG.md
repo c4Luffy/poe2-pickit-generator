@@ -6,6 +6,38 @@ download lives.
 
 ---
 
+## [v4.11.4] — 2026-07-12 — Rings get fracture targets
+
+Rings were the last big empty slot in the Fracture tab. Researched the full ring
+affix pool from the game's mod database — **34 stats can naturally roll on a
+ring, and every one of them exists in the bot's ModsList**, so there was never a
+technical blocker; nobody had built the targets.
+
+### Added
+- **Three ring fracture targets** (36 rules):
+  - **Resistance** (S) — resistance is the *highest-level affix a ring can roll*
+    (lvl 82), and rings are the game's main resistance slot. Chaos res (lvl 81)
+    is the scarcest defence in the game.
+  - **Added attack damage** (S) — rings roll a **full tier above gloves**
+    (Lightning 60-71 vs the glove cap of 48-59), making ring the best flat
+    added-damage slot in the game.
+  - **Item Rarity** (A+) — the MF market; rarity is worn twice.
+- **Six ring bases**, chosen by implicit rather than item level:
+  **Biostatic** (+1% to all *maximum* resistances — the best ring implicit in the
+  game), **Gold** (rarity), and the four **modifier-count rings** —
+  **Tenebrous** (−2 prefix/+2 suffix), **Penumbra** (+2/−2), **Gloam** (−1/+1),
+  **Dusk** (+1/−1). Those four bias which affix *type* the ring can carry, which
+  is exactly what you want when fracturing for one specific mod: resistances are
+  suffixes, added damage and rarity are prefixes.
+
+### Changed
+- **Rare Ring recipe: Amethyst → Biostatic.** Amethyst is an ilvl-20 base whose
+  +7-13% chaos-res implicit is strictly worse than the chaos-res *suffix* the
+  recipe already scores (24-27%). Biostatic is the highest ring base (ilvl 52)
+  and grants max resistances.
+- Attributes stay excluded from rings (owner rule); Life, accuracy, cast speed,
+  leech and regen are filler in this slot and are not fracture targets.
+
 ## [v4.11.3] — 2026-07-12 — Jewels and Charms dropped from Fracture
 
 ### Changed
@@ -357,6 +389,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.11.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.4
 [v4.11.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.3
 [v4.11.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.2
 [v4.11.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.1

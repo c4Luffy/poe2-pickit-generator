@@ -277,6 +277,34 @@ FRACTURE_TARGETS: list = [
      "value": "Fire/Cold/Lightning T1 41-45% T2 36-40%; Chaos T1 24-27% T2 20-23%",
      "text": "20-45% to Fire/Cold/Lightning/Chaos Resistance",
      "reason": "A target: any single-element resistance belt suffix — T1 or T2 both count."},
+    # ── Rings (owner-approved 2026-07-12, from the full ring affix pool: 34
+    # natural prefix/suffix stats, every one present in the bot's ModsList).
+    # Attributes are deliberately excluded (owner rule: "no attributes on
+    # rings"); Life/accuracy/cast-speed/leech/regen/on-kill are filler in this
+    # slot and not worth an orb. Rolls read from the game's mod database.
+    {"id": "ring_resist", "tier": "S", "classes": ["Rings"],
+     "affix": "suffix", "mod_tier": "T1/T2",
+     "value": "Fire/Cold/Lightning T1 41-45% T2 36-40%; Chaos T1 24-27% T2 20-23%",
+     "text": "20-45% to Fire/Cold/Lightning/Chaos Resistance",
+     "reason": "S target: resistance is the highest-level affix a ring can roll "
+               "(lvl 82) and rings are the game's main resistance slot — locking "
+               "a 45% res frees every other slot for damage. Chaos res (lvl 81) "
+               "is the scarcest defence in the game. T1 or T2 both count."},
+    {"id": "ring_added_dmg", "tier": "S", "classes": ["Rings"],
+     "affix": "prefix", "mod_tier": "T1/T2",
+     "value": "T1: Phys 22-32, Fire 37-45, Cold 32-37, Lightning 60-71; "
+              "T2: Phys 18-26, Fire 33-36, Cold 25-31, Lightning 48-59",
+     "text": "Adds # to # Physical/Fire/Cold/Lightning Damage to Attacks",
+     "reason": "S target: rings roll a full tier HIGHER than gloves here "
+               "(Lightning 60-71 vs the glove cap of 48-59) — the best flat "
+               "added-damage slot in the game, and attack builds are ~44% of the "
+               "poe.ninja ladder. T1 or T2 both count."},
+    {"id": "ring_rarity", "tier": "A+", "classes": ["Rings"],
+     "affix": "prefix", "mod_tier": "T1/T2", "value": "T1 16-19% T2 15-18%",
+     "text": "15-19% increased Rarity of Items found",
+     "reason": "A+ target: the MF market — rarity is worn twice because there "
+               "are two ring slots. Lower-level affix (47) so it is easier to "
+               "hit, which caps how much an orb is worth here."},
     # Flasks moved to the Magic & Rare tab (data/magic_rare.py) — owner
     # request. They aren't a fracture target here anymore.
 ]
@@ -393,6 +421,9 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     # elemental_damage_+% is not a normal affix — tools/check_game_data.py,
     # 2026-07-12.
     "elemental_dmg_with_attacks": "elemental_damage_with_attack_skills_+%",
+    # Ring rarity — T1 16-19% (lvl 47), T2 15-18%; threshold falls out of the
+    # value string as 15. ring_resist / ring_added_dmg are OR-groups below.
+    "ring_rarity": "base_item_found_rarity_+%",
     "added_lightning_weapon": "local_maximum_added_lightning_damage",
     "added_lightning_weapon_2h": "local_maximum_added_lightning_damage",
     "sceptre_spirit": "local_spirit_+%",
@@ -452,6 +483,24 @@ _FRACTURE_OR_GROUP_IDS = {
         ("base_cold_damage_resistance_%", "36"),
         ("base_lightning_damage_resistance_%", "36"),
         ("base_chaos_damage_resistance_%", "20"),
+    ),
+    # Rings share the resistance tier table with belts (elemental T1 41-45 @lvl82,
+    # T2 36-40; chaos T1 24-27 @lvl81, T2 20-23) — verified 2026-07-12.
+    "ring_resist": (
+        ("base_fire_damage_resistance_%", "36"),
+        ("base_cold_damage_resistance_%", "36"),
+        ("base_lightning_damage_resistance_%", "36"),
+        ("base_chaos_damage_resistance_%", "20"),
+    ),
+    # Rings roll added damage ONE TIER above gloves: ring T1 (lvl75) is
+    # phys 22-32 / fire 37-45 / cold 32-37 / lightning 60-71, ring T2 (lvl65) is
+    # phys 18-26 / fire 33-36 / cold 25-31 / lightning 48-59. Threshold = T2 min,
+    # so the numbers coincide with the glove group even though rings go higher.
+    "ring_added_dmg": (
+        ("attack_maximum_added_physical_damage", "18"),
+        ("attack_maximum_added_fire_damage", "33"),
+        ("attack_maximum_added_cold_damage", "25"),
+        ("attack_maximum_added_lightning_damage", "48"),
     ),
 }
 
@@ -516,8 +565,25 @@ FRACTURE_MIN_ITEM_TIER = 4
 # Manual base picks for slots with no defence/ilvl ranking data (accessories).
 # Owner-chosen: amulets fracture only on Solar (+Spirit implicit) and Gold
 # (rarity implicit) bases, each as its own rule line — not the whole category.
+#
+# Rings (owner-approved 2026-07-12) are picked for their IMPLICIT, not ilvl:
+#   Biostatic  +1% to all MAXIMUM Resistances  — the best ring implicit in the
+#              game (max res is a chase stat almost nothing else grants), and the
+#              highest ring base at ilvl 52.
+#   Gold       6-15% increased Rarity          — pairs with the ring_rarity target.
+#   Tenebrous  -2 prefix / +2 suffix  ┐ the four modifier-count rings (owner
+#   Penumbra   +2 prefix / -2 suffix  │ request). They bias which affix TYPE the
+#   Gloam      -1 prefix / +1 suffix  │ item can carry, which is exactly what you
+#   Dusk       +1 prefix / -1 suffix  ┘ want when fracturing for one specific mod:
+#              resistances are SUFFIXES (favour Tenebrous/Gloam), while added
+#              damage / rarity are PREFIXES (favour Penumbra/Dusk).
+# These four are drop_level 1, but that is the base's floor, not the dropped
+# item's tier — Solar Amulet (drop_level 30) already passes the same
+# [ItemTier] >= 4 gate, so they are not filtered out by it.
 _FRACTURE_BASE_OVERRIDES: dict = {
     "Amulets": ["Solar Amulet", "Gold Amulet"],
+    "Rings": ["Biostatic Ring", "Gold Ring", "Tenebrous Ring",
+              "Penumbra Ring", "Gloam Ring", "Dusk Ring"],
 }
 
 

@@ -1,2 +1,2 @@
 """Single source of truth for the app version."""
-VERSION = "4.11.3"
+VERSION = "4.11.4"

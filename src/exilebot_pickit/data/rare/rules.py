@@ -219,11 +219,14 @@ RARE_GEAR = {
     # same approach as Fracture weapons — and Fracture does NOT cover rings,
     # so no double-cover) and %-elemental/chaos damage for casters; plus the
     # second MF slot (people wear two), all-res (ring cap 16), res backbone,
-    # small flat life (ring cap 119). Bases by implicit: Amethyst (chaos res),
-    # Prismatic (all-res), Gold (rarity). T1 max-rolls from the game's mod
-    # database 2026-07-12.
+    # small flat life (ring cap 119). Bases by implicit: Biostatic (+1% to all
+    # MAXIMUM Resistances — the best ring implicit in the game and the highest
+    # ring base at ilvl 52), Prismatic (all-res), Gold (rarity). Amethyst was
+    # dropped 2026-07-12: it is an ilvl-20 base whose +7-13% chaos-res implicit
+    # is strictly worse than the chaos-res SUFFIX this recipe already scores
+    # (24-27%). T1 max-rolls from the game's mod database 2026-07-12.
     "Ring": {
-        "bases": ["Amethyst Ring", "Prismatic Ring", "Gold Ring"],
+        "bases": ["Biostatic Ring", "Prismatic Ring", "Gold Ring"],
         "weights": {
             "attack_maximum_added_physical_damage": 3.13,   # T1 max 32
             "attack_maximum_added_fire_damage": 2.22,       # T1 max 45
