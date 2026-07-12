@@ -6,6 +6,22 @@ download lives.
 
 ---
 
+## [v4.18.2] — 2026-07-13 — Chase loosened again (owner field feedback)
+
+**Chase** still wanted 120 ex for a unique, which was more than it needed to be. It
+now stops for **20 ex currency & items / 50 ex uniques** — strict enough to skip the
+noise, loose enough to actually catch the money drops.
+
+Final ladder:
+
+| Preset | Currency & items | Uniques |
+|---|---|---|
+| 🧲 **Vacuum** | 1 ex | 1 ex |
+| ⚖️ **Balanced** | 2 ex | 6 ex |
+| 💎 **Strict** | 8 ex | 25 ex |
+| 👑 **Chase** | 20 ex | 50 ex |
+| 💰 **Currency only** | 1 ex | — |
+
 ## [v4.18.1] — 2026-07-13 — Preset floors loosened
 
 The v4.18.0 presets were too stingy — **Chase** demanded a full Divine (500 ex) for a
@@ -759,6 +775,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.18.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.2
 [v4.18.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.1
 [v4.18.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.0
 [v4.17.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.3

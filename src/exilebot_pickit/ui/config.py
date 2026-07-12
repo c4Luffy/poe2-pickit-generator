@@ -152,9 +152,9 @@ PRESETS = [
         "key": "chase", "name": "Chase", "icon": "👑", "strict": 4,
         "tag": "Big hits only",
         "picks": "Only the money drops — the stuff you'd actually stop a map for.",
-        "floors": "Currency & items from 30 ex · uniques from 120 ex (~¼ div)",
+        "floors": "Currency & items from 20 ex · uniques from 50 ex",
         "cost": "The strictest preset, but not silly — it still keeps anything genuinely valuable. Exceptional bases are off.",
-        "cfg": {"min_exalt_gear": 30.0, "min_exalt_unique": 120.0, "auto_floor": False,
+        "cfg": {"min_exalt_gear": 20.0, "min_exalt_unique": 50.0, "auto_floor": False,
                 "rare_gear_enabled": True, "include_bases": False},
     },
     {
