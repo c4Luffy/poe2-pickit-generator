@@ -6,6 +6,15 @@ download lives.
 
 ---
 
+## [v4.18.3] — 2026-07-13 — Ember theme dropped
+
+The molten-orange **Ember** theme didn't look good next to the others and has been
+removed. Three themes remain: 🏺 **Relic** (gold, default) · 🧪 **Venom** (emerald,
+matches the mascot) · 🔮 **Void** (arcane violet).
+
+If you were using Ember, the app puts you back on **Relic** rather than leaving you
+on a theme that no longer has any colours.
+
 ## [v4.18.2] — 2026-07-13 — Chase loosened again (owner field feedback)
 
 **Chase** still wanted 120 ex for a unique, which was more than it needed to be. It
@@ -775,6 +784,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.18.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.3
 [v4.18.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.2
 [v4.18.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.1
 [v4.18.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.0

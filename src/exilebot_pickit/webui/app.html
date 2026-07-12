@@ -86,12 +86,6 @@
     --gold:#a678e0; --gold-dim:#573a80; --gold-br:#c6a6f0; --text:#e8e2f2;
     --dim:#9d95ad; --ok:#829d78; --err:#b85c4c; --warn:#a678e0; --steel:#c99a4a;
   }
-  html[data-theme="forge"]{           /* Ember — molten orange */
-    --bg:#0b0806; --bg2:#16110d; --bg3:#1e1610; --border:#3a2a1c;
-    --gold:#e07a3c; --gold-dim:#8a4420; --gold-br:#f2a066; --text:#efe6dd;
-    --dim:#a89588; --ok:#829d78; --err:#c0472e; --warn:#e07a3c; --steel:#c99a4a;
-  }
-  html[data-theme="forge"] .primary{color:#1a0f06}
   html[data-theme="relic"] .primary{color:#1b1409}
   /* Relic = the Exile's Workbench brass palette (same as :root default) */
   html[data-theme="relic"]{
@@ -650,14 +644,12 @@
       <option value="relic">🏺 Relic</option>
       <option value="venom">🧪 Venom</option>
       <option value="void">🔮 Void</option>
-      <option value="forge">🔥 Ember</option>
       
     </select>
     <div class="seg" id="themeSeg">
       <button data-t="relic" class="on" title="Relic">🏺</button>
       <button data-t="venom" title="Venom">🧪</button>
       <button data-t="void" title="Void">🔮</button>
-      <button data-t="forge" title="Ember">🔥</button>
     </div>
     <div style="display:flex;gap:8px">
       <button class="ghost mini" id="lnkDiscord" style="flex:1" title="Join the Discord">💬 Discord</button>
@@ -1358,7 +1350,7 @@ document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>openPage(b.datase
 document.querySelectorAll(".nav-grp").forEach(gp=>gp.onclick=()=>openPage(_lastTab[gp.dataset.g]));
 openPage("gen");
 
-function setTheme(t){if(["gold","ember","ocean","nebula"].includes(t))t="relic";
+function setTheme(t){if(["gold","ember","ocean","nebula","forge"].includes(t))t="relic";
   const de=document.documentElement;de.classList.add("theming");
   de.dataset.theme=t;
   $("themeSel").value=t;
@@ -2873,7 +2865,7 @@ document.querySelectorAll(".page > h1").forEach(h=>{
 // Shared by init, profile-load and reset so their visible switches always
 // match the config that was just applied.
 function applyInfo(i){
-  const th=["relic","venom","void","forge"].includes(i.theme)?i.theme:"relic";
+  const th=["relic","venom","void"].includes(i.theme)?i.theme:"relic";
   document.documentElement.dataset.theme=th;$("themeSel").value=th;
   document.querySelectorAll("#themeSeg button").forEach(b=>b.classList.toggle("on",b.dataset.t===th));
   $("uAmt").value=i.min_unique||0;$("gAmt").value=i.min_gear||0;
