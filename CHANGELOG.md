@@ -6,6 +6,23 @@ download lives.
 
 ---
 
+## [v4.16.0] — 2026-07-12 — Headless `--cli` generate now writes the full pickit
+
+### Fixed — the `--cli` path was silently thinner than the app
+A pre-ship audit found the headless `python -m exilebot_pickit --cli` generate
+emitted rare-gear recipes but **none of the other endgame sections the GUI writes**:
+Fracture bases, Craft bases, Exotic bases, and the Magic & Rare flask rules were
+all missing. Anyone scripting a pickit off the CLI got a partial file with no
+warning.
+
+The CLI now emits the exact same sections, in the same order, a default GUI
+generate does — everything on (the headless path has no per-item/per-slot config).
+That's ~600 extra rules per run. Two regression tests now assert every section
+builder stays wired into `main()` and that each produces content at its defaults,
+so the headless path can't silently lose a section again.
+
+The GUI generate was never affected.
+
 ## [v4.15.0] — 2026-07-12 — Per-slot rare-gear switches (and the master switch was invisible)
 
 ### Fixed — the rare-gear master switch never rendered
@@ -643,6 +660,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.16.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.16.0
 [v4.15.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.15.0
 [v4.14.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.14.0
 [v4.13.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.13.0

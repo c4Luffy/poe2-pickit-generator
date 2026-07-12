@@ -43,7 +43,9 @@ press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a comp
 > is fixed). Recent releases also made the app **check your bot connection** —
 > reading the bot's own `pickit.ini` and offering a **Fix it** button when the
 > bot is IGNORING everything you generate (v4.14.0) — added an in-app **Setup
-> guide** (v4.13.0), and a **game-data health check** (v4.12.0).
+> guide** (v4.13.0), and a **game-data health check** (v4.12.0). *(v4.16.0: the
+> headless `--cli` generate now writes the full pickit — fracture, craft, exotic
+> and flask rules — matching the app.)*
 >
 > **[→ Full changelog](CHANGELOG.md)**
 

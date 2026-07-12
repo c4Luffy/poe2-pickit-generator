@@ -427,6 +427,35 @@ def test_cli_version_flag():
     assert ver in (r.stdout + r.stderr), f"Version {ver!r} not in --version output"
 
 
+# ── CLI ↔ GUI section parity ─────────────────────────────────────────────────
+
+def test_cli_generate_emits_every_pickit_section():
+    """The headless --cli generate must write the same sections a default GUI
+    generate does. main() is network-heavy, so guard at the source level: every
+    section builder the GUI worker calls has to stay wired into main(). Regression
+    guard for the CLI silently dropping fracture / craft bases / exotic bases /
+    magic-rare flasks — it emitted rare gear but none of those before 2026-07-12."""
+    import inspect
+    src = inspect.getsource(gen.main)
+    for builder in (
+        "build_tablet_rules", "build_wombgift_rules", "build_special_item_rules",
+        "build_exotic_base_rules", "build_chance_base_rules",
+        "build_craft_base_rules", "build_fracture_pickit_rules",
+        "build_magic_rare_rules", "rare_gear_body",
+    ):
+        assert builder in src, f"CLI generate no longer emits {builder}()"
+
+
+def test_cli_parity_builders_produce_content():
+    """The four sections the CLI used to miss must actually have content at their
+    config-less defaults — an empty-by-default builder would make the parity guard
+    above pass while the CLI still wrote nothing useful."""
+    assert gen.build_exotic_base_rules(), "exotic bases empty by default"
+    assert gen.build_craft_base_rules(), "craft bases empty by default"
+    assert gen.build_fracture_pickit_rules({}), "fracture emits nothing with all classes on"
+    assert gen.build_magic_rare_rules(), "magic & rare flask rules empty by default"
+
+
 def test_base_min_level_cli_default_matches_constant():
     """CRAFT_BASE_MIN_ILVL constant is 82 and used by the CLI."""
     from exilebot_pickit import generator as gen

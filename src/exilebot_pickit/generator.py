@@ -1180,20 +1180,30 @@ def main():
     # ── Special Waystones ─────────────────────────────────────────────────────
     output_lines.extend(build_special_item_rules())
 
+    # ── Exotic Bases ──────────────────────────────────────────────────────────
+    output_lines.extend(build_exotic_base_rules())
+
     # ── Chance Orb Bases ──────────────────────────────────────────────────────
     output_lines.extend(build_chance_base_rules())
 
-    # ── Magic & Rare (rare-gear WeightedSum recipes) ──────────────────────────
-    # Always-on in the CLI (like tablets/wombgifts/chance bases). The GUI gates
-    # this behind the rare_gear_enabled switch and folds it into its own Magic &
-    # Rare section; the headless path has no config and no flask rules, so it
-    # emits the section header itself. Same section NAME as the GUI so both
-    # outputs group identically.
+    # ── Craft Bases ───────────────────────────────────────────────────────────
+    output_lines.extend(build_craft_base_rules())
+
+    # ── Fracture Bases ────────────────────────────────────────────────────────
+    # Headless generate is config-less, so pass {} — every fracture class at its
+    # default (all on), matching a fresh GUI generate. Classes with no verified
+    # target still emit nothing (guarded inside the builder).
+    output_lines.extend(build_fracture_pickit_rules({}))
+
+    # ── Magic & Rare (flask rules + rare-gear WeightedSum recipes) ────────────
+    # These emit the same sections a default GUI generate does (headless has no
+    # per-item/per-slot config, so everything is on). build_magic_rare_rules
+    # writes the "Magic & Rare" header + flask rules; rare_gear_body's 17 slot
+    # recipes live inside that same section, exactly as in the GUI.
     from .data.rare.rules import rare_gear_body
+    output_lines.extend(build_magic_rare_rules())
     _rare_lines = rare_gear_body()
     if _rare_lines:
-        output_lines.append("")
-        output_lines.append(header_major("Magic & Rare"))
         output_lines.append("")
         output_lines.extend(_rare_lines)
         output_lines.append("")
