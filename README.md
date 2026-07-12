@@ -36,14 +36,16 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
-> ### 🔎 What's new in v4.17.0 — the app finds your bot folder for you
-> New users had to browse to `...\ExiledBot2\Configuration\default\Pickit` by hand
-> before any loot reached the bot. Now, on first launch, the app **finds your
-> Exiled Bot install automatically, sets the folder and turns on Auto-copy** —
-> with an **Auto-detect** button in Settings too. Recent releases also added
-> **per-slot rare-gear switches** (v4.15.0), a **bot-connection check** with a
-> **Fix it** button (v4.14.0), an in-app **Setup guide** (v4.13.0), and a
-> **game-data health check** (v4.12.0).
+> ### 🎛️ What's new in v4.18.0 — presets: pick how greedy the bot should be
+> The Generate tab now opens with a **Quick start** row: five presets — 🧲 **Vacuum**,
+> ⚖️ **Balanced**, 💎 **Strict**, 👑 **Chase**, 💰 **Currency only** — each with a
+> strictness meter and a plain explanation of *what it picks up and what it costs
+> you*. One click sets every floor and switch. Also new: **four themes** (🏺 Relic,
+> 🧪 Venom, 🔮 Void, 🔥 Ember) with a smooth cross-fade, top picks now **lead with
+> Divine**, and the sidebar lost its clutter. Recent releases also made the app
+> **find your bot folder automatically** (v4.17.0), added **per-slot rare-gear
+> switches** (v4.15.0), a **bot-connection check** with a **Fix it** button
+> (v4.14.0), and an in-app **Setup guide** (v4.13.0).
 >
 > **[→ Full changelog](CHANGELOG.md)**
 

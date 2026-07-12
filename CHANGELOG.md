@@ -6,6 +6,39 @@ download lives.
 
 ---
 
+## [v4.18.0] — 2026-07-13 — Presets: pick how greedy the bot should be
+
+### Added — ready-made presets
+The Generate tab opens with a **Quick start** row. Five presets, each with a
+strictness meter and a plain-language explanation of *what it picks up and what it
+costs you*. Hover to read it, click to apply — it sets every floor and switch at once.
+
+| Preset | Currency & items | Uniques | |
+|---|---|---|---|
+| 🧲 **Vacuum** | 1 ex | 1 ex | Anything with a price. League start. |
+| ⚖️ **Balanced** | 5 ex | 15 ex | Skips junk, keeps what sells. |
+| 💎 **Strict** | 25 ex | 75 ex | Only drops worth the walk. |
+| 👑 **Chase** | 100 ex | 500 ex | Roughly a Divine and up. Bases off. |
+| 💰 **Currency only** | 1 ex | — | No uniques, no rare gear, no bases. |
+
+Floors are calibrated against a ~500 ex Divine, so "Chase" genuinely means *a divine
+and up* — a real answer to the adaptive floor handing you `≥ 1 ex` at "keep top 80%".
+
+Hand-edit any floor and the preset highlight clears itself: the app never claims a
+preset is active once its numbers no longer match.
+
+### Added — four themes
+🏺 **Relic** (gold, default) · 🧪 **Venom** (emerald — matches the mascot) ·
+🔮 **Void** (arcane violet) · 🔥 **Ember** (molten orange). The old Frost/Blood are
+retired. Switching now **cross-fades** instead of hard-flipping, and buttons press
+down when clicked.
+
+### Changed
+- **Top picks now lead with Divine**, then Chaos, then Exalt (was Exalt first).
+- **Sidebar is clean** — the rule-count badges (`1,126`, `18`) are gone.
+- **Settings → In-game filter** is expanded by default instead of collapsed.
+- Generate tab reordered: league → preset → fine-tune → generate.
+
 ## [v4.17.3] — 2026-07-12 — The mascot is in the app itself
 
 ### Changed
@@ -705,6 +738,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.18.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.0
 [v4.17.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.3
 [v4.17.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.2
 [v4.17.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.1

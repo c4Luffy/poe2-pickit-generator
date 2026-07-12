@@ -19,7 +19,8 @@ import time
 from exilebot_pickit import generator as gen
 from exilebot_pickit.generators import assembly as asm
 from exilebot_pickit.ui.config import (
-    OUTPUT_DIR, PRICE_CACHE_DIR, load_config, log_exc, log_info, save_config,
+    OUTPUT_DIR, PRESET_KEYS, PRESETS, PRICE_CACHE_DIR, load_config, log_exc, log_info,
+    save_config,
     _default_poe2_filter_dir as _default_dir,
 )
 from exilebot_pickit.version import VERSION
@@ -84,6 +85,7 @@ class AppApi:
             "config_warning": _config_warning(),
             "minimize_to_tray": bool(c.get("minimize_to_tray", False)),
             "known_leagues": list(c.get("known_leagues") or []),
+            "active_preset": c.get("active_preset", "") or "",
         }
 
     def set_setting(self, key, value):
@@ -92,8 +94,38 @@ class AppApi:
         self.cfg[key] = value
         if key == "min_exalt_gear":            # keep legacy mirror in sync
             self.cfg["min_exalt"] = value
+        if key in PRESET_KEYS:
+            # Hand-editing a floor means the numbers no longer match the preset
+            # they came from — stop claiming that preset is active.
+            self.cfg["active_preset"] = ""
         save_config(self.cfg)
         return {"ok": True}
+
+    def presets(self):
+        """The ready-made setting bundles, plus which one is currently active.
+        `cfg` is stripped — the UI only needs the human-facing copy."""
+        return {"presets": [{k: v for k, v in p.items() if k != "cfg"} for p in PRESETS],
+                "active": self.cfg.get("active_preset", "") or ""}
+
+    def apply_preset(self, key):
+        """Apply a ready-made preset over the current settings."""
+        p = next((x for x in PRESETS if x["key"] == key), None)
+        if not p:
+            return {"ok": False, "error": f"unknown preset '{key}'"}
+        self.cfg.update(p["cfg"])
+        self.cfg["min_exalt"] = self.cfg["min_exalt_gear"]      # legacy mirror
+        # The unique economy categories are the one thing a preset can switch off
+        # wholesale (Currency only) — put them back on for every other preset.
+        want_uniques = not p.get("uniques_off", False)
+        ce = dict(self.cfg.get("category_enabled", {}))
+        for c in gen.ALL_CATEGORIES:
+            if c[0].startswith("unique_"):
+                ce[c[0]] = want_uniques
+        self.cfg["category_enabled"] = ce
+        self.cfg["active_preset"] = key
+        save_config(self.cfg)
+        log_info(f"preset applied: {key}")
+        return {"ok": True, "name": p["name"], "floors": p["floors"]}
 
     def leagues(self):
         try:

@@ -80,6 +80,54 @@ def test_economy_shape(api):
     assert cur["items"][0]["icon"].startswith("https://web.poecdn.com")
 
 
+def test_presets_are_well_formed():
+    """Every preset must carry the copy the UI renders (name/tag/picks/floors/cost)
+    and a strictness the meter can actually draw."""
+    from exilebot_pickit.ui.config import PRESETS
+    assert PRESETS, "no presets defined"
+    for p in PRESETS:
+        for k in ("key", "name", "icon", "strict", "tag", "picks", "floors", "cost", "cfg"):
+            assert p.get(k) not in (None, ""), f"preset {p.get('key')!r} is missing {k}"
+        assert 1 <= p["strict"] <= 4, f"{p['key']}: strictness must be 1-4"
+        assert p["cfg"].get("min_exalt_gear") is not None
+
+
+def test_apply_preset_sets_floors_and_marks_it_active(api):
+    r = api.apply_preset("strict")
+    assert r["ok"]
+    assert api.cfg["min_exalt_gear"] == 25.0
+    assert api.cfg["min_exalt_unique"] == 75.0
+    assert api.cfg["min_exalt"] == 25.0            # legacy mirror stays in sync
+    assert api.cfg["active_preset"] == "strict"
+
+
+def test_hand_editing_a_floor_clears_the_active_preset(api):
+    """The UI must never claim a preset is active once its numbers were overridden."""
+    api.apply_preset("balanced")
+    assert api.cfg["active_preset"] == "balanced"
+    api.set_setting("min_exalt_gear", 42)
+    assert api.cfg["active_preset"] == ""
+
+
+def test_currency_preset_switches_uniques_off_and_back(api):
+    api.apply_preset("currency")
+    ce = api.cfg["category_enabled"]
+    uniq = [k for k in ce if k.startswith("unique_")]
+    assert uniq, "no unique categories were touched"
+    assert all(ce[k] is False for k in uniq)
+    assert api.cfg["rare_gear_enabled"] is False
+    # any other preset must put the unique categories back on
+    api.apply_preset("balanced")
+    ce = api.cfg["category_enabled"]
+    assert all(ce[k] is True for k in ce if k.startswith("unique_"))
+    assert api.cfg["rare_gear_enabled"] is True
+
+
+def test_apply_unknown_preset_is_rejected(api):
+    r = api.apply_preset("nope")
+    assert not r["ok"] and "unknown" in r["error"]
+
+
 def test_detect_bot_folder_finds_confirmed_install(api, tmp_path, monkeypatch):
     """A Pickit folder with pickit.ini beside it (a real bot install) under a
     scanned root is found."""

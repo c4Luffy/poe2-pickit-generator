@@ -51,18 +51,47 @@
   .log .t{color:var(--dim);margin-right:8px}
   .log .act{color:var(--gold)}
   .dot.off{background:var(--err)!important}
+  /* ── ready-made presets (Generate) ── */
+  .presets{margin:0 0 16px}
+  .presets-head{display:flex;align-items:baseline;gap:10px;margin-bottom:9px;flex-wrap:wrap}
+  .presets-head b{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold)}
+  .preset-row{display:flex;gap:10px;flex-wrap:wrap}
+  .pcard{flex:1;min-width:148px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+    background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:11px 13px;
+    cursor:pointer;color:var(--text);text-align:left;font-family:inherit;
+    transition:background .13s,border-color .13s,transform .13s}
+  .pcard:hover{border-color:var(--gold-dim);transform:translateY(-1px)}
+  .pcard.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,var(--bg2))}
+  .pcard .p-ic{font-size:17px;line-height:1.2}
+  .pcard .p-name{font-weight:700;font-size:13.5px}
+  .pcard .p-tag{font-size:11px;color:var(--dim)}
+  .p-meter{display:flex;gap:3px;margin-top:6px}
+  .p-meter i{width:15px;height:4px;border-radius:2px;background:var(--border)}
+  .p-meter i.on{background:var(--gold)}
+  .preset-detail{margin-top:10px;padding:11px 14px;border:1px solid var(--border);border-radius:11px;
+    background:var(--bg3);font-size:12.5px;line-height:1.55;display:none}
+  .preset-detail.on{display:block}
+  .preset-detail .pd-floors{color:var(--gold);font-weight:600;margin-top:4px}
+  .preset-detail .pd-cost{color:var(--dim);margin-top:4px}
   /* ── Theme gallery — all dark, distinct personalities ── */
-  html[data-theme="ocean"] .primary,html[data-theme="nebula"] .primary{color:#fff}
-  html[data-theme="ocean"]{           /* Frost — Workbench structure, cool accent */
-    --bg:#070a0d; --bg2:#0f141a; --bg3:#171e26; --border:#2a343d;
-    --gold:#6fb9cc; --gold-dim:#3a6572; --gold-br:#a6dde9; --text:#e3ebee;
-    --dim:#93a2a8; --ok:#829d78; --err:#b85c4c; --warn:#6fb9cc; --steel:#c9a15a;
+  html[data-theme="void"] .primary{color:#fff}
+  html[data-theme="venom"]{           /* Venom — emerald, matches the mascot */
+    --bg:#070b08; --bg2:#0f1512; --bg3:#161d18; --border:#28352c;
+    --gold:#6cc24a; --gold-dim:#356e30; --gold-br:#98e07a; --text:#e3eee4;
+    --dim:#94a894; --ok:#829d78; --err:#b85c4c; --warn:#6cc24a; --steel:#c99a4a;
   }
-  html[data-theme="nebula"]{          /* Blood — Workbench structure, red accent */
-    --bg:#0b0708; --bg2:#161010; --bg3:#1e1615; --border:#382a28;
-    --gold:#cf5f66; --gold-dim:#7e3138; --gold-br:#ee8a90; --text:#efe2dd;
-    --dim:#a7938d; --ok:#829d78; --err:#e2603f; --warn:#cf5f66; --steel:#c99a4a;
+  html[data-theme="venom"] .primary{color:#0c160c}
+  html[data-theme="void"]{            /* Void — arcane violet */
+    --bg:#08070d; --bg2:#13111c; --bg3:#1a1726; --border:#332a45;
+    --gold:#a678e0; --gold-dim:#573a80; --gold-br:#c6a6f0; --text:#e8e2f2;
+    --dim:#9d95ad; --ok:#829d78; --err:#b85c4c; --warn:#a678e0; --steel:#c99a4a;
   }
+  html[data-theme="forge"]{           /* Ember — molten orange */
+    --bg:#0b0806; --bg2:#16110d; --bg3:#1e1610; --border:#3a2a1c;
+    --gold:#e07a3c; --gold-dim:#8a4420; --gold-br:#f2a066; --text:#efe6dd;
+    --dim:#a89588; --ok:#829d78; --err:#c0472e; --warn:#e07a3c; --steel:#c99a4a;
+  }
+  html[data-theme="forge"] .primary{color:#1a0f06}
   html[data-theme="relic"] .primary{color:#1b1409}
   /* Relic = the Exile's Workbench brass palette (same as :root default) */
   html[data-theme="relic"]{
@@ -71,6 +100,11 @@
     --dim:#9d9589; --ok:#829d78; --err:#b85c4c; --warn:#c99a4a; --steel:#9bb091;
   }
 
+  /* smooth cross-fade when switching themes (applied only during the switch) */
+  html.theming *{transition:background-color .35s ease,color .35s ease,border-color .35s ease,box-shadow .35s ease,fill .35s ease!important}
+  @media (prefers-reduced-motion:reduce){html.theming *{transition:none!important}}
+  /* tactile press feedback */
+  .primary:active,.ghost:active,.nav-btn:active,.seg button:active,.chip:active,.rowbtn:active{transform:translateY(1px) scale(.985)}
   *{box-sizing:border-box;margin:0;padding:0}
   .bcard,.chip,.set-row,.stat,.nav-btn,.ghost,.rowbtn,.primary,tr.item td{transition:background .13s,border-color .13s,transform .13s,box-shadow .13s}
   .bcard:hover{background:var(--bg3);border-color:var(--gold-dim);transform:translateY(-1px)}
@@ -587,18 +621,18 @@
   </div>
   <div class="nav-links" data-lg="cockpit">
   <div class="nav-btn on" data-p="gen">⚡ Generate</div>
-  <div class="nav-btn" data-p="prev">📜 Preview<span class="badge" id="nbPrev"></span></div>
+  <div class="nav-btn" data-p="prev">📜 Preview</div>
   <div class="nav-btn" data-p="hist">🕰️ History</div>
   </div>
   <div class="nav-groups">
     <button class="nav-grp" data-g="tune">Loot Rules</button>
   </div>
   <div class="nav-links" data-lg="tune">
-  <div class="nav-btn" data-p="eco">💰 Economy<span class="badge" id="nbEco"></span></div>
+  <div class="nav-btn" data-p="eco">💰 Economy</div>
   <div class="nav-btn" data-p="chance">🎲 Chance</div>
   <div class="nav-btn" data-p="craft">🛠 Craft</div>
   <div class="nav-btn" data-p="exc">💎 Exceptional</div>
-  <div class="nav-btn" data-p="fracture">💠 Fracture<span class="badge" id="nbFrac"></span></div>
+  <div class="nav-btn" data-p="fracture">💠 Fracture</div>
   <div class="nav-btn" data-p="rare">🎯 Magic & Rare</div>
   </div>
   <div class="nav-groups">
@@ -613,15 +647,17 @@
   <div class="nav-right">
     <select id="themeSel" style="display:none" title="Theme">
       
-      <option value="ocean">❄ Frost</option>
-      <option value="nebula">🩸 Blood</option>
       <option value="relic">🏺 Relic</option>
+      <option value="venom">🧪 Venom</option>
+      <option value="void">🔮 Void</option>
+      <option value="forge">🔥 Ember</option>
       
     </select>
     <div class="seg" id="themeSeg">
-      <button data-t="ocean" title="Frost">❄</button>
-      <button data-t="nebula" title="Blood">🩸</button>
       <button data-t="relic" class="on" title="Relic">🏺</button>
+      <button data-t="venom" title="Venom">🧪</button>
+      <button data-t="void" title="Void">🔮</button>
+      <button data-t="forge" title="Ember">🔥</button>
     </div>
     <div style="display:flex;gap:8px">
       <button class="ghost mini" id="lnkDiscord" style="flex:1" title="Join the Discord">💬 Discord</button>
@@ -662,6 +698,13 @@
       <div class="ctl"><select id="league" style="flex:1;padding:11px 12px"><option value="">Loading…</option></select> <button class="ghost mini" id="leagueRefresh" title="Re-fetch the league list (Ctrl+R)">⟳</button></div></div>
     <div class="field"><span class="lbl">Profile <span id="profHint" style="color:var(--dim);letter-spacing:0;text-transform:none;font-weight:400"></span></span>
       <div class="ctl"><select id="profSel" style="flex:1;min-width:170px;padding:11px 12px"><option value="">— no profile —</option></select> <button class="ghost mini" id="profSave">Save as…</button> <button class="ghost mini danger" id="profDel">Delete</button></div></div>
+  </div>
+
+  <div class="presets">
+    <div class="presets-head"><b>Quick start</b>
+      <span class="hint" style="margin:0">Pick a preset — it sets every floor and switch in one click. Fine-tune anything below afterwards.</span></div>
+    <div class="preset-row" id="presetRow"></div>
+    <div class="preset-detail" id="presetDetail"></div>
   </div>
 
   <div class="workspace">
@@ -1227,11 +1270,11 @@
       </div>
       <div class="set-sec" data-s="filter">
 <div class="card" style="margin-top:14px">
-    <details>
+    <details open>
       <summary style="cursor:pointer;display:flex;align-items:center;gap:9px;list-style:none">
         <h2 style="margin:0">🎮 In-game loot filter</h2>
         <span class="pill">manual play only</span>
-        <span class="hint" style="margin:0;flex:1;min-width:0">Nothing to do here if you're botting — click to expand.</span>
+        <span class="hint" style="margin:0;flex:1;min-width:0">Nothing to do here if you're botting — leave it off.</span>
       </summary>
       <div class="hint" style="margin-top:10px">⚠ Leave this OFF while botting — a filter that hides items can make the bot walk to drops it can't pick up. The .filter is always written next to the .ipd anyway, so you lose nothing.</div>
       <div class="set-row"><div class="lab"><b>Copy .filter to the game after generate</b></div><div class="sp"></div>
@@ -1315,10 +1358,13 @@ document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>openPage(b.datase
 document.querySelectorAll(".nav-grp").forEach(gp=>gp.onclick=()=>openPage(_lastTab[gp.dataset.g]));
 openPage("gen");
 
-function setTheme(t){if(t==="gold"||t==="ember")t="relic";document.documentElement.dataset.theme=t;
+function setTheme(t){if(["gold","ember","ocean","nebula"].includes(t))t="relic";
+  const de=document.documentElement;de.classList.add("theming");
+  de.dataset.theme=t;
   $("themeSel").value=t;
   document.querySelectorAll("#themeSeg button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
-  api().set_setting("theme",t);}
+  api().set_setting("theme",t);
+  clearTimeout(window._themeT);window._themeT=setTimeout(()=>de.classList.remove("theming"),420);}
 $("themeSel").onchange=()=>setTheme($("themeSel").value);
 document.querySelectorAll("#themeSeg button").forEach(b=>b.onclick=()=>setTheme(b.dataset.t));
 $("lnkDiscord").onclick=()=>api().open_url("https://discord.gg/T7DU3Afve6");
@@ -1357,8 +1403,8 @@ let _floorT=null;
 function _saveFloors(){clearTimeout(_floorT);
   _floorT=setTimeout(()=>{api().set_setting("min_exalt_unique",uEx());
     api().set_setting("min_exalt_gear",gEx());},400);}
-["uAmt","uUnit"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();}));
-["gAmt","gUnit"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();}));
+["uAmt","uUnit"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();_presetOff();}));
+["gAmt","gUnit"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();_presetOff();}));
 
 /* ── console dials: drag-track sliders + fill tracks + quality/level sync ── */
 function updTracks(){
@@ -1410,17 +1456,20 @@ function fillTopPicks(top){
     if(x>=1e6)return (x/1e6).toFixed(x>=1e7?0:1)+"M";
     if(x>=1e4)return (x/1e3).toFixed(x>=1e5?0:1)+"K";
     return x.toLocaleString();};
-  const alt=ex=>{const parts=[];
-    if(divRate>1)parts.push(`${abbr(ex/divRate)} <span class="u">div</span>`);
-    if(chaosEx>0)parts.push(`${abbr(ex/chaosEx)} <span class="u">c</span>`);
-    return parts.join(" · ");};
+  const val3=ex=>{
+    const d=divRate>1?`${abbr(ex/divRate)} <span class="u">div</span>`:null;
+    const c=chaosEx>0?`${abbr(ex/chaosEx)} <span class="u">c</span>`:null;
+    const e=`${abbr(ex)} <span class="u">ex</span>`;
+    const o=[d,c,e].filter(Boolean);      // Divine → Chaos → Exalt (skip unavailable)
+    return {main:o[0],sub:o.slice(1).join(" · ")};};
   const thumb=t=>t.icon?`<img class="lt-thumb" loading="lazy" src="${esc(t.icon)}" onerror="this.style.display='none'">`
     :`<span class="lt-thumb">${em[t.cat]||"🟡"}</span>`;
-  tb.innerHTML=top.map(t=>`<tr><td title="${esc(t.name)}"><span class="lt-name">${thumb(t)}${esc(t.name)}</span></td>`+
+  tb.innerHTML=top.map(t=>{const v=val3(t.ex);
+    return `<tr><td title="${esc(t.name)}"><span class="lt-name">${thumb(t)}${esc(t.name)}</span></td>`+
     `<td class="lt-type">${esc(t.cat||"")}</td>`+
-    `<td class="lt-val"><div>${abbr(t.ex)} <span class="u">ex</span></div>`+
-      `<div class="lt-alt">${alt(t.ex)}</div></td>`+
-    `<td style="text-align:right"><span class="pillk">● keep</span></td></tr>`).join("");
+    `<td class="lt-val"><div>${v.main}</div>`+
+      `<div class="lt-alt">${v.sub}</div></td>`+
+    `<td style="text-align:right"><span class="pillk">● keep</span></td></tr>`;}).join("");
   $("topPicksT").style.display="table";}
 
 async function applyAutoFloor(){
@@ -1662,6 +1711,46 @@ $("open").onclick=()=>api().open_output();
 $("openIpd").onclick=async()=>{const r=await api().open_file("ipd");if(r.error)toast(r.error);};
 $("openFlt").onclick=async()=>{const r=await api().open_file("filter");if(r.error)toast(r.error);};
 
+/* ── ready-made presets ── */
+let PRESETS=[],presetActive="";
+async function loadPresets(){
+  const r=await api().presets();
+  PRESETS=(r&&r.presets)||[];
+  renderPresets((r&&r.active)||"");}
+function renderPresets(active){
+  presetActive=active||"";
+  const row=$("presetRow");
+  row.innerHTML=PRESETS.map(p=>{
+    const m=[1,2,3,4].map(n=>`<i class="${n<=p.strict?"on":""}"></i>`).join("");
+    return `<button class="pcard${p.key===presetActive?" on":""}" data-k="${esc(p.key)}"
+        title="Click to apply">
+      <span class="p-ic">${p.icon}</span>
+      <span class="p-name">${esc(p.name)}</span>
+      <span class="p-tag">${esc(p.tag)}</span>
+      <span class="p-meter">${m}</span></button>`;}).join("");
+  row.querySelectorAll(".pcard").forEach(b=>{
+    b.onclick=()=>applyPreset(b.dataset.k);
+    b.onmouseenter=()=>showPreset(b.dataset.k);
+    b.onmouseleave=()=>showPreset(presetActive);});
+  showPreset(presetActive);}
+function showPreset(key){
+  const p=PRESETS.find(x=>x.key===key),d=$("presetDetail");
+  if(!p){d.classList.remove("on");d.innerHTML="";return;}
+  d.innerHTML=`<div><b>${p.icon} ${esc(p.name)}</b> — ${esc(p.picks)}</div>`+
+    `<div class="pd-floors">${esc(p.floors)}</div>`+
+    `<div class="pd-cost">${esc(p.cost)}</div>`;
+  d.classList.add("on");}
+async function applyPreset(key){
+  const r=await api().apply_preset(key);
+  if(!r||!r.ok)return toast("Couldn't apply that preset");
+  info=await api().app_info();      // floors/switches changed — resync the whole tab
+  applyInfo(info);
+  renderPresets(key);
+  toast(`${r.name} applied — ${r.floors}`);}
+// A hand-edited floor no longer matches the preset it came from (the backend
+// clears it too) — drop the highlight so the UI never lies about what's active.
+function _presetOff(){if(presetActive)renderPresets("");}
+
 /* ── profiles ── */
 async function loadProfiles(){
   const p=await api().profiles();const sel=$("profSel");
@@ -1716,7 +1805,6 @@ document.querySelectorAll("#unitChips .chip").forEach(c=>c.onclick=()=>{
 $("ecoReload").onclick=()=>{eco=null;loadEco();};
 function renderChips(){
   const c=$("ecoChips");c.innerHTML="";
-  try{$("nbEco").textContent=eco.cats.reduce((n,x)=>n+x.items.length,0).toLocaleString();}catch(_){}
   const group=k=>k.startsWith("_ap_")?"Always pick":(k.startsWith("unique_")?"Uniques":"Market");
   let lastG=null;
   for(const cat of eco.cats){
@@ -2011,7 +2099,6 @@ async function loadFracture(force){
       b.onclick=()=>{fracSel=c.name;renderFracture();};
       s.appendChild(b);}}
   $("fracCount").textContent=`${withTargets} / ${total} classes have a verified target.`;
-  $("nbFrac").textContent=withTargets||"";
   if(!fracSel)fracSel=fracCls[0]&&fracCls[0].classes[0]&&fracCls[0].classes[0].name;
   renderFracture();
 }
@@ -2670,7 +2757,6 @@ function renderPreview(){
   const act=prevLines.filter(l=>l.includes("[StashItem]")&&!l.startsWith("//")).length;
   $("pvTotal").textContent=tot?tot.toLocaleString():"–";
   $("pvActive").textContent=tot?act.toLocaleString():"–";
-  $("nbPrev").textContent=tot?act.toLocaleString():"";
   $("pvSkip").textContent=tot?(tot-act).toLocaleString():"–";
   $("pvSize").textContent=prevLines.length?Math.round(prevLines.join("\n").length/1024)+" KB":"–";}
 document.querySelectorAll("#pvChips .chip").forEach(c=>c.onclick=()=>{
@@ -2787,7 +2873,7 @@ document.querySelectorAll(".page > h1").forEach(h=>{
 // Shared by init, profile-load and reset so their visible switches always
 // match the config that was just applied.
 function applyInfo(i){
-  const th=["ocean","nebula","relic"].includes(i.theme)?i.theme:"relic";
+  const th=["relic","venom","void","forge"].includes(i.theme)?i.theme:"relic";
   document.documentElement.dataset.theme=th;$("themeSel").value=th;
   document.querySelectorAll("#themeSeg button").forEach(b=>b.classList.toggle("on",b.dataset.t===th));
   $("uAmt").value=i.min_unique||0;$("gAmt").value=i.min_gear||0;
@@ -2809,7 +2895,8 @@ function applyInfo(i){
   $("swAuto").classList.toggle("on",!!i.auto_floor);
   $("keepPct").value=String(i.auto_floor_pct||40);
   setAutoPill(!!i.auto_floor);
-  uEx();gEx();}
+  uEx();gEx();
+  if(PRESETS.length)renderPresets(i.active_preset||"");}
 async function init(){
   info=await api().app_info();
   $("ver").textContent="v"+info.version;
@@ -2834,6 +2921,7 @@ async function init(){
     }catch(_){}
   }
   loadProfiles();
+  loadPresets();
   renderSparks();
   initFresh();
   checkForUpdate(true);

@@ -98,6 +98,10 @@ DEFAULT_CONFIG = {
     "last_gen_version": "",
     "profiles": {},
     "active_profile": "",
+    # Which ready-made preset (see PRESETS) the current floors came from. Cleared
+    # the moment the user hand-edits a floor, so the UI never claims a preset is
+    # active when the numbers no longer match it.
+    "active_preset": "",
 
     # OFF by default: an in-game loot filter that HIDES items can make Exiled Bot
     # get stuck (it still detects hidden items and paths to them, but the pickup
@@ -107,6 +111,68 @@ DEFAULT_CONFIG = {
     "copy_filter_to_game": False,
     "poe2_filter_dir": "",
 }
+
+
+# ── Ready-made presets ────────────────────────────────────────────────────────
+# A preset is just a bundle of settings with a plain-language explanation of what
+# it actually picks up and what it costs you. `strict` (1-4) drives the strictness
+# meter in the UI; `cfg` is applied verbatim over the user's config.
+#
+# Floors are in Exalted. Calibrated against a ~500 ex Divine: "Chase" only stops
+# for roughly a Divine and up, "Vacuum" stops for anything with a price tag.
+PRESETS = [
+    {
+        "key": "vacuum", "name": "Vacuum", "icon": "🧲", "strict": 1,
+        "tag": "League start",
+        "picks": "Anything with a price tag — every unique, all currency, rare gear and bases.",
+        "floors": "Currency & items from 1 ex · uniques from 1 ex",
+        "cost": "Fills your stash fast and slows clears. Best in the first days of a league, when even cheap drops still sell.",
+        "cfg": {"min_exalt_gear": 1.0, "min_exalt_unique": 1.0, "auto_floor": False,
+                "rare_gear_enabled": True, "include_bases": True},
+    },
+    {
+        "key": "balanced", "name": "Balanced", "icon": "⚖️", "strict": 2,
+        "tag": "Everyday farming",
+        "picks": "Skips the junk, keeps anything genuinely worth selling. Rare gear and bases stay on.",
+        "floors": "Currency & items from 5 ex · uniques from 15 ex",
+        "cost": "The sane default. Good value-per-stash-tab for normal mapping.",
+        "cfg": {"min_exalt_gear": 5.0, "min_exalt_unique": 15.0, "auto_floor": False,
+                "rare_gear_enabled": True, "include_bases": True},
+    },
+    {
+        "key": "strict", "name": "Strict", "icon": "💎", "strict": 3,
+        "tag": "High value only",
+        "picks": "Only drops worth the walk. Fewer items, better ones.",
+        "floors": "Currency & items from 25 ex · uniques from 75 ex",
+        "cost": "Much less stash traffic — but the bot will walk past cheap uniques without blinking.",
+        "cfg": {"min_exalt_gear": 25.0, "min_exalt_unique": 75.0, "auto_floor": False,
+                "rare_gear_enabled": True, "include_bases": True},
+    },
+    {
+        "key": "chase", "name": "Chase", "icon": "👑", "strict": 4,
+        "tag": "Big hits only",
+        "picks": "Only the money drops — roughly a Divine and up.",
+        "floors": "Currency & items from 100 ex · uniques from 500 ex (~1 div)",
+        "cost": "Barely touches the ground. Exceptional bases are switched off — not worth a pickup at this floor.",
+        "cfg": {"min_exalt_gear": 100.0, "min_exalt_unique": 500.0, "auto_floor": False,
+                "rare_gear_enabled": True, "include_bases": False},
+    },
+    {
+        "key": "currency", "name": "Currency only", "icon": "💰", "strict": 2,
+        "tag": "No gear at all",
+        "picks": "Currency, runes, essences and fragments. Nothing else.",
+        "floors": "Currency & items from 1 ex · no uniques, no rare gear, no bases",
+        "cost": "Pure currency farming. Unique pricing, rare-gear scoring and base rules are all turned off.",
+        "cfg": {"min_exalt_gear": 1.0, "min_exalt_unique": 0.0, "auto_floor": False,
+                "rare_gear_enabled": False, "include_bases": False},
+        "uniques_off": True,     # also switches every unique_* economy category off
+    },
+]
+
+# Settings a preset owns. Hand-editing any of these means the config no longer
+# matches the preset, so `active_preset` is cleared.
+PRESET_KEYS = ("min_exalt_gear", "min_exalt_unique", "auto_floor",
+               "rare_gear_enabled", "include_bases")
 
 
 # Set when load_config had to fall back — the UI shows a one-time warning
