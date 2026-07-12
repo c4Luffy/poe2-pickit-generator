@@ -6,6 +6,27 @@ download lives.
 
 ---
 
+## [v4.11.6] — 2026-07-12 — The "Gear floor" was actually the currency floor
+
+### Fixed
+- **Renamed "Gear floor" → "Currency & items floor".** The label was wrong and
+  actively misleading. That slider does not gate rare gear at all — it gates
+  **currency, essences, runes, fragments, omens, delirium, catalysts, abyss,
+  soul cores, idols, uncut gems, support gems, expedition and waystones**
+  (everything that is not a unique). Rare-gear rules are *scored* (WeightedSum),
+  not priced, so no value floor has ever touched them.
+
+  This wasn't cosmetic: with the slider at 30 Ex — a reasonable number if you
+  believe it only affects gear — a real run silently commented out **96 runes,
+  70 essences, 24 idols, 23 uncut gems and 21 delirium items**. Core currency
+  (Divine/Exalted/Mirror) is always-pick and was never at risk.
+
+  The generated `.ipd` header already described it correctly
+  (`Threshold: N ex (currency/items) | N ex (unique gear)`) — the UI was the
+  odd one out.
+- The **Unique floor** description now names what it covers (unique weapons,
+  armours, accessories, flasks, charms, jewels, relics).
+
 ## [v4.11.5] — 2026-07-12 — Whitelist the new ring bases (latent gap)
 
 ### Fixed
@@ -402,6 +423,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.11.6]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.6
 [v4.11.5]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.5
 [v4.11.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.4
 [v4.11.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.3
