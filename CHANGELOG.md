@@ -6,6 +6,25 @@ download lives.
 
 ---
 
+## [v4.17.0] — 2026-07-12 — The app finds your bot folder for you
+
+### Added — auto-detect the Exiled Bot pickit folder
+New users had to browse to `...\ExiledBot2\Configuration\default\Pickit` by hand
+before any loot reached the bot. Now the app looks for it.
+
+- **On first launch** (no bot folder set yet), the app scans the usual install
+  spots — Desktop, Downloads, Documents, your home folder, Program Files, and the
+  drive roots — for an Exiled Bot install, and if it finds one it **sets the folder
+  and turns Auto-copy on automatically.** The setup banner turns into
+  *"Found your Exiled Bot and connected it."*
+- **Settings → Auto-detect** button runs the same search any time.
+- A folder only counts as a real bot install when a **`pickit.ini` sits beside the
+  `Pickit` folder** — the signature of an actual Exiled Bot — so it won't latch
+  onto a random lookalike directory.
+
+It does **not** touch `active_profile` — connecting the file is automatic, but which
+file the bot reads is still yours to confirm (Settings shows it and offers **Fix it**).
+
 ## [v4.16.0] — 2026-07-12 — Headless `--cli` generate now writes the full pickit
 
 ### Fixed — the `--cli` path was silently thinner than the app
@@ -660,6 +679,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.17.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.0
 [v4.16.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.16.0
 [v4.15.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.15.0
 [v4.14.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.14.0

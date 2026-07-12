@@ -1446,6 +1446,47 @@ class AppApi:
             return ""
         return os.path.join(os.path.dirname(os.path.normpath(folder)), "pickit.ini")
 
+    def detect_bot_folder(self):
+        """Best-effort guess at the Exiled Bot 2 pickit folder by scanning the usual
+        install spots (Desktop, Downloads, Documents, home, Program Files, drive
+        roots). A hit is confirmed only when a `pickit.ini` sits beside a `Pickit`
+        folder — the signature of a real bot install — so false positives are rare.
+        Returns ``{found, path, all}``; never writes config."""
+        import glob
+        home = os.path.expanduser("~")
+        sub = os.path.join("Configuration", "default", "Pickit")
+        hits: list = []
+
+        def _scan(root, patterns):
+            if not root or not os.path.isdir(root):
+                return
+            for pat in patterns:
+                try:
+                    matches = glob.glob(os.path.join(root, pat, sub))
+                except OSError:
+                    continue
+                for cand in matches:
+                    cand = os.path.normpath(cand)
+                    ini = os.path.join(os.path.dirname(cand), "pickit.ini")
+                    if os.path.isdir(cand) and os.path.isfile(ini) and cand not in hits:
+                        hits.append(cand)
+
+        # Small, well-known folders: safe to look up to two levels deep.
+        for root in (os.path.join(home, "Desktop"), os.path.join(home, "Downloads"),
+                     os.path.join(home, "Documents"), home):
+            _scan(root, ("", "*", os.path.join("*", "*")))
+        # Big trees (drive roots, Program Files): one level only, to stay fast.
+        big = []
+        for pf in ("ProgramFiles", "ProgramFiles(x86)"):
+            if os.environ.get(pf):
+                big.append(os.environ[pf])
+        for d in "CDEFG":
+            big.append(d + ":\\")
+        for root in big:
+            _scan(root, ("", "*"))
+
+        return {"found": bool(hits), "path": hits[0] if hits else "", "all": hits}
+
     def bot_connection(self):
         """Will the bot actually read what we generate? Verified, not assumed."""
         folder = (self.cfg.get("bot_folder") or "").strip()

@@ -36,16 +36,14 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
-> ### 🎛️ What's new in v4.15.0 — turn any rare-gear slot on or off
-> The **🎯 Magic & Rare** tab scores all 17 gear slots — now each one has its own
-> switch, so you can drop the slots you don't care about and keep the rest. The
-> master on/off toggle is there too (it had been invisible and unclickable — that
-> is fixed). Recent releases also made the app **check your bot connection** —
-> reading the bot's own `pickit.ini` and offering a **Fix it** button when the
-> bot is IGNORING everything you generate (v4.14.0) — added an in-app **Setup
-> guide** (v4.13.0), and a **game-data health check** (v4.12.0). *(v4.16.0: the
-> headless `--cli` generate now writes the full pickit — fracture, craft, exotic
-> and flask rules — matching the app.)*
+> ### 🔎 What's new in v4.17.0 — the app finds your bot folder for you
+> New users had to browse to `...\ExiledBot2\Configuration\default\Pickit` by hand
+> before any loot reached the bot. Now, on first launch, the app **finds your
+> Exiled Bot install automatically, sets the folder and turns on Auto-copy** —
+> with an **Auto-detect** button in Settings too. Recent releases also added
+> **per-slot rare-gear switches** (v4.15.0), a **bot-connection check** with a
+> **Fix it** button (v4.14.0), an in-app **Setup guide** (v4.13.0), and a
+> **game-data health check** (v4.12.0).
 >
 > **[→ Full changelog](CHANGELOG.md)**
 

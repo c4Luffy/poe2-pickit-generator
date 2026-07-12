@@ -80,4 +80,30 @@ def test_economy_shape(api):
     assert cur["items"][0]["icon"].startswith("https://web.poecdn.com")
 
 
+def test_detect_bot_folder_finds_confirmed_install(api, tmp_path, monkeypatch):
+    """A Pickit folder with pickit.ini beside it (a real bot install) under a
+    scanned root is found."""
+    home = tmp_path / "home"
+    pickit = home / "Desktop" / "ExiledBot2" / "Configuration" / "default" / "Pickit"
+    pickit.mkdir(parents=True)
+    (pickit.parent / "pickit.ini").write_text("active_profile=poe2_pickit\n")
+    monkeypatch.setattr(os.path, "expanduser",
+                        lambda p: str(home) if p == "~" else p)
+    r = api.detect_bot_folder()
+    assert r["found"]
+    assert os.path.normpath(str(pickit)) in r["all"]
+
+
+def test_detect_bot_folder_ignores_pickit_without_ini(api, tmp_path, monkeypatch):
+    """A bare Pickit folder with NO pickit.ini beside it is NOT a bot install and
+    must never be offered — the guard against false positives."""
+    home = tmp_path / "home2"
+    pickit = home / "Desktop" / "NotABot" / "Configuration" / "default" / "Pickit"
+    pickit.mkdir(parents=True)
+    monkeypatch.setattr(os.path, "expanduser",
+                        lambda p: str(home) if p == "~" else p)
+    r = api.detect_bot_folder()
+    assert os.path.normpath(str(pickit)) not in r["all"]
+
+
 

@@ -1101,7 +1101,8 @@
     <div class="hint">Two settings in this app, and <b>one line inside the bot's own config</b>. The third is the one nobody guesses.</div>
 
     <div class="set-row"><div class="lab"><b>a. Settings → Exiled Bot 2 pickit folder</b>
-      <span>Browse to your bot's Pickit folder — usually<br>
+      <span>The app tries to find this for you on first launch. If it didn't, hit
+      <b>Auto-detect</b> in Settings — or Browse to it yourself, usually<br>
       <code>...\ExiledBot2\Configuration\default\Pickit</code></span></div></div>
 
     <div class="set-row"><div class="lab"><b>b. Settings → Auto-copy after generate → ON</b>
@@ -1168,6 +1169,7 @@
 
     <div class="set-row"><div class="lab"><b>Exiled Bot 2 pickit folder</b>
       <span id="botFolderLbl">not set</span></div><div class="sp"></div>
+      <button class="ghost mini" id="botDetect">Auto-detect</button>
       <button class="ghost mini" id="botBrowse">Browse…</button></div>
     <div class="set-row"><div class="lab"><b>Auto-copy after generate</b>
       <span>Deploy the .ipd into the bot folder on every run.</span></div><div class="sp"></div>
@@ -2712,6 +2714,12 @@ function sw(id,key,cur){const el=$(id);el.classList.toggle("on",cur);
 $("botBrowse").onclick=async()=>{const r=await api().browse_folder();
   if(r.path){$("botFolderLbl").textContent=r.path;await api().set_setting("bot_folder",r.path);
     setupNudge(r.path);loadBotConn();toast("Saved");}};
+$("botDetect").onclick=async()=>{const b=$("botDetect");b.disabled=true;b.textContent="Searching…";
+  try{const r=await api().detect_bot_folder();
+    if(r&&r.found){$("botFolderLbl").textContent=r.path;await api().set_setting("bot_folder",r.path);
+      setupNudge(r.path);loadBotConn();toast("Found your bot: "+r.path);}
+    else toast("Couldn't find Exiled Bot automatically — use Browse to pick the Pickit folder");}
+  finally{b.disabled=false;b.textContent="Auto-detect";}};
 $("baseQ").onchange=()=>{const v=_clamp($("baseQ"),21,30,25);
   $("baseQ").value=v;$("bqGen").value=v;updTracks();api().set_setting("base_quality",v);toast("Saved");};
 $("baseL").onchange=()=>{const v=_clamp($("baseL"),80,82,82);
@@ -2810,6 +2818,25 @@ async function init(){
   info=await api().app_info();
   $("ver").textContent="v"+info.version;
   applyInfo(info);
+  // First run: no bot folder yet → try to find Exiled Bot automatically and
+  // connect it, so a new user doesn't have to browse for the folder by hand.
+  if(!info.bot_folder){
+    try{
+      const r=await api().detect_bot_folder();
+      if(r&&r.found){
+        await api().set_setting("bot_folder",r.path);
+        await api().set_setting("auto_copy",true);
+        info.bot_folder=r.path;info.auto_copy=true;
+        $("botFolderLbl").textContent=r.path;
+        $("swCopy").classList.add("on");
+        loadBotConn();
+        const b=$("setupNudge");
+        b.innerHTML="✅ <b>Found your Exiled Bot and connected it.</b> Every Generate now deploys the pickit to <code>"+r.path+"</code> automatically. Wrong folder? Change it in Settings.";
+        b.classList.add("on");b.onclick=()=>openPage("set");
+        toast("Connected your bot: "+r.path);
+      }
+    }catch(_){}
+  }
   loadProfiles();
   renderSparks();
   initFresh();
