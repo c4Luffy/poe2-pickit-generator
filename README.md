@@ -36,11 +36,12 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
-> ### 🩹 What's new in v4.11.2 — four dead fracture rules fixed
+> ### 🩹 What's new in v4.11.2–v4.11.3 — dead fracture rules fixed
 > A new **game-data checker** diffs our stat ids, weights and base names against
 > the game's own mod and item tables. First run: the three **Evasion** fracture
 > rules and one **elemental-damage** rule were using stat ids the game doesn't
-> grant, so they silently matched nothing. All four now use the real ids.
+> grant, so they silently matched nothing — all four now use the real ids.
+> Jewels and Charms were dropped from the Fracture tab (no targets, ever).
 > (v4.11.0–v4.11.1 put the 17-slot rare-gear set live, plus copy buttons.)
 >
 > **[→ Full changelog](CHANGELOG.md)**

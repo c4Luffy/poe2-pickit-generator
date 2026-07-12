@@ -16,7 +16,9 @@ FRACTURE_CLASS_GROUPS: list = [
     ("Weapons",   ["Bows", "Crossbows", "Quarterstaves", "Spears",
                    "One Hand Maces", "Two Hand Maces", "Sceptres", "Wands", "Staves"]),
     ("Jewellery", ["Amulets", "Rings", "Belts"]),
-    ("Other",     ["Jewels", "Charms"]),
+    # Jewels and Charms are deliberately absent (owner, 2026-07-12: "forget them
+    # at all, no need") — they are not fracture targets and must not be re-added.
+    # This is only about FRACTURE; unique Jewels/Charms still price in Economy.
 ]
 # ─────────────────────────────────────────────────────────────────────────────
 #  Fracture Bases — a lookup/reference tool (NOT a pickit-rule generator).
@@ -501,8 +503,7 @@ _FRACTURE_CLASS_SEL: dict = {
     "Amulets": '[Category] == "Amulet"',
     "Rings": '[Category] == "Ring"',
     "Belts": '[Category] == "Belt"',
-    "Jewels": '[Category] == "Jewel"',
-    "Charms": '[Category] == "Charm"',
+    # No Jewels/Charms selectors — see FRACTURE_CLASS_GROUPS (owner, 2026-07-12).
 }
 
 _FRACTURE_TOP_N = 3

@@ -6,6 +6,16 @@ download lives.
 
 ---
 
+## [v4.11.3] — 2026-07-12 — Jewels and Charms dropped from Fracture
+
+### Changed
+- **Jewels and Charms are gone from the Fracture tab.** They had no fracture
+  targets and never will (owner call) — they only sat there as empty rows.
+  The tab now lists 19 item classes instead of 21. A test bans them from
+  creeping back in.
+- Unaffected: **unique Jewels and Charms still price normally** in the Economy
+  tab. This only removes them as fracture targets.
+
 ## [v4.11.2] — 2026-07-12 — Four dead fracture rules fixed (evasion, elemental)
 
 A new game-data checker (`tools/check_game_data.py`) compares our stat ids,
@@ -347,6 +357,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.11.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.3
 [v4.11.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.2
 [v4.11.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.1
 [v4.11.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.0
