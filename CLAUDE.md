@@ -65,6 +65,13 @@ tests/                   pytest suite (network-free; poe.ninja mocked).
                          release.yml (build+publish exe on v* tags).
 build.exe.bat            Local Windows build script (mirrors the CI build flags).
 docs/                    README screenshot.
+tools/
+  check_game_data.py     Game-data drift checker. Fetches the live GGPK mod dump
+                         (repoe-fork mods.min.json) + NeverSink's SOFT filter and
+                         diffs them against our stat ids, weights and base names.
+                         Flags renamed/removed stat ids, weight-vs-comment
+                         mismatches, and bases that may no longer drop. Run before
+                         a game-data change: `python tools/check_game_data.py`.
 ```
 
 Runtime data (config, caches, output) lives in a `ExileBot2PickitGenerator_data`
@@ -124,6 +131,12 @@ Before adding ANY name to `game_data.json`, `data/corrections.py`,
 ### game_data.json ↔ code must not drift
 When any game-data list changes in code, re-sync `game_data.json` and confirm
 `python -m pytest tests/test_remote_data.py -q` passes — it diffs JSON vs code.
+
+Run `python tools/check_game_data.py` after a patch (or when adding names) to
+catch the *other* kind of drift — a stat id the game renamed, or a base that
+stopped dropping — against the live GGPK mod dump and NeverSink's SOFT filter.
+It flags for human review; it never edits data. Weights stay consistent when
+each `# T1 max N` comment equals `100 / weight` (the checker verifies this).
 
 ### Releasing → skill `release`
 1. Working tree is only the changes to ship; `pytest -q` + `ruff check src tests` clean.

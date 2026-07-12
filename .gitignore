@@ -72,3 +72,6 @@ desktop.ini
 *.log
 *.log.*
 *.tmp
+
+# Game-data checker cache (tools/check_game_data.py)
+tools/.gamedata_cache/
