@@ -6,6 +6,19 @@ download lives.
 
 ---
 
+## [v4.11.5] — 2026-07-12 — Whitelist the new ring bases (latent gap)
+
+### Fixed
+- The five ring bases added in v4.11.4 — **Biostatic**, **Tenebrous**,
+  **Penumbra**, **Gloam** and **Dusk** — were missing from
+  `VALID_EQUIPMENT_BASES`, the validator's base-name whitelist. Nothing broke
+  today, because rare and fracture rules carry no quality/sockets gate and the
+  validator skips the base check for those — but the gap would have surfaced the
+  moment a gate was added. Now whitelisted.
+- **New guard test** (`test_every_base_we_name_is_in_the_validator_whitelist`):
+  every base named by a rare-gear recipe or a Fracture base override must be in
+  the whitelist, so a typo or a new base can't slip through silently again.
+
 ## [v4.11.4] — 2026-07-12 — Rings get fracture targets
 
 Rings were the last big empty slot in the Fracture tab. Researched the full ring
@@ -389,6 +402,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.11.5]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.5
 [v4.11.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.4
 [v4.11.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.3
 [v4.11.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.2

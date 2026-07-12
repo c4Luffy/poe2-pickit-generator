@@ -14,6 +14,23 @@ def test_every_stat_id_is_valid_in_bot_modslist():
     assert not bad, f"stat ids not in bot ModsList: {bad}"
 
 
+def test_every_base_we_name_is_in_the_validator_whitelist():
+    """Every base a rare-gear recipe or a Fracture base override names must be
+    accepted by VALID_EQUIPMENT_BASES.
+
+    These rules carry no quality/sockets gate, so validate_pickit skips the
+    base-name check for them — meaning a typo or a newly-added base passes
+    silently today and only breaks the day someone adds a gate. Five ring bases
+    (Biostatic + the four modifier-count rings) slipped through exactly this way
+    in v4.11.4; this test is the guard.
+    """
+    from exilebot_pickit.data.fracture_bases import fracture_bases as fb
+    used = {b for spec in rare_rules.RARE_GEAR.values() for b in spec["bases"]}
+    used |= {b for bases in fb._FRACTURE_BASE_OVERRIDES.values() for b in bases}
+    missing = sorted(b for b in used if b not in gen.VALID_EQUIPMENT_BASES)
+    assert not missing, f"bases missing from VALID_EQUIPMENT_BASES: {missing}"
+
+
 def test_menu_has_all_sections():
     assert set(rare.STAT_MENU) == {
         "Defensive: Life / Mana / ES",

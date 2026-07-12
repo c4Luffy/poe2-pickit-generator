@@ -95,13 +95,20 @@ def _quote_ipd(name: str) -> str:
 #  The maintained lists are easy to extend as new cases surface.
 
 # Accessories (rings, amulets) don't have socket/quality gate rules so they
-# aren't in _BASE_TYPES_BY_CATEGORY, but they appear in CHANCE_BASES and need
-# to be accepted by the validator.
+# aren't in _BASE_TYPES_BY_CATEGORY, but they appear in CHANCE_BASES, the
+# rare-gear recipes and the Fracture base overrides, and need to be accepted by
+# the validator. Every name here is confirmed present in the game's own item
+# table (base_items.min.json) — see tools/check_game_data.py.
 _ACCESSORY_BASES: frozenset = frozenset({
     # Rings
     "Gold Ring", "Iron Ring", "Ruby Ring", "Topaz Ring", "Sapphire Ring",
     "Emerald Ring", "Two-Stone Ring", "Prismatic Ring", "Unset Ring",
     "Amethyst Ring",
+    # Ring bases added with the v4.11.4 ring work: Biostatic carries the
+    # +1% max-all-res implicit (rare recipe + fracture); the four
+    # modifier-count rings are fracture-only bases.
+    "Biostatic Ring", "Tenebrous Ring", "Penumbra Ring", "Gloam Ring",
+    "Dusk Ring",
     # Amulets
     "Coral Amulet", "Paua Amulet", "Amber Amulet", "Jade Amulet",
     "Lapis Amulet", "Gold Amulet", "Agate Amulet", "Citrine Amulet",
