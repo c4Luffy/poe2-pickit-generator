@@ -924,7 +924,10 @@
     <div class="craft-side" id="rareSide"></div>
     <div style="flex:1;min-width:0">
       <div class="card">
-        <h2 id="rareTitle" style="margin:0 0 10px">Pick a slot</h2>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px">
+          <h2 id="rareTitle" style="margin:0">Pick a slot</h2>
+          <button type="button" class="ghost mini" id="rareCopyAll" style="font-size:11px;padding:4px 11px">Copy all rules</button>
+        </div>
         <div class="hint">Rare-gear WeightedSum rules — every stat verified against the bot's mod list, weights from live max-rolls. All 17 slots are written into every generated pickit (toggle above to turn the whole set off).</div>
         <div id="rareList"></div>
       </div>
@@ -1962,6 +1965,9 @@ async function loadRare(){
   }catch(e){window.rareRecipes={};window.rareGearOn=true;}  // default matches config (on) so the switch never reads OFF while rules still generate
   $("swRareGear").classList.toggle("on",!!window.rareGearOn);
   renderRare();
+  const _ca=$("rareCopyAll");
+  if(_ca)_ca.onclick=async()=>{const ok=await copyText(rareAllText());const o=_ca.textContent;
+    _ca.textContent=ok?"Copied all "+rareAllRuleCount()+" rules":"Failed";setTimeout(()=>_ca.textContent=o,1400);};
   // Best-flasks section
   const d=await api().magic_rare_data();const f=d&&d.flasks;
   if(f){$("swMrFlasks").classList.toggle("on",!!f.enabled);
@@ -1975,6 +1981,18 @@ $("swRareGear").onclick=async()=>{
 $("swMrFlasks").onclick=async()=>{
   const el=$("swMrFlasks");const on=!el.classList.contains("on");
   el.classList.toggle("on",on);await api().set_magic_rare_flasks(on);toast(on?"Best flasks: ON":"Best flasks: OFF");};
+function rareAllRuleCount(){
+  const rec=window.rareRecipes||{};let n=0;
+  for(const s of Object.keys(rec)){const r=rec[s];if(r&&r.lines)n+=r.lines.length;}
+  return n;
+}
+function rareAllText(){
+  const rec=window.rareRecipes||{};const parts=[];
+  for(const slot of Object.keys(rec)){
+    const r=rec[slot];if(!r||!r.lines||!r.lines.length)continue;
+    parts.push("// -- Rare "+slot);parts.push(r.lines.join("\n"));parts.push("");}
+  return parts.join("\n").trim();
+}
 function renderRare(){
   document.querySelectorAll("#rareSide .cside-btn").forEach(b=>{
     b.classList.toggle("on",b.dataset.slot===rareSel);
@@ -1989,7 +2007,10 @@ function renderRare(){
       <td style="text-align:right;font-family:Consolas,ui-monospace,monospace;font-weight:600">${w.w}</td>
       <td style="color:var(--dim);font-size:11px;font-family:Consolas,ui-monospace,monospace">${esc(w.stat)}</td></tr>`).join("");
   const live=!!window.rareGearOn;
-  $("rareList").innerHTML=
+  const statsText=r.weights.map(w=>`${w.label}\t${w.w}\t${w.stat}`).join("\n");
+  const rulesText=r.lines.join("\n");
+  const el=$("rareList");
+  el.innerHTML=
     `<div style="margin:10px 0"><span class="pill" style="${live
       ?"color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent);background:color-mix(in srgb,var(--ok) 8%,transparent)"
       :"color:var(--dim)"}">${live?"LIVE — written into every generated pickit":"OFF — not in generated pickits (switch above)"}</span></div>
@@ -2001,9 +2022,19 @@ function renderRare(){
        <div style="flex:1;min-width:220px"><div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">BASES (ONE RULE EACH)</div>
          <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${r.bases.map(b=>`<span class="pill">${esc(b)}</span>`).join("")}</div></div>
      </div>
+     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+       <div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">SCORED STATS</div>
+       <button type="button" class="ghost mini rare-copy" data-kind="stats" style="font-size:10.5px;padding:3px 9px">Copy stats</button></div>
      <table style="width:100%"><thead><tr><th>Stat</th><th style="text-align:right">Weight</th><th>Bot stat id</th></tr></thead><tbody>${wrows}</tbody></table>
      <div class="hint" style="margin-top:8px">Weight = 100 ÷ live T1 max-roll, so a perfect roll of any stat ≈ 100 points. The threshold is "how many perfect stats' worth" an item must carry.</div>
-     <pre style="margin-top:10px;font:11.5px/1.7 Consolas,ui-monospace,monospace;white-space:pre-wrap;word-break:break-word;color:var(--dim)">${esc(r.lines.join("\n"))}</pre>`;
+     <div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 4px">
+       <div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">PICKIT RULES (${r.lines.length})</div>
+       <button type="button" class="ghost mini rare-copy" data-kind="rules" style="font-size:10.5px;padding:3px 9px">Copy rules</button></div>
+     <pre style="margin:0;font:11.5px/1.7 Consolas,ui-monospace,monospace;white-space:pre-wrap;word-break:break-word;color:var(--dim)">${esc(rulesText)}</pre>`;
+  el.querySelectorAll(".rare-copy").forEach(btn=>btn.onclick=async()=>{
+    const ok=await copyText(btn.dataset.kind==="rules"?rulesText:statsText);
+    const o=btn.textContent;btn.textContent=ok?"Copied":"Failed";
+    setTimeout(()=>btn.textContent=o,1200);});
 }
 
 /* ── history ── */

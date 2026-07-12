@@ -36,12 +36,11 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
-> ### ⚡ What's new in v4.11.0 — rare gear goes LIVE
-> The rare-gear **WeightedSum recipes** are done and now written into
-> **every generated pickit** — all 17 slots (armour, jewellery, off-hand
-> and every weapon), each scored by what actually sells on the poe.ninja
-> ladder and audited against the game's own mod database. A master switch
-> at the top of the Magic & Rare tab turns the whole set on or off.
+> ### ⚡ What's new in v4.11.1 — copy buttons on Magic & Rare
+> Quality-of-life: **Copy stats**, **Copy rules**, and a **Copy all rules**
+> button on the Magic & Rare tab — pull the rare-gear rules straight into your
+> pickit or a chat without hand-selecting anything. (v4.11.0 put the 17-slot
+> rare-gear set live in every generated pickit.)
 >
 > **[→ Full changelog](CHANGELOG.md)**
 

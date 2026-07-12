@@ -6,6 +6,18 @@ download lives.
 
 ---
 
+## [v4.11.1] — 2026-07-12 — Copy buttons on the Magic & Rare tab
+
+Quality-of-life: get the rare-gear rules out of the app and into your pickit
+(or a chat) without hand-selecting text.
+
+### Added
+- **Copy stats** on each slot card — copies the scored-stat list (label,
+  weight, bot stat id) as tab-separated rows, ready to paste into a sheet.
+- **Copy rules** on each slot card — copies that slot's exact `.ipd` rule lines.
+- **Copy all rules** in the tab header — grabs all 51 rare-gear rules at once,
+  each slot under its own header, in the same order the pickit writes them.
+
 ## [v4.11.0] — 2026-07-12 — Rare gear goes LIVE: all 17 slots, in every pickit
 
 The rare-gear WeightedSum recipes are done and **written into every generated
@@ -309,6 +321,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.11.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.1
 [v4.11.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.0
 [v4.10.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.10.0
 [v4.9.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.9.3
