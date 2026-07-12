@@ -6,6 +6,19 @@ download lives.
 
 ---
 
+## [v4.12.2] — 2026-07-12 — Settings audit: one dead knob removed
+
+Audited every setting against the config, the API allowlist and the UI.
+**Everything checks out** — all 28 config keys are accounted for, every
+user-facing setting has a working control, and no label lies about what it does
+(the "Gear floor" mislabel in v4.11.6 was the last of those).
+
+### Removed
+- **`confirm_overwrite_secs`** — a leftover from the deleted Tk UI. It sat in the
+  config and was settable through the API, but **nothing read it**: a knob that
+  did nothing. Gone from the defaults, the settable allowlist and the info
+  payload.
+
 ## [v4.12.1] — 2026-07-12 — Two dead bases removed; the checker was too trusting
 
 **Hallowed Sceptre** and **Dark Staff** don't drop. They sit in the game's item
@@ -489,6 +502,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.12.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.2
 [v4.12.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.1
 [v4.12.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.0
 [v4.11.7]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.7

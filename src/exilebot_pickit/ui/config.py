@@ -79,7 +79,6 @@ DEFAULT_CONFIG = {
     # triggers the "new league detected" banner on the Generate tab.
     "known_leagues": [],
     "window_geometry_web": "",
-    "confirm_overwrite_secs": 120,
     "include_bases": True,
     # Auto floor: recompute both value floors from live prices on every
     # generate ("keep top N%" percentile).

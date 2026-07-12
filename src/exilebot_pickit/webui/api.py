@@ -30,7 +30,7 @@ _SETTABLE = {
     "min_exalt_gear", "min_exalt_unique", "include_bases",
     "auto_floor", "auto_floor_pct",
     "base_quality", "base_min_level", "backup_count",
-    "copy_filter_to_game", "poe2_filter_dir", "confirm_overwrite_secs",
+    "copy_filter_to_game", "poe2_filter_dir",
     "minimize_to_tray", "magic_rare_flasks", "known_leagues", "rare_gear_enabled",
 }
 
@@ -80,7 +80,6 @@ class AppApi:
             "copy_filter_to_game": bool(c.get("copy_filter_to_game", False)),
             "poe2_filter_dir": c.get("poe2_filter_dir", "") or _default_dir(),
             "backup_count": int(c.get("backup_count", 5)),
-            "confirm_overwrite_secs": int(c.get("confirm_overwrite_secs", 120)),
             "config_warning": _config_warning(),
             "minimize_to_tray": bool(c.get("minimize_to_tray", False)),
             "known_leagues": list(c.get("known_leagues") or []),
