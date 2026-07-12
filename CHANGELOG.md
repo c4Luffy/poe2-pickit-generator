@@ -6,6 +6,29 @@ download lives.
 
 ---
 
+## [v4.12.3] — 2026-07-12 — A stale cache was overriding shipped data fixes
+
+**Shipping a game-data fix did nothing for up to 6 hours.** The remote-data disk
+cache was keyed only on a timer, so on launch the app applied the *cached* game
+data over its own newer bundled lists — and the cache won.
+
+Caught the hard way: right after v4.12.1 removed Hallowed Sceptre and Dark Staff
+(bases that don't drop), a freshly generated pickit **still contained 22 rules
+for them**. The cache, written before the fix, put both straight back. The
+validator flagged it only because it checks against the bundled data — that
+mismatch is the one thing that made this visible at all.
+
+### Fixed
+- **The cache is now stamped with the app version, and a cache written by a
+  different build is ignored** (forcing an immediate refetch). A new build always
+  ships game data at least as new as an older build's cache, so on a version
+  change the bundled data is the safe starting point. Offline launches on the
+  *same* version still use the cache exactly as before.
+- Regression test added.
+
+If you updated and generated in the last few hours, **regenerate** — your pickit
+may contain rules for the two dead bases.
+
 ## [v4.12.2] — 2026-07-12 — Settings audit: one dead knob removed
 
 Audited every setting against the config, the API allowlist and the UI.
@@ -502,6 +525,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.12.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.3
 [v4.12.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.2
 [v4.12.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.1
 [v4.12.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.0

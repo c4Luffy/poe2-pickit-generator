@@ -30,6 +30,7 @@ import requests
 from exilebot_pickit.data import base_types as _bt
 from exilebot_pickit.data import corrections as _corr
 from exilebot_pickit.api import client as _client
+from exilebot_pickit.version import VERSION as _VERSION
 
 REMOTE_DATA_URL = ("https://raw.githubusercontent.com/"
                    "c4Luffy/poe2-pickit-generator/main/game_data.json")
@@ -176,15 +177,29 @@ def load_cached_game_data(cache_dir: str) -> tuple:
 
     Called synchronously at startup — BEFORE the UI builds its category rows —
     so previously-seen new unique categories get their toggle switches.
-    Returns (status_string, cache_timestamp)."""
+    Returns (status_string, cache_timestamp).
+
+    A cache written by a DIFFERENT app version is ignored and forced to refetch.
+    Without that, shipping a fix to the bundled data does nothing for up to
+    ``_FETCH_MIN_INTERVAL``: the stale cache is applied over the new bundled
+    lists and silently wins. That is exactly what happened on 2026-07-12 — a
+    cache from before the Hallowed Sceptre / Dark Staff removal put both dead
+    bases straight back into a freshly generated pickit. A new build always
+    ships game data at least as new as any cache an older build wrote, so on a
+    version change the bundled data is the safer starting point.
+    """
     cache_file = os.path.join(cache_dir, _CACHE_BASENAME)
     status, cached_ts = "bundled data (no remote copy yet)", 0.0
     try:
         with open(cache_file, encoding="utf-8") as f:
             wrapper = json.load(f)
         cached, cached_ts = wrapper.get("data"), float(wrapper.get("ts", 0))
+        cached_ver = str(wrapper.get("app_version") or "")
     except (OSError, ValueError, TypeError):
         return status, cached_ts
+    if cached_ver != _VERSION:
+        # Keep the bundled data and make refresh_game_data() fetch immediately.
+        return ("cache from another app version ignored — using bundled data", 0.0)
     if cached is not None and _validate(cached):
         try:
             _apply(cached)
@@ -215,7 +230,10 @@ def refresh_game_data(cache_dir: str) -> str:
         try:
             tmp = cache_file + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
-                json.dump({"ts": time.time(), "data": data}, f)
+                # Stamp the app version: a cache written by another build is
+                # ignored on load, so a shipped data fix can't be shadowed.
+                json.dump({"ts": time.time(), "app_version": _VERSION,
+                           "data": data}, f)
             os.replace(tmp, cache_file)
         except OSError:
             pass

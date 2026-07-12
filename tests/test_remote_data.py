@@ -132,3 +132,37 @@ def test_exotic_base_rules():
     assert data["exotic_bases"] == corr.EXOTIC_BASES
     assert data["special_items"] == corr.SPECIAL_ITEMS
     assert "jewels" not in data
+
+
+def test_cache_from_another_app_version_is_ignored(tmp_path):
+    """A cache written by a DIFFERENT build must not be applied.
+
+    Regression guard for 2026-07-12: the disk cache was keyed only on a 6-hour
+    timer, so after shipping a game-data fix the stale cache was applied over the
+    new bundled lists and silently won. A pickit generated right after the fix
+    still carried 22 rules for Hallowed Sceptre and Dark Staff — two bases that
+    had just been removed precisely because they don't drop. A new build always
+    ships data at least as new as an older build's cache, so on a version change
+    the cache is dropped and a refetch is forced.
+    """
+    from exilebot_pickit.version import VERSION
+
+    cache_dir = str(tmp_path)
+    stale = {"Sceptres": [["Ghost Sceptre", 2]]}
+
+    def _write(app_version):
+        with open(os.path.join(cache_dir, rd._CACHE_BASENAME), "w", encoding="utf-8") as f:
+            json.dump({"ts": 9e9, "app_version": app_version,
+                       "data": {"base_types": stale}}, f)
+
+    # Same version → the cache is applied and reported as fresh.
+    _write(VERSION)
+    status, ts = rd.load_cached_game_data(cache_dir)
+    assert "cached remote data applied" in status
+    assert ts > 0
+
+    # Different version → ignored, and ts=0 forces refresh_game_data() to refetch.
+    _write("0.0.1-old")
+    status, ts = rd.load_cached_game_data(cache_dir)
+    assert "another app version" in status
+    assert ts == 0.0
