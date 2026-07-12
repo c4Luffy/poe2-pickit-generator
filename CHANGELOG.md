@@ -6,6 +6,16 @@ download lives.
 
 ---
 
+## [v4.17.1] — 2026-07-12 — Item icons sit clean
+
+### Fixed
+- **Item icons no longer sit on a dark box.** The Economy list and the
+  top-valued-items table painted a `--bg3` background + border behind every icon;
+  the transparent art now sits directly on the page.
+- **Website FAQ:** fixed a missing space in the *".ipd vs .filter"* question — mono
+  chips inside a flex `<summary>` had collapsed the whitespace, so it read
+  *".ipdvs"*.
+
 ## [v4.17.0] — 2026-07-12 — The app finds your bot folder for you
 
 ### Added — auto-detect the Exiled Bot pickit folder
@@ -679,6 +689,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.17.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.1
 [v4.17.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.0
 [v4.16.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.16.0
 [v4.15.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.15.0
