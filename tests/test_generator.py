@@ -306,8 +306,10 @@ def test_chance_bases_no_duplicates():
 
 def test_new_bases_generate_gear_rules():
     """Newly added bases (Tattered Robe, Cultist Crown, etc.) must appear in build_base_rules."""
+    # Wrath Sceptre replaced Hallowed Sceptre 2026-07-12 (Hallowed is in the
+    # game's item table but does not drop, so it left the base lists).
     new_bases = ["Soldier Cuirass", "Imperial Greathelm", "Massive Mitts", "Tasalian Greaves",
-                 "Heavy Belt", "Utility Belt", "Ornate Belt", "Hallowed Sceptre"]
+                 "Heavy Belt", "Utility Belt", "Ornate Belt", "Wrath Sceptre"]
     rules_text = "\n".join(gen.build_base_rules())
     for base in new_bases:
         assert f'"{base}"' in rules_text, f"{base!r} missing from build_base_rules output"
@@ -494,8 +496,11 @@ def test_webui_entry_and_api_import():
 def test_all_new_bases_have_correct_ilvl_placement():
     """Exceptional-base rules gate [ItemLevel] BEFORE the # (owner format) so
     the bot skips low-level bases on the ground instead of vendoring them."""
+    # Wrath Sceptre replaced Hallowed Sceptre here 2026-07-12: Hallowed is still
+    # in the game's item table but does not drop, so it was removed from the base
+    # lists. The gate-placement behaviour under test is unchanged.
     new_bases = ["Polished Bracers", "Blacksteel Sabatons", "Imperial Greathelm",
-                 "Vile Robe", "Hallowed Sceptre", "Apostle Leggings"]
+                 "Vile Robe", "Wrath Sceptre", "Apostle Leggings"]
     rules = gen.build_base_rules()
     for base in new_bases:
         base_rules = [r for r in rules if f'"{base}"' in r and "[StashItem]" in r]

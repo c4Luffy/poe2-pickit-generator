@@ -396,15 +396,15 @@
     ],
     "Sceptres": [
       [
-        "Hallowed Sceptre",
-        2
-      ],
-      [
         "Wrath Sceptre",
         2
       ],
       [
         "Shrine Sceptre",
+        2
+      ],
+      [
+        "Omen Sceptre",
         2
       ]
     ],
@@ -470,7 +470,7 @@
         3
       ],
       [
-        "Dark Staff",
+        "Reflecting Staff",
         3
       ],
       [

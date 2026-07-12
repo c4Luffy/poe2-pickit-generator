@@ -12,14 +12,19 @@ Sources (in order of authority)
   * repoe-fork ``mods.min.json``       — every craftable affix: engine stat ids,
                                           tiers, roll ranges. THE authority on
                                           "is this stat id real".
-  * repoe-fork ``base_items.min.json`` — the game's item table. THE authority on
-                                          "does this base exist".
-  * NeverSink's SOFT filter            — SECONDARY ONLY. It names the bases it
-                                          *styles*, which is not the set of bases
-                                          that *drop*; treating it as a drop list
-                                          falsely reported Hallowed Sceptre and
-                                          Dark Staff as removed when both are
-                                          real. Never fail a base on this alone.
+  * repoe-fork ``base_items.min.json`` — the game's item table. Says whether a
+                                          name EXISTS. It is **not** a drop list:
+                                          it keeps legacy definitions and even
+                                          [DNT] dev placeholders ("[DNT] Driftwood
+                                          Oar"), so existing here proves nothing
+                                          about whether the item can be found.
+  * NeverSink's SOFT filter            — says whether a base actually DROPS.
+
+Both tests matter, and a base must pass BOTH. Trusting the item table alone is
+how Hallowed Sceptre and Dark Staff stayed in the recipes: both sat in the game's
+files, dropped for nobody, and were only caught when the owner searched in-game
+(2026-07-12). A base in the table but absent from NeverSink is a real warning,
+not a curiosity.
 
 Everything here is best-effort and never raises into the app: a failed fetch
 falls back to the cached copy, and a total failure returns ``error`` set rather
@@ -234,17 +239,21 @@ def run_check(force: bool = False) -> dict:
                  "Rare gear")
     result["checked_weights"] = len(triples)
 
-    # 3. base names — against the game's item table, NOT NeverSink
+    # 3. base names — a base has to pass BOTH tests: the name exists in the item
+    #    table, AND NeverSink says it drops. The table alone is not enough (see
+    #    the module docstring: it holds legacy and [DNT] entries), which is how
+    #    two dead bases survived in the recipes until 2026-07-12.
     used_bases = our_bases()
     for b, where in sorted(used_bases.items()):
         if b not in real_bases:
             flag("critical", "base", b,
-                 "This base no longer exists in the game — rules naming it "
+                 "This base name isn't in the game at all — rules naming it "
                  "match nothing.", where)
         elif b not in ns_bases:
-            flag("advisory", "base", b,
-                 "Exists in the game, but NeverSink doesn't name it. Not a bug — "
-                 "NeverSink only names bases it styles.", where)
+            flag("critical", "base", b,
+                 "In the game's files but NOT in NeverSink's drop list — most "
+                 "likely a legacy base that no longer drops, so rules naming it "
+                 "pick up nothing. Verify in-game before trusting it.", where)
     result["checked_bases"] = len(used_bases)
 
     result["ok"] = result["critical"] == 0

@@ -6,6 +6,28 @@ download lives.
 
 ---
 
+## [v4.12.1] — 2026-07-12 — Two dead bases removed; the checker was too trusting
+
+**Hallowed Sceptre** and **Dark Staff** don't drop. They sit in the game's item
+table but no longer appear in the game — the owner searched in-game and found
+neither. Every rule naming them was picking up nothing.
+
+### Fixed
+- **Removed both bases** from the rare-gear recipes, the base-type lists, and
+  `game_data.json` (which the app pulls at launch — leaving it stale would have
+  put them straight back). Replacements are the highest bases that actually drop:
+  - *Sceptre* — Wrath (49), Shrine (26), **Omen (16)**
+  - *Staff* — Permafrost (75), **Reflecting (70)**, Ravenous (65)
+- **The health check was too trusting and said this was fine.** It treated "the
+  name exists in the game's item table" as proof a base is real. It isn't: the
+  table keeps legacy definitions and even `[DNT]` dev placeholders
+  (`[DNT] Driftwood Oar`). A base must now pass **both** tests — the name exists
+  **and** NeverSink lists it as dropping — and failing the second is a **critical**
+  finding, not the shrug it used to be.
+
+  This is exactly the check that would have caught these two, and it excused them
+  instead.
+
 ## [v4.12.0] — 2026-07-12 — Game-data health check, in the app
 
 PoE2 renames stats and removes bases every patch. When it does, your rules still
@@ -467,6 +489,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.12.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.1
 [v4.12.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.0
 [v4.11.7]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.7
 [v4.11.6]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.6

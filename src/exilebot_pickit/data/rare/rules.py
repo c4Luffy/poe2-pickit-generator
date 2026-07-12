@@ -451,7 +451,10 @@ RARE_GEAR = {
     # (garnish). Fracture solo-catches the single chases; this is the
     # multi-stat layer. T1 max-rolls from the game's mod database 2026-07-12.
     "Sceptre": {
-        "bases": ["Hallowed Sceptre", "Wrath Sceptre", "Shrine Sceptre"],
+        # Hallowed Sceptre dropped 2026-07-12 — in the game's item table but it
+        # does NOT drop (owner confirmed in-game; NeverSink lists no sceptre above
+        # Wrath). These are the three highest sceptres that actually drop.
+        "bases": ["Wrath Sceptre", "Shrine Sceptre", "Omen Sceptre"],
         "weights": {
             "minion_skill_gem_level_+": 25.0,            # T1 max +4
             "allies_in_presence_damage_+%": 0.84,        # T1 max 119
@@ -498,7 +501,9 @@ RARE_GEAR = {
     # multi 59 (the v4.9.2-fixed stat). T1 max-rolls from the game's mod
     # database 2026-07-12.
     "Staff": {
-        "bases": ["Permafrost Staff", "Dark Staff", "Ravenous Staff"],
+        # Dark Staff dropped 2026-07-12 (same reason as Hallowed Sceptre).
+        # Reflecting Staff (ilvl 70) is the second-highest staff that drops.
+        "bases": ["Permafrost Staff", "Reflecting Staff", "Ravenous Staff"],
         "weights": {
             "spell_skill_gem_level_+": 16.67,            # T1 max +6 (ALL spells)
             "fire_spell_skill_gem_level_+": 14.29,       # T1 max +7
