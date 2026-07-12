@@ -2342,7 +2342,7 @@ function renderPvNav(){
   const n=$("pvNav");
   if(!pvSections.length){n.innerHTML="";return;}
   n.innerHTML=`<button class="cside-btn${pvSection===null?" on":""}" data-s=""><span>All sections</span></button>`+
-    pvSections.map((s,i)=>`<button class="cside-btn${pvSection===i?" on":""}" data-s="${i}">
+    pvSections.map((s,i)=>`<button class="cside-btn${pvSection===i?" on":""}" data-s="${i}" title="${esc(s.title)}">
       <span>${esc(s.title.length>20?s.title.slice(0,20)+"…":s.title)}</span>
       <span class="n">${s.active}</span></button>`).join("");
   n.querySelectorAll(".cside-btn").forEach(b=>b.onclick=()=>{

@@ -1183,15 +1183,17 @@ def main():
     # ── Chance Orb Bases ──────────────────────────────────────────────────────
     output_lines.extend(build_chance_base_rules())
 
-    # ── Rare Gear — WeightedSum recipes ───────────────────────────────────────
+    # ── Magic & Rare (rare-gear WeightedSum recipes) ──────────────────────────
     # Always-on in the CLI (like tablets/wombgifts/chance bases). The GUI gates
-    # this behind the rare_gear_enabled switch; the headless path has no config,
-    # so it always ships the full 17-slot set. Same section header as the GUI.
+    # this behind the rare_gear_enabled switch and folds it into its own Magic &
+    # Rare section; the headless path has no config and no flask rules, so it
+    # emits the section header itself. Same section NAME as the GUI so both
+    # outputs group identically.
     from .data.rare.rules import rare_gear_body
     _rare_lines = rare_gear_body()
     if _rare_lines:
         output_lines.append("")
-        output_lines.append(header_major("Rare Gear — WeightedSum recipes"))
+        output_lines.append(header_major("Magic & Rare"))
         output_lines.append("")
         output_lines.extend(_rare_lines)
         output_lines.append("")

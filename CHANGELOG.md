@@ -6,6 +6,19 @@ download lives.
 
 ---
 
+## [v4.11.7] — 2026-07-12 — One Magic & Rare section, not two
+
+### Fixed
+- **The rare-gear rules now live inside the Magic & Rare section** instead of a
+  separate one. Both are managed from the same Magic & Rare tab, so the Preview
+  sidebar showing a 2-rule "MAGIC & RARE" next to a 51-rule
+  "RARE GEAR — WEIGHTED…" looked broken. It's now one **MAGIC & RARE** section
+  with all **53** rules (2 flasks + 51 rare-gear), which is what the code
+  originally intended. The per-slot sub-headers inside are unchanged.
+- The old section title was also long enough to be **truncated** in the sidebar.
+- **Long section names now show in full on hover** (title tooltip), so anything
+  clipped at 20 characters — e.g. "REGULAR TABLETS (ALL…" — is still readable.
+
 ## [v4.11.6] — 2026-07-12 — The "Gear floor" was actually the currency floor
 
 ### Fixed
@@ -423,6 +436,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.11.7]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.7
 [v4.11.6]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.6
 [v4.11.5]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.5
 [v4.11.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.4

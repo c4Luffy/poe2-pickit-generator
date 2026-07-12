@@ -1113,13 +1113,16 @@ class AppApi:
             out += craft_lines
             out += asm.fracture_pickit_section(snap)
             out += gen.build_magic_rare_rules(snap.get("magic_rare_flasks", True))
-            # Rare-gear WeightedSum recipes (17 slots, owner-reviewed 2026-07-12).
+            # Rare-gear WeightedSum recipes (17 slots) live INSIDE the Magic & Rare
+            # section, not in one of their own: both are managed from the Magic &
+            # Rare tab, and a standalone 2-rule "Magic & Rare" section next to a
+            # 51-rule "Rare Gear" one just looked broken in the Preview sidebar.
+            # rare_gear_body() already emits its own per-slot sub-headers.
             if snap.get("rare_gear_enabled", True):
                 from exilebot_pickit.data.rare.rules import rare_gear_body
                 _rg = rare_gear_body()
                 if _rg:
-                    out += ["", gen.header_major("Rare Gear — WeightedSum recipes"), ""]
-                    out += _rg
+                    out += [""] + _rg
             excdis = self._excbase_disabled(snap)
             if snap["include_bases"]:
                 out += ["", gen.header_major("Exceptional Bases"), ""]
