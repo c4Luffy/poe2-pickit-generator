@@ -6,6 +6,13 @@ download lives.
 
 ---
 
+## [v4.17.3] — 2026-07-12 — The mascot is in the app itself
+
+### Changed
+- The sidebar now shows the **mascot logo** instead of a plain gold "E" tile. The
+  transparent cutout is embedded straight into the single-file UI (so it still
+  works offline), and the gold gradient box is gone — the character sits clean.
+
 ## [v4.17.2] — 2026-07-12 — Transparent logo, no black box
 
 ### Changed
@@ -698,6 +705,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.17.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.3
 [v4.17.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.2
 [v4.17.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.1
 [v4.17.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.0
