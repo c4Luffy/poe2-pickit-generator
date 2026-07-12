@@ -85,3 +85,59 @@ def test_unknown_keys_survive(tmp_config):
     data["some_future_key"] = {"x": 1}
     tmp_config.write_text(json.dumps(data), encoding="utf-8")
     assert cfgmod.load_config()["some_future_key"] == {"x": 1}
+
+
+def test_concurrent_saves_never_corrupt_the_config(tmp_config):
+    """Many savers at once must never produce an unreadable config.
+
+    Regression guard for 2026-07-12. save_config wrote to a single shared
+    ``config.json.tmp``: the UI thread and the generate worker (or a second app
+    process) opened the *same* temp path, the second truncated the first's
+    half-written JSON, and whichever finished first atomically moved that garbage
+    into place. os.replace being atomic never helped — the file it moved was
+    already corrupt. The owner's log had 318 load_config JSONDecodeErrors in a
+    day, and *every one of them* silently dropped the app onto DEFAULT_CONFIG:
+    one save landing at the wrong moment would have wiped league, profiles,
+    history and every item toggle.
+    """
+    import threading
+
+    base = dict(cfgmod.DEFAULT_CONFIG)
+    base["league"] = "Runes of Aldur"
+    base["profiles"] = {"mine": {"a": 1}}
+    cfgmod.save_config(base)
+
+    corrupt = []
+
+    def saver(n):
+        for i in range(25):
+            cfg = dict(base)
+            cfg["backup_count"] = n * 100 + i
+            cfgmod.save_config(cfg)
+
+    def reader():
+        for _ in range(80):
+            try:
+                with open(cfgmod.CONFIG_PATH, encoding="utf-8") as f:
+                    json.load(f)
+            except json.JSONDecodeError as e:      # the bug: corrupt CONTENT
+                corrupt.append(str(e))
+            except OSError:
+                pass                               # transient lock — harmless
+
+    threads = [threading.Thread(target=saver, args=(n,)) for n in range(4)]
+    threads += [threading.Thread(target=reader) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not corrupt, f"config was corrupted by concurrent saves: {corrupt[:2]}"
+
+    # and nothing was lost, nor left lying around
+    loaded = cfgmod.load_config()
+    assert loaded["league"] == "Runes of Aldur"
+    assert loaded["profiles"] == {"mine": {"a": 1}}
+    leftovers = [f for f in os.listdir(os.path.dirname(cfgmod.CONFIG_PATH))
+                 if f.endswith(".tmp")]
+    assert not leftovers, f"temp files left behind: {leftovers}"

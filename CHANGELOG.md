@@ -6,6 +6,32 @@ download lives.
 
 ---
 
+## [v4.12.4] — 2026-07-12 — Concurrent saves were corrupting your settings file
+
+The Debug log told on it: **318 `load_config` failures and 107 `save_config`
+failures in a single day**, still happening minutes before this fix.
+
+`save_config` wrote every save to one shared `config.json.tmp`. When two savers
+ran at once — the UI thread and the generate worker, or a second copy of the app —
+the second **truncated the first's half-written JSON**, and whichever finished
+first atomically moved that garbage into place. `os.replace` being atomic never
+helped: the file it moved was *already corrupt*.
+
+**Every one of those 318 read failures silently dropped the app onto default
+settings.** A save landing in that window would have wiped your league, profiles,
+run history and every item toggle. Nothing was lost this time — that was luck.
+
+### Fixed
+- **Each save now writes its own temp file** (`tempfile.mkstemp`), so savers can
+  no longer clobber each other. An in-process lock serialises the UI thread and
+  the generate worker; the unique temp name is what protects against a second
+  process. The write is `fsync`'d before the swap, and temp files are always
+  cleaned up.
+- **`load_config` retries once** before declaring the config corrupt, so a save
+  landing at the same instant can never again cost you your settings.
+- Regression test: 4 threads × 25 saves against 2 readers must produce **zero**
+  corrupt reads. It catches the old code (20 corruptions) and passes the new.
+
 ## [v4.12.3] — 2026-07-12 — A stale cache was overriding shipped data fixes
 
 **Shipping a game-data fix did nothing for up to 6 hours.** The remote-data disk
@@ -525,6 +551,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.12.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.4
 [v4.12.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.3
 [v4.12.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.2
 [v4.12.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.1

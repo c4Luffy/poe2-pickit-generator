@@ -1,7 +1,12 @@
 """Config path bootstrap, defaults, and load/save."""
 
-import sys, os, json, shutil, logging
+import sys, os, json, shutil, logging, tempfile, threading
 from logging.handlers import RotatingFileHandler
+
+# Serialises savers inside this process (the UI thread and the generate worker
+# both write the config). Cross-process safety comes from the per-save temp file
+# in save_config — see its docstring.
+_SAVE_LOCK = threading.Lock()
 
 # ── Config ────────────────────────────────────────────────────────────────────
 # Built EXE: keep everything in ONE tidy data folder next to the .exe instead of
@@ -128,12 +133,31 @@ def _coerce_types(cfg):
 
 
 def load_config():
+    """Read the config, falling back to defaults only when it is really unreadable.
+
+    A read is retried once before declaring corruption: a save landing at the
+    same instant used to make this raise, and *every* such failure silently
+    dropped the user onto DEFAULT_CONFIG — league, profiles, history and item
+    toggles all gone if anything saved afterwards. save_config no longer creates
+    that window (see its docstring), and this retry is the belt to that braces.
+    """
     global CONFIG_LOAD_ERROR
+    import time as _time
+    for attempt in (0, 1):
+        try:
+            with open(CONFIG_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                raise ValueError("config root is not an object")
+            break
+        except FileNotFoundError:
+            return dict(DEFAULT_CONFIG)      # first run — nothing to recover
+        except Exception:
+            if attempt == 0:
+                _time.sleep(0.15)            # maybe a save was mid-flight
+                continue
+            return _config_load_failed()
     try:
-        with open(CONFIG_PATH, encoding="utf-8") as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            raise ValueError("config root is not an object")
         cfg = dict(DEFAULT_CONFIG)
         cfg.update(data)
         _coerce_types(cfg)
@@ -144,48 +168,80 @@ def load_config():
         if cfg.get("base_quality") == 28:
             cfg["base_quality"] = 25
         return cfg
-    except FileNotFoundError:
-        return dict(DEFAULT_CONFIG)          # first run — nothing to recover
     except Exception:
-        log_exc("load_config")
-        # Preserve the corrupt file for recovery instead of silently wiping
-        # every setting/profile/exclusion, and tell the UI to say so.
-        try:
-            bak = CONFIG_PATH + ".corrupt.bak"
-            shutil.copyfile(CONFIG_PATH, bak)
-            CONFIG_LOAD_ERROR = (
-                "Your settings file couldn't be read, so defaults were loaded.\n"
-                f"The unreadable file was kept at:\n{bak}")
-        except Exception:
-            CONFIG_LOAD_ERROR = ("Your settings file couldn't be read, "
-                                 "so defaults were loaded.")
-        return dict(DEFAULT_CONFIG)
+        return _config_load_failed()
+
+
+def _config_load_failed():
+    """Genuinely unreadable config: keep the file for recovery, warn, use defaults."""
+    global CONFIG_LOAD_ERROR
+    log_exc("load_config")
+    # Preserve the corrupt file for recovery instead of silently wiping
+    # every setting/profile/exclusion, and tell the UI to say so.
+    try:
+        bak = CONFIG_PATH + ".corrupt.bak"
+        shutil.copyfile(CONFIG_PATH, bak)
+        CONFIG_LOAD_ERROR = (
+            "Your settings file couldn't be read, so defaults were loaded.\n"
+            f"The unreadable file was kept at:\n{bak}")
+    except Exception:
+        CONFIG_LOAD_ERROR = ("Your settings file couldn't be read, "
+                             "so defaults were loaded.")
+    return dict(DEFAULT_CONFIG)
 
 
 def save_config(cfg):
-    """Atomic write (tmp + os.replace) — a crash mid-write can no longer
-    truncate the config and wipe profiles/history/item selections.
+    """Atomic write — a crash or a concurrent save can no longer truncate the
+    config and wipe profiles/history/item selections.
 
-    The final os.replace is retried: on Windows it fails with WinError 32 if
-    another process momentarily holds the file open (the other UI saving at
-    the same instant, or an antivirus scan). One lost save used to be the
-    result; a few short retries almost always win the race instead."""
+    Every save gets its OWN temp file. A shared ``config.json.tmp`` used to be
+    the cause of a steady drip of corruption (318 load_config JSONDecodeErrors
+    in one day, 2026-07-12): two savers — the UI thread and the generate worker,
+    or a second app process — opened the *same* temp path, the second truncated
+    the first's half-written JSON, and whichever finished first atomically moved
+    that garbage into place. ``os.replace`` being atomic never helped: the file
+    it moved was already corrupt. Readers then fell back to DEFAULT_CONFIG, so a
+    save landing at the wrong moment could have wiped every setting.
+
+    The lock serialises savers inside this process; the unique temp name is what
+    protects against a second process. The final os.replace is retried because on
+    Windows it fails with WinError 32 while another process holds the file open
+    (an antivirus scan, the other UI saving at the same instant).
+    """
     import time as _time
-    try:
-        tmp = CONFIG_PATH + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(cfg, f, indent=2)
-        for attempt in range(4):
-            try:
-                os.replace(tmp, CONFIG_PATH)
-                break
-            except PermissionError:
-                if attempt == 3:
-                    raise
-                _time.sleep(0.1 * (attempt + 1))
-        log_info("config saved")
-    except Exception:
-        log_exc("save_config")
+    with _SAVE_LOCK:
+        fd, tmp = None, None
+        try:
+            fd, tmp = tempfile.mkstemp(dir=os.path.dirname(CONFIG_PATH) or ".",
+                                       prefix=".pickit_cfg-", suffix=".tmp")
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                fd = None                      # fdopen owns it now
+                json.dump(cfg, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())           # don't replace with a buffered file
+            for attempt in range(4):
+                try:
+                    os.replace(tmp, CONFIG_PATH)
+                    tmp = None
+                    break
+                except PermissionError:
+                    if attempt == 3:
+                        raise
+                    _time.sleep(0.1 * (attempt + 1))
+            log_info("config saved")
+        except Exception:
+            log_exc("save_config")
+        finally:
+            if fd is not None:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+            if tmp and os.path.exists(tmp):     # never leave temp files behind
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
 
 
 # ── Debug log ─────────────────────────────────────────────────────────────────
