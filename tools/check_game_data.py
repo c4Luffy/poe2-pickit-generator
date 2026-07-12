@@ -9,8 +9,12 @@ id or removes a base type is *caught* instead of silently shipping dead rules
 Sources
   * repoe-fork PoE2 ``mods.min.json`` — the GGPK mod dump: every craftable
     affix, its engine stat ids, tiers and roll ranges.
-  * NeverSink's PoE2 SOFT filter — the list of base types that actually DROP
-    this patch (poe2db lists datamined-but-unreleased items; NeverSink does not).
+  * repoe-fork PoE2 ``base_items.min.json`` — the GGPK item table: THE authority
+    on whether a base name still exists.
+  * NeverSink's PoE2 SOFT filter — secondary signal only. It names the bases it
+    *styles*, which is not the same as the bases that *drop*; treating it as a
+    drop list falsely reported Hallowed Sceptre and Dark Staff as removed when
+    both are real ilvl-65 bases. Never fail a base on NeverSink alone.
 
 What it checks
   [1] STAT-ID EXISTENCE  — every engine stat id our rare-gear recipes and
@@ -19,8 +23,8 @@ What it checks
   [2] WEIGHT CONSISTENCY — each rare-gear weight must equal 100 / its own
       "# T1 max N" comment (a self-check that catches arithmetic slips like
       the old %ES weight bug). No network needed for this one.
-  [3] BASE-TYPE DROPS    — every base our rare-gear + chance rules name must
-      appear in NeverSink's SOFT filter, i.e. it still drops.
+  [3] BASE NAMES        — every base our rare-gear + chance rules name must
+      still exist in the game's item table.
   [4] ROLL DRIFT (advisory) — our "# T1 max N" comment vs the game's current
       top craftable roll for that stat. Coarse (ignores per-slot caps) so it
       only flags, never fails.
@@ -45,6 +49,7 @@ if _SRC not in sys.path:
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 MODS_URL = "https://repoe-fork.github.io/poe2/mods.min.json"
+BASE_ITEMS_URL = "https://repoe-fork.github.io/poe2/base_items.min.json"
 NEVERSINK_URL = (
     "https://raw.githubusercontent.com/NeverSinkDev/NeverSink-PoE2litefilter/"
     "master/NeverSink's%20filter%202%20-%200-SOFT.filter"
@@ -73,8 +78,21 @@ def _fetch(url: str, cache_name: str, offline: bool) -> bytes:
 def load_sources(offline: bool):
     import json
     mods = json.loads(_fetch(MODS_URL, "mods.min.json", offline).decode("utf-8"))
+    bases = json.loads(_fetch(BASE_ITEMS_URL, "base_items.min.json", offline).decode("utf-8"))
     ns = _fetch(NEVERSINK_URL, "neversink_soft.filter", offline).decode("utf-8", "replace")
-    return mods, ns
+    return mods, bases, ns
+
+
+def game_base_names(base_items: dict) -> set[str]:
+    """Every real base-item name in the game's own item table.
+
+    This is the authority for 'does this base exist'. NeverSink is NOT — it only
+    *names* the bases it styles, so plenty of real bases (Pious Sceptre, Dark
+    Staff, ...) never appear in it. Checking names against NeverSink alone
+    produces false 'removed base' reports.
+    """
+    return {v["name"] for v in base_items.values()
+            if v.get("domain") == "item" and v.get("name")}
 
 
 # ── source indexing ────────────────────────────────────────────────────────
@@ -196,7 +214,7 @@ def main() -> int:
     args = ap.parse_args()
 
     try:
-        mods, ns_text = load_sources(args.offline)
+        mods, base_items, ns_text = load_sources(args.offline)
     except Exception as e:
         print(f"✗ could not load sources ({type(e).__name__}: {e})")
         if not args.offline:
@@ -205,9 +223,11 @@ def main() -> int:
 
     affix, any_item, max_roll = index_mods(mods)
     ns_bases = neversink_bases(ns_text)
+    real_bases = game_base_names(base_items)
     print("GAME-DATA CHECKER")
-    print(f"  mods.min.json : {len(mods):,} mods  ({len(affix):,} craftable-affix stat ids)")
-    print(f"  NeverSink SOFT: {len(ns_bases):,} base types that drop this patch")
+    print(f"  mods.min.json      : {len(mods):,} mods  ({len(affix):,} craftable-affix stat ids)")
+    print(f"  base_items.min.json: {len(real_bases):,} real base items (the authority on 'does it exist')")
+    print(f"  NeverSink SOFT     : {len(ns_bases):,} bases it explicitly names (a styling list, NOT a drop list)")
     print()
 
     critical = 0
@@ -248,18 +268,26 @@ def main() -> int:
         print(f"    ✗ {sid}: weight {w} but T1 max {n} implies {expected:.2f}")
     print()
 
-    # [3] base-type drops
+    # [3] base names — against the game's own item table (the authority).
+    # NeverSink is only a secondary signal: it names the bases it styles, so a
+    # real base can legitimately be absent from it (that produced two false
+    # "removed base" reports before this check was rewritten).
     used_bases = our_bases()
-    gone = [(b, w) for b, w in sorted(used_bases.items(), key=lambda kv: kv[0]) if b not in ns_bases]
-    print(f"[3] BASE-TYPE DROPS — {len(used_bases)} rare-gear + chance bases checked vs NeverSink")
+    items = sorted(used_bases.items(), key=lambda kv: kv[0])
+    gone = [(b, w) for b, w in items if b not in real_bases]
+    unstyled = [(b, w) for b, w in items if b in real_bases and b not in ns_bases]
+    print(f"[3] BASE NAMES — {len(used_bases)} rare-gear + chance bases checked vs the game's item table")
     if not gone:
-        print("    ✓ every base is named in NeverSink's SOFT filter")
+        print("    ✓ every base still exists in the game")
     for b, where in gone:
         critical += 1
-        print(f"    ✗ NOT NAMED IN NEVERSINK: \"{b}\"   used by {', '.join(where)}")
-    if gone:
-        print("      (caveat: NeverSink shows some low-tier bases by item-class without")
-        print("       naming them — verify a flagged base is actually gone, not just unnamed.)")
+        print(f"    ✗ NOT IN THE GAME: \"{b}\"   used by {', '.join(where)}")
+    for b, where in unstyled:
+        advisory += 1
+        print(f"    ⚠ exists, but NeverSink doesn't name it: \"{b}\"   used by {', '.join(where)}")
+    if unstyled:
+        print("      (not a bug — NeverSink only names bases it styles. Worth a glance")
+        print("       only if you expected it to be a chase base.)")
     print()
 
     # [4] roll drift (advisory, opt-in — coarse global max, over-flags)

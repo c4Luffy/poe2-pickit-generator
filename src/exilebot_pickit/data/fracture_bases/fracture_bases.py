@@ -364,9 +364,17 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     "es_body": "local_energy_shield",
     "es_helmet": "local_energy_shield",
     "es_boots": "local_energy_shield",
-    "evasion_body": "evasion_rating",
-    "evasion_helmet": "evasion_rating",
-    "evasion_boots": "evasion_rating",
+    # Flat Evasion is local_base_evasion_rating (the mod that rolls the exact
+    # 262-300 this target quotes is LocalIncreasedEvasionRating11, on the
+    # dex_armour / str_dex_int_armour tags). The bare "evasion_rating" id is
+    # granted by ZERO craftable affixes — caught by tools/check_game_data.py
+    # 2026-07-12, same renamed-id family as spirit_body. Evasion itself is of
+    # course in the game; only our id for it was wrong, so these three rules
+    # could never match. Note the flat-ES twin above is local_energy_shield —
+    # GGG's naming is not parallel between the two defences.
+    "evasion_body": "local_base_evasion_rating",
+    "evasion_helmet": "local_base_evasion_rating",
+    "evasion_boots": "local_base_evasion_rating",
     "es_evasion_hybrid_helmet": "local_evasion_and_energy_shield_+%",
     "es_evasion_hybrid_boots": "local_evasion_and_energy_shield_+%",
     "es_evasion_pct_body": "local_energy_shield_+%",
@@ -378,7 +386,11 @@ _FRACTURE_VERIFIED_STAT_IDS = {
     "crit_chance_weapon": "local_critical_strike_chance_+%",
     "crit_chance_amulet": "critical_strike_chance_+%",
     "focus_crit_spells": "spell_critical_strike_chance_+%",
-    "elemental_dmg_with_attacks": "elemental_damage_+%",
+    # The only craftable elemental-damage affix is the with-attack-skills one
+    # (the rare-gear weapon recipes already score it under this id); bare
+    # elemental_damage_+% is not a normal affix — tools/check_game_data.py,
+    # 2026-07-12.
+    "elemental_dmg_with_attacks": "elemental_damage_with_attack_skills_+%",
     "added_lightning_weapon": "local_maximum_added_lightning_damage",
     "added_lightning_weapon_2h": "local_maximum_added_lightning_damage",
     "sceptre_spirit": "local_spirit_+%",

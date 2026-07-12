@@ -6,6 +6,32 @@ download lives.
 
 ---
 
+## [v4.11.2] — 2026-07-12 — Four dead fracture rules fixed (evasion, elemental)
+
+A new game-data checker (`tools/check_game_data.py`) compares our stat ids,
+weights and base names against the game's own mod and item tables. On its first
+run it found four Fracture rules that could never match anything.
+
+### Fixed
+- **The three Evasion fracture rules** (body, helmet, boots) used the stat id
+  `evasion_rating`, which **no craftable affix in the game grants**. Flat Evasion
+  is `local_base_evasion_rating` — the mod that rolls the exact 262-300 those
+  rules quote. Evasion was always in the game; our id for it was wrong, so the
+  rules silently matched nothing. Same renamed-id family as the body-Spirit fix.
+- **The elemental-damage fracture rule** used `elemental_damage_+%`; the only
+  craftable elemental affix is `elemental_damage_with_attack_skills_+%` (which
+  the rare-gear weapon recipes already scored correctly).
+
+### Added
+- **`tools/check_game_data.py`** — fetches the live GGPK mod dump and item table
+  and flags renamed/removed stat ids, weights that disagree with their documented
+  T1 max-roll, and base names that no longer exist. It reports for human review
+  and never edits data.
+
+### Verified
+- All 67 engine stat ids now exist as craftable affixes; all 188 rare-gear
+  weights match their documented rolls; all 53 base names still exist in the game.
+
 ## [v4.11.1] — 2026-07-12 — Copy buttons on the Magic & Rare tab
 
 Quality-of-life: get the rare-gear rules out of the app and into your pickit
@@ -321,6 +347,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.11.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.2
 [v4.11.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.1
 [v4.11.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.11.0
 [v4.10.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.10.0

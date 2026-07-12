@@ -36,11 +36,12 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
-> ### ⚡ What's new in v4.11.1 — copy buttons on Magic & Rare
-> Quality-of-life: **Copy stats**, **Copy rules**, and a **Copy all rules**
-> button on the Magic & Rare tab — pull the rare-gear rules straight into your
-> pickit or a chat without hand-selecting anything. (v4.11.0 put the 17-slot
-> rare-gear set live in every generated pickit.)
+> ### 🩹 What's new in v4.11.2 — four dead fracture rules fixed
+> A new **game-data checker** diffs our stat ids, weights and base names against
+> the game's own mod and item tables. First run: the three **Evasion** fracture
+> rules and one **elemental-damage** rule were using stat ids the game doesn't
+> grant, so they silently matched nothing. All four now use the real ids.
+> (v4.11.0–v4.11.1 put the 17-slot rare-gear set live, plus copy buttons.)
 >
 > **[→ Full changelog](CHANGELOG.md)**
 
