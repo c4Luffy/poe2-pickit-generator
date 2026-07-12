@@ -6,6 +6,27 @@ download lives.
 
 ---
 
+## [v4.18.1] — 2026-07-13 — Preset floors loosened
+
+The v4.18.0 presets were too stingy — **Chase** demanded a full Divine (500 ex) for a
+unique, so it barely picked anything up. Every floor is now roughly **3–4× more
+generous**, so each preset keeps what it claims to keep.
+
+| Preset | Currency & items | Uniques | was |
+|---|---|---|---|
+| 🧲 **Vacuum** | 1 ex | 1 ex | unchanged |
+| ⚖️ **Balanced** | **2 ex** | **6 ex** | 5 / 15 |
+| 💎 **Strict** | **8 ex** | **25 ex** | 25 / 75 |
+| 👑 **Chase** | **30 ex** | **120 ex** | 100 / 500 |
+| 💰 **Currency only** | 1 ex | — | unchanged |
+
+Balanced now only skips actual vendor trash, and Chase (~¼ Divine on uniques) still
+catches the genuinely valuable drops instead of almost nothing.
+
+The tests no longer hardcode these numbers — they read them from the preset
+definitions — plus a new guard that a stricter preset can never end up with a
+*lower* floor than a looser one, so the strictness meter can't start lying.
+
 ## [v4.18.0] — 2026-07-13 — Presets: pick how greedy the bot should be
 
 ### Added — ready-made presets
@@ -738,6 +759,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.18.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.1
 [v4.18.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.0
 [v4.17.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.3
 [v4.17.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.17.2

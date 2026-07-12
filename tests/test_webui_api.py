@@ -93,12 +93,29 @@ def test_presets_are_well_formed():
 
 
 def test_apply_preset_sets_floors_and_marks_it_active(api):
+    # read the expected floors from the preset itself, so tuning the numbers
+    # doesn't break the test — this guards the mechanism, not the values
+    from exilebot_pickit.ui.config import PRESETS
+    p = next(x for x in PRESETS if x["key"] == "strict")
     r = api.apply_preset("strict")
     assert r["ok"]
-    assert api.cfg["min_exalt_gear"] == 25.0
-    assert api.cfg["min_exalt_unique"] == 75.0
-    assert api.cfg["min_exalt"] == 25.0            # legacy mirror stays in sync
+    assert api.cfg["min_exalt_gear"] == p["cfg"]["min_exalt_gear"]
+    assert api.cfg["min_exalt_unique"] == p["cfg"]["min_exalt_unique"]
+    assert api.cfg["min_exalt"] == p["cfg"]["min_exalt_gear"]   # legacy mirror
     assert api.cfg["active_preset"] == "strict"
+
+
+def test_preset_floors_rise_with_strictness():
+    """A stricter preset must never have a LOWER floor than a looser one, or the
+    strictness meter is lying to the user. Guards future floor tuning."""
+    from exilebot_pickit.ui.config import PRESETS
+    ladder = sorted((p for p in PRESETS
+                     if p["key"] in ("vacuum", "balanced", "strict", "chase")),
+                    key=lambda p: p["strict"])
+    gears = [p["cfg"]["min_exalt_gear"] for p in ladder]
+    uniqs = [p["cfg"]["min_exalt_unique"] for p in ladder]
+    assert gears == sorted(gears), f"currency floors not ascending with strictness: {gears}"
+    assert uniqs == sorted(uniqs), f"unique floors not ascending with strictness: {uniqs}"
 
 
 def test_hand_editing_a_floor_clears_the_active_preset(api):
