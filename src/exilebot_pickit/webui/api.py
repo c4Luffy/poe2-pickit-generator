@@ -400,18 +400,30 @@ class AppApi:
     def history(self):
         return list(reversed(self.cfg.get("history", [])))[:30]
 
+    def _raregear_states(self) -> dict:
+        """Per-slot on/off, stored like the Fracture tab's (item_states)."""
+        return self.cfg.get("item_states", {}).get("_raregear", {})
+
+    def rare_slot_disabled(self) -> set:
+        """Slots the user has switched off — passed to rare_gear_body(disabled=)."""
+        st = self._raregear_states()
+        return {name for name, s in st.items() if not s.get("enabled", True)}
+
     def rare_recipes(self):
         """Rare-gear WeightedSum recipes per slot, for the Magic & Rare tab.
-        These rules ARE written into every generated pickit when
-        ``rare_gear_enabled`` is on (the master switch above the slot list);
-        the returned ``enabled`` flag reflects that setting."""
+
+        ``enabled`` (top level) is the master switch; each slot carries its own
+        ``enabled`` too — a slot that's off is skipped when the pickit is built.
+        """
         from exilebot_pickit.data.rare import rules as rare_rules
+        off = self.rare_slot_disabled()
         slots = {}
         for slot, spec in rare_rules.RARE_GEAR.items():
             slots[slot] = {
                 "bases": list(spec["bases"]),
                 "threshold": spec["threshold"],
                 "item_tier": spec["item_tier"],
+                "enabled": slot not in off,
                 "weights": [
                     {"stat": sid, "w": w,
                      "label": rare_rules.STAT_LABELS.get(sid, sid)}
@@ -420,6 +432,16 @@ class AppApi:
             }
         return {"enabled": bool(self.cfg.get("rare_gear_enabled", True)),
                 "slots": slots}
+
+    def set_rare_slot(self, slot, enabled):
+        """Turn one rare-gear slot on/off. Off = its rules leave the pickit."""
+        from exilebot_pickit.data.rare import rules as rare_rules
+        if slot not in rare_rules.RARE_GEAR:
+            return {"error": "unknown slot"}
+        states = self.cfg.setdefault("item_states", {}).setdefault("_raregear", {})
+        states.setdefault(slot, {})["enabled"] = bool(enabled)
+        save_config(self.cfg)
+        return {"ok": True, "slot": slot, "enabled": bool(enabled)}
 
     def download_update(self):
         """Start downloading the newest release exe on a worker thread and return
@@ -1186,7 +1208,12 @@ class AppApi:
             # rare_gear_body() already emits its own per-slot sub-headers.
             if snap.get("rare_gear_enabled", True):
                 from exilebot_pickit.data.rare.rules import rare_gear_body
-                _rg = rare_gear_body()
+                # Per-slot switches: a slot the user turned off leaves the pickit
+                # entirely. Read from the snapshot, not self.cfg — the worker runs
+                # on a thread and must see the settings as they were at Generate.
+                _rgst = (snap.get("item_states", {}) or {}).get("_raregear", {})
+                _off = {s for s, v in _rgst.items() if not v.get("enabled", True)}
+                _rg = rare_gear_body(disabled=_off)
                 if _rg:
                     out += [""] + _rg
             excdis = self._excbase_disabled(snap)

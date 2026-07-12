@@ -923,7 +923,7 @@
   <div class="card" style="margin-top:14px;display:flex;align-items:center;gap:12px">
     <div style="flex:1"><b>Rare-gear rules in your pickit</b>
       <div class="hint" style="margin-top:2px">All 17 slot recipes below are written into every generated pickit. Turn off to generate without them.</div></div>
-    <div class="sw" id="swRareGear"><i></i></div>
+    <div class="switch" id="swRareGear"><i></i></div>
   </div>
   <div class="craft-layout" style="margin-top:14px">
     <div class="craft-side" id="rareSide"></div>
@@ -2123,7 +2123,11 @@ function renderRare(){
   document.querySelectorAll("#rareSide .cside-btn").forEach(b=>{
     b.classList.toggle("on",b.dataset.slot===rareSel);
     const rec=(window.rareRecipes||{})[b.dataset.slot];
-    const n=b.querySelector(".n");if(n)n.textContent=rec?rec.lines.length:"—";});
+    const off=rec&&rec.enabled===false;
+    const n=b.querySelector(".n");
+    if(n){n.textContent=rec?(off?"off":rec.lines.length):"—";
+      n.style.color=off?"var(--dim)":"";}
+    b.style.opacity=off?".55":"";});
   $("rareTitle").textContent=rareSel;
   const r=(window.rareRecipes||{})[rareSel];
   if(!r){
@@ -2133,11 +2137,22 @@ function renderRare(){
       <td style="text-align:right;font-family:Consolas,ui-monospace,monospace;font-weight:600">${w.w}</td>
       <td style="color:var(--dim);font-size:11px;font-family:Consolas,ui-monospace,monospace">${esc(w.stat)}</td></tr>`).join("");
   const live=!!window.rareGearOn;
+  const slotOn=r.enabled!==false;
   const statsText=r.weights.map(w=>`${w.label}\t${w.w}\t${w.stat}`).join("\n");
   const rulesText=r.lines.join("\n");
   const el=$("rareList");
   el.innerHTML=
-    `<div style="margin:10px 0"><span class="pill" style="${live
+    `<div style="display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--border);
+       border-radius:10px;background:var(--bg3);margin:10px 0 4px">
+       <div class="switch rare-slot-sw${slotOn?" on":""}"><i></i></div>
+       <div style="flex:1;min-width:0">
+         <b style="font-size:13px">Include ${esc(rareSel)} in your pickit</b>
+         <div class="hint" style="margin-top:2px">${slotOn
+            ? "On — these "+r.lines.length+" rules are written into every generated pickit."
+            : "Off — this slot is skipped. Nothing for "+esc(rareSel)+" reaches the bot."}</div>
+       </div>
+     </div>
+     <div style="margin:10px 0;${slotOn?"":"opacity:.5"}"><span class="pill" style="${live
       ?"color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,transparent);background:color-mix(in srgb,var(--ok) 8%,transparent)"
       :"color:var(--dim)"}">${live?"LIVE — written into every generated pickit":"OFF — not in generated pickits (switch above)"}</span></div>
      <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;margin:12px 0 14px">
@@ -2151,12 +2166,22 @@ function renderRare(){
      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
        <div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">SCORED STATS</div>
        <button type="button" class="ghost mini rare-copy" data-kind="stats" style="font-size:10.5px;padding:3px 9px">Copy stats</button></div>
-     <table style="width:100%"><thead><tr><th>Stat</th><th style="text-align:right">Weight</th><th>Bot stat id</th></tr></thead><tbody>${wrows}</tbody></table>
+     <table style="width:100%;${slotOn?"":"opacity:.5"}"><thead><tr><th>Stat</th><th style="text-align:right">Weight</th><th>Bot stat id</th></tr></thead><tbody>${wrows}</tbody></table>
      <div class="hint" style="margin-top:8px">Weight = 100 ÷ live T1 max-roll, so a perfect roll of any stat ≈ 100 points. The threshold is "how many perfect stats' worth" an item must carry.</div>
      <div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 4px">
        <div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">PICKIT RULES (${r.lines.length})</div>
        <button type="button" class="ghost mini rare-copy" data-kind="rules" style="font-size:10.5px;padding:3px 9px">Copy rules</button></div>
      <pre style="margin:0;font:11.5px/1.7 Consolas,ui-monospace,monospace;white-space:pre-wrap;word-break:break-word;color:var(--dim)">${esc(rulesText)}</pre>`;
+  const _sw=el.querySelector(".rare-slot-sw");
+  if(_sw)_sw.onclick=async()=>{
+    const on=!_sw.classList.contains("on");
+    _sw.classList.toggle("on",on);
+    const rec=(window.rareRecipes||{})[rareSel];
+    if(rec)rec.enabled=on;                       // keep the local copy honest
+    await api().set_rare_slot(rareSel,on);
+    renderRare();
+    toast(rareSel+(on?" is in your pickit":" removed — regenerate to apply"));
+  };
   el.querySelectorAll(".rare-copy").forEach(btn=>btn.onclick=async()=>{
     const ok=await copyText(btn.dataset.kind==="rules"?rulesText:statsText);
     const o=btn.textContent;btn.textContent=ok?"Copied":"Failed";

@@ -6,6 +6,31 @@ download lives.
 
 ---
 
+## [v4.15.0] — 2026-07-12 — Per-slot rare-gear switches (and the master switch was invisible)
+
+### Fixed — the rare-gear master switch never rendered
+`class="sw"` was **not a CSS class**. It has no rules. Every working switch in the
+app uses `.switch`. So the master *"Rare-gear rules in your pickit"* toggle was an
+unstyled, zero-height div: **present in the DOM, invisible on screen, impossible
+to click — in every release since v4.11.0.**
+
+Nobody could turn rare gear off. Caught by the owner in a screenshot, not by any
+of the automated gates, because those checked that the *code path* worked and
+never checked that a human could *see* the control.
+
+**New gate:** the pre-ship audit now flags any class used in the markup that has
+no CSS rule — the exact signature of an invisible control.
+
+### Added — per-slot on/off
+Every rare-gear slot now has its own switch (*"Include Sceptre in your pickit"*),
+so you can drop the slots you don't care about and keep the rest. The sidebar
+shows `off` against a disabled slot, and the card greys out. Toggling is instant
+and persists; regenerate to apply.
+
+Magic & Rare was the **only** section with no per-item control — Economy has
+per-item, Fracture per-class, Chance/Craft/Exceptional per-base. Now it has
+per-slot, plus the master switch above it.
+
 ## [v4.14.0] — 2026-07-12 — Settings and Debug redesigned: the app checks, instead of implying
 
 Both tabs used to *imply* things were fine. Now they go and look.
@@ -618,6 +643,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.15.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.15.0
 [v4.14.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.14.0
 [v4.13.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.13.0
 [v4.12.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.4
