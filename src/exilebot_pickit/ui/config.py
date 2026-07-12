@@ -89,6 +89,9 @@ DEFAULT_CONFIG = {
     "base_min_level": 82,
     "item_states":  {},
     "last_gen_prices": {},
+    # App version that produced the current .ipd — Preview warns when it no
+    # longer matches, because the shown pickit predates the rules you now have.
+    "last_gen_version": "",
     "profiles": {},
     "active_profile": "",
 

@@ -18,7 +18,7 @@ import time
 from exilebot_pickit import generator as gen
 from exilebot_pickit.generators import assembly as asm
 from exilebot_pickit.ui.config import (
-    OUTPUT_DIR, PRICE_CACHE_DIR, load_config, save_config,
+    OUTPUT_DIR, PRICE_CACHE_DIR, load_config, log_exc, save_config,
     _default_poe2_filter_dir as _default_dir,
 )
 from exilebot_pickit.version import VERSION
@@ -608,6 +608,45 @@ class AppApi:
             return {"update": False, "current": VERSION}
         except Exception:
             return {"update": False, "current": VERSION}
+
+    # ── Game-data health check ────────────────────────────────────────────────
+    # PoE2 renames stats and removes bases every patch. When it does, our rules
+    # still look correct but match nothing and the bot silently walks past loot —
+    # no error anywhere. This surfaces that in the app instead of leaving it to a
+    # dev script. Runs on a worker thread (the sources are ~9 MB) and is entirely
+    # best-effort: a failure reports itself and never breaks a launch.
+
+    def start_game_data_check(self, force=False):
+        """Kick the health check off in the background. Poll game_data_result()."""
+        if getattr(self, "_gd_running", False):
+            return {"running": True}
+        self._gd_running = True
+        self._gd_result = None
+
+        def _work():
+            try:
+                from exilebot_pickit.data.game_data_check import run_check
+                self._gd_result = run_check(force=bool(force))
+            except Exception:
+                log_exc("game_data_check")
+                self._gd_result = {
+                    "ok": True, "critical": 0, "advisory": 0, "findings": [],
+                    "sources": {}, "checked_at": "",
+                    "error": "The game-data check couldn't run."}
+            finally:
+                self._gd_running = False
+
+        threading.Thread(target=_work, daemon=True).start()
+        return {"running": True}
+
+    def game_data_result(self):
+        """{running:true} while it works, then the finished check result."""
+        if getattr(self, "_gd_running", False):
+            return {"running": True}
+        r = getattr(self, "_gd_result", None)
+        if r is None:
+            return {"running": False, "idle": True}
+        return {"running": False, **r}
 
     def open_url(self, url):
         # Only the app's own outbound links (allowlist): GitHub, poe.ninja,
@@ -1245,7 +1284,10 @@ class AppApi:
                         if not (t[0] in _seen or _seen.add(t[0]))]
             self.cfg.update({"league": league,
                              "min_exalt_gear": min_gear, "min_exalt": min_gear,
-                             "min_exalt_unique": min_unique})
+                             "min_exalt_unique": min_unique,
+                             # Stamp the version so Preview can tell you when the
+                             # pickit it is showing predates your current rules.
+                             "last_gen_version": VERSION})
             # Run history (same shape the Tk app writes)
             hist = self.cfg.setdefault("history", [])
             hist.append({"ts": time.strftime("%Y-%m-%d %H:%M"),
@@ -1334,6 +1376,30 @@ class AppApi:
                 return f.read().splitlines()
         except OSError:
             return []
+
+    def preview_meta(self):
+        """How fresh is what Preview is showing?
+
+        Preview renders the LAST generated pickit. Showing a 14-hour-old file
+        from a previous app version, with no hint that it is old, reads as a
+        bug — it did to the owner, who had every reason to know better. So say
+        so: age, and whether the rules have changed since it was written.
+        """
+        base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
+        try:
+            mtime = os.path.getmtime(os.path.join(OUTPUT_DIR, base + ".ipd"))
+        except OSError:
+            return {"empty": True}
+        gen_ver = str(self.cfg.get("last_gen_version") or "")
+        return {
+            "empty": False,
+            "age_secs": max(0, int(time.time() - mtime)),
+            "generated_at": time.strftime("%Y-%m-%d %H:%M", time.localtime(mtime)),
+            "gen_version": gen_ver,
+            "current_version": VERSION,
+            # No recorded version means it predates this field entirely.
+            "outdated": (gen_ver != VERSION),
+        }
 
     def validation(self):
         """Full error/warning list from the last generate (Preview banner)."""

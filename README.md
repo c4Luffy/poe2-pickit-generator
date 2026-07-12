@@ -36,13 +36,12 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
-> ### 💍 What's new in v4.11.4 — rings get fracture targets
-> Rings were the last empty slot in the Fracture tab. Three new targets
-> (**resistance**, **added attack damage**, **rarity**) across six bases picked
-> for their implicits — including the four **modifier-count rings** that bias
-> whether a ring carries prefixes or suffixes, which is exactly what you want
-> when fracturing for one specific mod. Earlier in v4.11.2–v4.11.3: a new
-> **game-data checker** caught four fracture rules that silently matched nothing.
+> ### 🩺 What's new in v4.12.0 — game-data health check
+> PoE2 renames stats every patch, and when it does your rules still *look*
+> correct but match **nothing** — the bot silently walks past loot with no error
+> anywhere. Nine rules were dead exactly this way. The app now **checks itself at
+> launch** against the game's own mod and item tables and warns you if any rule
+> has gone dead. Preview also tells you when it's showing a stale run.
 >
 > **[→ Full changelog](CHANGELOG.md)**
 
