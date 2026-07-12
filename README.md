@@ -36,13 +36,15 @@ Everything — features, quick start and FAQ — lives on the
 **[website](https://c4luffy.github.io/poe2-pickit-generator/)**. In short: pick your league,
 press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a complete pickit out.
 
-> ### 📖 What's new in v4.13.0 — in-app setup guide
-> Connecting the bot takes **three** steps, not two — and the third one nobody
-> guesses: the bot only loads the `.ipd` named by `active_profile` in its own
-> `pickit.ini`. Get that wrong and auto-copy still says "success", the file lands
-> in the folder, and **the bot quietly keeps reading an old pickit.** The new
-> **Setup guide** tab walks you through it. Also recent: a **game-data health
-> check** that catches rules the game has silently broken (v4.12.0).
+> ### 🔌 What's new in v4.14.0 — the app now *checks* your bot connection
+> Settings used to show a folder and a toggle and let you believe you were done.
+> It now **reads the bot's own `pickit.ini`** and tells you the truth — *"your bot
+> is IGNORING everything you generate"* — with a **Fix it** button. Because the
+> bot only loads the `.ipd` named by `active_profile`, and if that's wrong,
+> auto-copy still says "success" while the bot reads an old pickit. Settings and
+> Debug are both redesigned to surface problems instead of implying everything's
+> fine. Also recent: an in-app **Setup guide** (v4.13.0) and a **game-data health
+> check** (v4.12.0).
 >
 > **[→ Full changelog](CHANGELOG.md)**
 

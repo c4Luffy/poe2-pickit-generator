@@ -329,6 +329,8 @@
   /* bases grids */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
   .craft-layout{display:flex;gap:16px;align-items:flex-start}
+  .set-sec{display:none}.set-sec.on{display:block}
+  .cside-btn .st{margin-left:auto;font-size:11px;font-weight:700}
   .craft-layout .grid{flex:1;min-width:0}
   .craft-side{flex:0 0 172px;position:sticky;top:12px;display:flex;flex-direction:column;gap:2px}
   .craft-side .csgrp{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--dim);
@@ -968,36 +970,54 @@
 
 <!-- ══ DEBUG ══ -->
 <div class="page" id="p-dbg">
-  <h1>Debug</h1><div class="sub">Hover any tool for what it does. Results appear in the box below — no scrolling.</div>
+  <h1>Debug</h1><div class="sub">Health first, tools second — anything wrong shows up here without you clicking a thing.</div>
+
+  <!-- at-a-glance health: the summary BEFORE the detail -->
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+    <div class="stat"><b id="dbErrN">–</b><span id="dbErrL">errors logged</span></div>
+    <div class="stat"><b id="dbApiN">–</b><span id="dbApiL">poe.ninja</span></div>
+    <div class="stat"><b id="dbCacheN">–</b><span id="dbCacheL">cached payloads</span></div>
+    <div class="stat"><b id="dbDataN">–</b><span id="dbDataL">game data</span></div>
+  </div>
+
+  <!-- error digest: counted and grouped, not a wall of text -->
+  <div class="card" id="dbErrCard" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px">
+      <h2 style="margin:0" id="dbErrHead">Errors in the log</h2><div style="flex:1"></div>
+      <button class="ghost mini" id="dbErrShow">Show the raw lines</button>
+    </div>
+    <div class="hint" id="dbErrHint" style="margin-top:6px"></div>
+    <div id="dbErrList" style="margin-top:10px"></div>
+  </div>
 
   <div class="card">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <h2 style="margin:0">🧰 Tools</h2><div style="flex:1"></div>
+      <button class="ghost mini" id="dbgRefresh">↻ Refresh health</button>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
       <div>
         <div style="color:var(--gold);font-size:11.5px;font-weight:600;letter-spacing:.8px;margin-bottom:8px">🩺 CONNECTION</div>
         <button class="ghost mini" id="dbgApi" style="width:100%">Test all API endpoints</button>
-        <div style="font-size:11px;color:var(--dim);margin-top:4px;line-height:1.35">Is poe.ninja answering? All ✓ = connection is fine.</div>
+        <div class="hint" style="margin-top:5px">Is poe.ninja answering? All ✓ = connection is fine.</div>
       </div>
       <div>
         <div style="color:var(--gold);font-size:11.5px;font-weight:600;letter-spacing:.8px;margin-bottom:8px">📦 PRICE CACHE</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;flex-direction:column;gap:8px">
           <button class="ghost mini" id="dbgInfo">Cache &amp; app info</button>
-        <div style="font-size:11px;color:var(--dim);margin-top:4px;line-height:1.35">What's cached, how old, versions &amp; paths.</div>
           <button class="ghost mini" id="dbgClear">Clear price cache</button>
-        <div style="font-size:11px;color:var(--dim);margin-top:4px;line-height:1.35">Safe — next Generate downloads fresh prices.</div>
-          <button class="ghost mini" id="dbgPrune">Prune old files</button>
-        <div style="font-size:11px;color:var(--dim);margin-top:4px;line-height:1.35">Deletes only cache files older than 60 days.</div>
+          <button class="ghost mini" id="dbgPrune">Prune files older than 60 days</button>
         </div>
+        <div class="hint" style="margin-top:5px">Clearing is safe — the next Generate just re-downloads prices.</div>
       </div>
       <div>
         <div style="color:var(--gold);font-size:11.5px;font-weight:600;letter-spacing:.8px;margin-bottom:8px">📄 FILES</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <button class="ghost mini" id="dbgLog">Open debug log</button>
-        <div style="font-size:11px;color:var(--dim);margin-top:4px;line-height:1.35">Every action &amp; error — attach when reporting a bug.</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
           <button class="ghost mini" id="dbgDiag">📋 Copy diagnostics</button>
-        <div style="font-size:11px;color:var(--dim);margin-top:4px;line-height:1.35">Version, settings summary &amp; recent log — paste it when asking for help.</div>
+          <button class="ghost mini" id="dbgLog">Open debug log</button>
           <button class="ghost mini" id="dbgCfg">Open config file</button>
-        <div style="font-size:11px;color:var(--dim);margin-top:4px;line-height:1.35">Your settings as JSON — edit only with app closed.</div>
         </div>
+        <div class="hint" style="margin-top:5px">Paste the diagnostics when asking for help. Edit the config only with the app closed.</div>
       </div>
     </div>
   </div>
@@ -1008,7 +1028,7 @@
       <button class="ghost mini" id="dbgCopy">Copy</button>
       <button class="ghost mini" id="dbgWipe">Clear</button>
     </div>
-    <pre id="dbgOut" style="max-height:calc(90.9vh - 275px);min-height:200px">Ready. Run a tool above — results appear here.</pre>
+    <pre id="dbgOut" style="max-height:calc(90.9vh - 430px);min-height:150px">Ready. Run a tool above — results appear here.</pre>
   </div>
 
 </div>
@@ -1129,81 +1149,107 @@
 </div>
 
 <div class="page" id="p-set">
-  <h1>Settings</h1><div class="sub">Everything saves instantly — no Save button. Set the bot folder once and forget this page.</div>
+  <h1>Settings</h1><div class="sub">Everything saves instantly — there's no Save button. The rail on the left flags anything that needs you.</div>
 
-  <div class="card" style="border-color:var(--gold-dim)"><h2>🤖 Connect your bot</h2>
-    <div class="hint">The one setting that matters: where Exiled Bot 2 reads its pickit. Set it + Auto-copy ON = every Generate lands in the bot automatically.</div>
+  <div class="craft-layout" style="margin-top:14px">
+    <div class="craft-side" id="setSide"></div>
+    <div style="flex:1;min-width:0">
+      <div class="set-sec" data-s="bot">
+<div class="card" style="border-color:var(--gold-dim)"><h2>🤖 Connect your bot</h2>
+
+    <div id="botStatus" style="display:flex;align-items:flex-start;gap:12px;padding:13px 15px;border:1px solid var(--border);border-radius:11px;margin-bottom:14px;background:var(--bg3)">
+      <span id="botIcon" style="font-size:17px;line-height:1.25">⋯</span>
+      <div style="flex:1;min-width:0">
+        <b id="botState" style="font-size:13.5px">Checking the connection…</b>
+        <div class="hint" id="botDetail" style="margin-top:3px">Reading your bot's own config to see which file it actually loads.</div>
+      </div>
+      <button class="ghost mini" id="botFix" style="display:none;white-space:nowrap">Fix it for me</button>
+    </div>
+
     <div class="set-row"><div class="lab"><b>Exiled Bot 2 pickit folder</b>
       <span id="botFolderLbl">not set</span></div><div class="sp"></div>
       <button class="ghost mini" id="botBrowse">Browse…</button></div>
     <div class="set-row"><div class="lab"><b>Auto-copy after generate</b>
       <span>Deploy the .ipd into the bot folder on every run.</span></div><div class="sp"></div>
       <div class="switch" id="swCopy"><i></i></div></div>
+    <div class="set-row"><div class="lab"><b>The bot is set to read</b>
+      <span id="botProfileLbl">—</span></div><div class="sp"></div>
+      <span class="hint" style="margin:0">from its pickit.ini</span></div>
   </div>
-
-  <div class="card"><h2>&#129658; Game data health</h2>
+      </div>
+      <div class="set-sec" data-s="data">
+<div class="card"><h2>&#129658; Game data health</h2>
     <div class="hint">PoE2 renames stats and removes bases every patch. When it does, your rules still look correct but match <b>nothing</b> &mdash; the bot silently walks past loot, with no error anywhere. This compares everything your rules hunt for against the game&rsquo;s own mod and item tables. It runs automatically at launch.</div>
     <div class="set-row"><div class="lab"><b id="gdTitle">Checking&hellip;</b>
       <span id="gdSub">Comparing your rules against the current patch.</span></div><div class="sp"></div>
       <button class="ghost mini" id="gdBtn">Check now</button></div>
     <div id="gdList"></div>
   </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
-    <div>
-      <div class="card"><h2>⏰ Hands-free mode</h2>
-        <div class="set-row"><div class="lab"><b>Minimize to tray on close</b>
-          <span>Keeps the app running in the background instead of exiting. Right-click the tray icon for Show / Generate / Exit.</span></div>
-          <div class="sp"></div><div class="switch" id="swTray"><i></i></div></div>
       </div>
-      <div class="card"><h2>💾 Output &amp; backups</h2>
-        <div class="set-row"><div class="lab"><b>Output file name</b>
-          <span>.ipd is added automatically.</span></div><div class="sp"></div>
-          <input type="text" id="outBase" style="width:170px"></div>
-        <div class="set-row"><div class="lab"><b>Keep backups</b>
-          <span>Previous pickits in output/backups (0 = off).</span></div><div class="sp"></div>
-          <input type="number" id="bakCount" min="0" max="20" style="width:70px;text-align:center"></div>
-        <div class="set-row"><div class="lab"><b>Restore a backup</b>
-          <span>Replaces the current .ipd — the one being replaced is backed up first.</span></div>
-          <div class="sp"></div>
-          <button class="ghost mini" id="bakRefresh">↻ Refresh list</button></div>
-        <div id="bakList" class="hint" style="margin:2px 0 4px"></div>
-        <div class="set-row"><div class="lab"><b>Backup your settings</b>
-          <span>Floors, toggles, profiles, exclusions — one file, movable to another PC.</span></div>
-          <div class="sp"></div>
-          <button class="ghost mini" id="cfgExport">⬆ Export…</button>
-          <button class="ghost mini" id="cfgImport">⬇ Import…</button></div>
-      </div>
+      <div class="set-sec" data-s="out">
+<div class="card"><h2>💾 Output &amp; backups</h2>
+      <div class="set-row"><div class="lab"><b>Output file name</b>
+        <span>.ipd is added automatically. <b>If you change this</b>, the bot's <span class="mono">active_profile</span> must change with it — the card above will tell you.</span></div><div class="sp"></div>
+        <input type="text" id="outBase" style="width:170px"></div>
+      <div class="set-row"><div class="lab"><b>Keep backups</b>
+        <span>Previous pickits in output/backups (0 = off).</span></div><div class="sp"></div>
+        <input type="number" id="bakCount" min="0" max="20" style="width:70px;text-align:center"></div>
+      <div class="set-row"><div class="lab"><b>Restore a backup</b>
+        <span>Replaces the current .ipd — the one being replaced is backed up first.</span></div>
+        <div class="sp"></div>
+        <button class="ghost mini" id="bakRefresh">↻ Refresh list</button></div>
+      <div id="bakList" class="hint" style="margin:2px 0 4px"></div>
+      <div class="set-row"><div class="lab"><b>Backup your settings</b>
+        <span>Floors, toggles, profiles, exclusions — one file, movable to another PC.</span></div>
+        <div class="sp"></div>
+        <button class="ghost mini" id="cfgExport">⬆ Export…</button>
+        <button class="ghost mini" id="cfgImport">⬇ Import…</button></div>
     </div>
-    <div>
-      <div class="card"><h2>🎮 In-game loot filter <span class="pill" style="margin-left:6px">manual play only</span></h2>
-        <div class="hint">⚠ Leave OFF while botting — a filter that hides items can make the bot walk to drops it can't pick up. The .filter is always written next to the .ipd anyway.</div>
-        <div class="set-row"><div class="lab"><b>Copy .filter to the game after generate</b></div><div class="sp"></div>
-          <div class="switch" id="swFilter"><i></i></div></div>
-        <div class="set-row"><div class="lab"><b>PoE2 filter folder</b>
-          <span id="fltDirLbl">not set</span></div><div class="sp"></div>
-          <button class="ghost mini" id="fltBrowse">Browse…</button></div>
-        <div class="hint" style="margin:8px 0 0">To use it: in PoE2 → Options → Game → Filters, pick "poe2_pickit". If it loads without an error there, it's working.</div>
       </div>
-      <div class="card"><h2>🧹 Maintenance</h2>
-        <div class="set-row"><div class="lab"><b>Status</b>
-          <span><span class="dot" id="sideDot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px"></span><span id="sideLeague">PoE2</span> · <span id="sideUpdated">waiting for data…</span></span></div></div>
-        <div class="set-row"><div class="lab"><b>Check for updates</b>
-          <span id="updLbl">Checks GitHub for a newer build.</span></div><div class="sp"></div>
-          <button class="ghost mini" id="updCheck">Check now</button></div>
-        <div class="set-row"><div class="lab"><b>Update went wrong?</b>
-          <span>If the app fails to start after an update, download the latest .exe by hand and run it — it replaces the broken one.</span></div><div class="sp"></div>
-          <button class="ghost mini" id="updManual">Re-download manually</button></div>
-        <div class="set-row"><div class="lab"><b>Reset settings to defaults</b>
-          <span>Turns every item toggle back ON. History &amp; profiles are kept.</span></div><div class="sp"></div>
-          <button class="ghost mini" id="resetBtn">Reset…</button></div>
-        <div class="set-row"><div class="lab"><b>Config file</b>
-          <span>Open the raw settings file.</span></div><div class="sp"></div>
-          <button class="ghost mini" id="cfgOpen">Open</button></div>
+      <div class="set-sec" data-s="app">
+<div class="card"><h2>⚙️ App &amp; maintenance</h2>
+      <div class="set-row"><div class="lab"><b>Status</b>
+        <span><span class="dot" id="sideDot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px"></span><span id="sideLeague">PoE2</span> · <span id="sideUpdated">waiting for data…</span></span></div></div>
+      <div class="set-row"><div class="lab"><b>Minimize to tray on close</b>
+        <span>Keeps the app running in the background instead of exiting. Right-click the tray icon for Show / Generate / Exit.</span></div>
+        <div class="sp"></div><div class="switch" id="swTray"><i></i></div></div>
+      <div class="set-row"><div class="lab"><b>Check for updates</b>
+        <span id="updLbl">Checks GitHub for a newer build.</span></div><div class="sp"></div>
+        <button class="ghost mini" id="updCheck">Check now</button></div>
+      <div class="set-row"><div class="lab"><b>Update went wrong?</b>
+        <span>If the app fails to start after an update, download the latest .exe by hand and run it — it replaces the broken one.</span></div><div class="sp"></div>
+        <button class="ghost mini" id="updManual">Re-download manually</button></div>
+      <div class="set-row"><div class="lab"><b>Reset settings to defaults</b>
+        <span>Turns every item toggle back ON. History &amp; profiles are kept.</span></div><div class="sp"></div>
+        <button class="ghost mini" id="resetBtn">Reset…</button></div>
+      <div class="set-row"><div class="lab"><b>Config file</b>
+        <span>Open the raw settings file.</span></div><div class="sp"></div>
+        <button class="ghost mini" id="cfgOpen">Open</button></div>
+    </div>
+      </div>
+      <div class="set-sec" data-s="filter">
+<div class="card" style="margin-top:14px">
+    <details>
+      <summary style="cursor:pointer;display:flex;align-items:center;gap:9px;list-style:none">
+        <h2 style="margin:0">🎮 In-game loot filter</h2>
+        <span class="pill">manual play only</span>
+        <span class="hint" style="margin:0;flex:1;min-width:0">Nothing to do here if you're botting — click to expand.</span>
+      </summary>
+      <div class="hint" style="margin-top:10px">⚠ Leave this OFF while botting — a filter that hides items can make the bot walk to drops it can't pick up. The .filter is always written next to the .ipd anyway, so you lose nothing.</div>
+      <div class="set-row"><div class="lab"><b>Copy .filter to the game after generate</b></div><div class="sp"></div>
+        <div class="switch" id="swFilter"><i></i></div></div>
+      <div class="set-row"><div class="lab"><b>PoE2 filter folder</b>
+        <span id="fltDirLbl">not set</span></div><div class="sp"></div>
+        <button class="ghost mini" id="fltBrowse">Browse…</button></div>
+      <div class="hint" style="margin:8px 0 0">To use it: in PoE2 → Options → Game → Filters, pick "poe2_pickit". If it loads without an error there, it's working.</div>
+    </details>
+  </div>
       </div>
     </div>
   </div>
 </div>
+
+
 
 </main>
 <div class="toast" id="toast"></div>
@@ -1264,7 +1310,8 @@ function openPage(p){
   if(p==="rare")loadRare();
   if(p==="prev")loadPreview();
   if(p==="hist")loadHistory();
-  if(p==="set")loadBackups();
+  if(p==="set"){renderSetNav();loadBackups();loadBotConn();}
+  if(p==="dbg")loadDebug();
 }
 document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>openPage(b.dataset.p));
 document.querySelectorAll(".nav-grp").forEach(gp=>gp.onclick=()=>openPage(_lastTab[gp.dataset.g]));
@@ -2270,11 +2317,131 @@ $("histClear").onclick=async()=>{if(!confirm("Clear all run history?"))return;
   await api().clear_history();loadHistory();toast("History cleared");};
 
 /* ── debug ── */
+
+
+
+/* -- settings rail: sections + live status --------------------------------- */
+const SET_SECS=[["Your bot",[["bot","🤖 Bot connection"],["data","🩺 Game data"]]],
+                ["This app",[["out","💾 Output & backups"],["app","⚙️ App & maintenance"]]],
+                ["Advanced",[["filter","🎮 In-game filter"]]]];
+let setSel="bot";
+const _setStatus={};                 // key -> {mark, color, title}
+function renderSetNav(){
+  const s=$("setSide");s.innerHTML="";
+  for(const [grp,items] of SET_SECS){
+    const l=document.createElement("div");l.className="csgrp";l.textContent=grp;s.appendChild(l);
+    for(const [key,label] of items){
+      const b=document.createElement("button");
+      b.className="cside-btn"+(setSel===key?" on":"");
+      b.dataset.s=key;
+      const st=_setStatus[key];
+      b.innerHTML=`<span>${esc(label)}</span>`+
+        (st?`<span class="st" style="color:${st.color}" title="${esc(st.title||"")}">${st.mark}</span>`:"");
+      b.onclick=()=>{setSel=key;renderSetNav();};
+      s.appendChild(b);
+    }
+  }
+  document.querySelectorAll("#p-set .set-sec").forEach(x=>x.classList.toggle("on",x.dataset.s===setSel));
+}
+function setStatus(key,mark,color,title){_setStatus[key]={mark,color,title};renderSetNav();}
+
+/* -- bot connection: verified against the bot's own pickit.ini -------------- */
+async function loadBotConn(){
+  let c; try{ c = await api().bot_connection(); }catch(_){ return; }
+  const TONE = {ok:["✓","var(--ok)"], mismatch:["⚠","var(--err)"], unset:["○","var(--warn)"],
+                nocopy:["⚠","var(--warn)"], noini:["?","var(--warn)"], badfolder:["⚠","var(--err)"]};
+  const HEAD = {ok:"Connected — the bot is reading your pickit",
+                mismatch:"The bot is IGNORING everything you generate",
+                unset:"Not connected yet",
+                nocopy:"Almost — auto-copy is off",
+                noini:"Can't verify the bot's config",
+                badfolder:"That bot folder is gone"};
+  const [ic,col] = TONE[c.state] || ["⋯","var(--dim)"];
+  $("botIcon").textContent = ic;
+  $("botIcon").style.color = col;
+  $("botState").textContent = HEAD[c.state] || "Unknown";
+  $("botState").style.color = col;
+  $("botDetail").textContent = c.detail || "";
+  $("botStatus").style.borderColor = (c.state==="ok") ? "color-mix(in srgb,var(--ok) 45%,transparent)"
+                                   : (c.state==="mismatch"||c.state==="badfolder") ? "var(--err)"
+                                   : "var(--border)";
+  $("botProfileLbl").textContent = c.profile ? (c.profile + ".ipd") : "—";
+  $("botFix").style.display = (c.state==="mismatch" && c.ini) ? "" : "none";
+  setStatus("bot", c.state==="ok"?"✓":"⚠",
+            c.state==="ok"?"var(--ok)":(c.state==="mismatch"||c.state==="badfolder")?"var(--err)":"var(--warn)",
+            c.detail||"");
+}
+$("botFix").onclick=async()=>{
+  const b=$("botFix"); b.disabled=true; b.textContent="Fixing…";
+  const r=await api().fix_bot_profile();
+  b.disabled=false; b.textContent="Fix it for me";
+  if(r&&r.ok){ toast("Bot now reads "+r.profile+".ipd — regenerate to deploy"); }
+  else { toast((r&&r.error)||"Couldn't change the bot's config"); }
+  loadBotConn();
+};
+
+/* -- debug: surface health before tools ------------------------------------ */
+function _tile(id, val, label, tone){
+  $(id).textContent = val;
+  $(id).style.color = tone==="err" ? "var(--err)" : tone==="warn" ? "var(--warn)"
+                    : tone==="ok"  ? "var(--ok)"  : "var(--gold)";
+  if(label) $(id.replace(/N$/,"L")).textContent = label;
+}
+let _dbgErrRaw = [];
+async function loadDebug(){
+  let d; try{ d = await api().debug_info(); }catch(_){ return; }
+  const e = d.errors || {total:0, by_type:[], recent:[]};
+  _dbgErrRaw = e.recent || [];
+
+  // errors — the tile that would have caught the config corruption on day one
+  const last = (e.by_type[0]||{}).last || "";
+  const fresh = last && (Date.now() - Date.parse(last.replace(" ","T"))) < 36e5;  // <1h
+  _tile("dbErrN", e.total, e.total ? (fresh ? "errors — some in the last hour" : "errors logged (none recent)")
+                                   : "errors — clean", e.total ? (fresh?"err":"warn") : "ok");
+
+  const c = d.cache || {};
+  _tile("dbCacheN", c.count||0, "cached payloads", "gold");
+
+  // poe.ninja: don't hit the network just to open a tab — show the last result
+  if(window._dbgApi) _tile("dbApiN", window._dbgApi.ok+"/"+window._dbgApi.n,
+      window._dbgApi.ok===window._dbgApi.n ? "poe.ninja — all answering" : "poe.ninja — some failed",
+      window._dbgApi.ok===window._dbgApi.n ? "ok" : "err");
+  else _tile("dbApiN","—","poe.ninja — press Test","gold");
+
+  // game data health rides along with the check that already ran at launch
+  let g; try{ g = await api().game_data_result(); }catch(_){ g = null; }
+  if(!g || g.running || g.idle) _tile("dbDataN","…","game data — checking","gold");
+  else if(g.error)             _tile("dbDataN","?","game data — couldn't check","warn");
+  else if(g.critical)          _tile("dbDataN", g.critical, "rules may match nothing", "err");
+  else                         _tile("dbDataN","✓","game data — in sync","ok");
+
+  // error digest
+  const card = $("dbErrCard");
+  if(!e.total){ card.style.display="none"; return; }
+  card.style.display = "";
+  card.style.borderColor = fresh ? "var(--err)" : "var(--warn)";
+  $("dbErrHead").textContent = (fresh?"⚠ ":"") + e.total + " error" + (e.total>1?"s":"") + " in the log";
+  $("dbErrHint").textContent = fresh
+    ? "Some happened in the last hour — these are live. Copy the diagnostics and send them over."
+    : "None recent. These are almost certainly historical (an older version, or a session that has since been fixed) — worth a glance, not an alarm.";
+  $("dbErrList").innerHTML = e.by_type.map(t=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
+      <span class="pill" style="min-width:52px;text-align:center;font-family:Consolas,ui-monospace,monospace">${t.count}</span>
+      <b style="flex:1;font-size:13px">${esc(t.kind)}</b>
+      <span class="hint" style="margin:0">last: ${esc(t.last||"—")}</span>
+    </div>`).join("");
+}
+$("dbgRefresh").onclick=()=>{loadDebug();toast("Health refreshed");};
+$("dbErrShow").onclick=()=>{dbg(_dbgErrRaw.length?_dbgErrRaw.join("\n"):"No error lines in the log.");};
+
 function dbg(t){const o=$("dbgOut");o.textContent=t;o.scrollTop=0;
   o.closest(".page").scrollTop=0;}
 $("dbgApi").onclick=async()=>{dbg("Testing all endpoints…");
   const r=await api().api_test($("league").value);
   const ok=r.filter(x=>x.ok).length;
+  window._dbgApi={ok:ok,n:r.length};   // feeds the poe.ninja health tile
+  _tile("dbApiN", ok+"/"+r.length, ok===r.length?"poe.ninja — all answering":"poe.ninja — some failed",
+        ok===r.length?"ok":"err");
   const o=$("dbgOut");
   o.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <span class="pill ${ok===r.length?"on":""}" style="font-size:13px;padding:4px 14px">${ok===r.length?"✓ All good":"⚠ "+(r.length-ok)+" failed"}</span>
@@ -2519,12 +2686,13 @@ function sw(id,key,cur){const el=$(id);el.classList.toggle("on",cur);
     el.classList.toggle("on",on);await api().set_setting(key,on);toast("Saved");};}
 $("botBrowse").onclick=async()=>{const r=await api().browse_folder();
   if(r.path){$("botFolderLbl").textContent=r.path;await api().set_setting("bot_folder",r.path);
-    setupNudge(r.path);toast("Saved");}};
+    setupNudge(r.path);loadBotConn();toast("Saved");}};
 $("baseQ").onchange=()=>{const v=_clamp($("baseQ"),21,30,25);
   $("baseQ").value=v;$("bqGen").value=v;updTracks();api().set_setting("base_quality",v);toast("Saved");};
 $("baseL").onchange=()=>{const v=_clamp($("baseL"),80,82,82);
   $("baseL").value=v;$("blGen").value=v;updTracks();api().set_setting("base_min_level",v);toast("Saved");};
-$("outBase").onchange=()=>{api().set_setting("output_base",$("outBase").value.trim()||"poe2_pickit");toast("Saved");};
+$("outBase").onchange=async()=>{await api().set_setting("output_base",$("outBase").value.trim()||"poe2_pickit");
+  loadBotConn();toast("Saved");};   // renaming the output can orphan the bot
 $("bakCount").onchange=()=>{api().set_setting("backup_count",parseInt($("bakCount").value)||0);toast("Saved");};
 /* backup restore picker (Settings) */
 async function loadBackups(){
@@ -2697,6 +2865,8 @@ function gdRender(r){
       <div class="hint" style="margin-top:3px">${esc(f.detail)}</div>
       <div class="hint" style="margin-top:2px;color:var(--dim)">Used by: ${esc((f.where||[]).join(", "))}</div>
     </div>`;}).join("")||`<div class="hint" style="margin-top:8px">Nothing to fix.</div>`;
+  setStatus("data", crit?String(crit):"✓", crit?"var(--err)":"var(--ok)",
+            crit?(crit+" rule(s) may match nothing"):"In sync with the current patch");
   if(crit){
     ban.textContent=`\u26a0 Game data changed: ${crit} of your rules look for stats or bases `+
       `that no longer exist, so the bot picks up nothing for them. See Settings \u2192 Game data health.`;

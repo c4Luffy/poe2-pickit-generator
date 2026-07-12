@@ -6,6 +6,44 @@ download lives.
 
 ---
 
+## [v4.14.0] — 2026-07-12 — Settings and Debug redesigned: the app checks, instead of implying
+
+Both tabs used to *imply* things were fine. Now they go and look.
+
+### Settings — verifies the bot connection instead of assuming it
+- **The bot-connection card now reads the bot's own `pickit.ini`** and tells you
+  the truth:
+  - ✓ *"Connected — your bot reads poe2_pickit.ipd, and every Generate deploys
+    it there."*
+  - ⚠ *"The bot is IGNORING everything you generate — it's reading
+    'poe-ninja-20260711-131901.ipd', but you generate 'poe2_pickit.ipd'."*
+
+  The old card showed a folder and a toggle and let you believe you were done.
+  It had no idea whether the bot would actually read your file. **It didn't for
+  the owner — for a day.**
+- **A "Fix it for me" button** rewrites the bot's `active_profile` (backing the
+  file up first) when they don't match.
+- **Renaming your output file re-checks immediately** — that's the same trap by
+  another door, and the app now catches it the second you do it.
+- **Redesigned around the app's own sidebar rail** (as used by Craft / Fracture /
+  Magic & Rare): sections instead of a wall of cards, and **the rail carries live
+  status** — a broken bot connection is visible the instant you open Settings,
+  without clicking anything. Advanced settings (the in-game loot filter, which
+  bot users are told to leave off) get their own group instead of prime position.
+
+### Debug — health first, tools second
+- **Four tiles populate on open**: errors logged, poe.ninja, cached payloads,
+  game data. The errors tile is **coloured by recency** — red if any happened in
+  the last hour (live), amber if they're historical, green if clean.
+- **Errors are counted and grouped**, not dumped as raw text:
+  `43 save_config (last 16:14) · 41 load_config (last 16:31)`, with a plain-words
+  verdict on whether to worry.
+
+  This is not academic: **318 config errors sat in that log for a day** and were
+  only found by grepping the file, because nothing counted them. This tab would
+  have opened with a red tile.
+- All ten tools unchanged.
+
 ## [v4.13.0] — 2026-07-12 — In-app setup guide (and the trap it exists to prevent)
 
 New **📖 Setup guide** tab. Four steps to go from a fresh download to a bot that's
@@ -580,6 +618,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.14.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.14.0
 [v4.13.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.13.0
 [v4.12.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.4
 [v4.12.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.12.3

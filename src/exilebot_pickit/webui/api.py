@@ -11,6 +11,7 @@ Everything JS-callable returns plain JSON-able dicts/lists. Long work
 """
 
 import os
+import re
 import shutil
 import threading
 import time
@@ -18,7 +19,7 @@ import time
 from exilebot_pickit import generator as gen
 from exilebot_pickit.generators import assembly as asm
 from exilebot_pickit.ui.config import (
-    OUTPUT_DIR, PRICE_CACHE_DIR, load_config, log_exc, save_config,
+    OUTPUT_DIR, PRICE_CACHE_DIR, load_config, log_exc, log_info, save_config,
     _default_poe2_filter_dir as _default_dir,
 )
 from exilebot_pickit.version import VERSION
@@ -804,18 +805,45 @@ class AppApi:
             return {"error": "could not open folder", "dir": folder}
 
     def debug_info(self):
+        """Debug payload — including an ERROR DIGEST, not just a log dump.
+
+        The Debug tab used to show the log only as raw text you had to read. It
+        hid a real problem for a whole day: 318 load_config failures and 107
+        save_config failures were sitting in there, every one of them silently
+        dropping the app onto default settings, and nobody noticed because
+        nothing counted them. Errors are now summarised and surfaced.
+        """
+        import collections
+        import re
         from exilebot_pickit.ui.config import LOG_PATH, CONFIG_PATH
         ci = gen.cache_info()
-        tail = []
+
+        tail, errors, by_type = [], [], []
         try:
             with open(LOG_PATH, encoding="utf-8", errors="replace") as f:
-                tail = f.read().splitlines()[-80:]
+                lines = f.read().splitlines()
+            tail = lines[-80:]
+            counts, last_seen = collections.Counter(), {}
+            for ln in lines:
+                m = re.search(r"(ERROR|CRITICAL)\s+EXC\s+(\S+)", ln)
+                if not m:
+                    continue
+                kind = m.group(2)
+                counts[kind] += 1
+                last_seen[kind] = ln[:19]           # timestamp prefix
+            by_type = [{"kind": k, "count": n, "last": last_seen.get(k, "")}
+                       for k, n in counts.most_common()]
+            errors = [ln for ln in lines if " ERROR " in ln or " CRITICAL " in ln][-25:]
         except OSError:
             pass
+
         return {"cache": ci, "log": tail, "config_path": CONFIG_PATH,
                 "cache_dir": PRICE_CACHE_DIR,
                 "unique_cats": len(gen.UNIQUE_CATEGORIES),
-                "all_cats": len(gen.ALL_CATEGORIES)}
+                "all_cats": len(gen.ALL_CATEGORIES),
+                "log_path": LOG_PATH,
+                "errors": {"total": sum(e["count"] for e in by_type),
+                           "by_type": by_type, "recent": errors}}
 
     def api_test(self, league):
         out = []
@@ -1375,6 +1403,95 @@ class AppApi:
                 return f.read().splitlines()
         except OSError:
             return []
+
+    # ── Bot connection ────────────────────────────────────────────────────────
+    # Setting the folder and turning on auto-copy is NOT enough, and the old
+    # Settings card implied it was. Exiled Bot loads only the single .ipd named
+    # by `active_profile` in its own pickit.ini; if that doesn't match our output
+    # name, the copy succeeds, the file lands, and the bot keeps reading an old
+    # pickit — silently. The owner's bot was doing exactly this for a day. So
+    # don't claim "connected": go and read the bot's config, and check.
+
+    def _bot_ini_path(self):
+        """The bot's pickit.ini — it sits beside the Pickit folder we copy into."""
+        folder = (self.cfg.get("bot_folder") or "").strip()
+        if not folder:
+            return ""
+        return os.path.join(os.path.dirname(os.path.normpath(folder)), "pickit.ini")
+
+    def bot_connection(self):
+        """Will the bot actually read what we generate? Verified, not assumed."""
+        folder = (self.cfg.get("bot_folder") or "").strip()
+        out = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
+        r = {"folder": folder, "output": out, "profile": "", "ini": "",
+             "auto_copy": bool(self.cfg.get("auto_copy")), "state": "", "detail": ""}
+
+        if not folder:
+            r["state"] = "unset"
+            r["detail"] = ("No bot folder set. Generating writes a pickit, but nothing "
+                           "reaches Exiled Bot until you point this at its Pickit folder.")
+            return r
+        if not os.path.isdir(folder):
+            r["state"] = "badfolder"
+            r["detail"] = "That folder doesn't exist any more. Pick it again."
+            return r
+
+        ini = self._bot_ini_path()
+        r["ini"] = ini
+        if not os.path.isfile(ini):
+            r["state"] = "noini"
+            r["detail"] = ("Couldn't find the bot's pickit.ini next to that folder, so I "
+                           "can't confirm which file the bot loads. Check it by hand: "
+                           f"active_profile must be \"{out}\".")
+            return r
+
+        try:
+            with open(ini, encoding="utf-8", errors="replace") as f:
+                m = re.search(r"(?mi)^\s*active_profile\s*=\s*(.+?)\s*$", f.read())
+            r["profile"] = m.group(1).strip() if m else ""
+        except OSError:
+            r["state"] = "noini"
+            r["detail"] = "Couldn't read the bot's pickit.ini."
+            return r
+
+        if not r["profile"]:
+            r["state"] = "mismatch"
+            r["detail"] = ("The bot's pickit.ini has no active_profile line, so it won't "
+                           f"load your pickit. It needs: active_profile={out}")
+        elif r["profile"] != out:
+            r["state"] = "mismatch"
+            r["detail"] = (f"Your bot is reading \"{r['profile']}.ipd\" — but you generate "
+                           f"\"{out}.ipd\". Everything you generate is being ignored.")
+        elif not r["auto_copy"]:
+            r["state"] = "nocopy"
+            r["detail"] = ("Names match, but Auto-copy is off — the pickit won't be "
+                           "deployed to the bot on its own.")
+        else:
+            r["state"] = "ok"
+            r["detail"] = f"Your bot reads {out}.ipd, and every Generate deploys it there."
+        return r
+
+    def fix_bot_profile(self):
+        """Point the bot's active_profile at our output file. Backs the ini up first."""
+        ini = self._bot_ini_path()
+        out = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
+        if not ini or not os.path.isfile(ini):
+            return {"ok": False, "error": "Couldn't find the bot's pickit.ini."}
+        try:
+            with open(ini, encoding="utf-8", errors="replace") as f:
+                src = f.read()
+            bak = ini + ".bak"
+            if not os.path.exists(bak):
+                shutil.copyfile(ini, bak)          # never overwrite an existing backup
+            new, n = re.subn(r"(?mi)^(\s*active_profile\s*=\s*).*$", r"\g<1>" + out, src)
+            if n == 0:                             # no line at all — add one
+                new = src.rstrip() + f"\n\n[profile]\nactive_profile={out}\n"
+            gen.write_text_atomic(ini, new)
+            log_info(f"bot pickit.ini active_profile -> {out}")
+            return {"ok": True, "profile": out, "backup": bak}
+        except Exception as e:
+            log_exc("fix_bot_profile")
+            return {"ok": False, "error": str(e)}
 
     def preview_meta(self):
         """How fresh is what Preview is showing?
