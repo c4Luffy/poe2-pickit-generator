@@ -40,9 +40,10 @@ press **⚡ Generate**, point Exiled Bot 2 at the `.ipd`. Live prices in, a comp
 > The Generate tab now opens with a **Quick start** row: five presets — 🧲 **Vacuum**,
 > ⚖️ **Balanced**, 💎 **Strict**, 👑 **Chase**, 💰 **Currency only** — each with a
 > strictness meter and a plain explanation of *what it picks up and what it costs
-> you*. One click sets every floor and switch. Also new: **three themes** (🏺 Relic,
-> 🧪 Venom, 🔮 Void), top picks now **lead with
-> Divine**, and the sidebar lost its clutter. Recent releases also made the app
+> you*. One click sets every floor and switch. Also new: **nine themes** with a named
+> picker that shows each one's colour and what it is — 🏺 Relic, 🧪 Venom, 🔮 Void,
+> 🦴 Ossuary, 🌸 Delirium, 🌑 Umbral, 🌊 Abyss, 🌗 Twilight, ☢ Blight — top picks now
+> **lead with Divine**, and the sidebar lost its clutter. Recent releases also made the app
 > **find your bot folder automatically** (v4.17.0), added **per-slot rare-gear
 > switches** (v4.15.0), a **bot-connection check** with a **Fix it** button
 > (v4.14.0), and an in-app **Setup guide** (v4.13.0).

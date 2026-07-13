@@ -6,6 +6,41 @@ download lives.
 
 ---
 
+## [v4.19.0] — 2026-07-13 — Nine themes, and a theme picker that tells you what they are
+
+### Added — six new themes
+The switcher used to be a row of emoji, which told you nothing — nobody can tell what
+🌑 or 🌊 means. It's now a **named picker** at the bottom of the sidebar, under a
+**THEME** label. It shows the name of the theme you're on plus a dot in its accent
+colour, and opens into a list where every theme shows its **colour, name, a one-line
+description, and a ✓ on the active one**.
+
+| Theme | | |
+|---|---|---|
+| 🏺 **Relic** | gold & brass | the default |
+| 🧪 **Venom** | emerald | matches the mascot |
+| 🔮 **Void** | arcane violet | |
+| 🦴 **Ossuary** | bone & ash | **no hue at all** — the warm monochrome |
+| 🌸 **Delirium** | pale rose fog | an accent that whispers |
+| 🌑 **Umbral** | silver on true black | the cold monochrome |
+| 🌊 **Abyss** | bioluminescent teal | a glow, not a colour |
+| 🌗 **Twilight** | peach on navy | the only warm accent on a cool ground |
+| ☢ **Blight** | toxic chartreuse | the sickly green, vs Venom's clean one |
+
+These aren't nine tints of the same idea — Ossuary and Umbral are the *same* colourless
+concept done warm and cold, and Twilight is the only one that puts a warm accent on a
+cool ground.
+
+### Fixed — theme switching stuttered the whole app
+Switching a theme applied a transition to **every element on the page** (`html.theming *`)
+for 350ms. With nine themes you'll be flicking through them, and that rule made the whole
+UI stutter each time. Removed — switches are now instant.
+
+### Removed
+**Ember**, **Sanguine** and **Vellum** (a light theme) were tried and cut. If you're
+saved on any removed theme, the app puts you back on **Relic** rather than leaving you
+on a theme with no colours.
+
 ## [v4.18.3] — 2026-07-13 — Ember theme dropped
 
 The molten-orange **Ember** theme didn't look good next to the others and has been
@@ -784,6 +819,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.19.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.19.0
 [v4.18.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.3
 [v4.18.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.2
 [v4.18.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.1

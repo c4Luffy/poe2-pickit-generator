@@ -86,6 +86,43 @@
     --gold:#a678e0; --gold-dim:#573a80; --gold-br:#c6a6f0; --text:#e8e2f2;
     --dim:#9d95ad; --ok:#829d78; --err:#b85c4c; --warn:#a678e0; --steel:#c99a4a;
   }
+  html[data-theme="ossuary"]{         /* Ossuary — bone & ash, no hue at all */
+    --bg:#0c0b0a; --bg2:#161412; --bg3:#1e1b18; --border:#3a352e;
+    --gold:#e0d4bc; --gold-dim:#8a8070; --gold-br:#f5ecd9; --text:#e6e0d6;
+    --dim:#9a9184; --ok:#829d78; --err:#b85c4c; --warn:#e0d4bc; --steel:#c99a4a;
+  }
+  html[data-theme="delirium"]{        /* Delirium — pale rose fog on cold slate */
+    --bg:#0a0a0c; --bg2:#141419; --bg3:#1c1c23; --border:#38343f;
+    --gold:#e4b8d0; --gold-dim:#8a6377; --gold-br:#f7d9e6; --text:#ece7ee;
+    --dim:#a29aa8; --ok:#829d78; --err:#b85c4c; --warn:#e4b8d0; --steel:#c99a4a;
+  }
+  html[data-theme="umbral"]{          /* Umbral — cold silver on true black */
+    --bg:#000000; --bg2:#0b0b0d; --bg3:#141417; --border:#2c2c31;
+    --gold:#c8ccd4; --gold-dim:#6e727a; --gold-br:#eef1f5; --text:#e4e6ea;
+    --dim:#8b8f97; --ok:#829d78; --err:#b85c4c; --warn:#c8ccd4; --steel:#c99a4a;
+  }
+  html[data-theme="abyss"]{           /* Abyss — bioluminescent teal in ink */
+    --bg:#04080a; --bg2:#0b1417; --bg3:#111d21; --border:#26383d;
+    --gold:#3fd6c4; --gold-dim:#1f6b63; --gold-br:#7ef0e2; --text:#dcecec;
+    --dim:#87a5a3; --ok:#829d78; --err:#b85c4c; --warn:#3fd6c4; --steel:#c99a4a;
+  }
+  html[data-theme="twilight"]{        /* Twilight — warm peach on a cool navy ground */
+    --bg:#080a10; --bg2:#111520; --bg3:#181d2b; --border:#2f3648;
+    --gold:#f0a878; --gold-dim:#8a5a3e; --gold-br:#ffc9a3; --text:#e6e8f0;
+    --dim:#959ab0; --ok:#829d78; --err:#b85c4c; --warn:#f0a878; --steel:#9bb091;
+  }
+  html[data-theme="blight"]{          /* Blight — toxic acid chartreuse on olive */
+    --bg:#0a0b06; --bg2:#141609; --bg3:#1c1f0e; --border:#383d1c;
+    --gold:#c5d92f; --gold-dim:#6e7a1a; --gold-br:#e2f25c; --text:#e4e8d2;
+    --dim:#9aa085; --ok:#829d78; --err:#c0472e; --warn:#c5d92f; --steel:#c99a4a;
+  }
+  html[data-theme="blight"] .primary{color:#12160a}
+  /* these accents are all pale/bright -> the primary button needs dark ink, not white */
+  html[data-theme="ossuary"] .primary{color:#1a1713}
+  html[data-theme="delirium"] .primary{color:#1a1016}
+  html[data-theme="umbral"] .primary{color:#0d0d10}
+  html[data-theme="abyss"] .primary{color:#03201c}
+  html[data-theme="twilight"] .primary{color:#1a0f06}
   html[data-theme="relic"] .primary{color:#1b1409}
   /* Relic = the Exile's Workbench brass palette (same as :root default) */
   html[data-theme="relic"]{
@@ -95,8 +132,6 @@
   }
 
   /* smooth cross-fade when switching themes (applied only during the switch) */
-  html.theming *{transition:background-color .35s ease,color .35s ease,border-color .35s ease,box-shadow .35s ease,fill .35s ease!important}
-  @media (prefers-reduced-motion:reduce){html.theming *{transition:none!important}}
   /* tactile press feedback */
   .primary:active,.ghost:active,.nav-btn:active,.seg button:active,.chip:active,.rowbtn:active{transform:translateY(1px) scale(.985)}
   *{box-sizing:border-box;margin:0;padding:0}
@@ -148,8 +183,32 @@
   .verline{display:block;font:10.5px/1.4 Consolas,ui-monospace,monospace;color:var(--dim);margin-top:1px}
   .nav-btn .badge{margin-left:auto;font:10.5px/1 Consolas,ui-monospace,monospace;
     color:color-mix(in srgb,var(--dim) 80%,transparent);font-variant-numeric:tabular-nums}
-  .seg{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:3px;gap:3px}
-  .seg button{flex:1;border:0;background:transparent;color:var(--dim);padding:5px 0;border-radius:6px;
+  /* -- theme picker: name + accent swatch, so themes aren't cryptic emoji -- */
+  .tpick{position:relative}
+  .tpick-lbl{display:block;margin:0 0 5px 2px;font-size:10px;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  .tpick-btn{display:flex;align-items:center;gap:9px;width:100%;padding:9px 11px;
+    background:var(--bg3);border:1px solid var(--border);border-radius:9px;
+    color:var(--text);font:600 12.5px inherit;cursor:pointer;text-align:left}
+  .tpick-btn:hover{border-color:var(--gold-dim)}
+  .tpick-btn b{flex:1;font-weight:600}
+  .tpick-car{color:var(--dim);font-size:10px;transition:transform .15s}
+  .tpick.open .tpick-car{transform:rotate(180deg)}
+  .tsw{width:13px;height:13px;border-radius:4px;flex:none;
+    box-shadow:0 0 0 1px color-mix(in srgb,var(--text) 22%,transparent)}
+  .tpick-menu{display:none;position:absolute;bottom:calc(100% + 6px);left:0;right:0;
+    background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:5px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:60;max-height:340px;overflow-y:auto}
+  .tpick.open .tpick-menu{display:block}
+  .tpick-row{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;border:0;
+    background:transparent;border-radius:7px;color:var(--text);cursor:pointer;text-align:left;font:inherit}
+  .tpick-row:hover{background:var(--bg3)}
+  .tpick-row.on{background:color-mix(in srgb,var(--gold) 13%,transparent)}
+  .tpick-row .n{flex:1;font-size:12.5px;font-weight:600}
+  .tpick-row .d{font-size:10.5px;color:var(--dim);font-weight:400;display:block;margin-top:1px}
+  .tpick-row .tick{color:var(--gold);font-size:11px}
+  .seg{display:flex;flex-wrap:wrap;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:3px;gap:3px}
+  .seg button{flex:1 0 18%;border:0;background:transparent;color:var(--dim);padding:5px 0;border-radius:6px;
     cursor:pointer;font-size:14px;line-height:1}
   .seg button:hover{color:var(--text)}
   .seg button.on{background:var(--bg2);color:var(--gold);
@@ -639,17 +698,14 @@
   </div>
   </div>
   <div class="nav-right">
-    <select id="themeSel" style="display:none" title="Theme">
-      
-      <option value="relic">🏺 Relic</option>
-      <option value="venom">🧪 Venom</option>
-      <option value="void">🔮 Void</option>
-      
-    </select>
-    <div class="seg" id="themeSeg">
-      <button data-t="relic" class="on" title="Relic">🏺</button>
-      <button data-t="venom" title="Venom">🧪</button>
-      <button data-t="void" title="Void">🔮</button>
+    <div class="tpick" id="tpick">
+      <span class="tpick-lbl">Theme</span>
+      <button class="tpick-btn" id="tpickBtn" title="Theme">
+        <i class="tsw" id="tpickSw"></i>
+        <b id="tpickName">Relic</b>
+        <span class="tpick-car">▾</span>
+      </button>
+      <div class="tpick-menu" id="tpickMenu"></div>
     </div>
     <div style="display:flex;gap:8px">
       <button class="ghost mini" id="lnkDiscord" style="flex:1" title="Join the Discord">💬 Discord</button>
@@ -1350,15 +1406,42 @@ document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>openPage(b.datase
 document.querySelectorAll(".nav-grp").forEach(gp=>gp.onclick=()=>openPage(_lastTab[gp.dataset.g]));
 openPage("gen");
 
-function setTheme(t){if(["gold","ember","ocean","nebula","forge"].includes(t))t="relic";
-  const de=document.documentElement;de.classList.add("theming");
-  de.dataset.theme=t;
-  $("themeSel").value=t;
-  document.querySelectorAll("#themeSeg button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+/* -- themes: the picker shows the NAME + accent swatch, not a cryptic emoji -- */
+const THEMES=[
+  {k:"relic",   n:"Relic",    c:"#c99a4a", d:"Gold & brass"},
+  {k:"venom",   n:"Venom",    c:"#6cc24a", d:"Emerald — the mascot"},
+  {k:"void",    n:"Void",     c:"#a678e0", d:"Arcane violet"},
+  {k:"ossuary", n:"Ossuary",  c:"#e0d4bc", d:"Bone & ash — no hue"},
+  {k:"delirium",n:"Delirium", c:"#e4b8d0", d:"Pale rose fog"},
+  {k:"umbral",  n:"Umbral",   c:"#c8ccd4", d:"Silver on true black"},
+  {k:"abyss",   n:"Abyss",    c:"#3fd6c4", d:"Bioluminescent teal"},
+  {k:"twilight",n:"Twilight", c:"#f0a878", d:"Peach on navy"},
+  {k:"blight",  n:"Blight",   c:"#c5d92f", d:"Toxic chartreuse"},
+];
+// themes that no longer exist -> fall back to Relic instead of a colourless app
+const LEGACY_THEMES=["gold","ember","ocean","nebula","forge","sanguine","vellum"];
+function setTheme(t){
+  if(LEGACY_THEMES.includes(t)||!THEMES.some(x=>x.k===t))t="relic";
+  document.documentElement.dataset.theme=t;   // instant: no whole-app transition
+  syncTheme(t);
   api().set_setting("theme",t);
-  clearTimeout(window._themeT);window._themeT=setTimeout(()=>de.classList.remove("theming"),420);}
-$("themeSel").onchange=()=>setTheme($("themeSel").value);
-document.querySelectorAll("#themeSeg button").forEach(b=>b.onclick=()=>setTheme(b.dataset.t));
+  $("tpick").classList.remove("open");}
+function syncTheme(t){
+  const th=THEMES.find(x=>x.k===t)||THEMES[0];
+  $("tpickName").textContent=th.n;
+  $("tpickSw").style.background=th.c;
+  $("tpickMenu").querySelectorAll(".tpick-row").forEach(r=>{
+    const on=r.dataset.t===th.k;
+    r.classList.toggle("on",on);
+    const tk=r.querySelector(".tick");if(tk)tk.textContent=on?"✓":"";});}
+$("tpickMenu").innerHTML=THEMES.map(t=>
+  `<button type="button" class="tpick-row" data-t="${t.k}">`+
+  `<i class="tsw" style="background:${t.c}"></i>`+
+  `<span class="n">${t.n}<span class="d">${t.d}</span></span>`+
+  `<span class="tick"></span></button>`).join("");
+$("tpickMenu").querySelectorAll(".tpick-row").forEach(r=>r.onclick=()=>setTheme(r.dataset.t));
+$("tpickBtn").onclick=e=>{e.stopPropagation();$("tpick").classList.toggle("open");};
+document.addEventListener("click",e=>{if(!e.target.closest("#tpick"))$("tpick").classList.remove("open");});
 $("lnkDiscord").onclick=()=>api().open_url("https://discord.gg/T7DU3Afve6");
 $("lnkSite").onclick=()=>api().open_url("https://exiled-bot.net/");
 
@@ -2865,9 +2948,9 @@ document.querySelectorAll(".page > h1").forEach(h=>{
 // Shared by init, profile-load and reset so their visible switches always
 // match the config that was just applied.
 function applyInfo(i){
-  const th=["relic","venom","void"].includes(i.theme)?i.theme:"relic";
-  document.documentElement.dataset.theme=th;$("themeSel").value=th;
-  document.querySelectorAll("#themeSeg button").forEach(b=>b.classList.toggle("on",b.dataset.t===th));
+  const th=["relic","venom","void","ossuary","delirium","umbral","abyss","twilight",
+            "blight"].includes(i.theme)?i.theme:"relic";
+  document.documentElement.dataset.theme=th;syncTheme(th);
   $("uAmt").value=i.min_unique||0;$("gAmt").value=i.min_gear||0;
   $("outBase").value=i.output_base;
   $("botFolderLbl").textContent=i.bot_folder||"not set";
