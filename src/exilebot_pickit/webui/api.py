@@ -587,6 +587,22 @@ class AppApi:
                 pass
             self._dl_finish({"error": str(e)[:200]})
 
+    @staticmethod
+    def _clean_env():
+        """The environment minus PyInstaller's one-file bookkeeping.
+
+        A frozen exe unpacks to %TEMP%\\_MEIxxxxxx and exports that path (_MEIPASS2 on
+        older PyInstaller, _PYI_* on 6.x). Any process we spawn inherits it. That is
+        fine for explorer.exe — but the update helper relaunches *our own exe*, and a
+        one-file exe that sees those vars assumes it is a child of an already-unpacked
+        parent and skips unpacking. The parent is by then dead and has deleted the
+        folder, so the new copy crashes on startup:
+            FileNotFoundError: ...\\_MEI599002\\base_library.zip
+        Strip them and the new exe unpacks itself properly.
+        """
+        return {k: v for k, v in os.environ.items()
+                if not (k.startswith("_MEIPASS") or k.startswith("_PYI"))}
+
     def install_update(self):
         """Swap the freshly-downloaded exe in for the running one and relaunch.
 
@@ -609,6 +625,16 @@ class AppApi:
         script = (
             "@echo off\r\n"
             "setlocal enabledelayedexpansion\r\n"
+            # A one-file exe unpacks itself to %TEMP%\\_MEIxxxxxx and advertises that
+            # path in _MEIPASS2. Anything we spawn inherits it — so the new exe would
+            # think it is a child of the old one, SKIP unpacking itself, and read from
+            # a folder the dying old process just deleted:
+            #   FileNotFoundError: ...\\_MEI599002\\base_library.zip
+            # Clear them here (and in the env we hand cmd) so the new exe unpacks fresh.
+            'set "_MEIPASS2="\r\n'
+            'set "_PYI_ARCHIVE_FILE="\r\n'
+            'set "_PYI_APPLICATION_HOME_DIR="\r\n'
+            'set "_PYI_PARENT_PROCESS_LEVEL="\r\n'
             ":wait\r\n"
             f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL\r\n'
             "if not errorlevel 1 ( ping -n 2 127.0.0.1 >NUL & goto wait )\r\n"
@@ -630,7 +656,8 @@ class AppApi:
                 f.write(script)
             import subprocess
             subprocess.Popen(["cmd", "/c", bat],
-                             creationflags=0x08000000)  # CREATE_NO_WINDOW
+                             creationflags=0x08000000,   # CREATE_NO_WINDOW
+                             env=self._clean_env())
         except Exception as e:
             return {"error": f"couldn't start the installer: {e}"}
 

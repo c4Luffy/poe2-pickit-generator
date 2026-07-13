@@ -6,6 +6,27 @@ download lives.
 
 ---
 
+## [v4.21.1] — 2026-07-13 — Fixed: "Update" crashed the new copy on launch
+
+A user pressed **Install update** and the app came back with an unhandled exception
+instead of starting:
+
+> `FileNotFoundError: [Errno 2] No such file or directory:`
+> `'C:\Users\...\Temp\_MEI599002\base_library.zip'`
+
+**Our bug, not their machine.** The app ships as a one-file `.exe`, which unpacks
+itself into `%TEMP%\_MEIxxxxxx` at launch and advertises that folder in an environment
+variable. The update helper we spawned **inherited that variable** — so when it
+relaunched the *new* exe, the new copy assumed it was a child of the old one, **skipped
+unpacking itself**, and tried to read from a folder the dying old process had already
+deleted.
+
+The helper now clears those variables, so the new copy unpacks itself properly.
+
+**If this hit you:** the swap itself worked — your exe is already the new version.
+Just **double-click it again** and it will start normally. (A `.bak` of the previous
+version sits next to it either way.)
+
 ## [v4.21.0] — 2026-07-13 — Every theme gets its own voice, and Item Check grows up
 
 ### Themes are no longer just a colour swap
@@ -905,6 +926,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.21.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.1
 [v4.21.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.0
 [v4.20.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.20.0
 [v4.19.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.19.1

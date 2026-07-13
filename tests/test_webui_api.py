@@ -2,6 +2,7 @@
 
 import os
 import re
+import threading
 
 import pytest
 
@@ -372,3 +373,54 @@ def test_example_unique_is_not_always_the_same_one(api):
     """It used to hand back the single priciest unique every time."""
     names = {api.example_item("L")["name"] for _ in range(80)}
     assert {"Big Sword", "Cheap Stick"} <= names, names
+
+
+# ── Self-update (the exe swap) ────────────────────────────────────────────────
+
+def test_update_helper_does_not_leak_pyinstaller_env_to_the_new_exe(api, tmp_path, monkeypatch):
+    r"""A one-file exe unpacks to %TEMP%\_MEIxxxxxx and exports that path. If the update
+    helper inherits it, the NEW exe assumes it is a child of the old one, skips
+    unpacking, and reads from a folder the dying old process already deleted:
+        FileNotFoundError: ...\_MEI599002\base_library.zip
+    A real user hit exactly that. Both the spawned env and the .bat must clear it."""
+    import subprocess
+    import sys as _sys
+
+    new_exe = tmp_path / "new.exe"
+    new_exe.write_bytes(b"MZ")
+    api._dl = {"result": {"ok": True, "path": str(new_exe)}}
+    monkeypatch.setattr(_sys, "frozen", True, raising=False)
+    monkeypatch.setattr(_sys, "executable", str(tmp_path / "cur.exe"), raising=False)
+    monkeypatch.setenv("_MEIPASS2", r"C:\Temp\_MEI599002")
+    monkeypatch.setenv("_PYI_APPLICATION_HOME_DIR", r"C:\Temp\_MEI599002")
+
+    seen = {}
+
+    def fake_popen(cmd, **kw):
+        seen["env"] = kw.get("env")
+        seen["bat"] = cmd[-1]
+        return object()
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(threading, "Thread", lambda *a, **k: type(
+        "T", (), {"start": lambda self: None})())
+
+    assert api.install_update().get("ok"), "installer refused to start"
+
+    env = seen["env"]
+    assert env is not None, "Popen inherited the whole environment"
+    leaked = [k for k in env if k.startswith(("_MEIPASS", "_PYI"))]
+    assert not leaked, f"PyInstaller vars leaked to the update helper: {leaked}"
+
+    script = open(seen["bat"], encoding="ascii").read()
+    for var in ("_MEIPASS2", "_PYI_ARCHIVE_FILE",
+                "_PYI_APPLICATION_HOME_DIR", "_PYI_PARENT_PROCESS_LEVEL"):
+        assert f'set "{var}="' in script, f"{var} not cleared inside the .bat"
+
+
+def test_clean_env_keeps_everything_else(monkeypatch):
+    monkeypatch.setenv("_MEIPASS2", "x")
+    monkeypatch.setenv("PATH", "keepme")
+    env = webapi.AppApi._clean_env()
+    assert "_MEIPASS2" not in env
+    assert env.get("PATH") == "keepme"
