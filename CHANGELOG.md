@@ -6,6 +6,21 @@ download lives.
 
 ---
 
+## [v4.22.1] — 2026-07-13 — The floor "reset itself" to a huge number
+
+Set the unique floor to **Chaos 1**, restart, and it came back as **60.57176 EXALT**,
+spilling out of the box.
+
+**Your floor was never wrong.** Floors are stored in exalt, and 1 Chaos really is
+~60.57 ex — the bot was picking up exactly what you asked for. What broke was the
+*display*: the app saved the number but forgot the **unit**, so it re-showed your chaos
+floor as raw, unrounded exalt. It looked like the setting had been thrown away.
+
+The unit is now saved alongside the floor, and the value is rounded. Set **Chaos 1**,
+and tomorrow it still says **Chaos 1**.
+
+(This release also carries v4.22.0, whose build failed to publish.)
+
 ## [v4.22.0] — 2026-07-13 — Minimize to tray is gone
 
 It broke self-update. With tray mode on, closing the window didn't quit the app — it
@@ -968,6 +983,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.22.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.22.1
 [v4.22.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.22.0
 [v4.21.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.3
 [v4.21.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.2

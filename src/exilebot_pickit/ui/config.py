@@ -68,6 +68,10 @@ DEFAULT_CONFIG = {
     "min_exalt": 0.0,
     "min_exalt_gear": 0.0,
     "min_exalt_unique": 0.0,
+    # floors are always stored in EXALT; these are just the unit each one is
+    # displayed in, so "Chaos 1" doesn't come back as "60.57176 Exalt"
+    "floor_unit_unique": "Exalt",
+    "floor_unit_gear": "Exalt",
     "output_base": "poe2_pickit",
     "bot_folder": "",
     "auto_copy": False,

@@ -1540,9 +1540,32 @@ const gEx=()=>subCalc("gAmt","gUnit","gSub","everything");
 let _floorT=null;
 function _saveFloors(){clearTimeout(_floorT);
   _floorT=setTimeout(()=>{api().set_setting("min_exalt_unique",uEx());
-    api().set_setting("min_exalt_gear",gEx());},400);}
+    api().set_setting("min_exalt_gear",gEx());
+    // Remember the unit too. The floor itself is stored in exalt (correct), but with
+    // the unit forgotten, "Chaos 1" reopened as "60.57176 Exalt" — the same floor,
+    // looking for all the world like the setting had been thrown away.
+    api().set_setting("floor_unit_unique",$("uUnit").value);
+    api().set_setting("floor_unit_gear",$("gUnit").value);},400);}
 ["uAmt","uUnit"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();_presetOff();}));
 ["gAmt","gUnit"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();_presetOff();}));
+/* Show an exalt floor in the unit the user picked. Rounded — an unrounded 60.57176
+   overflows the box and reads like a bug. Falls back to Exalt until that unit's live
+   rate has actually arrived, so we never divide by a rate we don't have yet. */
+function showFloor(amtId,unitId,ex){
+  const u=$(unitId).value;
+  let v;
+  if(u==="Divine"&&divRate>1)v=+(ex/divRate).toFixed(2);
+  else if(u==="Chaos"&&chaosEx>0)v=+(ex/chaosEx).toFixed(2);
+  else{$(unitId).value="Exalt";v=+(+ex).toFixed(2);}
+  $(amtId).value=String(v);}
+let _floorsRestored=false;
+function restoreFloors(){
+  if(!info)return;
+  if(info.floor_unit_unique)$("uUnit").value=info.floor_unit_unique;
+  if(info.floor_unit_gear)$("gUnit").value=info.floor_unit_gear;
+  showFloor("uAmt","uUnit",info.min_unique||0);
+  showFloor("gAmt","gUnit",info.min_gear||0);
+  uEx();gEx();updTracks();}
 
 /* ── console dials: drag-track sliders + fill tracks + quality/level sync ── */
 function updTracks(){
@@ -2554,6 +2577,7 @@ async function loadHistory(){
       $("swAuto").classList.remove("on");
       await api().set_setting("auto_floor",false);setAutoPill(false);}
     $("uUnit").value="Exalt";$("gUnit").value="Exalt";
+    api().set_setting("floor_unit_unique","Exalt");api().set_setting("floor_unit_gear","Exalt");
     $("uAmt").value=uf;$("gAmt").value=gf;
     uEx();gEx();updTracks();
     await api().set_setting("min_exalt_unique",uf);
@@ -3144,7 +3168,14 @@ async function init(){
         }else api().set_setting("known_leagues",names);
       }
     }catch(_){}}
-  const _rates=()=>api().chaos_ex(sel.value).then(r=>{chaosEx=r.ex||0;uEx();gEx();});
+  /* Restore the saved unit ONCE, when the rates first land — `info` is only a snapshot
+     from startup, so re-reading it after the user has edited a floor would quietly put
+     the old value back. On later league changes the unit and amount stay as the user
+     left them; only the rate moved, so recompute the exalt floor and store that. */
+  const _rates=()=>api().chaos_ex(sel.value).then(r=>{
+    chaosEx=r.ex||0;
+    if(!_floorsRestored){_floorsRestored=true;restoreFloors();}
+    else{uEx();gEx();updTracks();_saveFloors();}});
   sel.onchange=()=>{api().set_setting("league",sel.value);eco=null;_rates();updMktLeague();};
   updMktLeague();
   if(sel.value)_rates();

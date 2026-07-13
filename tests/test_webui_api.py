@@ -424,3 +424,30 @@ def test_clean_env_keeps_everything_else(monkeypatch):
     env = webapi.AppApi._clean_env()
     assert "_MEIPASS2" not in env
     assert env.get("PATH") == "keepme"
+
+
+# ── Floor display units ───────────────────────────────────────────────────────
+
+def test_floor_display_unit_is_remembered(api):
+    """The floor is stored in EXALT, which is right. But the chosen display UNIT was
+    never saved — so a user who set "Chaos 1" reopened the app to "60.57176 Exalt".
+    Same floor, but it reads exactly like the setting was thrown away."""
+    api.set_setting("min_exalt_unique", 60.57176)     # == 1 chaos at the time
+    api.set_setting("floor_unit_unique", "Chaos")
+    assert api.cfg["floor_unit_unique"] == "Chaos"
+
+    i = api.app_info()
+    assert i["min_unique"] == 60.57176                # the floor itself is untouched
+    assert i["floor_unit_unique"] == "Chaos"          # and the UI knows to show chaos
+
+
+def test_floor_unit_defaults_to_exalt(api):
+    i = api.app_info()
+    assert i["floor_unit_unique"] == "Exalt"
+    assert i["floor_unit_gear"] == "Exalt"
+
+
+def test_floor_units_are_in_the_settings_allowlist():
+    """set_setting silently drops keys that aren't allowed — the unit would never persist."""
+    assert "floor_unit_unique" in webapi._SETTABLE
+    assert "floor_unit_gear" in webapi._SETTABLE
