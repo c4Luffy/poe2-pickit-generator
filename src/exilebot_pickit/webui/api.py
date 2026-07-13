@@ -692,14 +692,22 @@ class AppApi:
         except Exception as e:
             return {"error": f"couldn't start the installer: {e}"}
 
-        # close the app so the helper can replace the exe
+        # Close the app so the helper can replace the exe. This has to be a REAL exit:
+        # with "minimize to tray" on, a close just hides the window and the process
+        # lives on — still holding the .exe open, so the swap never lands and the helper
+        # ends up relaunching the OLD exe. _quitting tells poc.py not to hide, and the
+        # hard exit covers a tray thread or webview hanging on the way out.
+        self._quitting = True
+
         def _close():
             time.sleep(0.5)
             try:
                 import webview
                 webview.windows[0].destroy()
             except Exception:
-                os._exit(0)
+                pass
+            time.sleep(1.5)
+            os._exit(0)
         threading.Thread(target=_close, daemon=True).start()
         return {"ok": True}
 

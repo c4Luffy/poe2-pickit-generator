@@ -6,6 +6,19 @@ download lives.
 
 ---
 
+## [v4.21.3] — 2026-07-13 — Update: it kept relaunching the OLD version
+
+The crash is gone, but the update quietly did nothing: it downloaded the new exe,
+closed, and then started **the version you updated from**.
+
+**Minimize to tray was eating the exit.** With that setting on, closing the window
+doesn't quit the app — it hides it and *cancels* the close, so auto-regenerate can keep
+running. That is exactly right for a normal close, and exactly wrong for an update: the
+process stayed alive in the tray, still holding the `.exe` open, so the swap could never
+land. The helper waited, gave up, and relaunched the only exe there was — the old one.
+
+An update now performs a real exit, whatever the tray setting says.
+
 ## [v4.21.2] — 2026-07-13 — Update: wait for the old exe to actually let go
 
 Hardening on top of v4.21.1. A one-file `.exe` is really **two** processes — the
@@ -939,6 +952,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.21.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.3
 [v4.21.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.2
 [v4.21.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.1
 [v4.21.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.0

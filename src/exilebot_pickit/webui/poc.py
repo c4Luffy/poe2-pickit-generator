@@ -175,11 +175,22 @@ def main():
     _run_webview(window, api, tray)
 
 
+def _should_hide_instead_of_exit(api, tray) -> bool:
+    """Tray mode hides the window on close instead of exiting, so auto-regenerate keeps
+    running. But an update must *really* exit: a hidden process still holds the .exe
+    open, so the swap can never happen — the helper times out and relaunches the OLD
+    exe, and the update silently does nothing. api._quitting says "this is a real exit".
+    """
+    return (tray is not None
+            and bool(api.cfg.get("minimize_to_tray"))
+            and not getattr(api, "_quitting", False))
+
+
 def _run_webview(window, api, tray):
 
     def _on_closing():
         # Tray mode on → hide instead of exit so auto-regenerate keeps running.
-        if tray is not None and api.cfg.get("minimize_to_tray"):
+        if _should_hide_instead_of_exit(api, tray):
             window.hide()
             return False        # cancel the close
         try:
