@@ -6,6 +6,19 @@ download lives.
 
 ---
 
+## [v4.21.2] — 2026-07-13 — Update: wait for the old exe to actually let go
+
+Hardening on top of v4.21.1. A one-file `.exe` is really **two** processes — the
+bootloader that unpacks it, and the app itself. The updater only knew the *app's*
+process id, but the **bootloader outlives it**, still holding the `.exe` open while it
+cleans up its temp folder. The helper could therefore start overwriting the exe inside
+that window.
+
+Windows lets you rename a running exe but never overwrite one, so the swap itself is
+the only lock test worth trusting: the helper now **retries the swap until it succeeds**
+(up to two minutes), and restores your previous version if it never does. You are never
+left without a working app.
+
 ## [v4.21.1] — 2026-07-13 — Fixed: "Update" crashed the new copy on launch
 
 A user pressed **Install update** and the app came back with an unhandled exception
@@ -926,6 +939,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.21.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.2
 [v4.21.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.1
 [v4.21.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.0
 [v4.20.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.20.0

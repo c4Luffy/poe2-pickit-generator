@@ -635,20 +635,51 @@ class AppApi:
             'set "_PYI_ARCHIVE_FILE="\r\n'
             'set "_PYI_APPLICATION_HOME_DIR="\r\n'
             'set "_PYI_PARENT_PROCESS_LEVEL="\r\n'
-            ":wait\r\n"
+            f'set "TGT={cur}"\r\n'
+            f'set "SRC={new}"\r\n'
+            f'set "BAK={cur}.bak"\r\n'
+            # 1) wait for the app process to go
+            "set /a n=0\r\n"
+            ":waitpid\r\n"
             f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL\r\n'
-            "if not errorlevel 1 ( ping -n 2 127.0.0.1 >NUL & goto wait )\r\n"
-            f'copy /y "{cur}" "{cur}.bak" >NUL\r\n'
-            f'move /y "{new}" "{cur}" >NUL\r\n'
-            "if errorlevel 1 (\r\n"
-            f'  copy /y "{cur}.bak" "{cur}" >NUL\r\n'
-            f'  start "" "{cur}"\r\n'
-            "  del \"%~f0\" & exit\r\n"
+            "if not errorlevel 1 (\r\n"
+            "  set /a n+=1\r\n"
+            "  if !n! GEQ 90 goto giveup\r\n"
+            "  ping -n 2 127.0.0.1 >NUL\r\n"
+            "  goto waitpid\r\n"
             ")\r\n"
+            # 2) A one-file exe is TWO processes: the bootloader that unpacked it, and
+            #    the app. os.getpid() only knows the app's — the bootloader outlives it,
+            #    still holding the .exe open while it deletes %TEMP%\\_MEIxxxxxx. Overwriting
+            #    the exe inside that window is what produced:
+            #      pyi_rth_inspect: No module named 'collections.abc'
+            #      Failed to remove temporary directory: ..._MEI657242
+            #    Windows lets you *rename* a running exe but never *overwrite* one, so the
+            #    move is itself the only lock test worth trusting: retry it until it takes.
+            'copy /y "%TGT%" "%BAK%" >NUL\r\n'
+            "set /a n=0\r\n"
+            ":swap\r\n"
+            'move /y "%SRC%" "%TGT%" >NUL 2>NUL\r\n'
+            "if not errorlevel 1 goto done\r\n"
+            "set /a n+=1\r\n"
+            "if !n! GEQ 60 goto restore\r\n"
+            "ping -n 2 127.0.0.1 >NUL\r\n"
+            "goto swap\r\n"
+            ":restore\r\n"
+            'copy /y "%BAK%" "%TGT%" >NUL\r\n'
+            'start "" "%TGT%"\r\n'
+            "del \"%~f0\" & exit\r\n"
+            ":done\r\n"
             # Keep the previous exe as "<name>.bak" (a working fallback if the new
             # build misbehaves) instead of deleting it — only ever one copy, since
             # the next update overwrites it. The user can rename it back by hand.
-            f'start "" "{cur}"\r\n'
+            'start "" "%TGT%"\r\n'
+            'del "%~f0"\r\n'
+            "exit\r\n"
+            # Never leave the user without an app: if the old one somehow never let go,
+            # start what is there and keep the downloaded exe for a manual swap.
+            ":giveup\r\n"
+            'start "" "%TGT%"\r\n'
             'del "%~f0"\r\n'
         )
         try:
