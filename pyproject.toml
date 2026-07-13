@@ -11,9 +11,7 @@ license = {file = "LICENSE"}
 requires-python = ">=3.10"
 dependencies = [
     "requests>=2.32.4,<3",
-    "Pillow>=11.3",
     "pywebview>=6.2,<7",
-    "pystray>=0.19",
 ]
 
 [tool.setuptools.packages.find]

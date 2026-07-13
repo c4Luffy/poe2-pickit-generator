@@ -1357,9 +1357,6 @@
 <div class="card"><h2>⚙️ App &amp; maintenance</h2>
       <div class="set-row"><div class="lab"><b>Status</b>
         <span><span class="dot" id="sideDot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px"></span><span id="sideLeague">PoE2</span> · <span id="sideUpdated">waiting for data…</span></span></div></div>
-      <div class="set-row"><div class="lab"><b>Minimize to tray on close</b>
-        <span>Keeps the app running in the background instead of exiting. Right-click the tray icon for Show / Generate / Exit.</span></div>
-        <div class="sp"></div><div class="switch" id="swTray"><i></i></div></div>
       <div class="set-row"><div class="lab"><b>Check for updates</b>
         <span id="updLbl">Checks GitHub for a newer build.</span></div><div class="sp"></div>
         <button class="ghost mini" id="updCheck">Check now</button></div>
@@ -3079,7 +3076,6 @@ function applyInfo(i){
   sw("swCopy","auto_copy",i.auto_copy);
   sw("swBases","include_bases",i.include_bases);
   sw("swFilter","copy_filter_to_game",i.copy_filter_to_game);
-  sw("swTray","minimize_to_tray",i.minimize_to_tray);
   $("fltDirLbl").textContent=i.poe2_filter_dir||"not set";
   $("bakCount").value=i.backup_count;
   // clamp legacy configs into the real exceptional-base ranges (21-30 / 80-82)

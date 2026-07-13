@@ -6,6 +6,22 @@ download lives.
 
 ---
 
+## [v4.22.0] — 2026-07-13 — Minimize to tray is gone
+
+It broke self-update. With tray mode on, closing the window didn't quit the app — it
+hid it, and the process stayed alive **holding the `.exe` open**, so the new version
+could never be swapped in and you were quietly relaunched into the old one.
+
+It was also earning nothing. The setting existed "so auto-regenerate keeps running in
+the background" — but **there is no auto-regenerate feature**. It was off by default,
+yet the tray thread started on every launch regardless.
+
+Closing the window now simply exits.
+
+**The exe got smaller too.** The tray was the only thing using **pystray** and
+**Pillow**, and Pillow is a heavy library. Both are gone — fewer moving parts, a
+lighter download, and one less thing for antivirus to squint at.
+
 ## [v4.21.3] — 2026-07-13 — Update: it kept relaunching the OLD version
 
 The crash is gone, but the update quietly did nothing: it downloaded the new exe,
@@ -952,6 +968,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.22.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.22.0
 [v4.21.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.3
 [v4.21.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.2
 [v4.21.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.1

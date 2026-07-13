@@ -70,10 +70,10 @@ jobs:
           --icon src/exilebot_pickit/resources/appicon.ico
           --add-data "src/exilebot_pickit/webui/app.html;."
           --add-data "src/exilebot_pickit/resources/appicon.png;."
-          --collect-all webview --collect-all clr_loader --collect-all pythonnet --collect-all pystray
+          --collect-all webview --collect-all clr_loader --collect-all pythonnet
           --collect-data certifi
           --hidden-import certifi --hidden-import charset_normalizer --hidden-import urllib3
-          --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageDraw
+         
           --exclude-module unittest --exclude-module pydoc --exclude-module doctest
           --exclude-module lib2to3 --exclude-module test
           --exclude-module numpy --exclude-module pandas --exclude-module matplotlib --exclude-module scipy

@@ -332,12 +332,15 @@ def test_version_sync():
 
 
 def test_requirements_has_ui_deps():
-    """The WebView2 UI needs pywebview + pystray; the Tk stack must be gone."""
+    """The WebView2 UI needs pywebview. The Tk stack is gone, and so are pystray and
+    Pillow — the system tray was their only user, and it silently broke self-update by
+    keeping the process (and its lock on the .exe) alive after the window closed."""
     with open("requirements.txt", encoding="utf-8") as f:
         reqs = f.read()
     assert "pywebview" in reqs, "pywebview missing from requirements.txt"
-    assert "pystray" in reqs, "pystray missing from requirements.txt"
     assert "customtkinter" not in reqs, "customtkinter should be removed (Tk UI deleted)"
+    assert "pystray" not in reqs, "pystray is back — the tray was removed on purpose"
+    assert "Pillow" not in reqs, "Pillow is back — only the tray ever needed it"
 
 
 def test_craft_base_rules_appear_in_loot_filter():
@@ -472,13 +475,6 @@ def test_webui_uses_min_level_constant():
     with open("src/exilebot_pickit/webui/api.py", encoding="utf-8") as f:
         api_src = f.read()
     assert '"base_min_level", 82' in api_src
-
-
-def test_requirements_has_pillow():
-    """Pillow is required for icon loading — must be in requirements.txt."""
-    with open("requirements.txt", encoding="utf-8") as f:
-        reqs = f.read()
-    assert "Pillow" in reqs, "Pillow missing from requirements.txt"
 
 
 def test_build_unique_lines_sorted_high_to_low():

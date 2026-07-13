@@ -34,7 +34,7 @@ _SETTABLE = {
     "auto_floor", "auto_floor_pct",
     "base_quality", "base_min_level", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir",
-    "minimize_to_tray", "magic_rare_flasks", "known_leagues", "rare_gear_enabled",
+    "magic_rare_flasks", "known_leagues", "rare_gear_enabled",
 }
 
 
@@ -84,7 +84,6 @@ class AppApi:
             "poe2_filter_dir": c.get("poe2_filter_dir", "") or _default_dir(),
             "backup_count": int(c.get("backup_count", 5)),
             "config_warning": _config_warning(),
-            "minimize_to_tray": bool(c.get("minimize_to_tray", False)),
             "known_leagues": list(c.get("known_leagues") or []),
             "active_preset": c.get("active_preset", "") or "",
         }
@@ -693,12 +692,10 @@ class AppApi:
             return {"error": f"couldn't start the installer: {e}"}
 
         # Close the app so the helper can replace the exe. This has to be a REAL exit:
-        # with "minimize to tray" on, a close just hides the window and the process
-        # lives on — still holding the .exe open, so the swap never lands and the helper
-        # ends up relaunching the OLD exe. _quitting tells poc.py not to hide, and the
-        # hard exit covers a tray thread or webview hanging on the way out.
-        self._quitting = True
-
+        # a process that lingers keeps the .exe locked, the swap never lands, and the
+        # helper gives up and relaunches the OLD exe. The hard exit covers a webview
+        # teardown that hangs. (Minimize-to-tray used to cancel this close outright —
+        # that is exactly why the setting is gone.)
         def _close():
             time.sleep(0.5)
             try:

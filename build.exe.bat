@@ -67,14 +67,11 @@ python -m PyInstaller ^
     --collect-all webview ^
     --collect-all clr_loader ^
     --collect-all pythonnet ^
-    --collect-all pystray ^
+    ^
     --collect-data certifi ^
     --hidden-import certifi ^
     --hidden-import charset_normalizer ^
     --hidden-import urllib3 ^
-    --hidden-import PIL ^
-    --hidden-import PIL.Image ^
-    --hidden-import PIL.ImageDraw ^
     --collect-all exilebot_pickit ^
     --noconfirm ^
     src/exilebot_pickit/__main__.py

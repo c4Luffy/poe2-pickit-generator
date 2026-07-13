@@ -76,7 +76,6 @@ DEFAULT_CONFIG = {
     "history": [],
 
     "theme": "dark",
-    "minimize_to_tray": False,
     "magic_rare_flasks": True,
     # Master switch for the rare-gear WeightedSum recipes (17 slots).
     "rare_gear_enabled": True,

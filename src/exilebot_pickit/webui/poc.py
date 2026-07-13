@@ -4,9 +4,9 @@ Run with:  python -m exilebot_pickit.webui.poc
 Renders app.html in a WebView2 window (pywebview) on top of the existing
 Python engine. Lives alongside the shipped Tkinter app; shares its config.
 
-Tray mode: with the "minimize to tray" setting on, closing the window hides
-it to the system tray instead of exiting. The tray menu offers
-Show / Generate now / Exit.
+Closing the window exits. (There used to be a "minimize to tray" mode; it kept the
+process alive holding the .exe open, which silently broke self-update, and the
+auto-regenerate it existed to serve was never built.)
 """
 
 import os
@@ -73,40 +73,6 @@ def _single_instance() -> bool:
         return True
 
 
-def _start_tray(window, api):
-    """System-tray icon (pystray) running on its own thread."""
-    try:
-        import pystray
-        from PIL import Image
-        img = Image.open(_res_path("appicon.png"))
-    except Exception:
-        return None
-
-    def _show(icon, item):
-        window.show()
-        window.restore()
-
-    def _gen(icon, item):
-        c = api.cfg
-        api.generate(c.get("league") or "", c.get("min_exalt_gear", 0),
-                     c.get("min_exalt_unique", 0))
-
-    def _exit(icon, item):
-        icon.stop()
-        api.cfg["window_geometry_web"] = _win_geometry(window)
-        from exilebot_pickit.ui.config import save_config
-        save_config(api.cfg)
-        window.destroy()
-
-    icon = pystray.Icon("poe2pickit", img, "ExileBot 2 Pickit Generator",
-                        menu=pystray.Menu(
-                            pystray.MenuItem("Show", _show, default=True),
-                            pystray.MenuItem("Generate now", _gen),
-                            pystray.MenuItem("Exit", _exit)))
-    threading.Thread(target=icon.run, daemon=True).start()
-    return icon
-
-
 def _win_geometry(window):
     """Best-effort {x,y,w,h} of the window for save/restore. Reads the native
     WinForms bounds (position + size); falls back to pywebview width/height."""
@@ -171,44 +137,26 @@ def main():
         # .rz) so there's exactly one title bar.
         frameless=False,
     )
-    tray = _start_tray(window, api)
-    _run_webview(window, api, tray)
+    _run_webview(window, api)
 
 
-def _should_hide_instead_of_exit(api, tray) -> bool:
-    """Tray mode hides the window on close instead of exiting, so auto-regenerate keeps
-    running. But an update must *really* exit: a hidden process still holds the .exe
-    open, so the swap can never happen — the helper times out and relaunches the OLD
-    exe, and the update silently does nothing. api._quitting says "this is a real exit".
-    """
-    return (tray is not None
-            and bool(api.cfg.get("minimize_to_tray"))
-            and not getattr(api, "_quitting", False))
-
-
-def _run_webview(window, api, tray):
+def _run_webview(window, api):
 
     def _on_closing():
-        # Tray mode on → hide instead of exit so auto-regenerate keeps running.
-        if _should_hide_instead_of_exit(api, tray):
-            window.hide()
-            return False        # cancel the close
         try:
             from exilebot_pickit.ui.config import save_config
             api.cfg["window_geometry_web"] = _win_geometry(window)
             save_config(api.cfg)
         except Exception:
             pass
-        if tray is not None:
-            tray.stop()
         return True
     window.events.closing += _on_closing
     # Pin the WebView2 browser profile to the app's own data folder. Without
     # this, WebView2 creates its profile relative to the exe/current dir --
     # which breaks in two real, user-reported ways on version updates:
     #   1. the exe sits somewhere read-only, so profile creation fails, and
-    #   2. an old copy still running (tray / not-fully-exited after the
-    #      updater swap) holds the profile lock, so the new copy can't open.
+    #   2. an old copy still running (not fully exited after the updater swap)
+    #      holds the profile lock, so the new copy can't open.
     # Both used to surface as a misleading "WebView2 runtime is missing"
     # dialog even though the runtime was fine.
     try:
@@ -232,7 +180,7 @@ def _run_webview(window, api, tray):
                 "The app couldn't start its window.\n\n"
                 "Most common causes, in order:\n\n"
                 "1. An older copy of the app is still running — check the\n"
-                "   system tray (near the clock) and Task Manager for\n"
+                "   Task Manager for\n"
                 "   ExileBot2PickitGenerator, close it, then start again.\n\n"
                 "2. The Microsoft WebView2 runtime is missing (rare on\n"
                 "   updated Windows). Install it free from:\n"
