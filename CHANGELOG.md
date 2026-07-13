@@ -6,6 +6,17 @@ download lives.
 
 ---
 
+## [v4.23.0] — 2026-07-13 — Exceptional bases: item level 79 is reachable now
+
+The **Minimum item level** was hard-clamped to **80–82**, so you simply could not ask
+for 79 — the box refused it.
+
+That was wrong. An **ilvl-79 base can still roll the extra rune socket**, and those are
+the ones worth crafting: a **79 Sacred Focus with two sockets goes for ~34 div**. The
+clamp was throwing them on the floor.
+
+The floor now goes down to **79**. (82 is still the default and still the max.)
+
 ## [v4.22.1] — 2026-07-13 — The floor "reset itself" to a huge number
 
 Set the unique floor to **Chaos 1**, restart, and it came back as **60.57176 EXALT**,
@@ -983,6 +994,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.23.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.23.0
 [v4.22.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.22.1
 [v4.22.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.22.0
 [v4.21.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.3

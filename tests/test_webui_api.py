@@ -451,3 +451,13 @@ def test_floor_units_are_in_the_settings_allowlist():
     """set_setting silently drops keys that aren't allowed — the unit would never persist."""
     assert "floor_unit_unique" in webapi._SETTABLE
     assert "floor_unit_gear" in webapi._SETTABLE
+
+
+def test_base_min_level_can_be_set_to_79(api):
+    """The UI used to hard-clamp the exceptional-base item level to 80-82, so 79 was
+    unreachable. An ilvl-79 base can still roll the extra rune socket, and those sell —
+    a 79 Sacred Focus with two sockets goes for real money."""
+    api.set_setting("base_min_level", 79)
+    assert api.cfg["base_min_level"] == 79
+    assert api.app_info()["base_min_level"] == 79
+    assert api._snapshot()["base_min_level"] == 79      # and it reaches the generator
