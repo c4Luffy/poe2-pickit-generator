@@ -6,6 +6,41 @@ download lives.
 
 ---
 
+## [v4.21.0] — 2026-07-13 — Every theme gets its own voice, and Item Check grows up
+
+### Themes are no longer just a colour swap
+Each of the nine themes now carries its **own body face, heading face and tab style** —
+so switching theme changes the *character* of the app, not only its accent:
+
+- **Ossuary** — bookish serif, Marcellus headings, sharp uppercase tabs. An archive.
+- **Abyss** — monospace headings, tight uppercase tabs. A deep-sea instrument panel.
+- **Void** — Palatino headings, wide-tracked uppercase tabs. Occult.
+- **Delirium** — soft Candara throughout, rounded tabs. Dreamlike.
+- **Umbral** — stark sans, brutal 2px tabs, hard tracking. Cold and minimal.
+- **Blight** — heavy mono headings, hazard-tape tabs.
+- **Venom** — friendly humanist face, pill tabs. **Twilight** — warm serif.
+- **Relic** stays exactly as it was: the brass workbench.
+
+**Every face is one Windows already ships.** Nothing is downloaded and nothing is
+embedded — the lag in the reverted polish pass came from base64-embedding a *variable*
+body font, which WebView2 re-interpolated on every glyph under `body{zoom:1.1}`. These
+cost nothing.
+
+### Item Check
+- **Click the `.ipd` line in a verdict** to jump straight to that rule in Preview, with
+  the line flashed. Every preview line now carries its id, not just the validation ones.
+- Rules are matched by **identity, not the whole line** — the trailing `// ExValue = …`
+  comment holds the price at generate time, so it drifts with the market; matching on it
+  missed the rule on any pickit older than today's prices.
+- **✨ Try an example** hands back a random **unique, rare or fractured** item, so a few
+  presses show all three verdicts. Uniques and their live price come from poe.ninja,
+  bases from the game's own base list, and mods are real mod text from our verified
+  fracture targets, with the stated range collapsed to a single roll the way a real item
+  reads. The rare and fractured examples need no league and no network.
+- **Prices now read in exalt, divine and chaos.** A unit is dropped when it would round
+  to noise, so a 0.12 ex unique doesn't claim "0.00 div" — and `2483040.00 ex` now
+  prints as **2,483,040**.
+
 ## [v4.20.0] — 2026-07-13 — Item Check: "why did my bot walk past that?"
 
 Nothing in the app could answer the two questions everybody actually asks — *why did
@@ -870,6 +905,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.21.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.0
 [v4.20.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.20.0
 [v4.19.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.19.1
 [v4.19.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.19.0

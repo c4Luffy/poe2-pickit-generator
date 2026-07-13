@@ -13,6 +13,11 @@
     --bg:#08090b; --bg2:#111216; --bg3:#18191d; --border:#302c25;
     --gold:#c99a4a; --gold-dim:#8b642c; --gold-br:#e5bd72; --text:#e8e0d3;
     --dim:#9d9589; --ok:#829d78; --err:#b85c4c; --warn:#c99a4a; --steel:#9bb091;
+    /* Each theme's own voice. System faces only — an embedded variable body font is
+       what made the app laggy under body{zoom:1.1}; these cost nothing. */
+    --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --head:Georgia,"Times New Roman",serif;
+    --nav-r:8px; --nav-tt:none; --nav-ls:.01em; --nav-w:500;
   }
   /* ── base cards (Chance / Craft, mockup style) ── */
   .bc2{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);
@@ -74,12 +79,16 @@
   .preset-detail .pd-floors{color:var(--gold);font-weight:600;margin-top:4px}
   .preset-detail .pd-cost{color:var(--dim);margin-top:4px}
   /* ── Theme gallery — all dark, distinct personalities ── */
+  html[data-theme="void"]{--font:"Segoe UI",system-ui,sans-serif; --head:"Palatino Linotype",Palatino,serif;
+    --nav-r:6px; --nav-tt:uppercase; --nav-ls:.09em; --nav-w:600}
   html[data-theme="void"] .primary{color:#fff}
   html[data-theme="venom"]{           /* Venom — emerald, matches the mascot */
     --bg:#070b08; --bg2:#0f1512; --bg3:#161d18; --border:#28352c;
     --gold:#6cc24a; --gold-dim:#356e30; --gold-br:#98e07a; --text:#e3eee4;
     --dim:#94a894; --ok:#829d78; --err:#b85c4c; --warn:#6cc24a; --steel:#c99a4a;
   }
+  html[data-theme="venom"]{--font:Corbel,"Segoe UI",sans-serif; --head:"Trebuchet MS","Segoe UI",sans-serif;
+    --nav-r:999px; --nav-tt:none; --nav-ls:.01em; --nav-w:600}
   html[data-theme="venom"] .primary{color:#0c160c}
   html[data-theme="void"]{            /* Void — arcane violet */
     --bg:#08070d; --bg2:#13111c; --bg3:#1a1726; --border:#332a45;
@@ -116,12 +125,24 @@
     --gold:#c5d92f; --gold-dim:#6e7a1a; --gold-br:#e2f25c; --text:#e4e8d2;
     --dim:#9aa085; --ok:#829d78; --err:#c0472e; --warn:#c5d92f; --steel:#c99a4a;
   }
+  html[data-theme="blight"]{--font:"Segoe UI",system-ui,sans-serif; --head:Consolas,ui-monospace,monospace;
+    --nav-r:3px; --nav-tt:uppercase; --nav-ls:.10em; --nav-w:700}
   html[data-theme="blight"] .primary{color:#12160a}
   /* these accents are all pale/bright -> the primary button needs dark ink, not white */
+  html[data-theme="ossuary"]{--font:Constantia,Georgia,serif; --head:"Marcellus","Segoe UI",serif;
+    --nav-r:3px; --nav-tt:uppercase; --nav-ls:.12em; --nav-w:500}
   html[data-theme="ossuary"] .primary{color:#1a1713}
+  html[data-theme="delirium"]{--font:Candara,"Segoe UI",sans-serif; --head:Candara,"Segoe UI",sans-serif;
+    --nav-r:13px; --nav-tt:none; --nav-ls:.02em; --nav-w:500}
   html[data-theme="delirium"] .primary{color:#1a1016}
+  html[data-theme="umbral"]{--font:"Segoe UI",system-ui,sans-serif; --head:"Segoe UI",system-ui,sans-serif;
+    --nav-r:2px; --nav-tt:uppercase; --nav-ls:.14em; --nav-w:600}
   html[data-theme="umbral"] .primary{color:#0d0d10}
+  html[data-theme="abyss"]{--font:"Segoe UI",system-ui,sans-serif; --head:Consolas,ui-monospace,monospace;
+    --nav-r:4px; --nav-tt:uppercase; --nav-ls:.08em; --nav-w:600}
   html[data-theme="abyss"] .primary{color:#03201c}
+  html[data-theme="twilight"]{--font:Corbel,"Segoe UI",sans-serif; --head:Georgia,"Times New Roman",serif;
+    --nav-r:11px; --nav-tt:none; --nav-ls:.01em; --nav-w:500}
   html[data-theme="twilight"] .primary{color:#1a0f06}
   html[data-theme="relic"] .primary{color:#1b1409}
   /* Relic = the Exile's Workbench brass palette (same as :root default) */
@@ -148,7 +169,7 @@
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
   ::-webkit-scrollbar-thumb:hover{background:var(--gold-dim)}
   ::-webkit-scrollbar-corner{background:transparent}
-  body{zoom:1.1;background:var(--bg);color:var(--text);font:14.5px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  body{zoom:1.1;background:var(--bg);color:var(--text);font:14.5px/1.5 var(--font);
        height:90.9vh;display:flex;flex-direction:row;overflow:hidden;transition:background .25s,color .25s}
   /* ── Custom title bar (frameless window) ── */
   /* Native OS window frame is used now (see poc.py) — hide the page's own
@@ -222,8 +243,9 @@
   .nav-grp:hover{color:var(--text)}
   .nav-grp.on{color:var(--gold)}
   .nav-links{display:flex;flex-direction:column;align-items:stretch;gap:4px}
-  .nav-btn{display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:9px 13px;border-radius:8px;
-           font-size:13px;letter-spacing:.01em;font-weight:500;
+  .nav-btn{display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:9px 13px;border-radius:var(--nav-r);
+    text-transform:var(--nav-tt);
+           font-size:13px;letter-spacing:var(--nav-ls);font-weight:var(--nav-w);
            color:var(--dim);cursor:pointer;border:1px solid transparent;user-select:none;white-space:nowrap}
   /* alive, but cheap: one transform on one element (already in the transition list) */
   .nav-btn:hover{background:var(--bg3);color:var(--text);transform:translateX(2px)}
@@ -247,7 +269,7 @@
       linear-gradient(180deg,var(--bg),color-mix(in srgb,var(--bg) 70%,#000));
     background-attachment:fixed}
   .page{display:none;max-width:900px;margin:0 auto}
-  h1{font-family:Georgia,"Times New Roman",serif;letter-spacing:.01em;font-weight:400}
+  h1{font-family:var(--head);letter-spacing:.01em;font-weight:400}
   #p-gen{max-width:1180px}
   #p-chance,#p-craft,#p-exc,#p-prev,#p-hist,#p-set,#p-dbg,#p-rare{max-width:1180px}
   .gen-cols{display:grid;grid-template-columns:1.35fr .65fr;gap:16px;align-items:start}
