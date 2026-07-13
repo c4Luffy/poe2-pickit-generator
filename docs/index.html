@@ -1,437 +1,427 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ExileBot 2 Pickit Generator — live PoE2 prices, a ready pickit</title>
-<meta name="description" content="Turns live Path of Exile 2 economy prices into a complete Exiled Bot 2 pickit. Your bot grabs what sells today, not last month. Free, open source, one .exe.">
+<title>PoE 2 Pickit Generator for Exiled Bot 2</title>
+<meta name="description" content="Turn live Path of Exile 2 prices into a validated, bot-ready Exiled Bot 2 pickit. Portable Windows app, free and open source.">
 <link rel="icon" href="logo.png">
-<meta property="og:title" content="ExileBot 2 Pickit Generator">
-<meta property="og:description" content="Live PoE2 market prices in. A ready Exiled Bot 2 pickit out. One click.">
+<meta property="og:title" content="PoE 2 Pickit Generator for Exiled Bot 2">
+<meta property="og:description" content="Live PoE2 prices in. A validated, bot-ready pickit out.">
 <meta property="og:image" content="https://c4luffy.github.io/poe2-pickit-generator/screenshot.png">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://c4luffy.github.io/poe2-pickit-generator/">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0a0908">
+<meta name="theme-color" content="#090806">
 <link rel="canonical" href="https://c4luffy.github.io/poe2-pickit-generator/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Marcellus&display=swap" rel="stylesheet">
-<script>
-/* set the theme BEFORE first paint, or light-mode users get a dark flash */
-(function(){var s=localStorage.getItem("theme");
-  document.documentElement.setAttribute("data-theme",
-    s || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));})();
-</script>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&amp;display=swap" rel="stylesheet">
 <style>
-/* ═══ tokens ═══════════════════════════════════════════════════════════════
-   Warm near-black ground (never neutral grey), brass as the brand, and the
-   mascot's venom green reserved ONLY for "this is live" — never decoration. */
-:root[data-theme=dark]{
-  --ink:#0a0908; --ink2:#131110; --ink3:#1b1816; --line:#2c2723; --line2:#3b342c;
-  --tx:#eae3d7; --dim:#9a9184; --faint:#8a8378;
-  --brass:#c99a4a; --brass-br:#e8c07c; --brass-dim:#7d6134;
-  --venom:#6cc24a; --err:#c2604e;
-  --glow:radial-gradient(1100px 520px at 50% -12%, rgba(201,154,74,.16), transparent 70%);
-  --sh:0 1px 2px rgba(0,0,0,.5);
-}
-:root[data-theme=light]{
-  --ink:#f6f3ec; --ink2:#fffdf8; --ink3:#eee9de; --line:#ddd5c6; --line2:#c9bfab;
-  --tx:#231f1a; --dim:#5f584d; --faint:#6d6659;
-  --brass:#8a6420; --brass-br:#6b4d17; --brass-dim:#d5c091;
-  --venom:#3f7f2a; --err:#a8412f;
-  --glow:radial-gradient(1100px 520px at 50% -12%, rgba(201,154,74,.14), transparent 70%);
-  --sh:0 1px 2px rgba(60,50,30,.07);
+:root{
+  color-scheme:dark;
+  --ink:#090806;--ink2:#12100e;--ink3:#1a1714;--panel:#151310;
+  --line:#332c25;--line2:#4c4135;--control-line:#6a6057;
+  --tx:#eee7db;--dim:#aaa094;--faint:#8f877d;
+  --brass:#d2a24f;--brass-br:#efc77e;--brass-dim:#806337;
+  --venom:#79bd62;--err:#c46c58;--shadow:rgba(0,0,0,.48);
+  --hero-glow:radial-gradient(900px 520px at 66% 7%,rgba(210,162,79,.15),transparent 68%);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:var(--ink);color:var(--tx);
-  font:16.5px/1.65 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
+html{scroll-behavior:smooth;scroll-padding-top:78px}
+body{background:var(--ink);color:var(--tx);font:16px/1.65 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
   -webkit-font-smoothing:antialiased;overflow-x:hidden}
+img{display:block;max-width:100%;height:auto}
+a{color:var(--brass);text-decoration:none}
+p a,.trust-copy a,.faq a,.fineprint a{text-decoration:underline;text-underline-offset:.18em}
+a:hover{color:var(--brass-br)}
+button{font:inherit}
 .serif{font-family:"Marcellus",Georgia,serif;font-weight:400;letter-spacing:.01em}
 .mono{font-family:ui-monospace,Consolas,monospace;font-size:.9em}
-a{color:var(--brass);text-decoration:none}
-a:hover{color:var(--brass-br)}
-img{max-width:100%;height:auto;display:block}
-.wrap{max-width:1300px;margin:0 auto;padding:0 28px}
-section{padding:96px 0;position:relative}
+.wrap{width:min(1220px,100%);margin:0 auto;padding-inline:clamp(16px,4vw,30px)}
+.skip{position:fixed;top:10px;left:10px;z-index:200;transform:translateY(-150%);background:var(--tx);color:var(--ink);
+  padding:9px 13px;border-radius:7px;font-weight:700}
+.skip:focus{transform:none}
+:focus-visible{outline:2px solid var(--brass);outline-offset:3px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--brass);font-size:11px;font-weight:800;
+  letter-spacing:.17em;text-transform:uppercase}
+.eyebrow::before{content:"";width:22px;height:1px;background:currentColor}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:11px 20px;
+  border:1px solid transparent;border-radius:10px;font-weight:750;font-size:14.5px;cursor:pointer;transition:.16s}
+.btn-primary{background:var(--brass);border-color:var(--brass);color:#181104}
+.btn-primary:hover{background:var(--brass-br);border-color:var(--brass-br);color:#181104;
+  box-shadow:0 10px 28px color-mix(in srgb,var(--brass) 28%,transparent)}
+.btn-secondary{color:var(--tx);border-color:var(--control-line);background:color-mix(in srgb,var(--ink2) 80%,transparent)}
+.btn-secondary:hover{border-color:var(--brass);color:var(--brass)}
+.btn-sm{min-height:44px;padding:9px 15px;font-size:13.5px}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--venom);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--venom) 14%,transparent)}
 
-/* ═══ nav ═══ */
-nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--ink) 86%,transparent);
-  backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
-nav .wrap{display:flex;align-items:center;gap:26px;height:62px}
-.brand{display:flex;align-items:center;gap:10px;color:var(--tx);font-size:15.5px}
-.brand img{width:28px;height:28px;object-fit:contain}
-.brand b{font-weight:600}
-.nlinks{display:flex;gap:22px;margin-left:auto;font-size:14.5px}
-.nlinks a{color:var(--dim)}
-.nlinks a:hover{color:var(--tx)}
-@media(max-width:820px){
-  .nlinks{display:none}
-  .tgl{margin-left:auto}   /* .nlinks carried the margin that right-aligned these */
-  nav .wrap{gap:12px}
+/* navigation */
+.site-nav{position:sticky;top:0;z-index:100;border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--ink) 88%,transparent);backdrop-filter:blur(14px)}
+.nav-inner{height:66px;display:flex;align-items:center;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--tx);white-space:nowrap;min-width:0}
+.brand>span{min-width:0}
+.brand img{width:31px;height:31px;object-fit:contain}
+.brand-name{display:block;font-size:14.5px;font-weight:750}.brand-kicker{display:block;color:var(--faint);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase}
+.nav-links{display:flex;align-items:center;gap:21px;margin-left:auto;font-size:13.5px}
+.nav-links a{color:var(--dim)}.nav-links a:hover{color:var(--tx)}
+.icon-btn{width:44px;height:44px;border:1px solid var(--control-line);border-radius:10px;background:transparent;color:var(--dim);
+  cursor:pointer;display:grid;place-items:center;font-size:17px}
+.icon-btn:hover{color:var(--brass);border-color:var(--brass)}
+.menu-btn{display:none}
+.mobile-menu{display:none;border-top:1px solid var(--line);padding:10px clamp(16px,4vw,30px) 15px;background:var(--ink2)}
+.mobile-menu a{display:block;color:var(--tx);padding:10px 4px;border-bottom:1px solid var(--line)}
+.mobile-menu a:last-child{border:0}
+
+/* hero */
+.hero{position:relative;background:var(--hero-glow);padding-block:clamp(58px,7vw,96px) clamp(54px,6vw,84px);
+  border-bottom:1px solid var(--line);overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.28;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:72px 72px;mask-image:linear-gradient(to bottom,black,transparent 72%)}
+.hero-grid{position:relative;display:grid;grid-template-columns:minmax(0,.88fr) minmax(500px,1.12fr);gap:clamp(36px,5vw,72px);align-items:center}
+.hero-copy h1{font-size:clamp(43px,5vw,68px);line-height:1.02;max-width:12ch;margin-top:20px;text-wrap:balance}
+.hero-copy h1 span{color:var(--brass)}
+.hero-lead{color:var(--dim);font-size:18px;line-height:1.65;max-width:57ch;margin-top:22px}
+.hero-lead strong{color:var(--tx);font-weight:700}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.micro{color:var(--faint);font-size:13px;margin-top:13px}
+.trust-line{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-top:23px;color:var(--dim);font-size:12.5px}
+.trust-line span{display:inline-flex;align-items:center;gap:7px}.trust-line i{font-style:normal;color:var(--brass)}
+.trust-more{margin-top:12px;border-top:1px solid var(--line);padding-top:11px;max-width:560px}
+.trust-more summary{cursor:pointer;color:var(--brass);font-size:12.5px;font-weight:700;list-style:none;width:max-content}
+.trust-more summary::-webkit-details-marker{display:none}.trust-more summary::after{content:" +"}
+.trust-more[open] summary::after{content:" −"}
+.trust-copy{color:var(--dim);font-size:12.5px;margin-top:8px;max-width:58ch}
+.product-stage{position:relative;min-width:0}
+.product-frame{position:relative;border:1px solid var(--line2);border-radius:16px;background:#0a0908;padding:10px;
+  box-shadow:0 28px 70px var(--shadow),0 0 55px color-mix(in srgb,var(--brass) 12%,transparent);overflow:hidden}
+.frame-bar{height:31px;display:flex;align-items:center;gap:7px;padding:0 4px 9px;color:#948b7f;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.frame-bar .lights{display:flex;gap:5px}.frame-bar .lights i{display:block;width:6px;height:6px;border-radius:50%;background:#4b433b}
+.frame-bar .live{margin-left:auto;display:flex;align-items:center;gap:8px;color:#8db881}
+.screen-clip{position:relative;overflow:hidden;border:1px solid #302b26;border-radius:9px;background:#08090b}
+.screen-clip::after{content:"";position:absolute;left:0;right:0;bottom:0;height:13%;background:linear-gradient(transparent,rgba(8,9,11,.86));pointer-events:none}
+.screen-zoom{position:relative;display:block;color:#fff}.screen-zoom::after{content:"Open full size ↗";position:absolute;right:10px;bottom:9px;z-index:2;
+  padding:5px 8px;border:1px solid rgba(255,255,255,.22);border-radius:6px;background:rgba(9,8,6,.82);color:#eee7db;font-size:10px;font-weight:750;letter-spacing:.04em}
+.screen-zoom:focus-visible{outline-offset:-3px}
+.product-note{position:absolute;right:-13px;bottom:36px;background:var(--ink2);border:1px solid var(--line2);border-left:2px solid var(--venom);
+  border-radius:9px;padding:10px 12px;box-shadow:0 14px 28px var(--shadow);font-size:11.5px;color:var(--dim)}
+.product-note b{display:block;color:var(--tx);font-size:12.5px}
+
+/* proof strip */
+.proof{border-bottom:1px solid var(--line);background:var(--ink2)}
+.proof-grid{display:grid;grid-template-columns:repeat(4,1fr)}
+.proof-item{padding:22px 24px;border-right:1px solid var(--line)}.proof-item:last-child{border-right:0}
+.proof-item b{display:block;color:var(--tx);font-family:"Marcellus",Georgia,serif;font-size:22px;font-weight:400}
+.proof-item span{color:var(--dim);font-size:12px}.proof-item.live b{display:flex;align-items:center;gap:10px;color:var(--venom)}
+
+/* shared sections */
+section{padding-block:clamp(68px,8vw,104px)}
+.section-head{max-width:760px;margin:0 auto clamp(34px,5vw,54px);text-align:center}
+.section-head h2{font-size:clamp(31px,4vw,48px);line-height:1.12;margin-top:12px;text-wrap:balance}
+.section-head p{color:var(--dim);font-size:16.5px;max-width:58ch;margin:14px auto 0}
+
+/* workflow */
+.workflow{border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--ink),var(--ink2))}
+.workflow-layout{display:grid;grid-template-columns:340px minmax(0,1fr);gap:24px;align-items:stretch}
+.stage-tabs{display:flex;flex-direction:column;gap:8px}
+.stage-tab{width:100%;display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:12px;text-align:left;
+  padding:14px;border:1px solid var(--line);border-radius:11px;background:transparent;color:var(--dim);cursor:pointer;transition:.16s}
+.stage-tab:hover{border-color:var(--control-line);color:var(--tx)}
+.stage-tab[aria-pressed=true]{background:var(--ink2);border-color:var(--brass-dim);color:var(--tx);box-shadow:inset 2px 0 0 var(--brass)}
+.stage-number{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line2);border-radius:8px;color:var(--brass);font:13px ui-monospace,monospace}
+.stage-tab b{font-size:14.5px}.stage-tab small{display:block;color:var(--faint);font-size:11.5px;margin-top:2px}
+.stage-check{color:var(--venom);opacity:0}.stage-tab.done .stage-check{opacity:1}
+.workflow-console{border:1px solid var(--line2);border-radius:15px;background:var(--panel);padding:20px;box-shadow:0 18px 42px var(--shadow);min-width:0}
+.console-head{display:flex;align-items:center;gap:10px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.console-head b{font-family:"Marcellus",Georgia,serif;font-size:19px;font-weight:400}.console-state{margin-left:auto;color:var(--venom);font:11px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.08em}
+.console-body{display:grid;grid-template-columns:1fr .8fr;gap:16px;margin-top:16px}
+.run-card,.run-status{border:1px solid var(--line);border-radius:11px;background:var(--ink2);padding:17px}
+.run-k{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint);font-weight:800}
+.run-v{font-size:18px;margin-top:4px}.run-v span{color:var(--brass)}
+.run-summary{color:var(--dim);font-size:13px;margin-top:7px;max-width:56ch}
+.run-progress{height:5px;background:var(--ink3);border-radius:99px;overflow:hidden;margin:18px 0 4px}.run-progress i{display:block;height:100%;width:20%;background:var(--brass);transition:width .3s}
+.run-steps{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.run-step{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:center;color:var(--faint);font-size:12px}
+.run-step i{font-style:normal;width:18px;height:18px;border:1px solid var(--line2);border-radius:5px;display:grid;place-items:center;font-size:10px}
+.run-step.done{color:var(--tx)}.run-step.done i{color:var(--venom);border-color:color-mix(in srgb,var(--venom) 55%,var(--line))}.run-step strong{color:var(--brass);font:11px ui-monospace,monospace}
+.workflow-cta{text-align:center;margin-top:28px}
+
+/* pillars */
+.pillars{border-bottom:1px solid var(--line)}
+.pillar-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.pillar{border-top:2px solid var(--brass-dim);padding:24px 10px 6px 0}.pillar-mark{font:12px ui-monospace,monospace;color:var(--brass);letter-spacing:.12em}
+.pillar h3{font-size:21px;line-height:1.28;margin-top:11px}.pillar p{color:var(--dim);font-size:14.5px;margin-top:10px;max-width:48ch}
+.evidence{display:flex;flex-direction:column;gap:8px;margin-top:18px;list-style:none}.evidence li{display:flex;gap:9px;color:var(--tx);font-size:13px}.evidence li::before{content:"✓";color:var(--venom)}
+.advanced{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:46px}
+.advanced-item{background:var(--ink2);padding:19px}.advanced-item b{display:block;font-size:13.5px}.advanced-item span{color:var(--dim);font-size:12px;display:block;margin-top:4px}
+
+/* setup */
+.setup{background:var(--ink2);border-bottom:1px solid var(--line)}
+.setup-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.setup-step{position:relative;padding:21px;border:1px solid var(--line);border-radius:12px;background:var(--ink)}
+.setup-step:last-child{border-color:var(--brass-dim)}
+.setup-n{font:12px ui-monospace,monospace;color:var(--brass)}.setup-step h3{font-size:16px;margin-top:12px}.setup-step p{color:var(--dim);font-size:13px;margin-top:7px}
+.setup-note{max-width:920px;margin:24px auto 0;padding:18px 20px;border:1px solid var(--brass-dim);border-radius:11px;
+  background:color-mix(in srgb,var(--brass) 6%,transparent);color:var(--dim);font-size:14px}.setup-note strong{color:var(--tx)}
+.download-panel{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;margin-top:34px;padding:24px;border:1px solid var(--line2);border-radius:14px;background:var(--panel)}
+.download-panel h3{font:24px "Marcellus",Georgia,serif;font-weight:400}.download-panel p{color:var(--dim);font-size:13.5px;margin-top:5px}.download-panel .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+
+/* FAQ + final CTA */
+.faq-section{border-bottom:1px solid var(--line)}
+.faq{max-width:860px;margin:0 auto}.faq details{border-bottom:1px solid var(--line)}
+.faq summary{cursor:pointer;list-style:none;padding:19px 0;font-weight:700;display:flex;align-items:center;gap:12px}.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";margin-left:auto;color:var(--brass);font-size:21px;font-weight:400;transition:transform .2s}.faq details[open] summary::after{transform:rotate(45deg)}
+.faq p{color:var(--dim);padding:0 34px 19px 0;font-size:14.5px}.faq p+p{margin-top:-6px}
+.final-cta{padding-block:clamp(62px,8vw,96px);text-align:center;background:var(--hero-glow)}
+.final-cta h2{font-size:clamp(32px,4.5vw,50px);line-height:1.1;max-width:16ch;margin:0 auto}.final-cta p{color:var(--dim);margin:14px auto 0;max-width:55ch}
+.final-cta .hero-actions{justify-content:center}.final-cta .micro{text-align:center}
+footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:flex;align-items:flex-start;justify-content:space-between;gap:28px;flex-wrap:wrap}
+.footer-links{display:flex;gap:18px;flex-wrap:wrap}.footer-links a{color:var(--tx)}.fineprint{margin-top:9px}
+
+/* reveal */
+.reveal{opacity:1;transform:none}.reveal-ready .reveal{opacity:0;transform:translateY(16px);transition:opacity .55s ease,transform .55s ease}.reveal-ready .reveal.in{opacity:1;transform:none}
+@media(hover:hover){.btn:hover{will-change:transform}.btn-primary:hover,.btn-secondary:hover{transform:translateY(-2px)}.stage-tab:hover{transform:translateX(2px)}}
+@media(max-width:1040px){
+  .hero-grid{grid-template-columns:1fr;gap:42px}.hero-copy{text-align:center}.hero-copy h1,.hero-lead{margin-inline:auto}.hero-actions,.trust-line{justify-content:center}.trust-more{margin-inline:auto;text-align:left}
+  .product-stage{max-width:820px;margin:0 auto}.proof-grid{grid-template-columns:repeat(2,1fr)}.proof-item:nth-child(2){border-right:0}.proof-item:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  .pillar-grid{grid-template-columns:1fr}.pillar{max-width:780px;margin:0 auto;width:100%;padding-right:0}.advanced{grid-template-columns:repeat(2,1fr)}
+  .setup-grid{grid-template-columns:repeat(2,1fr)}
 }
-@media(max-width:400px){nav .wrap{gap:8px}.btn-sm{padding:9px 12px}}
-.tgl{background:none;border:1px solid var(--line);color:var(--dim);width:34px;height:34px;
-  border-radius:9px;cursor:pointer;font-size:15px;line-height:1}
-.tgl:hover{border-color:var(--brass-dim);color:var(--brass)}
-:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:6px}
-.btn{display:inline-flex;align-items:center;gap:9px;border-radius:11px;font-weight:600;
-  font-size:15px;padding:12px 22px;border:1px solid transparent;cursor:pointer;transition:.16s}
-.btn-dl{background:var(--brass);color:#1a1305;border-color:var(--brass)}
-/* light-theme brass is DARK, so dark ink on it is unreadable - flip to light */
-:root[data-theme=light] .btn-dl,:root[data-theme=light] .btn-dl:hover{color:#fffdf8}
-.btn-dl:hover{background:var(--brass-br);color:#1a1305;transform:translateY(-2px);
-  box-shadow:0 10px 26px color-mix(in srgb,var(--brass) 32%,transparent)}
-.btn-gh{border-color:var(--line2);color:var(--tx)}
-.btn-gh:hover{border-color:var(--brass-dim);color:var(--brass);transform:translateY(-2px)}
-.btn-sm{padding:9px 16px;font-size:14px}
-
-/* ═══ hero ═══ */
-.hero{padding:86px 0 0;text-align:center;background:var(--glow)}
-.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;
-  letter-spacing:.16em;text-transform:uppercase;color:var(--brass);
-  border:1px solid var(--brass-dim);border-radius:99px;padding:6px 14px;
-  background:color-mix(in srgb,var(--brass) 8%,transparent)}
-.hero h1{font-size:clamp(38px,5.6vw,62px);line-height:1.06;margin:26px auto 0;max-width:15ch;
-  text-wrap:balance}
-.hero h1 .g{background:linear-gradient(100deg,var(--brass) 30%,var(--brass-br) 50%,var(--brass) 70%);
-  background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
-  animation:sheen 6s linear infinite}
-@keyframes sheen{to{background-position:220% 0}}
-.lead{font-size:18.5px;color:var(--dim);max-width:60ch;margin:20px auto 0;line-height:1.6}
-.lead em{color:var(--tx);font-style:normal;font-weight:600}
-.cta{display:flex;gap:13px;justify-content:center;flex-wrap:wrap;margin-top:30px}
-.subnote{margin-top:15px;font-size:13.5px;color:var(--faint)}
-.pipe{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;margin-top:34px;
-  font-size:13.5px;color:var(--dim)}
-.pipe span{background:var(--ink2);border:1px solid var(--line);border-radius:9px;padding:8px 14px}
-.pipe i{font-style:normal;color:var(--brass);animation:flow 1.9s ease-in-out infinite}
-.pipe i:nth-of-type(2){animation-delay:.3s}
-.pipe i:nth-of-type(3){animation-delay:.6s}
-@keyframes flow{0%,100%{opacity:.28;transform:translateX(-3px)}50%{opacity:1;transform:translateX(3px)}}
-.shotwrap{margin-top:56px;position:relative}
-.shotwrap::after{content:"";position:absolute;inset:auto 0 -1px 0;height:38%;
-  background:linear-gradient(180deg,transparent,var(--ink));pointer-events:none}
-.shot{width:100%;max-width:1180px;margin:0 auto;border:1px solid var(--line2);
-  border-radius:14px 14px 0 0;box-shadow:0 -1px 60px color-mix(in srgb,var(--brass) 13%,transparent)}
-
-/* ═══ the problem ═══ */
-.why{border-top:1px solid var(--line);background:var(--ink)}
-.why-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:72px;align-items:center}
-@media(max-width:900px){.why-grid{grid-template-columns:1fr;gap:38px}}
-.why h2{font-size:clamp(28px,3.4vw,40px);line-height:1.2;text-wrap:balance}
-.why p{color:var(--dim);margin-top:18px;font-size:17px}
-.why strong{color:var(--tx);font-weight:600}
-.facts{display:flex;flex-direction:column;gap:14px}
-.fact{display:flex;gap:15px;align-items:flex-start;background:var(--ink2);
-  border:1px solid var(--line);border-left:2px solid var(--brass);border-radius:0 12px 12px 0;
-  padding:17px 19px}
-.fact>div>b{display:block;font-size:15.5px;margin-bottom:3px}
-.fact span{font-size:14px;color:var(--dim);line-height:1.55}
-.fact .n{font-family:"Marcellus",serif;font-size:26px;color:var(--brass);line-height:1;min-width:44px}
-
-/* ═══ section heads ═══ */
-.sec-h{text-align:center;margin-bottom:52px}
-.sec-h .k{font-size:11.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--brass)}
-.sec-h h2{font-size:clamp(29px,3.6vw,42px);margin-top:12px;line-height:1.15;text-wrap:balance}
-.sec-h p{color:var(--dim);margin:14px auto 0;max-width:56ch;font-size:16.5px}
-
-/* ═══ demos ═══ */
-.demos{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-@media(max-width:880px){.demos{grid-template-columns:1fr}}
-.demo{background:var(--ink2);border:1px solid var(--line);border-radius:15px;overflow:hidden;
-  box-shadow:var(--sh)}
-.demo img{border-bottom:1px solid var(--line)}
-.demo figcaption{padding:17px 19px}
-.demo figcaption>b{display:block;font-size:16.5px;margin-bottom:5px}
-.demo figcaption>span{display:block;font-size:14.5px;color:var(--dim);line-height:1.6}
-.demo figcaption span b{font-weight:600;color:var(--tx)}
-
-/* ═══ feature rows (editorial, not card soup) ═══ */
-.rows{display:flex;flex-direction:column;gap:22px}
-.row{display:grid;grid-template-columns:auto 1fr;gap:22px;background:var(--ink2);
-  border:1px solid var(--line);border-radius:15px;padding:26px 28px}
-@media(max-width:700px){.row{grid-template-columns:1fr;gap:14px;padding:22px}}
-.row .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:20px;
-  background:color-mix(in srgb,var(--brass) 12%,transparent);
-  border:1px solid var(--brass-dim);flex:none}
-.row h3{font-size:19px;line-height:1.3}
-.row p{color:var(--dim);margin-top:8px;font-size:15.5px;line-height:1.65}
-.row p b,.row p strong{color:var(--tx);font-weight:600}
-.row em{font-style:italic;color:var(--tx)}
-.tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
-.tag{font-size:12.5px;color:var(--dim);background:var(--ink3);border:1px solid var(--line);
-  border-radius:7px;padding:4px 10px}
-
-/* ═══ steps ═══ */
-.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
-.step{background:var(--ink2);border:1px solid var(--line);border-radius:14px;padding:24px;
-  position:relative}
-.step .n{font-family:"Marcellus",serif;font-size:15px;width:30px;height:30px;border-radius:9px;
-  display:grid;place-items:center;background:var(--brass);color:#1a1305;font-weight:400;
-  margin-bottom:14px}
-.step h4{font-size:16.5px}
-.step p{color:var(--dim);font-size:14.5px;margin-top:7px;line-height:1.6}
-.step.warn{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 7%,var(--ink2))}
-.note{margin-top:24px;border:1px solid var(--brass-dim);border-radius:13px;padding:20px 22px;
-  background:color-mix(in srgb,var(--brass) 6%,transparent);font-size:15.5px;color:var(--dim);
-  line-height:1.7}
-.note b{color:var(--tx)}
-
-/* ═══ faq ═══ */
-.faq{max-width:840px;margin:0 auto}
-details{border-bottom:1px solid var(--line)}
-summary{cursor:pointer;padding:19px 0;font-weight:600;font-size:16.5px;list-style:none;
-  display:flex;align-items:center;gap:12px}
-summary::-webkit-details-marker{display:none}
-summary::after{content:"+";margin-left:auto;color:var(--brass);font-size:21px;font-weight:400;
-  transition:transform .2s}
-details[open] summary::after{transform:rotate(45deg)}
-details p{color:var(--dim);padding-bottom:19px;font-size:15.5px;line-height:1.7}
-details p+p{margin-top:-6px}
-
-/* ═══ footer ═══ */
-footer{border-top:1px solid var(--line);padding:54px 0;text-align:center;color:var(--faint);
-  font-size:14px}
-.flinks{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;
-  font-size:14.5px}
-.flinks a{color:var(--tx);font-weight:500}
-.flinks a:hover{color:var(--brass)}
-
-/* ═══ motion ═══ */
-.reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
-.reveal.in{opacity:1;transform:none}
-.reveal[style*="--i"]{transition-delay:calc(var(--i) * 60ms)}
-.row,.step,.demo,.fact{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
-.row:hover,.step:hover,.demo:hover,.fact:hover{transform:translateY(-3px);
-  border-color:var(--brass-dim);box-shadow:0 14px 34px rgba(0,0,0,.3)}
-@media (prefers-reduced-motion:reduce){
-  *{animation:none!important}
-  .reveal{opacity:1;transform:none;transition:none}
-  .row:hover,.step:hover,.demo:hover,.fact:hover{transform:none}
-  html{scroll-behavior:auto}
+@media(max-width:840px){
+  .nav-links{display:none}.menu-btn{display:none;margin-left:auto}.nav-download{display:none}.mobile-menu{display:block}
+  .menu-ready .menu-btn{display:grid}.menu-ready .mobile-menu{display:none}.menu-ready .mobile-menu.open{display:block}
+  .workflow-layout{grid-template-columns:1fr}.stage-tabs{display:grid;grid-template-columns:repeat(5,minmax(94px,1fr));gap:5px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:3px}
+  .stage-tab{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;min-height:68px;padding:9px;scroll-snap-align:start}.stage-tab small{display:none}.stage-tab b{font-size:11.5px;line-height:1.2}.stage-check{display:none}
+  .download-panel{grid-template-columns:1fr;text-align:center}.download-panel .actions{justify-content:center}
+}
+@media(max-width:620px){
+  .brand-kicker{display:none}.brand-name{font-size:13px}.hero{text-align:left}.hero-copy{text-align:left}.hero-copy h1{font-size:clamp(39px,12vw,54px);margin-inline:0;max-width:10ch}.hero-lead{font-size:16.5px;margin-inline:0}
+  .hero-actions,.trust-line{justify-content:flex-start}.hero-actions .btn{width:100%}.trust-line{display:grid;grid-template-columns:1fr 1fr;gap:9px 16px}
+  .product-note{display:none}.product-frame{padding:7px;border-radius:12px}.frame-bar{height:27px}.screen-clip{aspect-ratio:4/3}.screen-clip img{width:190%;max-width:none;transform:translateX(-11.5%)}.screen-clip::after{height:8%}
+  .proof-grid{grid-template-columns:1fr 1fr}.proof-item{padding:17px 14px}.proof-item b{font-size:18px}
+  .section-head{text-align:left;margin-bottom:32px}.section-head p{margin-left:0}.section-head h2{font-size:32px}
+  .console-body{grid-template-columns:1fr}.workflow-console{padding:14px}
+  .advanced{grid-template-columns:1fr}.setup-grid{grid-template-columns:1fr}.setup-note{text-align:left}
+  .download-panel .actions .btn{width:100%}.footer-grid{flex-direction:column}.footer-links{gap:13px 18px}
+}
+@media(max-width:390px){.brand-name{max-width:116px;overflow:hidden;text-overflow:ellipsis}.nav-inner{gap:9px}}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;scroll-behavior:auto!important}.reveal,.reveal-ready .reveal{opacity:1;transform:none;transition:none}.btn,.stage-tab,.run-progress i{transition:none!important}.btn:hover,.stage-tab:hover{transform:none!important}
 }
 </style>
-<noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-<nav><div class="wrap">
-  <a class="brand" href="#top"><img src="logo.png" alt="" width="28" height="28"> <b>ExileBot 2 Pickit</b></a>
-  <div class="nlinks">
-    <a href="#demo">See it work</a>
-    <a href="#features">Features</a>
-    <a href="#start">Set up</a>
-    <a href="#faq">FAQ</a>
-    <a href="https://discord.gg/T7DU3Afve6">Discord</a>
-  </div>
-  <button class="tgl" id="tgl" title="Light / dark" aria-label="Toggle light or dark theme">◐</button>
-  <a class="btn btn-dl btn-sm" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest">⬇ Download</a>
-</div></nav>
-
-<header class="hero" id="top"><div class="wrap">
-  <span class="eyebrow">Path of Exile 2 · Exiled Bot 2</span>
-  <h1 class="serif">Your bot doesn't know<br><span class="g">what anything is worth.</span></h1>
-  <p class="lead">It does now. This reads the <em>live</em> Path of Exile 2 economy and writes a complete Exiled Bot 2 pickit — so your bot grabs what sells <em>today</em>, and walks past what doesn't.</p>
-  <div class="cta">
-    <a class="btn btn-dl" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest">⬇ Download for Windows</a>
-    <a class="btn btn-gh" href="https://github.com/c4Luffy/poe2-pickit-generator">View source</a>
-  </div>
-  <div class="subnote">One <span class="mono">.exe</span> · no Python · no installer · free &amp; open source</div>
-  <div class="pipe">
-    <span>🌐 poe.ninja prices</span><i>→</i><span>⚔️ your floors</span><i>→</i><span>📄 .ipd pickit</span><i>→</i><span>🤖 your bot</span>
-  </div>
-  <div class="shotwrap">
-    <img class="shot" src="screenshot.png" width="1604" height="921" alt="The Generate tab: the Quick start presets, the two value floors, and the last run's status">
-  </div>
-</div></header>
-
-<section class="why"><div class="wrap">
-  <div class="why-grid">
-    <div class="reveal">
-      <h2 class="serif">A pickit goes stale the moment you write it.</h2>
-      <p>Hand-written pickits freeze one week's prices forever. The market moves, and your bot keeps hauling home what <strong>used to</strong> be worth something — while stepping over what's worth a Divine <strong>this week</strong>.</p>
-      <p>And when Path of Exile 2 patches, it quietly <strong>renames the stats your rules hunt for</strong>. The rule still <em>looks</em> right. It just never matches anything again, and nothing tells you.</p>
+<nav class="site-nav" aria-label="Primary navigation">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="PoE 2 Pickit Generator home">
+      <img src="logo.png" alt="" width="31" height="31">
+      <span><span class="brand-name">PoE 2 Pickit Generator</span><span class="brand-kicker">for Exiled Bot 2</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="#workflow">How it works</a><a href="#features">Features</a><a href="#setup">Set up</a><a href="#faq">FAQ</a><a href="https://discord.gg/T7DU3Afve6">Discord</a>
     </div>
-    <div class="facts">
-      <div class="fact reveal" style="--i:0"><span class="n">1</span><div><b>Prices are pulled live</b><span>Every generate reads your league's real economy from poe.ninja. Nothing is hardcoded.</span></div></div>
-      <div class="fact reveal" style="--i:1"><span class="n">2</span><div><b>Rules are validated first</b><span>Every mod is checked against Exiled Bot's own 27,000-mod list before the file reaches your bot.</span></div></div>
-      <div class="fact reveal" style="--i:2"><span class="n">3</span><div><b>Dead rules get caught</b><span>The app checks itself against the game's live mod tables and names any rule the patch just killed.</span></div></div>
-    </div>
+    <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mobileMenu">☰</button>
+    <a class="btn btn-primary btn-sm nav-download download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe">Download</a>
   </div>
-</div></section>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#workflow">How it works</a><a href="#features">Features</a><a href="#setup">Set up</a><a href="#faq">FAQ</a><a href="https://discord.gg/T7DU3Afve6">Discord</a>
+  </div>
+</nav>
 
-<section id="demo"><div class="wrap">
-  <div class="sec-h reveal">
-    <div class="k">See it work</div>
-    <h2 class="serif">Two decisions. Both one click.</h2>
-    <p>How greedy the bot should be — and how the app looks while it does it.</p>
-  </div>
-  <div class="demos">
-    <figure class="demo reveal" style="--i:0">
-      <img src="presets.gif" width="900" height="414" loading="lazy" alt="The real app: clicking each preset — Vacuum, Balanced, Strict, Chase, Currency only — and the value floors changing to match">
-      <figcaption><b>Pick how greedy it is</b><span>Five one-click presets, from 🧲 <b>Vacuum</b> to 👑 <b>Chase</b>. Each one tells you in plain English what it grabs — <b>and what it costs you</b>.</span></figcaption>
-    </figure>
-    <figure class="demo reveal" style="--i:1">
-      <img src="themes.gif" width="820" height="403" loading="lazy" alt="The real app in each of its nine themes">
-      <figcaption><b>Nine themes</b><span>From bone-white <b>Ossuary</b> to bioluminescent <b>Abyss</b> — each shown with its colour and its name, so nothing is a cryptic icon.</span></figcaption>
-    </figure>
-  </div>
-</div></section>
+<main id="main">
+  <header class="hero" id="top">
+    <div class="wrap hero-grid">
+      <div class="hero-copy reveal">
+        <span class="eyebrow">Path of Exile 2 · Exiled Bot 2</span>
+        <h1 class="serif">Live prices in. <span>A bot-ready pickit out.</span></h1>
+        <p class="hero-lead">Choose your league and how greedy the bot should be. The app turns <strong>today's poe.ninja prices</strong> into 2,000+ validated rules, then checks that Exiled Bot is actually using them.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe">Download <span class="version-label">v4.19.1</span> for Windows</a>
+          <a class="btn btn-secondary" href="#workflow">Watch the 30-second flow</a>
+        </div>
+        <p class="micro">2-minute setup once · one-click refresh afterward</p>
+        <div class="trust-line" aria-label="Download details">
+          <span><i>✓</i> Windows 10/11</span><span><i>✓</i> Portable <span class="mono">.exe</span></span><span><i>✓</i> No installer · <span class="file-size-value">single file</span></span><span><i>✓</i> MIT open source</span>
+        </div>
+        <details class="trust-more">
+          <summary>Why Windows may show a warning</summary>
+          <p class="trust-copy">This is a free, unsigned community tool, so SmartScreen may ask you to confirm. The <a href="https://github.com/c4Luffy/poe2-pickit-generator">complete source</a>, automated build, and <a class="checksum-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/SHA256SUMS.txt">SHA-256 checksum</a> are public. The app reads prices from poe.ninja and updates from GitHub; it never asks for your game account.</p>
+        </details>
+      </div>
 
-<section id="features"><div class="wrap">
-  <div class="sec-h reveal">
-    <div class="k">What it does</div>
-    <h2 class="serif">Everything valuable is picked by default.</h2>
-    <p>You just say what to skip. These are the parts that matter — the rest gets out of your way.</p>
-  </div>
-  <div class="rows">
-
-    <div class="row reveal" style="--i:0">
-      <div class="ic">🪙</div>
-      <div>
-        <h3>It knows what things are worth — today</h3>
-        <p>Pulls your league's real economy from poe.ninja on every run: currency, uniques, tablets, essences, runes, fragments, chance and craft bases. Set two value floors, or let <b>Auto-floor</b> read the market and set them for you.</p>
-        <div class="tags"><span class="tag">2,000+ rules per pickit</span><span class="tag">350+ item icons built in</span><span class="tag">live poe.ninja prices</span></div>
+      <div class="product-stage reveal">
+        <div class="product-frame">
+          <div class="frame-bar"><span class="lights"><i></i><i></i><i></i></span><span>Pickit Generator</span><span class="live"><span class="dot"></span> prices ready</span></div>
+          <div class="screen-clip"><a class="screen-zoom" href="screenshot.png" target="_blank" rel="noopener" aria-label="Open the full-size app screenshot"><img src="screenshot.png" width="1604" height="921" alt="Generate screen showing league, presets, value floors, and validation status"></a></div>
+        </div>
+        <div class="product-note"><b>Validated before deploy</b> Bad rules never reach the bot.</div>
       </div>
     </div>
+  </header>
 
-    <div class="row reveal" style="--i:1">
-      <div class="ic">⚖️</div>
-      <div>
-        <h3>Rare gear is scored, not guessed</h3>
-        <p>All 17 gear slots have a recipe: a rare is kept only if its stats add up to a worthwhile score. Every weight comes from that stat's <b>real top roll in the game data</b> — not a guess — and every scored stat is verified against the bot's own mod list. Toggle any slot on or off.</p>
-        <div class="tags"><span class="tag">17 slot recipes</span><span class="tag">verified stat ids</span><span class="tag">per-slot switches</span></div>
+  <div class="proof" aria-label="Product proof">
+    <div class="wrap proof-grid">
+      <div class="proof-item live"><b><span class="dot"></span> Live</b><span>poe.ninja league prices</span></div>
+      <div class="proof-item"><b>2,000+</b><span>rules in a generated pickit</span></div>
+      <div class="proof-item"><b>27,000</b><span>bot mods checked by validator</span></div>
+      <div class="proof-item"><b>17</b><span>rare-gear slot recipes</span></div>
+    </div>
+  </div>
+
+  <section class="workflow" id="workflow">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="eyebrow">The complete flow</span><h2 class="serif">From market prices to a bot that is listening.</h2><p>No theme tour and no mystery steps. This is the full job the app performs every time you Generate.</p></div>
+      <div class="workflow-layout reveal">
+        <div class="stage-tabs" role="group" aria-label="Generation workflow">
+          <button class="stage-tab" type="button" aria-label="Step 1: Choose league" aria-pressed="true" data-stage="0"><span class="stage-number">01</span><span><b>Choose league</b><small>Load the right economy</small></span><span class="stage-check" aria-hidden="true">✓</span></button>
+          <button class="stage-tab" type="button" aria-label="Step 2: Pick a preset" aria-pressed="false" data-stage="1"><span class="stage-number">02</span><span><b>Pick a preset</b><small>Vacuum to Chase</small></span><span class="stage-check" aria-hidden="true">✓</span></button>
+          <button class="stage-tab" type="button" aria-label="Step 3: Generate" aria-pressed="false" data-stage="2"><span class="stage-number">03</span><span><b>Generate</b><small>Prices become rules</small></span><span class="stage-check" aria-hidden="true">✓</span></button>
+          <button class="stage-tab" type="button" aria-label="Step 4: Validate" aria-pressed="false" data-stage="3"><span class="stage-number">04</span><span><b>Validate</b><small>Catch dead stat IDs</small></span><span class="stage-check" aria-hidden="true">✓</span></button>
+          <button class="stage-tab" type="button" aria-label="Step 5: Deploy and confirm" aria-pressed="false" data-stage="4"><span class="stage-number">05</span><span><b>Deploy &amp; confirm</b><small>Make sure the bot uses it</small></span><span class="stage-check" aria-hidden="true">✓</span></button>
+        </div>
+        <div class="workflow-console" aria-live="polite">
+          <div class="console-head"><span class="dot"></span><b id="stageTitle">League economy loaded</b><span class="console-state" id="stageState">READY</span></div>
+          <div class="console-body">
+            <div class="run-card">
+              <div class="run-k" id="stageKicker">Trade league</div>
+              <div class="run-v" id="stageValue">Rise of the Abyssal <span>· live</span></div>
+              <p class="run-summary" id="stageCopy">Currency, uniques, bases, runes, essences, fragments and tablets are priced for this league.</p>
+              <div class="run-progress"><i id="stageProgress"></i></div>
+            </div>
+            <div class="run-status">
+              <div class="run-k">Run checklist</div>
+              <div class="run-steps">
+                <div class="run-step" data-check="0"><i></i><span>League prices loaded</span><strong>READY</strong></div>
+                <div class="run-step" data-check="1"><i></i><span>Preset &amp; floors selected</span><strong>—</strong></div>
+                <div class="run-step" data-check="2"><i></i><span>Pickit assembled</span><strong>—</strong></div>
+                <div class="run-step" data-check="3"><i></i><span>Rules validated</span><strong>—</strong></div>
+                <div class="run-step" data-check="4"><i></i><span>Bot profile confirmed</span><strong>—</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="workflow-cta reveal"><a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe">Try it on your league</a></div>
+    </div>
+  </section>
+
+  <section class="pillars" id="features">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="eyebrow">Why it is different</span><h2 class="serif">Three jobs. Done properly.</h2><p>The advanced controls are there when you need them, but the product is built around three outcomes.</p></div>
+      <div class="pillar-grid">
+        <article class="pillar reveal"><span class="pillar-mark">01 · MARKET</span><h3>Live economy intelligence</h3><p>Every run reads your league instead of trusting a frozen price list. Two floors—or one preset—decide what is worth the bot's time today.</p><ul class="evidence"><li>Currency, uniques, bases and league items</li><li>Auto-floor adapts to market movement</li><li>Changed filter explains every difference</li></ul></article>
+        <article class="pillar reveal"><span class="pillar-mark">02 · SAFETY</span><h3>Validated, patch-resistant rules</h3><p>Every stat is checked against Exiled Bot's own mod data. When PoE2 renames something, the health check tells you which rule died.</p><ul class="evidence"><li>27,000-mod validation before deploy</li><li>Game-data health check at launch</li><li>Collapsed or malformed runs are blocked</li></ul></article>
+        <article class="pillar reveal"><span class="pillar-mark">03 · HANDOFF</span><h3>A bot handoff you can trust</h3><p>The app finds the Pickit folder, copies the output, then reads <span class="mono">pickit.ini</span> to confirm the bot is listening to the same filename.</p><ul class="evidence"><li>Bot folder auto-detection</li><li>One-click active-profile repair</li><li>Rotating backups and restore</li></ul></article>
+      </div>
+      <div class="advanced reveal" aria-label="Advanced capabilities">
+        <div class="advanced-item"><b>Rare gear scoring</b><span>Weighted recipes for all 17 gear slots</span></div>
+        <div class="advanced-item"><b>Five presets</b><span>Vacuum, Balanced, Strict, Chase, Currency</span></div>
+        <div class="advanced-item"><b>Run history</b><span>See what the market added or removed</span></div>
+        <div class="advanced-item"><b>Nine themes</b><span>The same Workbench, your preferred atmosphere</span></div>
       </div>
     </div>
+  </section>
 
-    <div class="row reveal" style="--i:2">
-      <div class="ic">🩺</div>
-      <div>
-        <h3>It catches what the game breaks</h3>
-        <p>PoE2 renames stats every patch. When it does, a rule still <em>looks</em> right but matches nothing — your bot silently walks past loot and <b>no error appears anywhere</b>. The app checks itself against the game's live mod and item tables at launch, and names exactly which rules have gone dead.</p>
-        <div class="tags"><span class="tag">checks 67 stat ids</span><span class="tag">runs at launch</span><span class="tag">self-updating data</span></div>
+  <section class="setup" id="setup">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="eyebrow">Set up once</span><h2 class="serif">Two minutes now. One click from then on.</h2><p>The final profile check is the step most tools ignore. This one verifies it for you.</p></div>
+      <div class="setup-grid">
+        <article class="setup-step reveal"><span class="setup-n">01</span><h3>Download &amp; open</h3><p>Run the portable Windows <span class="mono">.exe</span>. There is no installer and no Python setup.</p></article>
+        <article class="setup-step reveal"><span class="setup-n">02</span><h3>Choose league &amp; preset</h3><p>Start with Balanced or pick exactly how aggressive the bot should be.</p></article>
+        <article class="setup-step reveal"><span class="setup-n">03</span><h3>Generate</h3><p>The app fetches prices, builds 2,000+ rules, validates them and copies the files.</p></article>
+        <article class="setup-step reveal"><span class="setup-n">04</span><h3>Confirm the bot profile</h3><p>The connection check verifies <span class="mono">active_profile</span> and offers to fix a mismatch.</p></article>
+      </div>
+      <div class="setup-note reveal"><strong>Why the last check matters:</strong> Exiled Bot only loads the <span class="mono">.ipd</span> named by <span class="mono">active_profile</span>. A copied file can exist while the bot keeps reading an old one. The app catches that silent failure before it costs you loot.</div>
+      <div class="download-panel reveal">
+        <div><h3>Portable, inspectable, recoverable.</h3><p><span class="version-label">v4.19.1</span> · Windows 10/11 · no installer · <span class="file-size-value">single .exe</span> · public source and SHA-256 · backups before every replace</p></div>
+        <div class="actions"><a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe">Download for Windows</a><a class="btn btn-secondary" href="https://github.com/c4Luffy/poe2-pickit-generator">View source</a></div>
       </div>
     </div>
+  </section>
 
-    <div class="row reveal" style="--i:3">
-      <div class="ic">🔌</div>
-      <div>
-        <h3>It checks your bot is actually listening</h3>
-        <p>Most tools set a folder, turn on auto-copy, and let you assume it worked. This one reads Exiled Bot's own <span class="mono">pickit.ini</span> and tells you the truth — <em>"the bot is IGNORING everything you generate"</em> — with a <b>Fix it for me</b> button. It even finds your bot folder for you on first launch.</p>
-        <div class="tags"><span class="tag">auto-detects your bot</span><span class="tag">one-click fix</span><span class="tag">no silent failure</span></div>
+  <section class="faq-section" id="faq">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="eyebrow">Good to know</span><h2 class="serif">Straight answers before you install.</h2></div>
+      <div class="faq reveal">
+        <details open><summary>What does it actually create?</summary><p>A full Exiled Bot 2 pickit (<span class="mono">.ipd</span>) with 2,000+ rules, plus an optional matching in-game loot filter. Generate again whenever you want current market prices.</p></details>
+        <details><summary>Why might Windows warn about the download?</summary><p>It is a free unsigned community app, so SmartScreen may ask you to confirm. The source, build workflow and SHA-256 checksum are public. The app only reads public price/update data and never asks for your game account.</p></details>
+        <details><summary>What are the value floors?</summary><p>One floor covers currency and item categories; the other covers unique gear. Anything below its floor is skipped. Presets and Auto-floor set sensible values if you do not want to tune them manually.</p></details>
+        <details><summary>How does rare gear scoring work?</summary><p>Each of the 17 slots has a weighted recipe. A rare is kept only when its useful stats clear that slot's score, using verified stat IDs and real top rolls from game data.</p></details>
+        <details><summary>What if a game patch breaks a rule?</summary><p>The app refreshes its game data and runs a health check against live mod tables. Dead or renamed rules are named instead of silently failing.</p></details>
+        <details><summary>My bot is not picking things up—what should I check?</summary><p>Run the connection check first. It verifies the Pickit folder and confirms that <span class="mono">pickit.ini</span>'s <span class="mono">active_profile</span> matches the generated filename. Then Generate once more.</p></details>
       </div>
     </div>
+  </section>
 
-    <div class="row reveal" style="--i:4">
-      <div class="ic">🛡️</div>
-      <div>
-        <h3>It refuses to ship you a broken pickit</h3>
-        <p>Every mod is validated against the bot's 27,000-mod list, with "did you mean" fixes. If a run produces a collapsed or malformed pickit, it is <b>never auto-deployed</b> — the file stays on disk for you to look at. Backups rotate on every generate, with one-click restore.</p>
-        <div class="tags"><span class="tag">27,000-mod validator</span><span class="tag">rotating backups</span><span class="tag">safety net on deploy</span></div>
-      </div>
-    </div>
+  <section class="final-cta">
+    <div class="wrap reveal"><h2 class="serif">Stop farming yesterday's prices.</h2><p>Set up once. After that, one Generate keeps the pickit current, validated and pointed at the right bot profile.</p><div class="hero-actions"><a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe">Download <span class="version-label">v4.19.1</span> for Windows</a><a class="btn btn-secondary" href="https://discord.gg/T7DU3Afve6">Ask the community</a></div><p class="micro">Free · MIT licensed · no installer · no account access</p></div>
+  </section>
+</main>
 
-    <div class="row reveal" style="--i:5">
-      <div class="ic">🎯</div>
-      <div>
-        <h3>Junk stays on the ground</h3>
-        <p>Rules filter item level and tier <b>before</b> pickup — not after. The bot never wastes a trip hauling a low-level base home just to vendor it. And after each run, a <b>Changed</b> filter shows exactly which rules the market added and which dropped out.</p>
-        <div class="tags"><span class="tag">pre-pickup filtering</span><span class="tag">run history</span><span class="tag">change diffs</span></div>
-      </div>
-    </div>
-
+<footer>
+  <div class="wrap footer-grid">
+    <div><a class="brand" href="#top"><img src="logo.png" alt="" width="31" height="31"><span class="brand-name">PoE 2 Pickit Generator</span></a><p class="fineprint">Built for the Exiled Bot 2 community · prices by <a href="https://poe.ninja">poe.ninja</a></p><p class="fineprint">Not affiliated with Grinding Gear Games or Exiled Bot.</p></div>
+    <div class="footer-links"><a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest">Releases</a><a href="https://github.com/c4Luffy/poe2-pickit-generator">Source</a><a href="https://github.com/c4Luffy/poe2-pickit-generator/blob/main/CHANGELOG.md">Changelog</a><a href="https://discord.gg/T7DU3Afve6">Discord</a><a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a></div>
   </div>
-  <p style="text-align:center;margin-top:30px;color:var(--dim)">
-    New things ship often — <a href="https://github.com/c4Luffy/poe2-pickit-generator/blob/main/CHANGELOG.md">read the full changelog →</a></p>
-</div></section>
-
-<section id="start" style="border-top:1px solid var(--line)"><div class="wrap">
-  <div class="sec-h reveal">
-    <div class="k">Set up</div>
-    <h2 class="serif">Running in four steps.</h2>
-    <p>The last one is the step everybody misses — and it's the difference between the bot using your pickit and quietly ignoring it.</p>
-  </div>
-  <div class="steps">
-    <div class="step reveal" style="--i:0"><div class="n">1</div><h4>Download &amp; open</h4>
-      <p>Grab the <span class="mono">.exe</span> and double-click. Windows warning? → More info → Run anyway.</p></div>
-    <div class="step reveal" style="--i:1"><div class="n">2</div><h4>Pick a preset, Generate</h4>
-      <p>Choose your league, pick how greedy the bot should be, and press ⚡ Generate. Live prices in, pickit out.</p></div>
-    <div class="step reveal" style="--i:2"><div class="n">3</div><h4>It finds your bot</h4>
-      <p>On first launch the app looks for your <span class="mono">Configuration\default\Pickit</span> folder and, if it finds one, turns on Auto-copy for you.</p></div>
-    <div class="step warn reveal" style="--i:3"><div class="n">4</div><h4>⚠️ Tell the bot which file</h4>
-      <p>Open the bot's <span class="mono">pickit.ini</span> and set <span class="mono">active_profile=poe2_pickit</span> — it must match the app's output name.</p></div>
-  </div>
-  <div class="note reveal">
-    <b>Why step 4 matters more than the rest:</b> Exiled Bot only ever loads the one <span class="mono">.ipd</span> named by <span class="mono">active_profile</span>. Get it wrong and auto-copy still reports <em>success</em>, the file really does land in the folder — and <b>the bot carries on reading whatever old pickit it was already on.</b> Nothing looks broken. Nothing you generate is ever used. The app's <b>connection check</b> catches this for you and offers a one-click fix.
-  </div>
-</div></section>
-
-<section id="faq" style="border-top:1px solid var(--line)"><div class="wrap">
-  <div class="sec-h reveal">
-    <div class="k">FAQ</div>
-    <h2 class="serif">How it works &amp; good to know.</h2>
-  </div>
-  <div class="faq">
-    <details open><summary>How does it actually work?</summary>
-      <p>Pick your league and press <b>⚡ Generate</b>. The app pulls live poe.ninja prices, works out what's worth money <em>right now</em>, and writes a full Exiled Bot 2 pickit (<span class="mono">.ipd</span>) — 2,000+ rules — plus a matching in-game loot filter. Point the bot at the file once, and every future Generate refreshes it on its own.</p></details>
-    <details><summary>What are the value floors?</summary>
-      <p>Two numbers. The first covers <b>everything that isn't unique gear</b> — currency, runes, essences, fragments, tablets, chance and craft bases. The second covers <b>unique gear</b>. Anything below its floor is left on the ground.</p>
-      <p>Uniques sit higher because cheap ones drop constantly and just eat stash tabs. Not sure where to start? Pick a preset — or turn on <b>Auto floor</b> and it reads the current economy for you.</p></details>
-    <details><summary>Do I have to find the bot folder myself?</summary>
-      <p>No. On first launch the app looks for your Exiled Bot install and, if it finds one, sets the folder and turns on Auto-copy for you. There's an <b>Auto-detect</b> button in Settings to re-run it. It only accepts a folder that has the bot's own <span class="mono">pickit.ini</span> beside it, so it won't grab the wrong one.</p></details>
-    <details><summary>How does it decide a rare is worth keeping?</summary>
-      <p>Each of the 17 gear slots has a scoring recipe: a rare's stats are added up by weight, and it's kept only if the total clears a threshold. Every weight comes from that stat's real top roll in the game data, and every scored stat is checked against the bot's own mod list — no guesswork.</p></details>
-    <details><summary>Do I need to reinstall when the game is patched?</summary>
-      <p>No. Unique prices are pulled live on every Generate, and the bundled base and category lists update themselves from GitHub at launch. A <b>game-data health check</b> also flags when a patch has renamed or removed something your rules rely on.</p></details>
-    <details><summary>My bot isn't picking things up</summary>
-      <p>Nine times out of ten it's <b>step 4</b>: open the bot's <span class="mono">pickit.ini</span> and check <span class="mono">active_profile</span> matches the app's <b>Output file name</b>. The bot loads <em>only</em> the file named there.</p>
-      <p>Then, in order: did you press <b>Generate</b> after changing anything? Is <b>Settings → Game data health</b> clean — a patch can silently kill rules. And is your <b>currency floor</b> set so high it's binning runes and essences?</p></details>
-    <details><summary>What's the .ipd vs the .filter?</summary>
-      <p>The <span class="mono">.ipd</span> is the pickit the <b>bot</b> reads — that's the one that matters. The <span class="mono">.filter</span> is a matching in-game loot filter for manual play, so what the bot values and what you see on the ground line up.</p></details>
-    <details><summary>Is it safe? Windows flagged the download</summary>
-      <p>It's an unsigned free tool, so Windows shows a caution — click <b>More info → Run anyway</b>. The full source is public on GitHub, and it only ever talks to poe.ninja and GitHub.</p></details>
-    <details><summary>Does it play the game or trade for me?</summary>
-      <p>No. It only writes the pickit file (and an optional loot filter). It never touches your account — prices are read-only from poe.ninja.</p></details>
-  </div>
-</div></section>
-
-<footer><div class="wrap">
-  <div class="flinks">
-    <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest">Download</a>
-    <a href="https://github.com/c4Luffy/poe2-pickit-generator">Source</a>
-    <a href="https://github.com/c4Luffy/poe2-pickit-generator/blob/main/CHANGELOG.md">Changelog</a>
-    <a href="https://discord.gg/T7DU3Afve6">Discord</a>
-    <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
-  </div>
-  <div>Built for the Exiled Bot 2 community · prices by <a href="https://poe.ninja">poe.ninja</a> · MIT</div>
-  <div style="margin-top:6px;color:var(--faint)">Not affiliated with Grinding Gear Games or Exiled Bot.</div>
-</div></footer>
+</footer>
 
 <script>
-/* theme toggle — remembers your choice, otherwise follows the OS */
 (function(){
-  var root=document.documentElement, t=document.getElementById("tgl");
-  t.onclick=function(){
-    var n=root.getAttribute("data-theme")==="dark"?"light":"dark";
-    root.setAttribute("data-theme",n); localStorage.setItem("theme",n);
-  };
-})();
+  var root=document.documentElement;
+  var menuBtn=document.getElementById("menuBtn");
+  var mobileMenu=document.getElementById("mobileMenu");
+  function closeMenu(){mobileMenu.classList.remove("open");menuBtn.setAttribute("aria-expanded","false");menuBtn.setAttribute("aria-label","Open navigation");}
+  menuBtn.addEventListener("click",function(){
+    var open=!mobileMenu.classList.contains("open");
+    mobileMenu.classList.toggle("open",open);menuBtn.setAttribute("aria-expanded",String(open));menuBtn.setAttribute("aria-label",open?"Close navigation":"Open navigation");
+  });
+  mobileMenu.querySelectorAll("a").forEach(function(link){link.addEventListener("click",closeMenu);});
+  document.addEventListener("keydown",function(event){if(event.key==="Escape")closeMenu();});
+  root.classList.add("menu-ready");
 
-/* reveal on scroll — unobserves after firing, so it costs nothing once seen */
-(function(){
-  var els=document.querySelectorAll(".reveal");
-  if(!("IntersectionObserver" in window)){
-    els.forEach(function(e){e.classList.add("in");}); return;
+  var stageData=[
+    ["League economy loaded","READY","Trade league","Rise of the Abyssal <span>· live</span>","Currency, uniques, bases, runes, essences, fragments and tablets are priced for this league."],
+    ["Balanced preset selected","SET","Loot strategy","Balanced <span>· everyday farming</span>","Plain-English presets set both floors and the category switches. Every value remains editable."],
+    ["Pickit assembled","2,184 RULES","Output","poe2_pickit.ipd <span>· built</span>","Live values are converted into the complete pickit plus a matching optional loot filter."],
+    ["Validation passed","0 ERRORS","Safety gate","27,000 mods <span>· checked</span>","Dead stat IDs, malformed conditions and collapsed output are caught before anything is deployed."],
+    ["Bot profile confirmed","CONNECTED","Handoff","active_profile <span>· poe2_pickit</span>","The file is copied, the bot configuration is read back, and a mismatch can be repaired with one click."]
+  ];
+  var tabs=Array.from(document.querySelectorAll(".stage-tab"));
+  var checks=Array.from(document.querySelectorAll(".run-step"));
+  function setStage(index){
+    tabs.forEach(function(tab,i){var selected=i===index;tab.setAttribute("aria-pressed",String(selected));tab.classList.toggle("done",i<=index);});
+    checks.forEach(function(row,i){var done=i<=index;row.classList.toggle("done",done);row.querySelector("i").textContent=done?"✓":"";row.querySelector("strong").textContent=done?(i===2?"2,184":i===3?"0 ERRORS":i===4?"CONNECTED":"READY"):"—";});
+    var d=stageData[index];document.getElementById("stageTitle").textContent=d[0];document.getElementById("stageState").textContent=d[1];document.getElementById("stageKicker").textContent=d[2];document.getElementById("stageValue").innerHTML=d[3];document.getElementById("stageCopy").textContent=d[4];document.getElementById("stageProgress").style.width=((index+1)*20)+"%";
   }
-  var io=new IntersectionObserver(function(entries){
-    entries.forEach(function(e){
-      if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); }
-    });
-  },{rootMargin:"0px 0px -8% 0px",threshold:.08});
-  els.forEach(function(e){io.observe(e);});
+  tabs.forEach(function(tab){tab.addEventListener("click",function(){setStage(Number(tab.dataset.stage));});});
+  setStage(0);
+
+  var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var reveals=document.querySelectorAll(".reveal");
+  if(reduce||!("IntersectionObserver" in window)){reveals.forEach(function(el){el.classList.add("in");});}
+  else{
+    try{
+      root.classList.add("reveal-ready");
+      var observer=new IntersectionObserver(function(entries){entries.forEach(function(entry){if(entry.isIntersecting){entry.target.classList.add("in");observer.unobserve(entry.target);}});},{rootMargin:"0px 0px -7% 0px",threshold:.06});
+      reveals.forEach(function(el){observer.observe(el);});
+    }catch(_){root.classList.remove("reveal-ready");}
+  }
+
+  fetch("https://api.github.com/repos/c4Luffy/poe2-pickit-generator/releases/latest",{headers:{Accept:"application/vnd.github+json"}})
+    .then(function(response){if(!response.ok)throw new Error("release lookup failed");return response.json();})
+    .then(function(release){
+      var version=String(release.tag_name||"").replace(/^v/i,"");
+      if(version)document.querySelectorAll(".version-label").forEach(function(el){el.textContent="v"+version;});
+      var asset=(release.assets||[]).find(function(item){return item.name==="ExileBot2PickitGenerator.exe";});
+      if(asset&&asset.browser_download_url){document.querySelectorAll(".download-link").forEach(function(link){link.href=asset.browser_download_url;});var size=(asset.size/1048576).toFixed(1)+" MB .exe";document.querySelectorAll(".file-size-value").forEach(function(el){el.textContent=size;});}
+      var sums=(release.assets||[]).find(function(item){return item.name==="SHA256SUMS.txt";});
+      if(sums&&sums.browser_download_url)document.querySelectorAll(".checksum-link").forEach(function(link){link.href=sums.browser_download_url;});
+    }).catch(function(){});
 })();
 </script>
 </body>
