@@ -127,6 +127,55 @@ footer{border-top:1px solid var(--bd);padding:40px 0;text-align:center;color:var
 .footer-links a:hover{color:var(--gold)}
 .mono{font-family:ui-monospace,"Cascadia Code",monospace;font-size:13.5px;color:var(--gold)}
 @media (max-width:620px){.nav-links a{display:none}.nav-links .btn-gh{display:none}}
+
+/* ── motion ─────────────────────────────────────────────────────────────── */
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@keyframes flow{0%,100%{opacity:.3;transform:translateX(-3px)}50%{opacity:1;transform:translateX(3px)}}
+@keyframes sheen{0%{background-position:-220% 0}100%{background-position:220% 0}}
+
+/* hero: staggered entrance, floating logo, flowing pipeline arrows */
+.hero .wrap>*{animation:rise .7s ease both}
+.hero .wrap>*:nth-child(3){animation-delay:.06s}
+.hero h1{animation-delay:.12s}
+.hero .lead{animation-delay:.20s}
+.hero .cta{animation-delay:.28s}
+.hero .subnote{animation-delay:.34s}
+.hero .pipe{animation-delay:.40s}
+.hero .chips{animation-delay:.48s}
+.hero .shot{animation-delay:.58s}
+.hero>.wrap>img:first-child{animation:rise .7s ease both,floaty 5s ease-in-out 1s infinite}
+.pipe i{animation:flow 1.9s ease-in-out infinite}
+.pipe i:nth-of-type(2){animation-delay:.3s}
+.pipe i:nth-of-type(3){animation-delay:.6s}
+.h1 .g,.hero h1 .g{background:linear-gradient(100deg,var(--gold) 35%,var(--gold2) 50%,var(--gold) 65%);
+  background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:sheen 5.5s linear infinite}
+
+/* scroll reveal */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal[style*="--i"]{transition-delay:calc(var(--i) * 55ms)}
+
+/* lift on hover */
+.card,.step,.tab,.demo{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.card:hover,.step:hover,.tab:hover,.demo:hover{transform:translateY(-4px);
+  border-color:var(--goldd);box-shadow:0 14px 34px rgba(0,0,0,.28)}
+
+/* the two live demos */
+.demos{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:880px){.demos{grid-template-columns:1fr}}
+.demo{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;overflow:hidden;box-shadow:var(--sh)}
+.demo img{width:100%;display:block;border-bottom:1px solid var(--bd)}
+.demo figcaption{padding:14px 17px}
+.demo figcaption b{display:block;font-size:15.5px;margin-bottom:3px}
+.demo figcaption span{font-size:13.5px;color:var(--dim);line-height:1.55}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important}
+  .reveal{opacity:1;transform:none;transition:none}
+  .card:hover,.step:hover,.tab:hover,.demo:hover{transform:none}
+}
 </style>
 </head>
 <body>
@@ -134,6 +183,7 @@ footer{border-top:1px solid var(--bd);padding:40px 0;text-align:center;color:var
 <nav><div class="wrap nav-in">
   <a class="brand" href="#top"><img class="m" src="logo.png" alt="" style="object-fit:contain;background:none"> ExileBot 2 Pickit</a>
   <div class="nav-links">
+    <a href="#demo">See it work</a>
     <a href="#features">Features</a>
     <a href="#start">Quick start</a>
     <a href="#faq">FAQ</a>
@@ -171,6 +221,22 @@ footer{border-top:1px solid var(--bd);padding:40px 0;text-align:center;color:var
   <img class="shot" src="screenshot.png" width="980" loading="lazy"
        alt="The Generate console — live prices, recipe thresholds with drag sliders, last-run status">
 </div></header>
+
+<section id="demo"><div class="wrap">
+  <div class="sec-h"><h2>See it work</h2><p>Two decisions, both one click: how greedy the bot should be, and how the app looks.</p></div>
+  <div class="demos">
+    <figure class="demo reveal">
+      <img src="presets.gif" width="860" height="322" loading="lazy"
+           alt="The five presets cycling - Vacuum, Balanced, Strict, Chase, Currency only - with their value floors updating">
+      <figcaption><b>Pick a preset</b><span>Five one-click setups, from 🧲 <b>Vacuum</b> to 👑 <b>Chase</b>. Each tells you exactly what it grabs — and what it costs you.</span></figcaption>
+    </figure>
+    <figure class="demo reveal">
+      <img src="themes.gif" width="820" height="360" loading="lazy"
+           alt="The app cross-fading through its nine themes">
+      <figcaption><b>Nine themes</b><span>From bone-white <b>Ossuary</b> to bioluminescent <b>Abyss</b> — each shown with its colour and name, so nothing is a cryptic icon.</span></figcaption>
+    </figure>
+  </div>
+</div></section>
 
 <section id="features"><div class="wrap">
   <div class="sec-h"><h2>What it does</h2><p>Everything valuable is picked by default — you just say what to skip.</p></div>
@@ -259,6 +325,24 @@ footer{border-top:1px solid var(--bd);padding:40px 0;text-align:center;color:var
   if(saved)root.setAttribute("data-theme",saved);
   function cur(){return root.getAttribute("data-theme")||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");}
   t.onclick=function(){var n=cur()==="dark"?"light":"dark";root.setAttribute("data-theme",n);localStorage.setItem("theme",n);};
+})();
+
+/* reveal cards/steps/tabs as they scroll in (staggered, and free if reduced-motion) */
+(function(){
+  var els=document.querySelectorAll(".card,.step,.tab,.demo");
+  els.forEach(function(el,i){
+    el.classList.add("reveal");
+    el.style.setProperty("--i", i % 6);          // stagger within a row, not down the page
+  });
+  if(!("IntersectionObserver" in window)){
+    els.forEach(function(el){el.classList.add("in");}); return;
+  }
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}
+    });
+  },{rootMargin:"0px 0px -8% 0px",threshold:.08});
+  els.forEach(function(el){io.observe(el);});
 })();
 </script>
 </body>
