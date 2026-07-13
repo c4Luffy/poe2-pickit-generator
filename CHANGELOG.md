@@ -6,6 +6,21 @@ download lives.
 
 ---
 
+## [v4.19.1] — 2026-07-13 — The side panel, cleaned up
+
+The rail was stacking a **fractal-noise SVG, vertical pinstripes, a gold gradient
+and inset shadows** — all behind the text. The texture was fighting the labels and
+made the whole panel read muddy. It's now one clean surface with a single hairline.
+
+- Nav labels were **Marcellus serif at 14px with 1px letter-spacing and a
+  drop-shadow**, which blurs at that size. Now a crisp sans. (Marcellus stays where
+  it belongs — the big page headings.)
+- A little more air between items.
+- **Hover** nudges the item 2px right; the **active tab** gets a soft brass glow so
+  the current page reads as *lit*, not just outlined. Both are single-element
+  transforms — no repeat of the whole-app transition that made theme switching
+  stutter.
+
 ## [v4.19.0] — 2026-07-13 — Nine themes, and a theme picker that tells you what they are
 
 ### Added — six new themes
@@ -819,6 +834,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.19.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.19.1
 [v4.19.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.19.0
 [v4.18.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.3
 [v4.18.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.2
