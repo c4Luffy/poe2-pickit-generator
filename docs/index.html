@@ -168,8 +168,11 @@ footer{border-top:1px solid var(--bd);padding:40px 0;text-align:center;color:var
 .demo{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;overflow:hidden;box-shadow:var(--sh)}
 .demo img{width:100%;display:block;border-bottom:1px solid var(--bd)}
 .demo figcaption{padding:14px 17px}
-.demo figcaption b{display:block;font-size:15.5px;margin-bottom:3px}
-.demo figcaption span{font-size:13.5px;color:var(--dim);line-height:1.55}
+/* ONLY the title is a block - a plain `b` selector also hit the bolded words
+   inside the sentence below and snapped each one onto its own line. */
+.demo figcaption>b{display:block;font-size:15.5px;margin-bottom:4px}
+.demo figcaption span{display:block;font-size:13.5px;color:var(--dim);line-height:1.6}
+.demo figcaption span b{display:inline;font-weight:600;color:var(--tx)}
 
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important}
