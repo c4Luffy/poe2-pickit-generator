@@ -1,6 +1,7 @@
 """Tests for the modern-UI bridge (webui/api.py) with mocked poe.ninja data."""
 
 import os
+import re
 
 import pytest
 
@@ -283,3 +284,91 @@ def test_item_check_fracture_targets_are_renderable_strings(api):
     for t in row["targets"]:
         assert isinstance(t["tier"], str) and isinstance(t["text"], str)
         assert t["text"] and "object" not in t["text"]
+
+
+def test_every_example_round_trips_through_the_checker(api):
+    """The 'Try an example' button is only useful if the item it hands back is one the
+    checker can actually read. Build a pile of them and feed each straight back in."""
+    api.cfg["min_exalt_unique"] = 1.0
+    for _ in range(40):
+        ex = api.example_item("L")
+        assert ex.get("ok"), ex
+        assert ex["kind"] in {"unique", "rare", "fractured"}
+        back = api.check_item(ex["text"], "L")
+        assert not back.get("error"), (ex, back)
+        assert back["verdict"] in {"pick", "ignore", "depends"}
+        assert back["item"]["base"], ex["text"]      # a base name was parsed out
+
+
+def test_example_covers_uniques_rares_and_fractured_items(api):
+    """One kind of example only ever teaches one kind of verdict."""
+    kinds = {api.example_item("L")["kind"] for _ in range(60)}
+    assert kinds == {"unique", "rare", "fractured"}, kinds
+
+
+def test_a_fractured_example_is_actually_fractured(api):
+    for _ in range(60):
+        ex = api.example_item("L")
+        if ex["kind"] != "fractured":
+            continue
+        assert "Fractured Item" in ex["text"] and "(fractured)" in ex["text"]
+        r = api.check_item(ex["text"], "L")
+        assert any(x["rule"] == "Fracture" for x in r["rows"]), r
+        return
+    raise AssertionError("never rolled a fractured example")
+
+
+def test_example_mods_show_a_roll_not_a_range(api):
+    """Our target text states the mod's range ('20-45%'); a real item shows one roll."""
+    mods = webapi.AppApi._mods_for_class("Wands", 5)
+    assert mods
+    for m in mods:
+        assert not re.search(r"\d-\d", m), m
+
+
+def test_example_still_works_without_a_league(api):
+    """Rare and fractured examples are built from bundled game data, so they work with
+    no league and no network. Only a unique example needs live prices."""
+    kinds = {api.example_item("")["kind"] for _ in range(40)}
+    assert kinds == {"rare", "fractured"}, kinds
+
+
+def test_prices_are_readable_at_both_ends_of_the_scale():
+    """Prices run from 0.05 ex to millions. '2483040.00 ex' reads like a bug."""
+    assert webapi.AppApi._ex(0.05) == "0.05"
+    assert webapi.AppApi._ex(6.2) == "6.20"
+    assert webapi.AppApi._ex(2483040.0) == "2,483,040"
+
+
+def test_example_item_mod_text_is_game_shaped(api):
+    """poe.ninja writes '[EnergyShield|Energy Shield]' over a range; the game shows the
+    display name and a rolled number."""
+    line = {"name": "N", "baseType": "B", "category": "Body Armour", "levelRequired": 64,
+            "explicitModifiers": [{"text": "+(100-150) to maximum [EnergyShield|Energy Shield]"},
+                                  {"text": "Skills have -(2-1.09) seconds to [Cooldown]"}]}
+    t = webapi.AppApi._as_item_text(line)
+    assert "+125 to maximum Energy Shield" in t
+    assert "[" not in t and "]" not in t and "(100-150)" not in t
+
+
+def test_price_shows_exalt_divine_and_chaos(api):
+    """People price things in different units. Divine = 700 ex and Chaos = 85 ex in
+    the fixture, so Big Sword (900 ex) is ~1.3 div / ~10.6 chaos."""
+    api.cfg["min_exalt_unique"] = 6.0
+    r = api.check_item(UNIQUE_TXT, "L")
+    detail = next(x for x in r["rows"] if x["kind"] == "pick")["detail"]
+    assert "900.00 ex" in detail and "div" in detail and "chaos" in detail
+
+
+def test_price_hides_units_that_would_round_to_noise(api):
+    """A 0.4 ex essence is 0.0006 div — printing '0.00 div' tells nobody anything."""
+    api.cfg["min_exalt_gear"] = 0.0
+    r = api.check_item(CHEAP_ESSENCE, "L")
+    detail = r["rows"][0]["detail"]
+    assert "0.40 ex" in detail and "div" not in detail
+
+
+def test_example_unique_is_not_always_the_same_one(api):
+    """It used to hand back the single priciest unique every time."""
+    names = {api.example_item("L")["name"] for _ in range(80)}
+    assert {"Big Sword", "Cheap Stick"} <= names, names

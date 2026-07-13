@@ -11,6 +11,7 @@ Everything JS-callable returns plain JSON-able dicts/lists. Long work
 """
 
 import os
+import random
 import re
 import shutil
 import threading
@@ -1712,6 +1713,9 @@ class AppApi:
         payloads = gen.fetch_all_payloads(league, gen.ALL_CATEGORIES)
         cur = payloads.get("currency")
         div = asm.compute_divine_rate(cur)[0] if isinstance(cur, dict) else 1.0
+        chaos = self._chaos_rate(cur)
+        # people price things in different units — show all three
+        px = lambda v: self._price_str(v, div, chaos)          # noqa: E731
 
         for key, _t, label, is_uniq in gen.ALL_CATEGORIES:
             p = payloads.get(key)
@@ -1741,12 +1745,12 @@ class AppApi:
                           gen.ALWAYS_PICK_RUNES if key == "runes" else [])
                 if key in gen.PICK_ALL_CATEGORIES:
                     detail = (f"Everything in {label} is picked up whatever it is worth — your "
-                              f"{eff:g} ex floor does not apply here. poe.ninja: {price:.2f} ex.")
+                              f"{eff:g} ex floor does not apply here. poe.ninja: {px(price)}.")
                 elif cands & (set(always) | gen.always_pick_force_names()):
                     detail = ("Always picked up, whatever the price — it is on the always-take "
-                              f"list. poe.ninja: {price:.2f} ex.")
+                              f"list. poe.ninja: {px(price)}.")
                 else:
-                    detail = (f"poe.ninja prices it at {price:.2f} ex, at or above your "
+                    detail = (f"poe.ninja prices it at {px(price)}, at or above your "
                               f"{eff:g} ex {what}.")
                 rows.append({"kind": "pick", "rule": label, "detail": detail})
             elif not cat_on:
@@ -1755,12 +1759,12 @@ class AppApi:
                              "fix": f"Economy → turn {label} back on."})
             elif price < eff:
                 rows.append({"kind": "ignore", "rule": label,
-                             "detail": f"Worth {price:.2f} ex, but your {what} is {eff:g} ex — "
-                                       f"it misses by {eff - price:.2f} ex.",
-                             "fix": f"Lower the {what} to {price:.1f} ex or less and it gets taken."})
+                             "detail": f"Worth {px(price)}, but your {what} is {eff:g} ex — "
+                                       f"it misses by {self._ex(eff - price)} ex.",
+                             "fix": f"Lower the {what} to {self._ex(price)} ex or less and it gets taken."})
             else:
                 rows.append({"kind": "ignore", "rule": label,
-                             "detail": f"Worth {price:.2f} ex, which clears your {eff:g} ex "
+                             "detail": f"Worth {px(price)}, which clears your {eff:g} ex "
                                        f"{what} — but you switched this item off.",
                              "fix": f"Economy → {label} → switch it back on."})
             break                              # priced in exactly one category
@@ -1899,6 +1903,172 @@ class AppApi:
                            f"{spec['threshold']}+. The copied text doesn't carry the rolls, so "
                            f"the bot makes this call in-game, not here.",
                  "weights": stats, "threshold": spec["threshold"]}]
+
+    # poe.ninja writes mods as "[EnergyShield|Energy Shield]" markup over a value
+    # range; the game writes the shown name and a rolled number.
+    _MOD_LINK  = re.compile(r"\[([^\]|]+)\|([^\]]+)\]")           # [Key|Shown] -> Shown
+    _MOD_TAG   = re.compile(r"\[([^\]|]+)\]")                     # [Word]      -> Word
+    _MOD_RANGE = re.compile(r"\((\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)\)")  # (10-20) -> 15
+
+    @staticmethod
+    def _ex(v):
+        """Prices run from 0.05 ex to millions — neither end should print badly."""
+        return f"{v:,.0f}" if v >= 1000 else f"{v:.2f}"
+
+    def _price_str(self, v, div_rate, chaos_ex):
+        """The same price in the units people actually think in. A unit is left out
+        when it would round to noise — "0.00 div" tells nobody anything."""
+        out = [f"{self._ex(v)} ex"]
+        if div_rate > 0 and v / div_rate >= 0.1:
+            out.append(f"{self._ex(v / div_rate)} div")
+        if chaos_ex > 0 and v / chaos_ex >= 1:
+            out.append(f"{self._ex(v / chaos_ex)} chaos")
+        return " · ".join(out)
+
+    @staticmethod
+    def _chaos_rate(currency_payload):
+        """Exalt value of one Chaos Orb, or 0 when it isn't priced."""
+        if not isinstance(currency_payload, dict):
+            return 0.0
+        r = gen.exalted_rate(currency_payload) or 1.0
+        by_id = {i["id"]: i for i in currency_payload.get("items", []) if i.get("id")}
+        for ln in currency_payload.get("lines", []):
+            it = by_id.get(ln.get("id"))
+            if it and it.get("name") == "Chaos Orb":
+                return float(ln.get("primaryValue") or 0.0) * r
+        return 0.0
+
+    @classmethod
+    def _as_item_text(cls, line):
+        """Render a poe.ninja unique as the game's Ctrl+C copy looks."""
+        def mid(m):
+            lo, hi = float(m.group(1)), float(m.group(2))
+            v = (lo + hi) / 2
+            return f"{v:g}" if v % 1 else str(int(v))
+
+        def mod(t):
+            t = cls._MOD_LINK.sub(r"\2", t)
+            t = cls._MOD_TAG.sub(r"\1", t)
+            return cls._MOD_RANGE.sub(mid, t)
+
+        out = [f"Item Class: {line.get('category') or 'Unknown'}", "Rarity: Unique",
+               line["name"], line["baseType"], "--------"]
+        lv = line.get("levelRequired")
+        if lv:
+            out += ["Requirements:", f"Level: {lv}", "--------"]
+        out += ["Item Level: 82", "--------"]
+        mods = [mod(m["text"]) for m in (line.get("explicitModifiers") or []) if m.get("text")]
+        return "\n".join(out + (mods or ["(unique modifiers)"]))
+
+    # RARE_GEAR is keyed by slot ("Wand"); the game's item class is the plural
+    # ("Wands"), which is also how FRACTURE_TARGETS and the craft-base lists key it.
+    _SLOT_CLASS = {"Body Armour": "Body Armours", "Helmet": "Helmets", "Gloves": "Gloves",
+                   "Boots": "Boots", "Amulet": "Amulets", "Ring": "Rings", "Belt": "Belts",
+                   "Focus": "Foci", "Quiver": "Quivers", "Bow": "Bows",
+                   "Crossbow": "Crossbows", "Quarterstaff": "Quarterstaves",
+                   "Spear": "Spears", "Mace": "One Hand Maces", "Sceptre": "Sceptres",
+                   "Wand": "Wands", "Staff": "Staves"}
+    # Rares roll a generated two-word name in game, so any of these is as real as
+    # the next — only the base name and the mods decide anything.
+    _RARE_NAMES = ["Dust Song", "Widow Grasp", "Gloom Bite", "Carrion Whisper",
+                   "Bramble Sorrow", "Vestige Howl", "Hollow Vow", "Rift Mourning"]
+
+    @staticmethod
+    def _bases_by_class():
+        """base names the game can actually drop, grouped by item class."""
+        from exilebot_pickit.data.rare import rules as rare_rules
+        out = {cat: list(names) for cat, names in gen.craft_base_categories()}
+        for slot, spec in rare_rules.RARE_GEAR.items():
+            out.setdefault(AppApi._SLOT_CLASS.get(slot, slot), []).extend(spec["bases"])
+        return {k: sorted(set(v)) for k, v in out.items() if v}
+
+    # our target text states a mod's range ("20-45%"); a real item shows one roll
+    _BARE_RANGE = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)(?![\w.])")
+
+    @classmethod
+    def _mods_for_class(cls, klass, n):
+        """Real mod text for this item class, taken from our own verified fracture
+        targets — so an example item's mods are mods that actually roll on it."""
+        def rolled(m):
+            v = (float(m.group(1)) + float(m.group(2))) / 2
+            return f"{v:g}" if v % 1 else str(int(v))
+
+        pool = [cls._BARE_RANGE.sub(rolled, t["text"].split(" (")[0])
+                for t in gen.FRACTURE_TARGETS
+                if klass in t.get("classes", []) and t.get("text")]
+        random.shuffle(pool)
+        return pool[:n]
+
+    def _example_unique(self, league):
+        uniq_cats = [c for c in gen.ALL_CATEGORIES if c[3]]
+        payloads = gen.fetch_all_payloads(league, uniq_cats)
+        pool = []
+        for key, _t, _label, _u in uniq_cats:
+            p = payloads.get(key)
+            if not isinstance(p, dict):
+                continue
+            r = gen.exalted_rate(p) or 1.0
+            for ln in p.get("lines", []):
+                if not ln.get("name") or not ln.get("baseType"):
+                    continue
+                if float(ln.get("primaryValue") or 0.0) * r > 0:
+                    pool.append(ln)
+        if not pool:
+            return None
+        ln = random.choice(pool)
+        return {"text": self._as_item_text(ln), "name": ln["name"], "kind": "unique"}
+
+    def _example_rare(self):
+        from exilebot_pickit.data.rare import rules as rare_rules
+        slot = random.choice(list(rare_rules.RARE_GEAR))
+        base = random.choice(rare_rules.RARE_GEAR[slot]["bases"])
+        klass = self._SLOT_CLASS.get(slot, slot)
+        out = [f"Item Class: {klass}", "Rarity: Rare", random.choice(self._RARE_NAMES),
+               base, "--------", "Item Level: 81", "--------"]
+        out += self._mods_for_class(klass, 3) or ["(rare modifiers)"]
+        return {"text": "\n".join(out), "name": f"a rare {slot}", "kind": "rare"}
+
+    def _example_fractured(self):
+        by_class = self._bases_by_class()
+        pool = [t for t in gen.FRACTURE_TARGETS
+                if t.get("text") and any(c in by_class for c in t.get("classes", []))]
+        if not pool:
+            return None
+        t = random.choice(pool)
+        klass = next(c for c in t["classes"] if c in by_class)
+        base = random.choice(by_class[klass])
+        frac = self._BARE_RANGE.sub(
+            lambda m: str(int((float(m.group(1)) + float(m.group(2))) / 2)),
+            t["text"].split(" (")[0])
+        out = [f"Item Class: {klass}", "Rarity: Rare", random.choice(self._RARE_NAMES),
+               base, "--------", "Item Level: 82", "--------", "Fractured Item",
+               f"{frac} (fractured)"]
+        out += [m for m in self._mods_for_class(klass, 2) if m != frac]
+        return {"text": "\n".join(out), "name": f"a fractured {klass[:-1] if klass.endswith('s') else klass}",
+                "kind": "fractured"}
+
+    def example_item(self, league=None):
+        """A random example item — sometimes a unique, sometimes a rare, sometimes a
+        fractured one — so pressing the button a few times shows all three verdicts
+        rather than the same one every time.
+
+        Everything in it is real: uniques (with their live price) come straight from
+        poe.ninja, bases come from the game's own base list, and the mods are real mod
+        text pulled from our verified fracture targets for that item class. Only a
+        rare's generated two-word name is arbitrary, which is what it is in game too."""
+        try:
+            league = league or self.cfg.get("league") or ""
+            kinds = ["rare", "fractured"] + (["unique"] if league else [])
+            random.shuffle(kinds)
+            for kind in kinds:
+                r = (self._example_unique(league) if kind == "unique" else
+                     self._example_rare() if kind == "rare" else
+                     self._example_fractured())
+                if r:
+                    return {"ok": True, **r}
+            return {"error": "Couldn't build an example — open Economy once to load prices."}
+        except Exception as e:
+            return {"error": str(e)}
 
     def check_item(self, text, league=None):
         """Item Check — paste an item's in-game text, get the verdict your pickit

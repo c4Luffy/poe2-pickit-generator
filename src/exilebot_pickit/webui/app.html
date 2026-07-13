@@ -684,6 +684,9 @@
     background:color-mix(in srgb,var(--gold) 8%,transparent);border-radius:6px;padding:5px 9px}
   .ick-rule{user-select:text;cursor:text;white-space:pre-wrap;word-break:break-all;
     font-size:12px;padding:10px;margin-top:4px}
+  .ick-rule{cursor:pointer;transition:border-color .13s,background .13s}
+  .ick-rule:hover{border-color:var(--gold);
+    background:color-mix(in srgb,var(--gold) 8%,transparent)}
   .ick-t{display:flex;gap:8px;align-items:baseline;margin-top:5px;color:var(--text);font-size:12px}
   .ick-tier{flex:0 0 26px;font-weight:700;color:var(--gold-br);font-size:11px}
 </style>
@@ -1187,10 +1190,11 @@
 
   <div class="card">
     <h2>Paste the item</h2>
-    <div class="hint">In game, hover the item and press <b>Ctrl+C</b>, then paste it here. The answer below is not a guess: it runs the same code that writes your pickit and reports whether a rule for this item really comes out of it.</div>
+    <div class="hint">In game, hover the item and press <b>Ctrl+C</b>, then paste it here. The answer below is not a guess: it runs the same code that writes your pickit and reports whether a rule for this item really comes out of it. Never done it before? Hit <b>✨ Try an example</b> — it loads a real unique from your league's economy and checks it, so you can see how it works.</div>
     <textarea id="ickInput" rows="9" spellcheck="false" placeholder="Item Class: Belts&#10;Rarity: Unique&#10;Headhunter&#10;Leather Belt&#10;--------&#10;Item Level: 82&#10;--------&#10;..."></textarea>
     <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
       <button class="primary" id="ickRun">Check this item</button>
+      <button class="ghost mini" id="ickDemo" title="Load a real unique from your league and check it">✨ Try an example</button>
       <button class="ghost mini" id="ickWipe">Clear</button>
       <span class="hint" style="margin:0 0 0 auto" id="ickLeague"></span>
     </div>
@@ -1429,7 +1433,7 @@ function openPage(p){
   if(p==="exc")loadExc();
   if(p==="fracture")loadFracture();
   if(p==="rare")loadRare();
-  if(p==="prev")loadPreview();
+  if(p==="prev")loadPreviewOnce();
   if(p==="item"){                       // land in the paste box — Ctrl+V and go
     const lg=$("league").value;
     $("ickLeague").textContent=lg?("Prices from "+lg):"No league selected — prices won't be checked";
@@ -2732,9 +2736,20 @@ $("ickRun").onclick=async()=>{
         ${row.targets?'<div class="ick-fix">Picked only if the fractured mod is one of these:'
           +row.targets.map(t=>'<div class="ick-t"><span class="ick-tier">'+esc(t.tier)+"</span>"+esc(t.text)+"</div>").join("")+"</div>":""}
       </div>`).join("")
-    +(r.rule?'<div class="hint" style="margin-top:12px">This is the line in your pickit that takes it:</div><pre class="ick-rule">'+esc(r.rule)+"</pre>":"");
+    +(r.rule?'<div class="hint" style="margin-top:12px">This is the line in your pickit that takes it \u2014 click it to find it in Preview:</div><pre class="ick-rule" id="ickRule" title="Jump to this line in Preview">'+esc(r.rule)+"</pre>":"");
+  if(r.rule)$("ickRule").onclick=()=>ickGoto(r.rule);
 };
 $("ickWipe").onclick=()=>{$("ickInput").value="";$("ickOut").innerHTML="";};
+$("ickDemo").onclick=async()=>{
+  const b=$("ickDemo"),was=b.textContent;
+  b.textContent="Loading…";b.disabled=true;
+  const r=await api().example_item($("league").value||"");
+  b.textContent=was;b.disabled=false;
+  if(r.error){toast(r.error);return;}
+  $("ickInput").value=r.text;
+  const what={unique:"a real unique from your league",rare:"a rare",fractured:"a fractured item"}[r.kind]||"an item";
+  toast("Example: "+r.name+" — "+what+". Press it again for a different one.");
+  $("ickRun").click();};
 $("cfgOpen").onclick=async()=>{const r=await api().open_file("config");if(r&&r.error)toast(r.error);};
 $("resetBtn").onclick=async()=>{
   if(!confirm("Reset all settings to defaults?\nThis turns every item toggle back ON. History and saved profiles are kept."))return;
@@ -2819,6 +2834,29 @@ async function loadPreview(){
     pd.innerHTML=parts.join(" &nbsp;·&nbsp; ");pd.style.display="block";
   }else{pd.style.display="none";pd.innerHTML="";}
   renderPvNav();renderPreview();}
+/* openPage("prev") kicks off a load of its own. Without sharing that promise, a
+   jump would await a *second* load, and the first one could land afterwards and
+   re-render the box — wiping the flash we just scrolled to. */
+let _pvLoad=null;
+function loadPreviewOnce(){
+  if(!_pvLoad)_pvLoad=loadPreview().finally(()=>{_pvLoad=null;});
+  return _pvLoad;}
+/* A rule's identity is its conditions — NOT the whole line. The trailing
+   "// ExValue = ..." comment carries the price at generate time, so it drifts with
+   the market; matching on it would fail on every pickit older than today's prices.
+   Skipped rules are the same line commented out, so strip a leading "//" too. */
+function pvRuleKey(l){
+  let s=(l||"").trim();
+  if(s.startsWith("//"))s=s.replace(/^\/+\s*/,"");
+  const i=s.indexOf("//");
+  return (i>=0?s.slice(0,i):s).trim();}
+async function ickGoto(line){
+  openPage("prev");
+  await loadPreviewOnce();
+  const k=pvRuleKey(line);
+  const i=k?prevLines.findIndex(l=>pvRuleKey(l)===k):-1;
+  if(i<0){toast("That rule isn't in the pickit on disk yet — press ⚡ Generate");return;}
+  pvJump(i+1);}
 function pvJump(n){
   // clear section/filter so the target line is actually rendered, then scroll to it
   pvSection=null;pvFilter="all";$("prevFilter").value="";
@@ -2873,18 +2911,21 @@ function pvVisible(){
     shown.push([i+1,l]);}
   return shown;}
 function renderPreview(){
-  let a=0,c=0;
   const shown=pvVisible();
   const html=shown.slice(0,6000).map(([n,l])=>{
-    let e=l.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+    const e=l.replace(/&/g,"&amp;").replace(/</g,"&lt;");
     const vm=pvValMap[n];
-    if(vm)e=`<span id="pvln-${n}" style="color:${vm[0]==="err"?"var(--err)":"var(--warn)"}" title="${vm[1].replace(/"/g,"&quot;")}">⚠ ${e}</span>`;
-    if(l.startsWith("////")||(l.startsWith("//")&&(l.match(/\/\//g)||[]).length>2))return`<span class="l-h">${e}</span>`;
-    if(l.startsWith("//")){if(l.includes("[StashItem]"))c++;return vm?e:`<span class="l-c">${e}</span>`;}
-    if(l.includes("[StashItem]")){a++;
-      if(!vm&&isNewRule(l))return`<span class="l-a l-new" title="Added by the latest generate">${e}</span>`;
-      return vm?e:`<span class="l-a">${e}</span>`;}
-    return e;}).join("\n");
+    // Every line carries its own id, so pvJump() can scroll to any of them — not
+    // just the validation ones. Item Check jumps straight to a rule this way.
+    let cls="",attr="",mark="";
+    if(vm){attr=` style="color:${vm[0]==="err"?"var(--err)":"var(--warn)"}" title="${vm[1].replace(/"/g,"&quot;")}"`;mark="⚠ ";}
+    else if(l.startsWith("////")||(l.startsWith("//")&&(l.match(/\/\//g)||[]).length>2))cls="l-h";
+    else if(l.startsWith("//"))cls="l-c";
+    else if(l.includes("[StashItem]")){
+      cls="l-a";
+      if(isNewRule(l)){cls="l-a l-new";attr=' title="Added by the latest generate"';}}
+    return`<span id="pvln-${n}"${cls?` class="${cls}"`:""}${attr}>${mark}${e}</span>`;
+  }).join("\n");
   $("prevBox").innerHTML=html||"Nothing matches this filter.";
   const tot=prevLines.filter(l=>l.includes("[StashItem]")).length;
   const act=prevLines.filter(l=>l.includes("[StashItem]")&&!l.startsWith("//")).length;
