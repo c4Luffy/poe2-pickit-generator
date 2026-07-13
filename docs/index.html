@@ -9,16 +9,27 @@
 <meta property="og:title" content="ExileBot 2 Pickit Generator">
 <meta property="og:description" content="Live PoE2 market prices in. A ready Exiled Bot 2 pickit out. One click.">
 <meta property="og:image" content="https://c4luffy.github.io/poe2-pickit-generator/screenshot.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://c4luffy.github.io/poe2-pickit-generator/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0908">
+<link rel="canonical" href="https://c4luffy.github.io/poe2-pickit-generator/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Marcellus&display=swap" rel="stylesheet">
+<script>
+/* set the theme BEFORE first paint, or light-mode users get a dark flash */
+(function(){var s=localStorage.getItem("theme");
+  document.documentElement.setAttribute("data-theme",
+    s || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));})();
+</script>
 <style>
 /* ═══ tokens ═══════════════════════════════════════════════════════════════
    Warm near-black ground (never neutral grey), brass as the brand, and the
    mascot's venom green reserved ONLY for "this is live" — never decoration. */
 :root[data-theme=dark]{
   --ink:#0a0908; --ink2:#131110; --ink3:#1b1816; --line:#2c2723; --line2:#3b342c;
-  --tx:#eae3d7; --dim:#9a9184; --faint:#6b655c;
+  --tx:#eae3d7; --dim:#9a9184; --faint:#8a8378;
   --brass:#c99a4a; --brass-br:#e8c07c; --brass-dim:#7d6134;
   --venom:#6cc24a; --err:#c2604e;
   --glow:radial-gradient(1100px 520px at 50% -12%, rgba(201,154,74,.16), transparent 70%);
@@ -26,7 +37,7 @@
 }
 :root[data-theme=light]{
   --ink:#f6f3ec; --ink2:#fffdf8; --ink3:#eee9de; --line:#ddd5c6; --line2:#c9bfab;
-  --tx:#231f1a; --dim:#5f584d; --faint:#8b8478;
+  --tx:#231f1a; --dim:#5f584d; --faint:#6d6659;
   --brass:#8a6420; --brass-br:#6b4d17; --brass-dim:#d5c091;
   --venom:#3f7f2a; --err:#a8412f;
   --glow:radial-gradient(1100px 520px at 50% -12%, rgba(201,154,74,.14), transparent 70%);
@@ -41,8 +52,8 @@ body{background:var(--ink);color:var(--tx);
 .mono{font-family:ui-monospace,Consolas,monospace;font-size:.9em}
 a{color:var(--brass);text-decoration:none}
 a:hover{color:var(--brass-br)}
-img{max-width:100%;display:block}
-.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+img{max-width:100%;height:auto;display:block}
+.wrap{max-width:1300px;margin:0 auto;padding:0 28px}
 section{padding:96px 0;position:relative}
 
 /* ═══ nav ═══ */
@@ -55,13 +66,21 @@ nav .wrap{display:flex;align-items:center;gap:26px;height:62px}
 .nlinks{display:flex;gap:22px;margin-left:auto;font-size:14.5px}
 .nlinks a{color:var(--dim)}
 .nlinks a:hover{color:var(--tx)}
-@media(max-width:820px){.nlinks{display:none}}
+@media(max-width:820px){
+  .nlinks{display:none}
+  .tgl{margin-left:auto}   /* .nlinks carried the margin that right-aligned these */
+  nav .wrap{gap:12px}
+}
+@media(max-width:400px){nav .wrap{gap:8px}.btn-sm{padding:9px 12px}}
 .tgl{background:none;border:1px solid var(--line);color:var(--dim);width:34px;height:34px;
   border-radius:9px;cursor:pointer;font-size:15px;line-height:1}
 .tgl:hover{border-color:var(--brass-dim);color:var(--brass)}
+:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:6px}
 .btn{display:inline-flex;align-items:center;gap:9px;border-radius:11px;font-weight:600;
   font-size:15px;padding:12px 22px;border:1px solid transparent;cursor:pointer;transition:.16s}
 .btn-dl{background:var(--brass);color:#1a1305;border-color:var(--brass)}
+/* light-theme brass is DARK, so dark ink on it is unreadable - flip to light */
+:root[data-theme=light] .btn-dl,:root[data-theme=light] .btn-dl:hover{color:#fffdf8}
 .btn-dl:hover{background:var(--brass-br);color:#1a1305;transform:translateY(-2px);
   box-shadow:0 10px 26px color-mix(in srgb,var(--brass) 32%,transparent)}
 .btn-gh{border-color:var(--line2);color:var(--tx)}
@@ -94,12 +113,12 @@ nav .wrap{display:flex;align-items:center;gap:26px;height:62px}
 .shotwrap{margin-top:56px;position:relative}
 .shotwrap::after{content:"";position:absolute;inset:auto 0 -1px 0;height:38%;
   background:linear-gradient(180deg,transparent,var(--ink));pointer-events:none}
-.shot{width:100%;max-width:1000px;margin:0 auto;border:1px solid var(--line2);
+.shot{width:100%;max-width:1180px;margin:0 auto;border:1px solid var(--line2);
   border-radius:14px 14px 0 0;box-shadow:0 -1px 60px color-mix(in srgb,var(--brass) 13%,transparent)}
 
 /* ═══ the problem ═══ */
 .why{border-top:1px solid var(--line);background:var(--ink)}
-.why-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:64px;align-items:center}
+.why-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:72px;align-items:center}
 @media(max-width:900px){.why-grid{grid-template-columns:1fr;gap:38px}}
 .why h2{font-size:clamp(28px,3.4vw,40px);line-height:1.2;text-wrap:balance}
 .why p{color:var(--dim);margin-top:18px;font-size:17px}
@@ -108,7 +127,7 @@ nav .wrap{display:flex;align-items:center;gap:26px;height:62px}
 .fact{display:flex;gap:15px;align-items:flex-start;background:var(--ink2);
   border:1px solid var(--line);border-left:2px solid var(--brass);border-radius:0 12px 12px 0;
   padding:17px 19px}
-.fact b{display:block;font-size:15.5px;margin-bottom:3px}
+.fact>div>b{display:block;font-size:15.5px;margin-bottom:3px}
 .fact span{font-size:14px;color:var(--dim);line-height:1.55}
 .fact .n{font-family:"Marcellus",serif;font-size:26px;color:var(--brass);line-height:1;min-width:44px}
 
@@ -162,7 +181,7 @@ nav .wrap{display:flex;align-items:center;gap:26px;height:62px}
 .note b{color:var(--tx)}
 
 /* ═══ faq ═══ */
-.faq{max-width:780px;margin:0 auto}
+.faq{max-width:840px;margin:0 auto}
 details{border-bottom:1px solid var(--line)}
 summary{cursor:pointer;padding:19px 0;font-weight:600;font-size:16.5px;list-style:none;
   display:flex;align-items:center;gap:12px}
@@ -195,11 +214,12 @@ footer{border-top:1px solid var(--line);padding:54px 0;text-align:center;color:v
   html{scroll-behavior:auto}
 }
 </style>
+<noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
 </head>
 <body>
 
 <nav><div class="wrap">
-  <a class="brand" href="#top"><img src="logo.png" alt=""> <b>ExileBot 2 Pickit</b></a>
+  <a class="brand" href="#top"><img src="logo.png" alt="" width="28" height="28"> <b>ExileBot 2 Pickit</b></a>
   <div class="nlinks">
     <a href="#demo">See it work</a>
     <a href="#features">Features</a>
@@ -207,7 +227,7 @@ footer{border-top:1px solid var(--line);padding:54px 0;text-align:center;color:v
     <a href="#faq">FAQ</a>
     <a href="https://discord.gg/T7DU3Afve6">Discord</a>
   </div>
-  <button class="tgl" id="tgl" title="Light / dark">◐</button>
+  <button class="tgl" id="tgl" title="Light / dark" aria-label="Toggle light or dark theme">◐</button>
   <a class="btn btn-dl btn-sm" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest">⬇ Download</a>
 </div></nav>
 
@@ -224,7 +244,7 @@ footer{border-top:1px solid var(--line);padding:54px 0;text-align:center;color:v
     <span>🌐 poe.ninja prices</span><i>→</i><span>⚔️ your floors</span><i>→</i><span>📄 .ipd pickit</span><i>→</i><span>🤖 your bot</span>
   </div>
   <div class="shotwrap">
-    <img class="shot" src="screenshot.png" width="1936" height="1048" alt="The Generate console: live prices, value floors, and the last run's status">
+    <img class="shot" src="screenshot.png" width="1440" height="840" alt="The Generate console: live prices, value floors, and the last run's status">
   </div>
 </div></header>
 
@@ -300,7 +320,7 @@ footer{border-top:1px solid var(--line);padding:54px 0;text-align:center;color:v
       <div class="ic">🔌</div>
       <div>
         <h3>It checks your bot is actually listening</h3>
-        <p>Most tools set a folder, turn on auto-copy, and let you assume it worked. This one reads Exiled Bot's own <span class="mono">pickit.ini</span> and tells you the truth — <em>"the bot is IGNORING everything you generate"</em> — with a <b>Fix it</b> button. It even finds your bot folder for you on first launch.</p>
+        <p>Most tools set a folder, turn on auto-copy, and let you assume it worked. This one reads Exiled Bot's own <span class="mono">pickit.ini</span> and tells you the truth — <em>"the bot is IGNORING everything you generate"</em> — with a <b>Fix it for me</b> button. It even finds your bot folder for you on first launch.</p>
         <div class="tags"><span class="tag">auto-detects your bot</span><span class="tag">one-click fix</span><span class="tag">no silent failure</span></div>
       </div>
     </div>
@@ -340,7 +360,7 @@ footer{border-top:1px solid var(--line);padding:54px 0;text-align:center;color:v
     <div class="step reveal" style="--i:1"><div class="n">2</div><h4>Pick a preset, Generate</h4>
       <p>Choose your league, pick how greedy the bot should be, and press ⚡ Generate. Live prices in, pickit out.</p></div>
     <div class="step reveal" style="--i:2"><div class="n">3</div><h4>It finds your bot</h4>
-      <p>On first launch the app locates your <span class="mono">Configuration\default\Pickit</span> folder and turns on Auto-copy for you.</p></div>
+      <p>On first launch the app looks for your <span class="mono">Configuration\default\Pickit</span> folder and, if it finds one, turns on Auto-copy for you.</p></div>
     <div class="step warn reveal" style="--i:3"><div class="n">4</div><h4>⚠️ Tell the bot which file</h4>
       <p>Open the bot's <span class="mono">pickit.ini</span> and set <span class="mono">active_profile=poe2_pickit</span> — it must match the app's output name.</p></div>
   </div>
@@ -358,7 +378,7 @@ footer{border-top:1px solid var(--line);padding:54px 0;text-align:center;color:v
     <details open><summary>How does it actually work?</summary>
       <p>Pick your league and press <b>⚡ Generate</b>. The app pulls live poe.ninja prices, works out what's worth money <em>right now</em>, and writes a full Exiled Bot 2 pickit (<span class="mono">.ipd</span>) — 2,000+ rules — plus a matching in-game loot filter. Point the bot at the file once, and every future Generate refreshes it on its own.</p></details>
     <details><summary>What are the value floors?</summary>
-      <p>Two numbers. The first covers <b>currency, runes, essences and fragments</b>. The second covers <b>unique gear</b>. Anything below its floor is left on the ground.</p>
+      <p>Two numbers. The first covers <b>everything that isn't unique gear</b> — currency, runes, essences, fragments, tablets, chance and craft bases. The second covers <b>unique gear</b>. Anything below its floor is left on the ground.</p>
       <p>Uniques sit higher because cheap ones drop constantly and just eat stash tabs. Not sure where to start? Pick a preset — or turn on <b>Auto floor</b> and it reads the current economy for you.</p></details>
     <details><summary>Do I have to find the bot folder myself?</summary>
       <p>No. On first launch the app looks for your Exiled Bot install and, if it finds one, sets the folder and turns on Auto-copy for you. There's an <b>Auto-detect</b> button in Settings to re-run it. It only accepts a folder that has the bot's own <span class="mono">pickit.ini</span> beside it, so it won't grab the wrong one.</p></details>
@@ -394,9 +414,6 @@ footer{border-top:1px solid var(--line);padding:54px 0;text-align:center;color:v
 /* theme toggle — remembers your choice, otherwise follows the OS */
 (function(){
   var root=document.documentElement, t=document.getElementById("tgl");
-  var saved=localStorage.getItem("theme");
-  if(saved) root.setAttribute("data-theme",saved);
-  else if(matchMedia("(prefers-color-scheme: light)").matches) root.setAttribute("data-theme","light");
   t.onclick=function(){
     var n=root.getAttribute("data-theme")==="dark"?"light":"dark";
     root.setAttribute("data-theme",n); localStorage.setItem("theme",n);
