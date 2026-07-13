@@ -172,3 +172,114 @@ def test_detect_bot_folder_ignores_pickit_without_ini(api, tmp_path, monkeypatch
 
 
 
+
+
+# ── Item Check ────────────────────────────────────────────────────────────────
+
+UNIQUE_TXT = """Item Class: Two Hand Swords
+Rarity: Unique
+Big Sword
+Some Base
+--------
+Requirements:
+Level: 65
+--------
+Item Level: 82
+--------
++50 to maximum Life
+"""
+
+CHEAP_ESSENCE = """Item Class: Stackable Currency
+Rarity: Currency
+Essence of Haste
+--------
+Stack Size: 2/10
+"""
+
+
+def test_item_text_parser_reads_item_level_after_the_first_separator():
+    """PoE2 puts 'Item Level:' in a block *after* the first '--------', so a parser
+    that stops at that separator never sees it. Guards the original bug."""
+    it = webapi.AppApi._parse_item_text(UNIQUE_TXT)
+    assert it["name"] == "Big Sword"          # display name
+    assert it["base"] == "Some Base"          # base is the second name line
+    assert it["class"] == "Two Hand Swords"
+    assert it["rarity"] == "Unique"
+    assert it["ilvl"] == 82                   # <- the bug: this used to be None
+
+
+def test_item_check_picks_a_unique_above_the_floor_and_shows_the_real_rule(api):
+    api.cfg["min_exalt_unique"] = 6.0
+    r = api.check_item(UNIQUE_TXT, "L")
+    assert r["verdict"] == "pick", r
+    # the verdict is the pickit itself: it hands back the actual .ipd line
+    assert r["rule"] and "Big Sword" in r["rule"] and "[StashItem]" in r["rule"]
+
+
+def test_item_check_explains_a_unique_that_misses_the_floor(api):
+    api.cfg["min_exalt_unique"] = 5000.0      # Big Sword is 900
+    r = api.check_item(UNIQUE_TXT, "L")
+    assert r["verdict"] == "ignore"
+    row = next(x for x in r["rows"] if x["kind"] == "ignore")
+    assert "900" in row["detail"] and "5000" in row["detail"]
+    assert row["fix"]                          # tells the user how to make it pick
+
+
+def test_item_check_never_claims_the_floor_applied_when_it_did_not(api):
+    """Currency is a PICK_ALL category — every item is taken whatever it is worth.
+    Reporting 'it clears your floor' for a 1 ex orb under a 50 ex floor would be a
+    lie even though the PICK verdict is right."""
+    api.cfg["min_exalt_gear"] = 50.0
+    r = api.check_item("Item Class: Stackable Currency\nRarity: Currency\nExalted Orb\n--------\n", "L")
+    assert r["verdict"] == "pick"
+    detail = r["rows"][0]["detail"]
+    assert "at or above" not in detail
+    assert "does not apply" in detail or "whatever the price" in detail
+
+
+def test_item_check_below_floor_in_a_normal_category_is_ignored(api):
+    api.cfg["min_exalt_gear"] = 5.0            # Essence of Haste is 0.4
+    r = api.check_item(CHEAP_ESSENCE, "L")
+    assert r["verdict"] == "ignore"
+    assert any("0.4" in x["detail"] for x in r["rows"])
+
+
+def test_item_check_without_a_league_does_not_claim_nothing_matches(api):
+    """No league means the poe.ninja half never ran. Saying 'no rule matches' would
+    report a conclusion we never actually checked."""
+    r = api.check_item(UNIQUE_TXT, "")
+    assert r["verdict"] != "none"
+    assert any("league" in x["detail"].lower() for x in r["rows"])
+
+
+def test_item_check_rare_on_an_uncovered_base_is_a_definitive_no(api):
+    api.cfg["rare_gear_enabled"] = True
+    r = api.check_item("Item Class: Boots\nRarity: Rare\nWidow Grasp\nNot A Real Base\n"
+                       "--------\nItem Level: 81\n", "L")
+    row = next(x for x in r["rows"] if x["rule"].startswith("Rare gear"))
+    assert row["kind"] == "ignore" and "never picked up" in row["detail"]
+
+
+def test_item_check_only_mentions_fracture_for_a_fractured_item(api):
+    plain = api.check_item("Item Class: Wands\nRarity: Rare\nX\nAttuned Wand\n"
+                           "--------\nItem Level: 80\n", "L")
+    assert not any(x["rule"] == "Fracture" for x in plain["rows"])
+    frac = api.check_item("Item Class: Wands\nRarity: Rare\nX\nAttuned Wand\n--------\n"
+                          "Item Level: 80\n--------\nFractured Item\n+45 to Spirit (fractured)\n", "L")
+    assert any(x["rule"] == "Fracture" for x in frac["rows"])
+
+
+def test_item_check_rejects_text_that_is_not_an_item(api):
+    assert api.check_item("hello world", "L").get("error")
+
+
+def test_item_check_fracture_targets_are_renderable_strings(api):
+    """fracture_targets_for_class returns rich dicts; handing them to the UI raw
+    rendered as '[object Object]'. Each target must carry plain tier/text strings."""
+    r = api.check_item("Item Class: Wands\nRarity: Rare\nX\nAttuned Wand\n--------\n"
+                       "Item Level: 80\n--------\nFractured Item\n+45 to Spirit (fractured)\n", "L")
+    row = next(x for x in r["rows"] if x["rule"] == "Fracture")
+    assert row["targets"]
+    for t in row["targets"]:
+        assert isinstance(t["tier"], str) and isinstance(t["text"], str)
+        assert t["text"] and "object" not in t["text"]

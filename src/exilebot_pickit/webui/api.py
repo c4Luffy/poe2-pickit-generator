@@ -1644,95 +1644,316 @@ class AppApi:
                 return {"error": f"couldn't open: {e}"}
         return {"ok": True}
 
-    def simulate_item(self, text):
-        """Test Item Simulator: paste in-game item text, get a structural
-        read of whether it matches a configured base/class rule. Deliberately
-        scoped — it checks item class/base name/item level/rarity against
-        Craft/Chance/Exceptional bases and the Fracture Bases reference, all
-        driven by data this app already has. It does NOT evaluate numeric mod
-        thresholds (life rolls, resistances, DPS, WeightedSum) or priced
-        Economy items — those need live prices / the bot's own identify pass,
-        so faking a verdict for them would be a fabricated result."""
-        try:
-            lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
-            if not lines:
-                return {"error": "paste an item's text first (Ctrl+C on it in-game)"}
-            fields = {}
-            name_lines = []
-            seen_rarity = False
-            for ln in lines:
-                if ln.startswith("Item Class:"):
-                    fields["class"] = ln.split(":", 1)[1].strip()
-                elif ln.startswith("Rarity:"):
-                    fields["rarity"] = ln.split(":", 1)[1].strip()
-                    seen_rarity = True
-                elif ln.startswith("Item Level:"):
-                    try:
-                        fields["ilvl"] = int(ln.split(":", 1)[1].strip())
-                    except ValueError:
-                        pass
-                elif ln == "--------":
-                    break
-                elif seen_rarity and len(name_lines) < 2:
-                    name_lines.append(ln)
-            if not fields.get("class") and not name_lines:
-                return {"error": "couldn't recognize this as PoE2 item text — "
-                                 "paste the full Ctrl+C copy, including 'Item Class:' / 'Rarity:'"}
-            base_name = name_lines[-1] if name_lines else ""
-            display_name = name_lines[0] if len(name_lines) > 1 else base_name
-            item_class = fields.get("class", "")
-            ilvl = fields.get("ilvl")
-            matches = []
+    # ── Item Check ────────────────────────────────────────────────────────────
 
-            cb = next((c for c in self.craft_bases() if c["base"] == base_name), None)
-            if cb:
-                ilvl_ok = ilvl is None or ilvl >= cb["ilvl"]
-                matches.append({"rule": "Craft Base", "picked": bool(cb["enabled"] and ilvl_ok),
-                                 "detail": f"toggle {'ON' if cb['enabled'] else 'OFF'} · "
-                                           f"needs ilvl >= {cb['ilvl']}"
-                                           + (f", item is {ilvl}" if ilvl is not None else "")})
+    @staticmethod
+    def _parse_item_text(text):
+        """Parse a PoE2 Ctrl+C item copy into the fields the pickit keys on.
 
-            chb = next((c for c in self.chance_bases() if c["base"] == base_name), None)
-            if chb:
-                matches.append({"rule": "Chance Base", "picked": bool(chb["enabled"]),
-                                 "detail": f"toggle {'ON' if chb['enabled'] else 'OFF'}"})
+        The name lines sit between ``Rarity:`` and the first ``--------``, but
+        ``Item Level:`` and ``Quality:`` live in *later* blocks — so keep reading past
+        that separator instead of stopping at it.
+        """
+        fields, name_lines, in_head = {}, [], False
+        for raw in (text or "").splitlines():
+            ln = raw.strip()
+            if not ln:
+                continue
+            if ln.startswith("Item Class:"):
+                fields["class"] = ln.split(":", 1)[1].strip()
+            elif ln.startswith("Rarity:"):
+                fields["rarity"] = ln.split(":", 1)[1].strip()
+                in_head = True
+            elif ln.startswith("Item Level:"):
+                m = re.search(r"\d+", ln)
+                if m:
+                    fields["ilvl"] = int(m.group())
+            elif ln.startswith("Quality:"):
+                m = re.search(r"\d+", ln)
+                if m:
+                    fields["quality"] = int(m.group())
+            elif set(ln) == {"-"}:
+                in_head = False
+            elif in_head and len(name_lines) < 2:
+                name_lines.append(ln)
+        if not fields.get("class") and not name_lines:
+            return None
+        fields["base"] = name_lines[-1] if name_lines else ""
+        fields["name"] = name_lines[0] if name_lines else ""
+        return fields
 
-            exb = None
-            for cat in self.exceptional_bases():
-                exb = next((b for b in cat["bases"] if b["name"] == base_name), None)
-                if exb:
-                    break
+    @staticmethod
+    def _payload_price(payload, candidates, is_unique):
+        """This item's exalt value in one poe.ninja category payload, or None when
+        that category doesn't price it. Mirrors the two shapes ``economy()`` reads."""
+        r = gen.exalted_rate(payload) or 1.0
+        if is_unique:
+            for ln in payload.get("lines", []):
+                if ln.get("name") in candidates:
+                    return float(ln.get("primaryValue") or 0.0) * r
+            return None
+        by_id = {i["id"]: i for i in payload.get("items", []) if i.get("id")}
+        for ln in payload.get("lines", []):
+            it = by_id.get(ln.get("id"))
+            if not it or not it.get("name") or it["name"] in gen.ITEM_NAME_SKIP:
+                continue
+            if gen.ITEM_NAME_CORRECTIONS.get(it["name"], it["name"]) in candidates:
+                return float(ln.get("primaryValue") or 0.0) * r
+        return None
+
+    def _economy_rows(self, league, snap, gear, uniq, cands):
+        """Verdict rows for a priced item — and the .ipd line, when it is picked.
+
+        This does not *simulate* anything: it runs the same ``assembly`` call that
+        writes the pickit and reports whether a rule for this item really comes out
+        of it. If the answer here and the file ever disagreed, the file would be wrong.
+        """
+        rows, rule = [], None
+        payloads = gen.fetch_all_payloads(league, gen.ALL_CATEGORIES)
+        cur = payloads.get("currency")
+        div = asm.compute_divine_rate(cur)[0] if isinstance(cur, dict) else 1.0
+
+        for key, _t, label, is_uniq in gen.ALL_CATEGORIES:
+            p = payloads.get(key)
+            if not isinstance(p, dict):
+                continue
+            price = self._payload_price(p, cands, is_uniq)
+            if price is None:
+                continue                       # this category doesn't price it
+            cat_on = bool(snap["cat_enabled"].get(key, True))
+            eff = asm.effective_min(snap, key, is_uniq, gear, uniq)
+            hit = None
+            if cat_on:
+                cs = snap["item_states"].get(key, {})
+                en = asm.enabled_names_for(key, is_uniq, p, cs)
+                for line in asm.build_category_lines(key, is_uniq, p, div, eff,
+                                                     gear, en, cat_states=cs):
+                    if (line and not line.startswith("//") and "[StashItem]" in line
+                            and asm.extract_rule_name(line) in cands):
+                        hit = line
+                        break
+            what = "unique floor" if is_uniq else "item floor"
+            if hit:
+                rule = hit
+                # A rule can come out for three different reasons, and saying "it clears
+                # your floor" when the floor was never applied would be a lie.
+                always = (gen.ALWAYS_PICK_CURRENCY if key == "currency" else
+                          gen.ALWAYS_PICK_RUNES if key == "runes" else [])
+                if key in gen.PICK_ALL_CATEGORIES:
+                    detail = (f"Everything in {label} is picked up whatever it is worth — your "
+                              f"{eff:g} ex floor does not apply here. poe.ninja: {price:.2f} ex.")
+                elif cands & (set(always) | gen.always_pick_force_names()):
+                    detail = ("Always picked up, whatever the price — it is on the always-take "
+                              f"list. poe.ninja: {price:.2f} ex.")
+                else:
+                    detail = (f"poe.ninja prices it at {price:.2f} ex, at or above your "
+                              f"{eff:g} ex {what}.")
+                rows.append({"kind": "pick", "rule": label, "detail": detail})
+            elif not cat_on:
+                rows.append({"kind": "ignore", "rule": label,
+                             "detail": f"The whole {label} category is switched off.",
+                             "fix": f"Economy → turn {label} back on."})
+            elif price < eff:
+                rows.append({"kind": "ignore", "rule": label,
+                             "detail": f"Worth {price:.2f} ex, but your {what} is {eff:g} ex — "
+                                       f"it misses by {eff - price:.2f} ex.",
+                             "fix": f"Lower the {what} to {price:.1f} ex or less and it gets taken."})
+            else:
+                rows.append({"kind": "ignore", "rule": label,
+                             "detail": f"Worth {price:.2f} ex, which clears your {eff:g} ex "
+                                       f"{what} — but you switched this item off.",
+                             "fix": f"Economy → {label} → switch it back on."})
+            break                              # priced in exactly one category
+
+        if not rows:                           # always-pick groups carry no price
+            ap_off = self._ap_disabled(snap)
+            for key, label, ap_rows in self._ap_groups():
+                nm = next((n for n, _b in ap_rows if n in cands), None)
+                if nm is None:
+                    continue
+                if snap["cat_enabled"].get(key, True) and nm not in ap_off:
+                    rows.append({"kind": "pick", "rule": label,
+                                 "detail": "Always picked up — no price floor applies to it."})
+                else:
+                    rows.append({"kind": "ignore", "rule": label,
+                                 "detail": f"{nm} is switched off.",
+                                 "fix": f"Economy → {label} → switch it back on."})
+                break
+        return rows, rule
+
+    def _base_rows(self, snap, cands, base, klass, rarity, ilvl, fractured):
+        """Verdict rows for the curated base sections: craft, chance, exceptional,
+        fracture. These are name/class/ilvl rules, so the answer is exact."""
+        rows = []
+
+        cb = next((c for c in self.craft_bases() if c["base"] in cands), None)
+        if cb:
+            ok_ilvl = ilvl is None or ilvl >= cb["ilvl"]
+            if not cb["enabled"]:
+                rows.append({"kind": "ignore", "rule": "Craft base",
+                             "detail": f"{cb['base']} is switched off.",
+                             "fix": "Craft → switch it back on."})
+            elif not ok_ilvl:
+                rows.append({"kind": "ignore", "rule": "Craft base",
+                             "detail": f"Needs item level {cb['ilvl']}+, this one is {ilvl}.",
+                             "fix": f"Craft → lower {cb['base']} to ilvl {ilvl}."})
+            else:
+                rows.append({"kind": "pick", "rule": "Craft base",
+                             "detail": f"On, and item level {ilvl if ilvl is not None else '?'} "
+                                       f"meets the {cb['ilvl']}+ requirement."})
+
+        chb = next((c for c in self.chance_bases() if c["base"] in cands), None)
+        if chb:
+            rows.append({"kind": "pick" if chb["enabled"] else "ignore",
+                         "rule": "Chance base",
+                         "detail": ("On — picked for chancing." if chb["enabled"]
+                                    else f"{chb['base']} is switched off."),
+                         **({} if chb["enabled"] else {"fix": "Chance → switch it back on."})})
+
+        exb = None
+        for cat in self.exceptional_bases():
+            exb = next((b for b in cat["bases"] if b["name"] in cands), None)
             if exb:
-                is_normal = (fields.get("rarity") or "").lower() == "normal"
-                inc = bool(self.cfg.get("include_bases", True))
-                min_q = int(self.cfg.get("base_quality", 25))
-                min_l = int(self.cfg.get("base_min_level", 82))
-                picked = bool(exb["enabled"] and inc and is_normal and (ilvl is None or ilvl >= min_l))
-                matches.append({"rule": "Exceptional Base", "picked": picked,
-                                 "detail": f"toggle {'ON' if exb['enabled'] else 'OFF'} · "
-                                           f"needs Normal rarity, ilvl >= {min_l}, quality >= {min_q}% "
-                                           "(quality isn't in the copied text — check in-game)"})
+                break
+        if exb:
+            min_l = int(self.cfg.get("base_min_level", 82))
+            min_q = int(self.cfg.get("base_quality", 25))
+            inc = bool(snap.get("include_bases", True))
+            is_norm = rarity.lower() == "normal"
+            if not inc:
+                rows.append({"kind": "ignore", "rule": "Exceptional base",
+                             "detail": "Base pickup is switched off entirely.",
+                             "fix": "Settings → turn base pickup back on."})
+            elif not exb["enabled"]:
+                rows.append({"kind": "ignore", "rule": "Exceptional base",
+                             "detail": f"{exb['name']} is switched off.",
+                             "fix": "Exceptional → switch it back on."})
+            elif not is_norm:
+                rows.append({"kind": "ignore", "rule": "Exceptional base",
+                             "detail": f"This rule only takes Normal (white) items — yours is {rarity}."})
+            elif ilvl is not None and ilvl < min_l:
+                rows.append({"kind": "ignore", "rule": "Exceptional base",
+                             "detail": f"Needs item level {min_l}+, this one is {ilvl}.",
+                             "fix": f"Settings → lower the base item level to {ilvl}."})
+            else:
+                rows.append({"kind": "pick", "rule": "Exceptional base",
+                             "detail": f"On, Normal rarity, item level {min_l}+ — "
+                                       f"but it also needs {min_q}%+ quality, which the "
+                                       "copied text doesn't include. Check that in-game."})
 
-            if item_class:
-                targets = gen.fracture_targets_for_class(item_class)
-                if targets:
-                    fb_states = self.cfg.get("item_states", {}).get("_fracture", {})
-                    en = fb_states.get(item_class, gen.fracture_default(item_class)).get("enabled", False)
-                    matches.append({"rule": "Fracture Bases", "picked": None,
-                                     "detail": f"{item_class} has {len(targets)} known fracture target(s) — "
-                                               f"reference only, toggle {'ON' if en else 'OFF'}"})
+        # Only speak up when the item actually *is* fractured — a fracture rule can
+        # never fire otherwise, so mentioning it on every wand is noise, not a verdict.
+        if klass and fractured:
+            targets = gen.fracture_targets_for_class(klass)
+            fb = snap["item_states"].get("_fracture", {})
+            on = fb.get(klass, gen.fracture_default(klass)).get("enabled", False)
+            if not targets:
+                rows.append({"kind": "ignore", "rule": "Fracture",
+                             "detail": f"No fracture targets are defined for {klass}, so a "
+                                       "fractured one isn't picked up for its fracture."})
+            elif not on:
+                rows.append({"kind": "ignore", "rule": "Fracture",
+                             "detail": f"{klass} is switched off in Fracture.",
+                             "fix": f"Fracture → switch {klass} back on."})
+            else:
+                rows.append({"kind": "depends", "rule": "Fracture",
+                             "detail": f"{klass} is on. It is picked up only if the *fractured* "
+                                       "mod is one of the targets below — compare it against your "
+                                       "item's fractured line.",
+                             # the target's own explanation trails after " (" — the mod
+                             # itself is what the user compares against, so cut there
+                             "targets": [{"tier": t.get("tier", ""),
+                                          "text": (t.get("text") or t.get("id", "")).split(" (")[0]}
+                                         for t in targets][:12]})
+        return rows
 
-            if not matches:
-                matches.append({"rule": "No structural match", "picked": False,
-                                 "detail": "No configured Craft/Chance/Exceptional base has this exact name, "
-                                           "and this item class has no Fracture Bases entry."})
+    def _rare_rows(self, snap, base, rarity):
+        """Verdict rows for rare gear. Two of the three answers are definitive: a base
+        no recipe covers is never taken, and a switched-off slot is never taken. Only
+        a covered, enabled slot depends on the rolls — and the bot scores those with
+        [WeightedSum] from the item's real mods, which the copied text can't give us.
+        Saying "it depends" there is the honest answer; a number would be invented."""
+        if rarity.lower() != "rare" or not base:
+            return []
+        from exilebot_pickit.data.rare import rules as rare_rules
+        if not snap.get("rare_gear_enabled", True):
+            return [{"kind": "ignore", "rule": "Rare gear",
+                     "detail": "Rare-gear pickup is switched off entirely.",
+                     "fix": "Magic & Rare → turn rare gear back on."}]
+        slot = next((s for s, spec in rare_rules.RARE_GEAR.items()
+                     if base in spec["bases"]), None)
+        if slot is None:
+            return [{"kind": "ignore", "rule": "Rare gear",
+                     "detail": f"No rare recipe covers the base '{base}', so this rare is "
+                               "never picked up no matter how it rolled."}]
+        spec = rare_rules.RARE_GEAR[slot]
+        if slot in self.rare_slot_disabled():
+            return [{"kind": "ignore", "rule": f"Rare gear · {slot}",
+                     "detail": f"The {slot} slot is switched off, so this rare is never picked up.",
+                     "fix": f"Magic & Rare → switch {slot} back on."}]
+        stats = [{"stat": rare_rules.STAT_LABELS.get(sid, sid), "w": w}
+                 for sid, w in spec["weights"].items()]
+        return [{"kind": "depends", "rule": f"Rare gear · {slot}",
+                 "detail": f"This base is covered and the slot is on, so it comes down to the "
+                           f"rolls: the bot adds up the stats below and takes it at "
+                           f"{spec['threshold']}+. The copied text doesn't carry the rolls, so "
+                           f"the bot makes this call in-game, not here.",
+                 "weights": stats, "threshold": spec["threshold"]}]
 
-            return {"ok": True, "class": item_class, "rarity": fields.get("rarity", ""),
-                    "ilvl": ilvl, "name": display_name, "base": base_name, "matches": matches,
-                    "note": "Structural check only — base name, item class, item level and your current "
-                            "toggle/threshold settings. Numeric mods (life, resistances, DPS, WeightedSum) "
-                            "and priced Economy/unique items aren't evaluated here; use Preview after "
-                            "generating for those."}
+    def check_item(self, text, league=None):
+        """Item Check — paste an item's in-game text, get the verdict your pickit
+        will actually give it, and the reason.
+
+        Economy items are answered by running the *same* assembly that writes the .ipd
+        and reporting whether a rule for this item really comes out of it, plus the
+        exact line. Bases are exact too. Rare gear is scored by [WeightedSum] inside
+        the bot from the item's real mod rolls, so where that is the deciding factor
+        this says so instead of inventing a verdict."""
+        try:
+            it = self._parse_item_text(text)
+            if it is None:
+                return {"error": "Paste an item first — hover it in-game, press Ctrl+C, "
+                                 "then paste the whole thing here."}
+            name, base = it.get("name", ""), it.get("base", "")
+            rarity, klass = it.get("rarity", ""), it.get("class", "")
+            ilvl, qual = it.get("ilvl"), it.get("quality")
+            cands = {n for n in (name, base) if n}
+            league = league or self.cfg.get("league") or ""
+            snap = self._snapshot()
+            gear = float(self.cfg.get("min_exalt_gear", 0.0) or 0.0)
+            uniq = float(self.cfg.get("min_exalt_unique", 0.0) or 0.0)
+
+            rows, rule = [], None
+            if league:
+                rows, rule = self._economy_rows(league, snap, gear, uniq, cands)
+            fractured = "fractured" in (text or "").lower()
+            rows += self._base_rows(snap, cands, base, klass, rarity, ilvl, fractured)
+            rows += self._rare_rows(snap, base, rarity)
+
+            if any(r["kind"] == "pick" for r in rows):
+                verdict = "pick"
+            elif any(r["kind"] == "depends" for r in rows):
+                verdict = "depends"
+            elif not league:
+                # No league means the poe.ninja half never ran. Saying "nothing matches"
+                # here would be a claim we didn't check — say what we actually know.
+                verdict = "depends"
+                rows.append({"kind": "info", "rule": "Prices not checked",
+                             "detail": "No league is selected, so I couldn't look up poe.ninja "
+                                       "prices — uniques and currency weren't checked. Pick a "
+                                       "league on the Generate tab and run this again."})
+            elif any(r["kind"] == "ignore" for r in rows):
+                verdict = "ignore"
+            else:
+                verdict = "none"
+                rows.append({"kind": "ignore", "rule": "No rule matches",
+                             "detail": "Nothing in your pickit targets this item — poe.ninja "
+                                       "doesn't price it, and no base or rare recipe covers it. "
+                                       "The bot will walk past it."})
+            return {"ok": True, "verdict": verdict, "rule": rule, "rows": rows,
+                    "league": league,
+                    "item": {"name": name, "base": base, "class": klass,
+                             "rarity": rarity, "ilvl": ilvl, "quality": qual}}
         except Exception as e:
             return {"error": str(e)}
 

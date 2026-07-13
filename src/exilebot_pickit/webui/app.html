@@ -663,6 +663,29 @@
     letter-spacing:.14em;text-transform:uppercase;color:var(--ok);font-weight:700}
   .market .m-live .pulse{margin:0}
   .market .sp{flex:1}
+  /* ── Item Check ── */
+  #ickInput{width:100%;font-family:Consolas,ui-monospace,monospace;font-size:12.5px;
+    padding:10px;margin-top:10px;line-height:1.5}
+  .vd{display:flex;align-items:center;gap:14px;padding:15px 18px;border-radius:11px;
+    border:1px solid var(--border);background:var(--bg3);margin-bottom:12px}
+  .vd-i{font-size:26px;line-height:1}
+  .vd-t{font-size:17px;font-weight:600;letter-spacing:.01em}
+  .vd-s{font-size:12.5px;color:var(--dim);margin-top:2px}
+  .vd.pick{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--bg3))}
+  .vd.pick .vd-t{color:var(--ok)}
+  .vd.ignore{border-color:var(--err);background:color-mix(in srgb,var(--err) 9%,var(--bg3))}
+  .vd.ignore .vd-t{color:var(--err)}
+  .vd.depends{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 9%,var(--bg3))}
+  .vd.depends .vd-t{color:var(--warn)}
+  .ick-id{padding:0 2px 10px;font-size:14px}
+  .ick-row{padding:9px 12px;border:1px solid var(--border);border-radius:9px;
+    background:var(--bg2);margin-bottom:6px}
+  .ick-fix{margin:7px 0 0 calc(150px + 10px);font-size:12px;color:var(--gold);
+    background:color-mix(in srgb,var(--gold) 8%,transparent);border-radius:6px;padding:5px 9px}
+  .ick-rule{user-select:text;cursor:text;white-space:pre-wrap;word-break:break-all;
+    font-size:12px;padding:10px;margin-top:4px}
+  .ick-t{display:flex;gap:8px;align-items:baseline;margin-top:5px;color:var(--text);font-size:12px}
+  .ick-tier{flex:0 0 26px;font-weight:700;color:var(--gold-br);font-size:11px}
 </style>
 </head>
 <body>
@@ -675,6 +698,7 @@
   <div class="nav-links" data-lg="cockpit">
   <div class="nav-btn on" data-p="gen">⚡ Generate</div>
   <div class="nav-btn" data-p="prev">📜 Preview</div>
+  <div class="nav-btn" data-p="item">🔍 Item Check</div>
   <div class="nav-btn" data-p="hist">🕰️ History</div>
   </div>
   <div class="nav-groups">
@@ -1154,17 +1178,25 @@
     <pre id="prevBox" style="user-select:text;cursor:text;flex:1;max-height:calc(90.9vh - 265px);white-space:pre-wrap;word-break:break-word;overflow-x:hidden;min-width:0">Generate first.</pre>
   </div>
 
-  <div class="card" style="margin-top:14px">
-    <h2>🧪 Test Item Simulator</h2>
-    <div class="hint">Paste an item's text (Ctrl+C on it in-game) to check it against your configured Craft/Chance/Exceptional bases and Fracture Bases toggles. This checks item class, base name, item level and rarity only — it does not evaluate mod rolls (life, resistances, DPS) or priced Economy items.</div>
-    <textarea id="simInput" rows="7" style="width:100%;font-family:inherit;font-size:12.5px;padding:8px;margin-top:8px" placeholder="Item Class: Boots&#10;Rarity: Rare&#10;Widow Grasp&#10;Advanced Cloth Boots&#10;--------&#10;..."></textarea>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="primary" id="simRun">Check item</button>
-      <button class="ghost mini" id="simWipe">Clear</button>
+</div>
+
+<!-- ══ ITEM CHECK ══ -->
+<div class="page" id="p-item">
+  <h1>Item Check</h1>
+  <div class="sub">Paste an item from the game and find out whether your bot takes it — and if not, why not.</div>
+
+  <div class="card">
+    <h2>Paste the item</h2>
+    <div class="hint">In game, hover the item and press <b>Ctrl+C</b>, then paste it here. The answer below is not a guess: it runs the same code that writes your pickit and reports whether a rule for this item really comes out of it.</div>
+    <textarea id="ickInput" rows="9" spellcheck="false" placeholder="Item Class: Belts&#10;Rarity: Unique&#10;Headhunter&#10;Leather Belt&#10;--------&#10;Item Level: 82&#10;--------&#10;..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+      <button class="primary" id="ickRun">Check this item</button>
+      <button class="ghost mini" id="ickWipe">Clear</button>
+      <span class="hint" style="margin:0 0 0 auto" id="ickLeague"></span>
     </div>
-    <div id="simOut" style="margin-top:10px"></div>
   </div>
 
+  <div id="ickOut" style="margin-top:14px"></div>
 </div>
 
 <!-- ══ SETTINGS ══ -->
@@ -1379,7 +1411,7 @@ function logLine(m,c){
 /* ── nav + theme ── */
 // Left rail: 3 section headers, every tab always visible beneath its header.
 // Clicking a header jumps to that section's last-used tab.
-const NAV_GROUPS={gen:"cockpit",prev:"cockpit",hist:"cockpit",
+const NAV_GROUPS={gen:"cockpit",prev:"cockpit",item:"cockpit",hist:"cockpit",
                   eco:"tune",chance:"tune",craft:"tune",exc:"tune",fracture:"tune",rare:"tune",
                   guide:"system",set:"system",dbg:"system"};
 const _lastTab={cockpit:"gen",tune:"eco",system:"set"};
@@ -1398,6 +1430,11 @@ function openPage(p){
   if(p==="fracture")loadFracture();
   if(p==="rare")loadRare();
   if(p==="prev")loadPreview();
+  if(p==="item"){                       // land in the paste box — Ctrl+V and go
+    const lg=$("league").value;
+    $("ickLeague").textContent=lg?("Prices from "+lg):"No league selected — prices won't be checked";
+    $("ickInput").focus();
+  }
   if(p==="hist")loadHistory();
   if(p==="set"){renderSetNav();loadBackups();loadBotConn();}
   if(p==="dbg")loadDebug();
@@ -1445,13 +1482,16 @@ document.addEventListener("click",e=>{if(!e.target.closest("#tpick"))$("tpick").
 $("lnkDiscord").onclick=()=>api().open_url("https://discord.gg/T7DU3Afve6");
 $("lnkSite").onclick=()=>api().open_url("https://exiled-bot.net/");
 
-/* keyboard: Ctrl+G generate · Ctrl+1..9 switch tabs · Ctrl+F focus search */
-const TAB_ORDER=["gen","prev","hist","eco","chance","craft","exc","fracture","rare"];
+/* keyboard: Ctrl+G generate · Ctrl+1..9 + Ctrl+0 switch tabs · Ctrl+F focus search.
+   TAB_ORDER mirrors the sidebar, so the number you press is the position you see.
+   Ctrl+0 is the 10th — without it, adding a tab would silently cost the last one
+   its shortcut. */
+const TAB_ORDER=["gen","prev","item","hist","eco","chance","craft","exc","fracture","rare"];
 const PAGE_SEARCH={eco:"ecoSearch",prev:"prevFilter"};   // per-tab search boxes
 document.addEventListener("keydown",e=>{
   if(e.ctrlKey&&e.key.toLowerCase()==="g"){e.preventDefault();doGenerate();}
-  if(e.ctrlKey&&e.key>="1"&&e.key<="9"){
-    const p=TAB_ORDER[parseInt(e.key)-1];
+  if(e.ctrlKey&&e.key>="0"&&e.key<="9"){
+    const p=TAB_ORDER[(parseInt(e.key)+9)%10];   // 1..9 -> 0..8, 0 -> the 10th
     if(p){e.preventDefault();openPage(p);}}
   if(e.ctrlKey&&e.key.toLowerCase()==="f"){
     const cur=document.querySelector(".page.on");
@@ -2664,19 +2704,37 @@ $("dbgDiag").onclick=async()=>{
   toast(await copyText(txt)?"📋 Diagnostics copied — paste anywhere":"Clipboard blocked");};
 $("dbgCfg").onclick=async()=>{const r=await api().open_file("config");if(r&&r.error)toast(r.error);};
 $("dbgWipe").onclick=()=>dbg("Ready.");
-$("simRun").onclick=async()=>{
-  const o=$("simOut");o.innerHTML="Checking…";
-  const r=await api().simulate_item($("simInput").value);
+const ICK_VD={
+  pick   :{c:"pick",   i:"\u2705", t:"Picked up",            s:"Your bot stops and takes this."},
+  ignore :{c:"ignore", i:"\u274c", t:"Ignored",              s:"Your bot walks straight past this."},
+  depends:{c:"depends",i:"\u26a0\ufe0f", t:"Depends on the rolls", s:"The bot decides this in-game, from the item's real mods."},
+  none   :{c:"ignore", i:"\u274c", t:"No rule matches",      s:"Nothing in your pickit targets this item."}};
+const ickPill=k=>k==="pick"?'<span class="pill on">\u2713 picked</span>'
+  :k==="ignore"?'<span class="pill">\u2717 ignored</span>'
+  :k==="depends"?'<span class="pill">\u26a0 depends</span>':'<span class="pill">\u2139 info</span>';
+$("ickRun").onclick=async()=>{
+  const o=$("ickOut"),txt=$("ickInput").value;
+  if(!txt.trim()){o.innerHTML='<div class="banner warn">Paste an item first \u2014 hover it in-game and press Ctrl+C.</div>';return;}
+  o.innerHTML='<div class="hint">Checking it against your pickit and live poe.ninja prices\u2026</div>';
+  const r=await api().check_item(txt,$("league").value||"");
   if(r.error){o.innerHTML=`<div class="banner warn">${esc(r.error)}</div>`;return;}
-  const pill=m=>m.picked===true?'<span class="pill on">✓ picked</span>'
-    :m.picked===false?'<span class="pill">✗ ignored</span>'
-    :'<span class="pill">ℹ reference</span>';
-  o.innerHTML=`<div style="margin-bottom:8px"><b>${esc(r.name||"(unnamed)")}</b>
-      <span style="color:var(--dim)">${esc(r.class||"")}${r.rarity?" · "+esc(r.rarity):""}${r.ilvl?" · ilvl "+r.ilvl:""}</span></div>`+
-    r.matches.map(m=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 11px;border:1px solid var(--border);border-radius:9px;background:var(--bg3);margin-bottom:6px">
-        ${pill(m)}<b style="min-width:130px">${esc(m.rule)}</b><span style="color:var(--dim);font-size:12px">${esc(m.detail)}</span></div>`).join("")+
-    `<div class="hint" style="margin-top:8px">${esc(r.note)}</div>`;};
-$("simWipe").onclick=()=>{$("simInput").value="";$("simOut").innerHTML="";};
+  const v=ICK_VD[r.verdict]||ICK_VD.none,it=r.item;
+  const meta=[it.class,it.rarity,it.ilvl?"ilvl "+it.ilvl:""].filter(Boolean).map(esc).join(" \u00b7 ");
+  o.innerHTML=`<div class="vd ${v.c}"><div class="vd-i">${v.i}</div>
+      <div><div class="vd-t">${v.t}</div><div class="vd-s">${esc(v.s)}</div></div></div>
+    <div class="ick-id"><b>${esc(it.name||it.base||"(unnamed)")}</b>${it.base&&it.base!==it.name?' <span style="color:var(--dim)">'+esc(it.base)+"</span>":""}${meta?' <span style="color:var(--dim)">\u2014 '+meta+"</span>":""}</div>`
+    +r.rows.map(row=>`<div class="ick-row">
+        <div style="display:flex;align-items:center;gap:10px">${ickPill(row.kind)}
+          <b style="min-width:150px">${esc(row.rule)}</b>
+          <span style="color:var(--dim);font-size:12.5px;flex:1">${esc(row.detail)}</span></div>
+        ${row.fix?'<div class="ick-fix">\ud83d\udd27 '+esc(row.fix)+"</div>":""}
+        ${row.weights?'<div class="ick-fix">Stats it scores: '+row.weights.map(w=>esc(w.stat)+" \u00d7"+w.w).join(" \u00b7 ")+" \u2014 taken at "+esc(row.threshold)+"+</div>":""}
+        ${row.targets?'<div class="ick-fix">Picked only if the fractured mod is one of these:'
+          +row.targets.map(t=>'<div class="ick-t"><span class="ick-tier">'+esc(t.tier)+"</span>"+esc(t.text)+"</div>").join("")+"</div>":""}
+      </div>`).join("")
+    +(r.rule?'<div class="hint" style="margin-top:12px">This is the line in your pickit that takes it:</div><pre class="ick-rule">'+esc(r.rule)+"</pre>":"");
+};
+$("ickWipe").onclick=()=>{$("ickInput").value="";$("ickOut").innerHTML="";};
 $("cfgOpen").onclick=async()=>{const r=await api().open_file("config");if(r&&r.error)toast(r.error);};
 $("resetBtn").onclick=async()=>{
   if(!confirm("Reset all settings to defaults?\nThis turns every item toggle back ON. History and saved profiles are kept."))return;

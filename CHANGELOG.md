@@ -6,6 +6,42 @@ download lives.
 
 ---
 
+## [v4.20.0] — 2026-07-13 — Item Check: "why did my bot walk past that?"
+
+Nothing in the app could answer the two questions everybody actually asks — *why did
+it leave that behind?* and *why is my stash full of junk?* Preview showed you the
+file; History showed you counts. Neither told you what your pickit does to **one
+specific item**.
+
+**New 🔍 Item Check tab.** Hover an item in game, press **Ctrl+C**, paste it in. You
+get a straight answer — **Picked up**, **Ignored**, or **Depends on the rolls** — the
+rule that decided it, and *why*:
+
+> ❌ **Ignored** — worth **6.20 ex**, but your item floor is **8 ex**; it misses by
+> **1.80 ex**. 🔧 *Lower the item floor to 6.2 ex or less and it gets taken.*
+
+- **The verdict is not a simulation.** For priced items it runs the *same* assembly
+  that writes your `.ipd` and reports whether a rule for that item really comes out
+  of it — then shows you **the actual line**. If this tab and the file ever
+  disagreed, the file would be the thing that's wrong.
+- It tells you *which* reason applies, and they are not the same: cleared your floor,
+  **always-take list**, or **a whole category that ignores the floor**. (Currency is
+  pick-all — that's why the bot grabs 0.05 ex Scrolls of Wisdom no matter what your
+  floor says. Now you can see that instead of guessing.)
+- **Rare gear** gives a definitive *no* when no recipe covers the base or the slot is
+  off. When the base *is* covered and the slot is on, it says **"depends on the
+  rolls"** and shows the scored stats and the threshold — because the bot does that
+  maths in-game from the real mods, and inventing a number here would be a lie.
+- **Fracture** only speaks up for an actually-fractured item, instead of on every wand.
+
+### Fixed
+- **Item level was never parsed.** The old simulator stopped reading at the first
+  `--------`, but PoE2 puts `Item Level:` in a *later* block — so every ilvl check
+  silently ran against `None`.
+- The old **Test Item Simulator** (buried at the bottom of Preview, and unable to
+  answer for uniques, currency or rares — the three things people ask about) is gone,
+  replaced by this.
+
 ## [v4.19.1] — 2026-07-13 — The side panel, cleaned up
 
 The rail was stacking a **fractal-noise SVG, vertical pinstripes, a gold gradient
@@ -834,6 +870,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.20.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.20.0
 [v4.19.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.19.1
 [v4.19.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.19.0
 [v4.18.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.18.3
