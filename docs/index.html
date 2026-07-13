@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PoE 2 Pickit Generator for Exiled Bot 2</title>
-<meta name="description" content="Turn live Path of Exile 2 prices into a validated, bot-ready Exiled Bot 2 pickit. Portable Windows app, free and open source.">
+<meta name="description" content="Generate a validated Exiled Bot 2 pickit from live PoE2 prices, tour all 13 tabs, and use Item Check to explain exactly why a specific item is picked up or ignored.">
 <link rel="icon" href="logo.png">
 <meta property="og:title" content="PoE 2 Pickit Generator for Exiled Bot 2">
-<meta property="og:description" content="Live PoE2 prices in. A validated, bot-ready pickit out.">
-<meta property="og:image" content="https://c4luffy.github.io/poe2-pickit-generator/screenshot.png">
+<meta property="og:description" content="v4.21.0: nine themes with distinct voices, a smarter Item Check, and a complete 13-tab product tour.">
+<meta property="og:image" content="https://c4luffy.github.io/poe2-pickit-generator/shots/03-item-check.png">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://c4luffy.github.io/poe2-pickit-generator/">
 <meta name="twitter:card" content="summary_large_image">
@@ -28,7 +28,7 @@
   --hero-glow:radial-gradient(900px 520px at 66% 7%,rgba(210,162,79,.15),transparent 68%);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;scroll-padding-top:78px}
+html{scroll-behavior:smooth;scroll-padding-top:78px;overflow-x:clip}
 body{background:var(--ink);color:var(--tx);font:16px/1.65 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
   -webkit-font-smoothing:antialiased;overflow-x:hidden}
 img{display:block;max-width:100%;height:auto}
@@ -102,13 +102,8 @@ button{font:inherit}
 .frame-bar .lights{display:flex;gap:5px}.frame-bar .lights i{display:block;width:6px;height:6px;border-radius:50%;background:#4b433b}
 .frame-bar .live{margin-left:auto;display:flex;align-items:center;gap:8px;color:#8db881}
 .screen-clip{position:relative;overflow:hidden;border:1px solid #302b26;border-radius:9px;background:#08090b}
-.screen-clip::after{content:"";position:absolute;left:0;right:0;bottom:0;height:13%;background:linear-gradient(transparent,rgba(8,9,11,.86));pointer-events:none}
-.screen-zoom{position:relative;display:block;color:#fff}.screen-zoom::after{content:"Open full size ↗";position:absolute;right:10px;bottom:9px;z-index:2;
-  padding:5px 8px;border:1px solid rgba(255,255,255,.22);border-radius:6px;background:rgba(9,8,6,.82);color:#eee7db;font-size:10px;font-weight:750;letter-spacing:.04em}
+.screen-zoom{position:relative;display:block;color:#fff}
 .screen-zoom:focus-visible{outline-offset:-3px}
-.product-note{position:absolute;right:-13px;bottom:36px;background:var(--ink2);border:1px solid var(--line2);border-left:2px solid var(--venom);
-  border-radius:9px;padding:10px 12px;box-shadow:0 14px 28px var(--shadow);font-size:11.5px;color:var(--dim)}
-.product-note b{display:block;color:var(--tx);font-size:12.5px}
 
 /* proof strip */
 .proof{border-bottom:1px solid var(--line);background:var(--ink2)}
@@ -122,6 +117,43 @@ section{padding-block:clamp(68px,8vw,104px)}
 .section-head{max-width:760px;margin:0 auto clamp(34px,5vw,54px);text-align:center}
 .section-head h2{font-size:clamp(31px,4vw,48px);line-height:1.12;margin-top:12px;text-wrap:balance}
 .section-head p{color:var(--dim);font-size:16.5px;max-width:58ch;margin:14px auto 0}
+
+/* real product tour */
+.tour{border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--ink),var(--ink2))}
+.tour-frame{min-width:0;padding:10px;border:1px solid var(--line2);border-radius:16px;background:#0a0908;box-shadow:0 24px 60px var(--shadow)}
+.tour-picture{display:block;min-width:0;overflow:hidden;border:1px solid #302b26;border-radius:10px;background:#08090b}
+.tour-picture img{width:100%;height:auto;aspect-ratio:900/521;object-fit:cover}
+.tour-caption{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:13px;color:var(--faint);font-size:12px}
+.tour-caption strong{color:var(--tx);font-weight:700}.tour-caption a{text-decoration:underline;text-underline-offset:.18em}.tour-route{margin-top:16px;color:var(--dim);font-size:12.5px;text-align:center;overflow-wrap:anywhere}
+
+/* item check */
+.item-check{border-bottom:1px solid var(--line);background:var(--ink2)}
+.item-check-grid{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:clamp(34px,6vw,78px);align-items:start}
+.item-check-copy h2{font-size:clamp(34px,4.2vw,52px);line-height:1.08;margin-top:14px;text-wrap:balance}
+.item-check-copy>p{color:var(--dim);font-size:16px;margin-top:17px;max-width:54ch}
+.source-proof{margin-top:26px;padding:18px 20px;border:1px solid var(--brass-dim);border-left:3px solid var(--brass);border-radius:10px;background:color-mix(in srgb,var(--brass) 6%,transparent);color:var(--dim);font-size:14px}
+.source-proof strong{display:block;color:var(--tx);font-size:16px;margin-bottom:4px}
+.item-note{margin-top:17px;color:var(--dim);font-size:13.5px}.item-note strong{color:var(--tx)}
+.verdict-list{display:grid;gap:11px}
+.verdict{border:1px solid var(--line);border-radius:12px;background:var(--ink);padding:18px 20px}
+.verdict-head{display:flex;align-items:center;gap:10px}.verdict-head h3{font-size:17px}
+.verdict-mark{width:9px;height:9px;border-radius:50%;background:var(--venom);box-shadow:0 0 0 4px color-mix(in srgb,var(--venom) 13%,transparent)}
+.verdict.ignored .verdict-mark{background:var(--err);box-shadow:0 0 0 4px color-mix(in srgb,var(--err) 13%,transparent)}
+.verdict.depends .verdict-mark{background:var(--brass);box-shadow:0 0 0 4px color-mix(in srgb,var(--brass) 13%,transparent)}
+.verdict p{color:var(--dim);font-size:13.5px;margin-top:8px}
+.verdict blockquote{margin-top:12px;padding:11px 13px;border-left:2px solid var(--brass);background:var(--panel);color:var(--tx);font-size:12.5px}
+.upgrade-kicker{grid-column:1/-1;margin-top:28px;color:var(--brass);font:11px ui-monospace,Consolas,monospace;letter-spacing:.13em;text-transform:uppercase}
+.item-upgrades{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.item-upgrade{min-width:0;padding:17px 18px;border:1px solid var(--line);border-radius:11px;background:var(--ink)}
+.item-upgrade b{display:block;font-size:14px}.item-upgrade p{color:var(--dim);font-size:12.5px;margin-top:5px}
+
+/* v4.21 theme voices */
+.theme-voices{border-bottom:1px solid var(--line)}
+.voice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.voice-card{min-width:0;padding:17px 18px;border:1px solid var(--line);border-radius:11px;background:var(--ink2)}
+.voice-card b{display:block;color:var(--tx);font-size:14px}.voice-card span{display:block;color:var(--dim);font-size:12.5px;margin-top:4px}
+.voice-note{max-width:840px;margin:24px auto 0;padding:17px 20px;border:1px solid var(--brass-dim);border-radius:11px;background:color-mix(in srgb,var(--brass) 6%,transparent);color:var(--dim);font-size:14px;text-align:center}
+.voice-note strong{color:var(--tx)}
 
 /* workflow */
 .workflow{border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--ink),var(--ink2))}
@@ -175,6 +207,9 @@ section{padding-block:clamp(68px,8vw,104px)}
 .faq summary{cursor:pointer;list-style:none;padding:19px 0;font-weight:700;display:flex;align-items:center;gap:12px}.faq summary::-webkit-details-marker{display:none}
 .faq summary::after{content:"+";margin-left:auto;color:var(--brass);font-size:21px;font-weight:400;transition:transform .2s}.faq details[open] summary::after{transform:rotate(45deg)}
 .faq p{color:var(--dim);padding:0 34px 19px 0;font-size:14.5px}.faq p+p{margin-top:-6px}
+.shortcut-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin:0 0 20px}
+.shortcut-item{display:flex;align-items:center;gap:12px;background:var(--ink2);padding:11px 13px;color:var(--dim);font-size:13px}
+kbd{min-width:66px;padding:3px 7px;border:1px solid var(--line2);border-bottom-color:var(--control-line);border-radius:6px;background:var(--ink);color:var(--tx);font:11px ui-monospace,Consolas,monospace;text-align:center;box-shadow:0 1px 0 var(--control-line)}
 .final-cta{padding-block:clamp(62px,8vw,96px);text-align:center;background:var(--hero-glow)}
 .final-cta h2{font-size:clamp(32px,4.5vw,50px);line-height:1.1;max-width:16ch;margin:0 auto}.final-cta p{color:var(--dim);margin:14px auto 0;max-width:55ch}
 .final-cta .hero-actions{justify-content:center}.final-cta .micro{text-align:center}
@@ -187,7 +222,7 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
 @media(max-width:1040px){
   .hero-grid{grid-template-columns:1fr;gap:42px}.hero-copy{text-align:center}.hero-copy h1,.hero-lead{margin-inline:auto}.hero-actions,.trust-line{justify-content:center}.trust-more{margin-inline:auto;text-align:left}
   .product-stage{max-width:820px;margin:0 auto}.proof-grid{grid-template-columns:repeat(2,1fr)}.proof-item:nth-child(2){border-right:0}.proof-item:nth-child(-n+2){border-bottom:1px solid var(--line)}
-  .pillar-grid{grid-template-columns:1fr}.pillar{max-width:780px;margin:0 auto;width:100%;padding-right:0}.advanced{grid-template-columns:repeat(2,1fr)}
+  .item-check-grid{grid-template-columns:1fr}.pillar-grid{grid-template-columns:1fr}.pillar{max-width:780px;margin:0 auto;width:100%;padding-right:0}.advanced{grid-template-columns:repeat(2,1fr)}
   .setup-grid{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:840px){
@@ -195,16 +230,16 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
   .menu-ready .menu-btn{display:grid}.menu-ready .mobile-menu{display:none}.menu-ready .mobile-menu.open{display:block}
   .workflow-layout{grid-template-columns:1fr}.stage-tabs{display:grid;grid-template-columns:repeat(5,minmax(94px,1fr));gap:5px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:3px}
   .stage-tab{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;min-height:68px;padding:9px;scroll-snap-align:start}.stage-tab small{display:none}.stage-tab b{font-size:11.5px;line-height:1.2}.stage-check{display:none}
-  .download-panel{grid-template-columns:1fr;text-align:center}.download-panel .actions{justify-content:center}
+  .item-upgrades{grid-template-columns:1fr}.download-panel{grid-template-columns:1fr;text-align:center}.download-panel .actions{justify-content:center}
 }
 @media(max-width:620px){
   .brand-kicker{display:none}.brand-name{font-size:13px}.hero{text-align:left}.hero-copy{text-align:left}.hero-copy h1{font-size:clamp(39px,12vw,54px);margin-inline:0;max-width:10ch}.hero-lead{font-size:16.5px;margin-inline:0}
   .hero-actions,.trust-line{justify-content:flex-start}.hero-actions .btn{width:100%}.trust-line{display:grid;grid-template-columns:1fr 1fr;gap:9px 16px}
-  .product-note{display:none}.product-frame{padding:7px;border-radius:12px}.frame-bar{height:27px}.screen-clip{aspect-ratio:4/3}.screen-clip img{width:190%;max-width:none;transform:translateX(-11.5%)}.screen-clip::after{height:8%}
+  .product-frame{padding:7px;border-radius:12px}.frame-bar{height:27px}.tour-frame{padding:6px}
   .proof-grid{grid-template-columns:1fr 1fr}.proof-item{padding:17px 14px}.proof-item b{font-size:18px}
   .section-head{text-align:left;margin-bottom:32px}.section-head p{margin-left:0}.section-head h2{font-size:32px}
   .console-body{grid-template-columns:1fr}.workflow-console{padding:14px}
-  .advanced{grid-template-columns:1fr}.setup-grid{grid-template-columns:1fr}.setup-note{text-align:left}
+  .voice-grid{grid-template-columns:1fr}.voice-note{text-align:left}.advanced{grid-template-columns:1fr}.setup-grid{grid-template-columns:1fr}.setup-note{text-align:left}.shortcut-grid{grid-template-columns:1fr}
   .download-panel .actions .btn{width:100%}.footer-grid{flex-direction:column}.footer-links{gap:13px 18px}
 }
 @media(max-width:390px){.brand-name{max-width:116px;overflow:hidden;text-overflow:ellipsis}.nav-inner{gap:9px}}
@@ -223,13 +258,13 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
       <span><span class="brand-name">PoE 2 Pickit Generator</span><span class="brand-kicker">for Exiled Bot 2</span></span>
     </a>
     <div class="nav-links">
-      <a href="#workflow">How it works</a><a href="#features">Features</a><a href="#setup">Set up</a><a href="#faq">FAQ</a><a href="https://discord.gg/T7DU3Afve6">Discord</a>
+      <a href="#tour">Tour</a><a href="#item-check">Item Check</a><a href="#themes">Themes</a><a href="#setup">Set up</a><a href="#faq">FAQ</a><a href="https://discord.gg/T7DU3Afve6">Discord</a>
     </div>
     <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mobileMenu">☰</button>
-    <a class="btn btn-primary btn-sm nav-download download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe">Download</a>
+    <a class="btn btn-primary btn-sm nav-download download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.21.0/ExileBot2PickitGenerator.exe">Download</a>
   </div>
   <div class="mobile-menu" id="mobileMenu">
-    <a href="#workflow">How it works</a><a href="#features">Features</a><a href="#setup">Set up</a><a href="#faq">FAQ</a><a href="https://discord.gg/T7DU3Afve6">Discord</a>
+    <a href="#tour">Tour</a><a href="#item-check">Item Check</a><a href="#themes">Themes</a><a href="#setup">Set up</a><a href="#faq">FAQ</a><a href="https://discord.gg/T7DU3Afve6">Discord</a>
   </div>
 </nav>
 
@@ -237,29 +272,28 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
   <header class="hero" id="top">
     <div class="wrap hero-grid">
       <div class="hero-copy reveal">
-        <span class="eyebrow">Path of Exile 2 · Exiled Bot 2</span>
-        <h1 class="serif">Live prices in. <span>A bot-ready pickit out.</span></h1>
-        <p class="hero-lead">Choose your league and how greedy the bot should be. The app turns <strong>today's poe.ninja prices</strong> into 2,000+ validated rules, then checks that Exiled Bot is actually using them.</p>
+        <span class="eyebrow">New in v4.21.0</span>
+        <h1 class="serif">Nine themes. <span>Nine distinct voices.</span></h1>
+        <p class="hero-lead">Themes now change the Workbench's typography and tabs—not just its accent colour. Item Check also adds <strong>click-to-Preview rule lines</strong>, built-in examples, and prices in exalt, divine and chaos.</p>
         <div class="hero-actions">
-          <a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe">Download <span class="version-label">v4.19.1</span> for Windows</a>
-          <a class="btn btn-secondary" href="#workflow">Watch the 30-second flow</a>
+          <a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.21.0/ExileBot2PickitGenerator.exe">Download <span class="version-label">v4.21.0</span> for Windows</a>
+          <a class="btn btn-secondary" href="#tour">Tour all 13 tabs</a>
         </div>
-        <p class="micro">2-minute setup once · one-click refresh afterward</p>
+        <p class="micro">System fonts only · nothing extra to download · Relic stays the brass default</p>
         <div class="trust-line" aria-label="Download details">
           <span><i>✓</i> Windows 10/11</span><span><i>✓</i> Portable <span class="mono">.exe</span></span><span><i>✓</i> No installer · <span class="file-size-value">single file</span></span><span><i>✓</i> MIT open source</span>
         </div>
         <details class="trust-more">
           <summary>Why Windows may show a warning</summary>
-          <p class="trust-copy">This is a free, unsigned community tool, so SmartScreen may ask you to confirm. The <a href="https://github.com/c4Luffy/poe2-pickit-generator">complete source</a>, automated build, and <a class="checksum-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/SHA256SUMS.txt">SHA-256 checksum</a> are public. The app reads prices from poe.ninja and updates from GitHub; it never asks for your game account.</p>
+          <p class="trust-copy">This is a free, unsigned community tool, so SmartScreen may ask you to confirm. The <a href="https://github.com/c4Luffy/poe2-pickit-generator">complete source</a>, automated build, and <a class="checksum-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.21.0/SHA256SUMS.txt">SHA-256 checksum</a> are public. The app reads prices from poe.ninja and updates from GitHub; it never asks for your game account.</p>
         </details>
       </div>
 
       <div class="product-stage reveal">
         <div class="product-frame">
-          <div class="frame-bar"><span class="lights"><i></i><i></i><i></i></span><span>Pickit Generator</span><span class="live"><span class="dot"></span> prices ready</span></div>
-          <div class="screen-clip"><a class="screen-zoom" href="screenshot.png" target="_blank" rel="noopener" aria-label="Open the full-size app screenshot"><img src="screenshot.png" width="1604" height="921" alt="Generate screen showing league, presets, value floors, and validation status"></a></div>
+          <div class="frame-bar"><span class="lights"><i></i><i></i><i></i></span><span>Real running-app capture</span><span class="live"><span class="dot"></span> Item Check</span></div>
+          <div class="screen-clip"><a class="screen-zoom" href="shots/03-item-check.png" target="_blank" rel="noopener" aria-label="View the real Item Check screenshot"><img src="shots/03-item-check.png" width="1624" height="941" fetchpriority="high" alt="Item Check showing Try an example and a depends-on-the-rolls verdict for a pasted rare item"></a></div>
         </div>
-        <div class="product-note"><b>Validated before deploy</b> Bad rules never reach the bot.</div>
       </div>
     </div>
   </header>
@@ -267,15 +301,71 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
   <div class="proof" aria-label="Product proof">
     <div class="wrap proof-grid">
       <div class="proof-item live"><b><span class="dot"></span> Live</b><span>poe.ninja league prices</span></div>
-      <div class="proof-item"><b>2,000+</b><span>rules in a generated pickit</span></div>
-      <div class="proof-item"><b>27,000</b><span>bot mods checked by validator</span></div>
-      <div class="proof-item"><b>17</b><span>rare-gear slot recipes</span></div>
+      <div class="proof-item"><b>13 tabs</b><span>one complete pickit Workbench</span></div>
+      <div class="proof-item"><b>9 themes</b><span>each with its own type and tabs</span></div>
+      <div class="proof-item"><b>3 units</b><span>exalt · divine · chaos</span></div>
     </div>
   </div>
 
+  <section class="tour" id="tour">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="eyebrow">The complete Workbench</span><h2 class="serif">All 13 tabs, in motion.</h2><p>Take a quick pass through Generate, Preview, Item Check, every loot-rule tab, Setup and Debug. Every frame is a real capture of the running app.</p></div>
+      <div class="tour-frame reveal">
+        <picture class="tour-picture">
+          <source media="(prefers-reduced-motion: reduce)" srcset="shots/01-generate.png" type="image/png">
+          <source srcset="pickit-tour.webp" type="image/webp">
+          <img src="pickit-tour.gif" width="900" height="521" loading="lazy" decoding="async" alt="Pickit Generator Workbench showing its Generate and configuration screens">
+        </picture>
+        <div class="tour-caption"><strong>Real running-app captures · all 13 tabs</strong><span>Reduced motion shows a still frame · <a href="shots/03-item-check.png" target="_blank" rel="noopener">view Item Check still</a></span></div>
+      </div>
+      <p class="tour-route reveal">Generate · Preview · Item Check · History · Economy · Chance · Craft · Exceptional · Fracture · Magic &amp; Rare · Setup guide · Settings · Debug</p>
+    </div>
+  </section>
+
+  <section class="item-check" id="item-check">
+    <div class="wrap item-check-grid">
+      <div class="item-check-copy reveal">
+        <span class="eyebrow">New in v4.20.0 · upgraded in v4.21.0</span>
+        <h2 class="serif">The verdict comes from the real pickit.</h2>
+        <p>Paste a copied item and Item Check checks whether your current settings actually emit a rule for it. You see the deciding rule, the generated <span class="mono">.ipd</span> line, and what to change when the answer is no.</p>
+        <div class="source-proof"><strong>Not a simulation.</strong> Item Check runs the exact same pickit-generation code that writes the file. For the same current settings, the tab and the file cannot disagree.</div>
+        <p class="item-note"><strong>Fractured items stay practical:</strong> the result shows the actual target mods so you can compare them with the item in front of you.</p>
+      </div>
+      <div class="verdict-list reveal" aria-label="Item Check verdicts">
+        <article class="verdict picked"><div class="verdict-head"><span class="verdict-mark" aria-hidden="true"></span><h3>Picked up</h3></div><p>See whether the item cleared your price floor, appears on the always-take list, or belongs to a category that ignores the floor—plus the emitted rule.</p></article>
+        <article class="verdict ignored"><div class="verdict-head"><span class="verdict-mark" aria-hidden="true"></span><h3>Ignored</h3></div><p>See exactly why it missed and the setting that changes the result.</p><blockquote>Worth 6.20 ex, but your item floor is 8 ex—it misses by 1.80 ex. <strong>Fix:</strong> Lower the item floor to 6.2 ex or less and it gets taken.</blockquote></article>
+        <article class="verdict depends"><div class="verdict-head"><span class="verdict-mark" aria-hidden="true"></span><h3>Depends on the rolls</h3></div><p>For covered rare gear, the bot does the maths in-game, so Item Check shows the scored stats and threshold instead of inventing a yes. If no recipe covers the base or the slot is off, the verdict is a definitive no.</p></article>
+      </div>
+      <p class="upgrade-kicker reveal">New in v4.21.0</p>
+      <div class="item-upgrades reveal">
+        <article class="item-upgrade"><b>Jump to the rule</b><p>Click the <span class="mono">.ipd</span> line in any verdict and Preview opens directly on that rule.</p></article>
+        <article class="item-upgrade"><b>Try it without an item</b><p>Try an example loads a random unique, rare or fractured item so you can explore before owning the drop.</p></article>
+        <article class="item-upgrade"><b>Three price languages</b><p>Item Check now reads prices expressed in exalt, divine and chaos.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="theme-voices" id="themes">
+    <div class="wrap">
+      <div class="section-head reveal"><span class="eyebrow">Themes with a voice</span><h2 class="serif">More than a colour swap.</h2><p>Each theme now carries its own body type, heading face and tab treatment, so switching atmosphere changes the character of the whole Workbench.</p></div>
+      <div class="voice-grid reveal">
+        <article class="voice-card"><b>Relic</b><span>The familiar brass default—unchanged.</span></article>
+        <article class="voice-card"><b>Ossuary</b><span>Bookish serif type with sharp uppercase tabs.</span></article>
+        <article class="voice-card"><b>Abyss</b><span>Monospace headings like a deep-sea instrument panel.</span></article>
+        <article class="voice-card"><b>Void</b><span>Occult type with wide-tracked capitals.</span></article>
+        <article class="voice-card"><b>Delirium</b><span>Soft, rounded typography and tabs.</span></article>
+        <article class="voice-card"><b>Umbral</b><span>Cold, minimal and deliberately severe.</span></article>
+        <article class="voice-card"><b>Venom</b><span>Friendly geometry with pill-shaped tabs.</span></article>
+        <article class="voice-card"><b>Twilight</b><span>Warm serif character against a cool atmosphere.</span></article>
+        <article class="voice-card"><b>Blight</b><span>Hazard-tape energy with hard-edged tabs.</span></article>
+      </div>
+      <p class="voice-note reveal"><strong>Nothing extra to download.</strong> Every typeface already ships with Windows, so there is no font download or webfont-loading overhead.</p>
+    </div>
+  </section>
+
   <section class="workflow" id="workflow">
     <div class="wrap">
-      <div class="section-head reveal"><span class="eyebrow">The complete flow</span><h2 class="serif">From market prices to a bot that is listening.</h2><p>No theme tour and no mystery steps. This is the full job the app performs every time you Generate.</p></div>
+      <div class="section-head reveal"><span class="eyebrow">The complete flow</span><h2 class="serif">From market prices to a bot that is listening.</h2><p>No mystery steps. This is the full job the app performs every time you Generate.</p></div>
       <div class="workflow-layout reveal">
         <div class="stage-tabs" role="group" aria-label="Generation workflow">
           <button class="stage-tab" type="button" aria-label="Step 1: Choose league" aria-pressed="true" data-stage="0"><span class="stage-number">01</span><span><b>Choose league</b><small>Load the right economy</small></span><span class="stage-check" aria-hidden="true">✓</span></button>
@@ -306,7 +396,7 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
           </div>
         </div>
       </div>
-      <div class="workflow-cta reveal"><a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe">Try it on your league</a></div>
+      <div class="workflow-cta reveal"><a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.21.0/ExileBot2PickitGenerator.exe">Try it on your league</a></div>
     </div>
   </section>
 
@@ -315,14 +405,14 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
       <div class="section-head reveal"><span class="eyebrow">Why it is different</span><h2 class="serif">Three jobs. Done properly.</h2><p>The advanced controls are there when you need them, but the product is built around three outcomes.</p></div>
       <div class="pillar-grid">
         <article class="pillar reveal"><span class="pillar-mark">01 · MARKET</span><h3>Live economy intelligence</h3><p>Every run reads your league instead of trusting a frozen price list. Two floors—or one preset—decide what is worth the bot's time today.</p><ul class="evidence"><li>Currency, uniques, bases and league items</li><li>Auto-floor adapts to market movement</li><li>Changed filter explains every difference</li></ul></article>
-        <article class="pillar reveal"><span class="pillar-mark">02 · SAFETY</span><h3>Validated, patch-resistant rules</h3><p>Every stat is checked against Exiled Bot's own mod data. When PoE2 renames something, the health check tells you which rule died.</p><ul class="evidence"><li>27,000-mod validation before deploy</li><li>Game-data health check at launch</li><li>Collapsed or malformed runs are blocked</li></ul></article>
+        <article class="pillar reveal"><span class="pillar-mark">02 · SAFETY</span><h3>Validated, explainable rules</h3><p>Every stat is checked against Exiled Bot's own mod data. Item Check then shows what those same rules do with the item in front of you.</p><ul class="evidence"><li>27,000-mod validation before deploy</li><li>Per-item verdicts from the emitted pickit</li><li>Collapsed or malformed runs are blocked</li></ul></article>
         <article class="pillar reveal"><span class="pillar-mark">03 · HANDOFF</span><h3>A bot handoff you can trust</h3><p>The app finds the Pickit folder, copies the output, then reads <span class="mono">pickit.ini</span> to confirm the bot is listening to the same filename.</p><ul class="evidence"><li>Bot folder auto-detection</li><li>One-click active-profile repair</li><li>Rotating backups and restore</li></ul></article>
       </div>
       <div class="advanced reveal" aria-label="Advanced capabilities">
         <div class="advanced-item"><b>Rare gear scoring</b><span>Weighted recipes for all 17 gear slots</span></div>
         <div class="advanced-item"><b>Five presets</b><span>Vacuum, Balanced, Strict, Chase, Currency</span></div>
         <div class="advanced-item"><b>Run history</b><span>See what the market added or removed</span></div>
-        <div class="advanced-item"><b>Nine themes</b><span>The same Workbench, your preferred atmosphere</span></div>
+        <div class="advanced-item"><b>Nine theme voices</b><span>Distinct typography and tabs, not just colour</span></div>
       </div>
     </div>
   </section>
@@ -333,13 +423,13 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
       <div class="setup-grid">
         <article class="setup-step reveal"><span class="setup-n">01</span><h3>Download &amp; open</h3><p>Run the portable Windows <span class="mono">.exe</span>. There is no installer and no Python setup.</p></article>
         <article class="setup-step reveal"><span class="setup-n">02</span><h3>Choose league &amp; preset</h3><p>Start with Balanced or pick exactly how aggressive the bot should be.</p></article>
-        <article class="setup-step reveal"><span class="setup-n">03</span><h3>Generate</h3><p>The app fetches prices, builds 2,000+ rules, validates them and copies the files.</p></article>
+        <article class="setup-step reveal"><span class="setup-n">03</span><h3>Generate</h3><p>The app fetches prices, builds the pickit, validates every rule and copies the files.</p></article>
         <article class="setup-step reveal"><span class="setup-n">04</span><h3>Confirm the bot profile</h3><p>The connection check verifies <span class="mono">active_profile</span> and offers to fix a mismatch.</p></article>
       </div>
       <div class="setup-note reveal"><strong>Why the last check matters:</strong> Exiled Bot only loads the <span class="mono">.ipd</span> named by <span class="mono">active_profile</span>. A copied file can exist while the bot keeps reading an old one. The app catches that silent failure before it costs you loot.</div>
       <div class="download-panel reveal">
-        <div><h3>Portable, inspectable, recoverable.</h3><p><span class="version-label">v4.19.1</span> · Windows 10/11 · no installer · <span class="file-size-value">single .exe</span> · public source and SHA-256 · backups before every replace</p></div>
-        <div class="actions"><a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe">Download for Windows</a><a class="btn btn-secondary" href="https://github.com/c4Luffy/poe2-pickit-generator">View source</a></div>
+        <div><h3><span class="version-label">v4.21.0</span> · Themes got a voice. Item Check grew up.</h3><p>Windows 10/11 · no installer · <span class="file-size-value">single .exe</span> · public source and SHA-256 · backups before every replace</p></div>
+        <div class="actions"><a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.21.0/ExileBot2PickitGenerator.exe">Download for Windows</a><a class="btn btn-secondary" href="https://github.com/c4Luffy/poe2-pickit-generator">View source</a></div>
       </div>
     </div>
   </section>
@@ -348,18 +438,19 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
     <div class="wrap">
       <div class="section-head reveal"><span class="eyebrow">Good to know</span><h2 class="serif">Straight answers before you install.</h2></div>
       <div class="faq reveal">
-        <details open><summary>What does it actually create?</summary><p>A full Exiled Bot 2 pickit (<span class="mono">.ipd</span>) with 2,000+ rules, plus an optional matching in-game loot filter. Generate again whenever you want current market prices.</p></details>
+        <details open><summary>What does it actually create?</summary><p>A complete Exiled Bot 2 pickit (<span class="mono">.ipd</span>) plus an optional matching in-game loot filter. Generate again whenever you want current market prices.</p></details>
+        <details><summary>What are the keyboard shortcuts?</summary><p>Use <span class="mono">Ctrl+G</span> to Generate and <span class="mono">Ctrl+F</span> to focus the search box on the current tab. Number shortcuts follow the current navigation order:</p><div class="shortcut-grid" role="list"><div class="shortcut-item" role="listitem"><kbd>Ctrl+1</kbd><span>Generate</span></div><div class="shortcut-item" role="listitem"><kbd>Ctrl+6</kbd><span>Chance</span></div><div class="shortcut-item" role="listitem"><kbd>Ctrl+2</kbd><span>Preview</span></div><div class="shortcut-item" role="listitem"><kbd>Ctrl+7</kbd><span>Craft</span></div><div class="shortcut-item" role="listitem"><kbd>Ctrl+3</kbd><span>Item Check</span></div><div class="shortcut-item" role="listitem"><kbd>Ctrl+8</kbd><span>Exceptional</span></div><div class="shortcut-item" role="listitem"><kbd>Ctrl+4</kbd><span>History</span></div><div class="shortcut-item" role="listitem"><kbd>Ctrl+9</kbd><span>Fracture</span></div><div class="shortcut-item" role="listitem"><kbd>Ctrl+5</kbd><span>Economy</span></div><div class="shortcut-item" role="listitem"><kbd>Ctrl+0</kbd><span>Magic &amp; Rare</span></div></div></details>
         <details><summary>Why might Windows warn about the download?</summary><p>It is a free unsigned community app, so SmartScreen may ask you to confirm. The source, build workflow and SHA-256 checksum are public. The app only reads public price/update data and never asks for your game account.</p></details>
         <details><summary>What are the value floors?</summary><p>One floor covers currency and item categories; the other covers unique gear. Anything below its floor is skipped. Presets and Auto-floor set sensible values if you do not want to tune them manually.</p></details>
         <details><summary>How does rare gear scoring work?</summary><p>Each of the 17 slots has a weighted recipe. A rare is kept only when its useful stats clear that slot's score, using verified stat IDs and real top rolls from game data.</p></details>
         <details><summary>What if a game patch breaks a rule?</summary><p>The app refreshes its game data and runs a health check against live mod tables. Dead or renamed rules are named instead of silently failing.</p></details>
-        <details><summary>My bot is not picking things up—what should I check?</summary><p>Run the connection check first. It verifies the Pickit folder and confirms that <span class="mono">pickit.ini</span>'s <span class="mono">active_profile</span> matches the generated filename. Then Generate once more.</p></details>
+        <details><summary>My bot walked past an item—what should I check?</summary><p>Hover the item in game, press <span class="mono">Ctrl+C</span>, and paste it into Item Check. It will show whether the current pickit emits a rule and why. If the verdict is Picked up but the bot still ignores it, run the connection check to confirm <span class="mono">pickit.ini</span>'s <span class="mono">active_profile</span> matches the generated filename.</p></details>
       </div>
     </div>
   </section>
 
   <section class="final-cta">
-    <div class="wrap reveal"><h2 class="serif">Stop farming yesterday's prices.</h2><p>Set up once. After that, one Generate keeps the pickit current, validated and pointed at the right bot profile.</p><div class="hero-actions"><a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe">Download <span class="version-label">v4.19.1</span> for Windows</a><a class="btn btn-secondary" href="https://discord.gg/T7DU3Afve6">Ask the community</a></div><p class="micro">Free · MIT licensed · no installer · no account access</p></div>
+    <div class="wrap reveal"><h2 class="serif">Make the Workbench yours. Know what the bot will take.</h2><p>Choose a theme with character, generate from today's prices, then ask the pickit itself why a specific item is picked up or ignored.</p><div class="hero-actions"><a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.21.0/ExileBot2PickitGenerator.exe">Download <span class="version-label">v4.21.0</span> for Windows</a><a class="btn btn-secondary" href="https://discord.gg/T7DU3Afve6">Ask the community</a></div><p class="micro">Free · MIT licensed · no installer · no account access</p></div>
   </section>
 </main>
 
@@ -387,7 +478,7 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
   var stageData=[
     ["League economy loaded","READY","Trade league","Rise of the Abyssal <span>· live</span>","Currency, uniques, bases, runes, essences, fragments and tablets are priced for this league."],
     ["Balanced preset selected","SET","Loot strategy","Balanced <span>· everyday farming</span>","Plain-English presets set both floors and the category switches. Every value remains editable."],
-    ["Pickit assembled","2,184 RULES","Output","poe2_pickit.ipd <span>· built</span>","Live values are converted into the complete pickit plus a matching optional loot filter."],
+    ["Pickit assembled","COMPLETE","Output","poe2_pickit.ipd <span>· built</span>","Live values are converted into the complete pickit plus a matching optional loot filter."],
     ["Validation passed","0 ERRORS","Safety gate","27,000 mods <span>· checked</span>","Dead stat IDs, malformed conditions and collapsed output are caught before anything is deployed."],
     ["Bot profile confirmed","CONNECTED","Handoff","active_profile <span>· poe2_pickit</span>","The file is copied, the bot configuration is read back, and a mismatch can be repaired with one click."]
   ];
@@ -395,7 +486,7 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
   var checks=Array.from(document.querySelectorAll(".run-step"));
   function setStage(index){
     tabs.forEach(function(tab,i){var selected=i===index;tab.setAttribute("aria-pressed",String(selected));tab.classList.toggle("done",i<=index);});
-    checks.forEach(function(row,i){var done=i<=index;row.classList.toggle("done",done);row.querySelector("i").textContent=done?"✓":"";row.querySelector("strong").textContent=done?(i===2?"2,184":i===3?"0 ERRORS":i===4?"CONNECTED":"READY"):"—";});
+    checks.forEach(function(row,i){var done=i<=index;row.classList.toggle("done",done);row.querySelector("i").textContent=done?"✓":"";row.querySelector("strong").textContent=done?(i===2?"COMPLETE":i===3?"0 ERRORS":i===4?"CONNECTED":"READY"):"—";});
     var d=stageData[index];document.getElementById("stageTitle").textContent=d[0];document.getElementById("stageState").textContent=d[1];document.getElementById("stageKicker").textContent=d[2];document.getElementById("stageValue").innerHTML=d[3];document.getElementById("stageCopy").textContent=d[4];document.getElementById("stageProgress").style.width=((index+1)*20)+"%";
   }
   tabs.forEach(function(tab){tab.addEventListener("click",function(){setStage(Number(tab.dataset.stage));});});
@@ -412,7 +503,7 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
     }catch(_){root.classList.remove("reveal-ready");}
   }
 
-  fetch("https://api.github.com/repos/c4Luffy/poe2-pickit-generator/releases/latest",{headers:{Accept:"application/vnd.github+json"}})
+  fetch("https://api.github.com/repos/c4Luffy/poe2-pickit-generator/releases/tags/v4.21.0",{headers:{Accept:"application/vnd.github+json"}})
     .then(function(response){if(!response.ok)throw new Error("release lookup failed");return response.json();})
     .then(function(release){
       var version=String(release.tag_name||"").replace(/^v/i,"");

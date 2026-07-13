@@ -14,30 +14,30 @@ deploys it, and confirms Exiled Bot 2 is listening to the same profile.
 
 <br>
 
-[![Download for Windows](https://img.shields.io/badge/Download_for_Windows-d2a24f?style=for-the-badge&logo=windows&logoColor=181104)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe)
+[![Download for Windows](https://img.shields.io/badge/Download_for_Windows-d2a24f?style=for-the-badge&logo=windows&logoColor=181104)](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.21.0/ExileBot2PickitGenerator.exe)
 [![Open website](https://img.shields.io/badge/Open_website-79bd62?style=for-the-badge&logo=githubpages&logoColor=10200c)](https://c4luffy.github.io/poe2-pickit-generator/)
 
-[![Latest release](https://img.shields.io/github/v/release/c4Luffy/poe2-pickit-generator?label=latest&color=c99a4a&labelColor=171411)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
+[![Release v4.21.0](https://img.shields.io/badge/release-v4.21.0-c99a4a?labelColor=171411)](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.0)
 [![Total downloads](https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?color=829d78&labelColor=171411)](https://github.com/c4Luffy/poe2-pickit-generator/releases)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%20%2F%2011-6e6255?logo=windows&logoColor=white)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
 [![MIT license](https://img.shields.io/badge/license-MIT-6e6255)](LICENSE)
 
 <br>
 
-<a href="docs/screenshot.png">
-  <img src="docs/screenshot.png" width="1000" alt="PoE 2 Pickit Generator showing league selection, quick-start presets, value floors, and validation status">
+<a href="docs/shots/03-item-check.png">
+  <img src="docs/shots/03-item-check.png" width="1000" alt="Item Check showing Try an example and a depends-on-the-rolls verdict for a pasted rare item">
 </a>
 
-<sub>Real application capture · click to open full size</sub>
+<sub>Real running-app capture · Item Check</sub>
 
 </div>
 
 ## What it does
 
-| Live market intelligence | Validated rules | Reliable bot handoff |
+| Live market intelligence | Explainable, validated rules | Reliable bot handoff |
 |---|---|---|
-| Reads current league prices instead of shipping a frozen price list. | Checks stat IDs against Exiled Bot's own mod data before deploy. | Copies the output, reads <code>pickit.ini</code>, and confirms the active profile. |
-| Five presets plus editable floors and Auto-floor. | Blocks malformed or collapsed output and reports broken rules after patches. | Offers one-click profile repair, rotating backups, and restore. |
+| Reads current league prices instead of shipping a frozen price list. | Checks stat IDs before deploy; Item Check then applies those same generated rules to one pasted item. | Copies the output, reads <code>pickit.ini</code>, and confirms the active profile. |
+| Five presets plus editable floors and Auto-floor. | Reports Picked up, Ignored, or Depends on the rolls, with the deciding rule and an actionable explanation. | Offers one-click profile repair, rotating backups, and restore. |
 
 The generated pickit covers currency, uniques, bases, runes, essences,
 fragments, tablets, maps, waystones, rare gear, and more. An optional matching
@@ -45,13 +45,16 @@ in-game loot filter can be generated alongside it.
 
 ## Quick start
 
-1. **[Download the portable Windows app](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/ExileBot2PickitGenerator.exe).**
+1. **[Download the v4.21.0 portable Windows app](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.21.0/ExileBot2PickitGenerator.exe).**
 2. Open it, choose your league, and start with the **Balanced** preset.
 3. Confirm or choose the Exiled Bot 2 folder and enable auto-copy.
 4. Press **Generate**. Prices are fetched, the pickit is built and validated,
    and the output is deployed.
 5. Run the **connection check**. If <code>active_profile</code> points at another
    file, use **Fix it for me**.
+
+Need to explain a specific drop? Hover it in game, press **Ctrl+C**, paste it
+into **Item Check**, and press **Check this item**.
 
 The first setup takes about two minutes. After that, one Generate refreshes the
 pickit whenever the market moves.
@@ -64,25 +67,38 @@ pickit whenever the market moves.
 ## Built for real runs
 
 - **Live poe.ninja pricing** across the current trade league.
+- **Item Check** explains one pasted item using the emitted rule, opens that
+  rule in Preview, and includes ready-made unique, rare, and fractured examples.
 - **Five quick-start presets:** Vacuum, Balanced, Strict, Chase, and Currency.
 - **27,000-mod validation** before rules reach the bot.
 - **Rare-gear scoring** with weighted recipes for all 17 equipment slots.
 - **Changed filter and run history** so market-driven differences are visible.
 - **Best-effort bot-folder detection** with manual selection when needed.
 - **Backups before replacement** with restore support.
-- **Nine in-app themes** with names and previews.
+- **Nine distinct themes** with their own body type, headings, and tab treatment.
+- **Multi-unit pricing** that reads exalt, divine, and chaos values.
 - **Portable single-file app:** no installer and no Python required.
 
-## Latest release: v4.19.1
+## Latest release: [v4.21.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.21.0)
 
-The side rail is now a clean surface with a single hairline border. Small
-navigation labels use a crisp sans-serif face, spacing is calmer, hover nudges
-an item without repainting the app, and the active page gets a restrained brass
-glow.
+### Themes got a voice. Item Check grew up.
 
-Recent releases also added the named nine-theme picker, five quick-start
-presets, per-slot rare-gear controls, the connection check, one-click profile
-repair, and the in-app setup guide.
+Each of the nine themes now changes the app's typography and tabs as well as its
+colour. Ossuary feels archival, Abyss uses instrument-panel mono headings, Void
+leans occult, Delirium is soft and rounded, and Umbral is cold and minimal.
+Relic remains the familiar brass Workbench. Every font already ships with
+Windows, so there is nothing extra to download.
+
+- Click the matched <code>.ipd</code> line in an Item Check verdict to open
+  Preview at that exact rule.
+- Use **Try an example** to load a random unique, rare, or fractured item.
+- Read prices expressed in exalt, divine, and chaos.
+
+> [!IMPORTANT]
+> **Item Check is not a simulation.** It uses the same pickit-generation code
+> that writes the <code>.ipd</code> file and shows the exact line emitted for the
+> pasted item. For the same current settings, the tab and the generated file
+> cannot disagree.
 
 **[Read the full changelog →](CHANGELOG.md)**
 
@@ -93,7 +109,7 @@ because the executable is not code-signed.
 
 - The complete source and release workflow are public.
 - Every release includes a
-  **[SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest/download/SHA256SUMS.txt)**.
+  **[SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.21.0/SHA256SUMS.txt)**.
 - The app reads public price data from poe.ninja and update data from GitHub.
 - It never asks for your Path of Exile account.
 
