@@ -6,6 +6,28 @@ download lives.
 
 ---
 
+## [v4.25.0] — 2026-07-14 — Item Check pastes itself, and the league finally saves
+
+### Item Check: Ctrl+C in game, click the tab — done
+If your clipboard already holds a PoE2 item when you open **Item Check**, the item
+drops straight into the box and the check runs by itself. No Ctrl+V, no button.
+It never overwrites something you typed yourself, never re-runs the same copy twice,
+and if the clipboard holds anything that isn't an item it stays out of the way.
+
+### Fixed
+- **The league was never saved.** The dropdown auto-selects the top league without
+  firing a change event, so unless you manually switched leagues at least once, the
+  config carried `league=""` forever — and everything that reads it (Item Check, the
+  headless CLI, the example builder) got nothing. The selected league is now persisted
+  as soon as the list loads. A saved league that no longer exists falls back to the top
+  one instead of leaving the box blank.
+- **Copy buttons could silently fail — and wipe your clipboard doing it.** The
+  clipboard writer let Windows hand it a 64-bit memory handle through a 32-bit
+  doorway; whenever the allocation landed above 4 GB the handle got mangled and the
+  copy crashed *after* the clipboard had already been emptied. Intermittent by nature —
+  it depended on where in memory Windows happened to place the text. Every Copy button
+  in the app went through this. Both clipboard directions now use properly-typed calls.
+
 ## [v4.24.0] — 2026-07-13 — The app tells you what changed
 
 Updating used to be a black box. The app would show you what was in an update **before**
@@ -1016,6 +1038,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.25.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.25.0
 [v4.24.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.24.0
 [v4.23.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.23.0
 [v4.22.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.22.1

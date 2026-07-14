@@ -1479,6 +1479,7 @@ function openPage(p){
     const lg=$("league").value;
     $("ickLeague").textContent=lg?("Prices from "+lg):"No league selected — prices won't be checked";
     $("ickInput").focus();
+    ickAutoPaste();                     // Ctrl+C in game, click the tab — that's it
   }
   if(p==="hist")loadHistory();
   if(p==="set"){renderSetNav();loadBackups();loadBotConn();}
@@ -2846,6 +2847,24 @@ $("ickRun").onclick=async()=>{
   if(r.rule)$("ickRule").onclick=()=>ickGoto(r.rule);
 };
 $("ickWipe").onclick=()=>{$("ickInput").value="";$("ickOut").innerHTML="";};
+/* Auto-paste: if the clipboard already holds a PoE2 item (the user just pressed Ctrl+C
+   in game), drop it into the box and check it — opening the tab IS the action. Rules:
+   never clobber text the user typed themselves, and never re-run the same copy twice.
+   Everything about it is best-effort: on any failure the tab just behaves as before. */
+let _ickLast="";
+async function ickAutoPaste(){
+  try{
+    const r=await api().get_clipboard();
+    const t=(r&&r.text||"").trim();
+    if(!t||!/^(Item Class|Rarity):/m.test(t))return;   // clipboard isn't an item copy
+    if(t===_ickLast)return;                            // already handled this copy
+    const cur=$("ickInput").value.trim();
+    if(cur&&cur!==_ickLast)return;                     // user typed/pasted their own
+    _ickLast=t;
+    $("ickInput").value=t;
+    toast("📋 Took the item from your clipboard");
+    $("ickRun").click();
+  }catch(_){}}
 $("ickDemo").onclick=async()=>{
   const b=$("ickDemo"),was=b.textContent;
   b.textContent="Loading…";b.disabled=true;
@@ -3213,6 +3232,13 @@ async function init(){
     toast("Couldn't load leagues — check your connection, then press ⟳ next to the league box");}
   else{for(const l of ls){const o=document.createElement("option");o.value=l.name;o.textContent=l.display;sel.appendChild(o);}
     if(info.league)sel.value=info.league;
+    // A saved league that no longer exists leaves the select blank — take the top one.
+    if(!sel.value&&ls.length)sel.selectedIndex=0;
+    // The browser preselects the first option WITHOUT firing onchange, so a user who
+    // never touched the dropdown ran forever with league="" in the config — and
+    // everything that reads it (Item Check, the CLI, the example builder) got nothing.
+    // Persist whatever is actually selected.
+    if(sel.value&&sel.value!==info.league){info.league=sel.value;api().set_setting("league",sel.value);}
     logLine("Loaded "+ls.length+" leagues.","ok");sideMark(true);
     // New-league banner: a league we've never seen (e.g. league launch day).
     // First run just records the list; the banner nags until switched/dismissed.

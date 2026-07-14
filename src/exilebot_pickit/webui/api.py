@@ -331,7 +331,21 @@ class AppApi:
         try:
             import ctypes
             from ctypes import wintypes
-            u32, k32 = ctypes.windll.user32, ctypes.windll.kernel32
+            # Explicit types on private DLL handles. ctypes defaults every return to a
+            # 32-bit int, which TRUNCATES GlobalAlloc's 64-bit handle whenever the
+            # allocation lands above 4 GB — GlobalLock on the mangled handle returned
+            # NULL and memmove wrote to address 0. So every Copy button in the app
+            # failed intermittently, and (EmptyClipboard having already run) wiped the
+            # user's clipboard on the way down.
+            u32 = ctypes.WinDLL("user32", use_last_error=True)
+            k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            k32.GlobalAlloc.restype = wintypes.HGLOBAL
+            k32.GlobalAlloc.argtypes = [wintypes.UINT, ctypes.c_size_t]
+            k32.GlobalLock.restype = wintypes.LPVOID
+            k32.GlobalLock.argtypes = [wintypes.HGLOBAL]
+            k32.GlobalUnlock.argtypes = [wintypes.HGLOBAL]
+            u32.SetClipboardData.restype = wintypes.HANDLE
+            u32.SetClipboardData.argtypes = [wintypes.UINT, wintypes.HANDLE]
             s = str(text)
             if not u32.OpenClipboard(None):
                 return {"error": "clipboard busy"}
@@ -340,8 +354,11 @@ class AppApi:
                 buf = ctypes.create_unicode_buffer(s)
                 size = ctypes.sizeof(buf)
                 h = k32.GlobalAlloc(0x0042, size)          # GMEM_MOVEABLE|ZEROINIT
-                k32.GlobalLock.restype = wintypes.LPVOID
+                if not h:
+                    return {"error": "clipboard alloc failed"}
                 p = k32.GlobalLock(h)
+                if not p:
+                    return {"error": "clipboard lock failed"}
                 ctypes.memmove(p, buf, size)
                 k32.GlobalUnlock(h)
                 u32.SetClipboardData(13, h)                # CF_UNICODETEXT
@@ -350,6 +367,44 @@ class AppApi:
             return {"ok": True}
         except Exception as e:
             return {"error": str(e)}
+
+    def get_clipboard(self):
+        """Read the Windows clipboard — the mirror of copy_text, for Item Check's
+        auto-paste: the user just pressed Ctrl+C on an item in game, so opening the
+        tab should not also demand a Ctrl+V. Returns {"text": ""} on anything odd
+        (empty, non-text, clipboard busy) — auto-paste is best-effort by design."""
+        try:
+            import ctypes
+            from ctypes import wintypes
+            # Private DLL instances with explicit types. ctypes defaults every return
+            # to a 32-bit int, which TRUNCATES the 64-bit clipboard handle — GlobalLock
+            # on the mangled handle then faults. (ctypes.windll.* is also process-wide
+            # shared state; setting argtypes there would leak into copy_text.)
+            u32 = ctypes.WinDLL("user32", use_last_error=True)
+            k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            u32.GetClipboardData.restype = wintypes.HANDLE
+            k32.GlobalLock.restype = wintypes.LPVOID
+            k32.GlobalLock.argtypes = [wintypes.HGLOBAL]
+            k32.GlobalUnlock.argtypes = [wintypes.HGLOBAL]
+            if not u32.IsClipboardFormatAvailable(13):     # CF_UNICODETEXT
+                return {"text": ""}
+            if not u32.OpenClipboard(None):
+                return {"text": ""}
+            try:
+                h = u32.GetClipboardData(13)
+                if not h:
+                    return {"text": ""}
+                p = k32.GlobalLock(h)
+                try:
+                    text = ctypes.wstring_at(p) if p else ""
+                finally:
+                    k32.GlobalUnlock(h)
+                # an item copy is ~2 KB; anything huge is not an item
+                return {"text": text[:20000]}
+            finally:
+                u32.CloseClipboard()
+        except Exception:
+            return {"text": ""}
 
     def rule_for(self, cat_key, name, is_unique, base, ex):
         """The pickit rule line for one item — for right-click 'copy rule'."""
