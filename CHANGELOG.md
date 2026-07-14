@@ -6,6 +6,17 @@ download lives.
 
 ---
 
+## [v4.26.1] — 2026-07-14 — Clear means clear
+
+One bug from a fresh audit of the last two releases: pressing **Clear** in Item Check
+didn't reset the auto-paste memory — so after clearing, re-entering the tab refused to
+re-paste the very item still on your clipboard ("already handled that copy"). Clear now
+forgets too, so the same item pastes again.
+
+Also re-verified in the same pass: the What's-New GitHub fallback fetches real notes
+for a hand-downloaded exe, the Fracture search survives toggling a class, and the full
+suite (192 tests) is green.
+
 ## [v4.26.0] — 2026-07-14 — Search everywhere, copy one section, re-read the notes
 
 ### Every item tab has a search box now
@@ -1055,6 +1066,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.26.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.26.1
 [v4.26.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.26.0
 [v4.25.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.25.0
 [v4.24.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.24.0

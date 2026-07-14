@@ -2876,7 +2876,9 @@ $("ickRun").onclick=async()=>{
     +(r.rule?'<div class="hint" style="margin-top:12px">This is the line in your pickit that takes it \u2014 click it to find it in Preview:</div><pre class="ick-rule" id="ickRule" title="Jump to this line in Preview">'+esc(r.rule)+"</pre>":"");
   if(r.rule)$("ickRule").onclick=()=>ickGoto(r.rule);
 };
-$("ickWipe").onclick=()=>{$("ickInput").value="";$("ickOut").innerHTML="";};
+/* Clear also forgets which copy auto-paste handled — otherwise clearing and
+   re-entering the tab refuses to re-paste the very item still on the clipboard. */
+$("ickWipe").onclick=()=>{$("ickInput").value="";$("ickOut").innerHTML="";_ickLast="";};
 /* Auto-paste: if the clipboard already holds a PoE2 item (the user just pressed Ctrl+C
    in game), drop it into the box and check it — opening the tab IS the action. Rules:
    never clobber text the user typed themselves, and never re-run the same copy twice.
