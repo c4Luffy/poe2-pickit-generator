@@ -707,6 +707,12 @@
     letter-spacing:.14em;text-transform:uppercase;color:var(--ok);font-weight:700}
   .market .m-live .pulse{margin:0}
   .market .sp{flex:1}
+  #ver{cursor:pointer}
+  #ver:hover{color:var(--gold);text-decoration:underline}
+  .csec-copy{margin-left:6px;color:var(--dim);font-size:12px;flex:0 0 auto;
+    opacity:0;transition:opacity .12s,color .12s}
+  .cside-btn:hover .csec-copy{opacity:1}
+  .csec-copy:hover{color:var(--gold)}
   /* ── Item Check ── */
   #ickInput{width:100%;font-family:Consolas,ui-monospace,monospace;font-size:12.5px;
     padding:10px;margin-top:10px;line-height:1.5}
@@ -988,7 +994,8 @@
 <!-- ══ CHANCE ══ -->
 <div class="page" id="p-chance">
   <h1>Chance Bases</h1><div class="sub">White bases worth keeping for Orb of Chance — click a card to toggle. <span id="chanceCount"></span></div>
-  <div class="eco-head"><button class="ghost mini" id="chanceAll">Enable all</button>
+  <div class="eco-head eco-toolbar"><input type="text" id="chanceSearch" placeholder="🔎 Search bases…">
+    <button class="ghost mini" id="chanceAll">Enable all</button>
     <button class="ghost mini" id="chanceNone">Disable all</button></div>
   <div class="craft-layout">
     <div class="craft-side" id="chanceSide"></div>
@@ -1035,6 +1042,7 @@
   </div>
   <div class="card"><h2>📋 The base list</h2>
     <div class="hint">Updates automatically when a PoE2 patch adds new bases — nothing to manage here.</div>
+    <div class="eco-head eco-toolbar" style="margin-top:10px"><input type="text" id="excSearch" placeholder="🔎 Search bases…"></div>
     <div class="craft-layout" style="margin-top:10px">
       <div class="craft-side" id="excSide"></div>
       <div class="grid" id="excGrid"></div>
@@ -1045,6 +1053,7 @@
 <!-- ══ FRACTURE ══ -->
 <div class="page" id="p-fracture">
   <h1>Fracture Bases</h1><div class="sub">Which Magic/Rare bases are worth a Fracturing Orb — a verified reference, not a pickit rule. <span id="fracCount"></span></div>
+  <div class="eco-head eco-toolbar"><input type="text" id="fracSearch" placeholder="🔎 Search classes or target mods… (e.g. &quot;skill level&quot;)"></div>
   <div class="craft-layout">
     <div class="craft-side" id="fracSide"></div>
     <div style="flex:1;min-width:0">
@@ -1533,7 +1542,8 @@ $("lnkSite").onclick=()=>api().open_url("https://exiled-bot.net/");
    Ctrl+0 is the 10th — without it, adding a tab would silently cost the last one
    its shortcut. */
 const TAB_ORDER=["gen","prev","item","hist","eco","chance","craft","exc","fracture","rare"];
-const PAGE_SEARCH={eco:"ecoSearch",prev:"prevFilter"};   // per-tab search boxes
+const PAGE_SEARCH={eco:"ecoSearch",prev:"prevFilter",craft:"craftSearch",
+  chance:"chanceSearch",exc:"excSearch",fracture:"fracSearch"};   // per-tab search boxes
 document.addEventListener("keydown",e=>{
   if(e.ctrlKey&&e.key.toLowerCase()==="g"){e.preventDefault();doGenerate();}
   if(e.ctrlKey&&e.key>="0"&&e.key<="9"){
@@ -1858,12 +1868,12 @@ function openWhatsNew(){                       // an update is available, not in
    a new version with no idea what had changed. Notes are cached at download time, so
    this works with no network. */
 let _wnPost=false;
-async function showPostUpdateNotes(){
-  const r=await api().whats_new();
+async function showPostUpdateNotes(force){
+  const r=await api().whats_new(!!force);
   if(!r||!r.show)return;
-  _wnPost=true;
+  _wnPost=!force;              // a forced view is just reading — don't rewrite seen-state
   $("wnDl").style.display="none";              // nothing left to download
-  wnRender(r.version,r.notes,`Updated to v${r.version} — what's new`);}
+  wnRender(r.version,r.notes,force?`What's new in v${r.version}`:`Updated to v${r.version} — what's new`);}
 function wnDismiss(){
   $("wnModal").classList.remove("on");
   if(_wnPost){_wnPost=false;api().mark_whats_new_seen();}}
@@ -2138,7 +2148,9 @@ async function loadChance(){
   buildChanceSide();renderChanceGrid();}
 function renderChanceGrid(){
   const g=$("chanceGrid");g.innerHTML="";
+  const cq=($("chanceSearch").value||"").trim().toLowerCase();
   const items=chanceList.filter(b=>chanceFilter==="all"||b.cat===chanceFilter)
+    .filter(b=>!cq||b.base.toLowerCase().includes(cq)||(b.target||"").toLowerCase().includes(cq))
     .sort((a,b)=>CHANCE_ORDER.indexOf(a.cat)-CHANCE_ORDER.indexOf(b.cat));
   let lastCat=null;
   for(const b of items){
@@ -2159,6 +2171,7 @@ async function chanceBulk(en){
   for(const b of chanceList)b.enabled=en;
   await api().set_items_bulk("_chance",chanceList.map(b=>b.base),en);
   loadChance();toast((en?"Enabled":"Disabled")+" all chance bases");}
+$("chanceSearch").addEventListener("input",()=>chanceList.length&&renderChanceGrid());
 $("chanceAll").onclick=()=>chanceBulk(true);
 $("chanceNone").onclick=()=>chanceBulk(false);
 
@@ -2269,14 +2282,19 @@ function buildExcSide(){
 async function loadExc(){
   excCats=await api().exceptional_bases();
   buildExcSide();renderExcGrid();}
+$("excSearch").addEventListener("input",()=>excCats.length&&renderExcGrid());
 function renderExcGrid(){
   const g=$("excGrid");g.innerHTML="";
   const cnt=excCount;
   const ATTRC={Str:"#c0554a",Dex:"#6fae5f",Int:"#5b8fd6"};
   const chip=a=>a.split("/").filter(x=>ATTRC[x])
     .map(x=>`<span style="background:${ATTRC[x]};color:#0d0b06;font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;letter-spacing:.4px">${x}</span>`).join(" ")||"";
+  const xq=($("excSearch").value||"").trim().toLowerCase();
   for(const c of excCats){
     if(excFilter!=="all"&&c.cat!==excFilter)continue;
+    const bases=xq?c.bases.filter(b=>b.name.toLowerCase().includes(xq)
+      ||(b.stats||"").toLowerCase().includes(xq)):c.bases;
+    if(!bases.length)continue;               // a header with nothing under it is noise
     const h=document.createElement("div");h.className="gsec";
     const badge=c.sockets>0
       ? `<span style="margin-left:auto;color:var(--gold);letter-spacing:1px;font-size:12px">${"◈".repeat(c.sockets)} up to ${c.sockets} sockets</span>`
@@ -2284,7 +2302,7 @@ function renderExcGrid(){
     h.style.display="flex";h.style.alignItems="center";
     h.innerHTML=`<span>${esc(c.cat)}</span>${badge}`;g.appendChild(h);
     let lastAttr=null;
-    for(const b of c.bases){
+    for(const b of bases){
       // attribute sub-header when the group changes (Str → Dex → Int → hybrids)
       if(b.attr&&b.attr!=="—"&&b.attr!==lastAttr){lastAttr=b.attr;
         const sh=document.createElement("div");
@@ -2309,11 +2327,24 @@ function gen_isWired(t){return !(t.example||"").includes("UNVERIFIED_STAT_ID");}
 const FRAC_TIER_COLOR={"S+":"#e0455a","S":"#d99b3c","A+":"#5b8fd6","A":"#6fae5f"};
 async function loadFracture(force){
   if(!fracCls||force)fracCls=await api().fracture_classes();
+  buildFracSide();
+  if(!fracSel)fracSel=fracCls[0]&&fracCls[0].classes[0]&&fracCls[0].classes[0].name;
+  renderFracture();
+}
+function buildFracSide(){
   const s=$("fracSide");s.innerHTML="";
+  // The search matches the class name OR any of its target mods' text — so typing
+  // "skill level" surfaces every class whose fracture target is a +skill-level mod.
+  const fq=($("fracSearch").value||"").trim().toLowerCase();
+  const hit=c=>!fq||c.name.toLowerCase().includes(fq)
+    ||c.targets.some(t=>((t.text||"")+" "+(t.tier||"")).toLowerCase().includes(fq));
   let withTargets=0,total=0;
   for(const g of fracCls){
+    const vis=g.classes.filter(hit);
+    for(const c of g.classes){total++;if(c.targets.length)withTargets++;}
+    if(!vis.length)continue;
     const lbl=document.createElement("div");lbl.className="csgrp";lbl.textContent=g.group;s.appendChild(lbl);
-    for(const c of g.classes){total++;if(c.targets.length)withTargets++;
+    for(const c of vis){
       const b=document.createElement("button");
       b.className="cside-btn"+(fracSel===c.name?" on":"");
       b.dataset.name=c.name;
@@ -2324,9 +2355,8 @@ async function loadFracture(force){
       b.onclick=()=>{fracSel=c.name;renderFracture();};
       s.appendChild(b);}}
   $("fracCount").textContent=`${withTargets} / ${total} classes have a verified target.`;
-  if(!fracSel)fracSel=fracCls[0]&&fracCls[0].classes[0]&&fracCls[0].classes[0].name;
-  renderFracture();
 }
+$("fracSearch").addEventListener("input",()=>fracCls&&buildFracSide());
 function renderFracture(){
   document.querySelectorAll("#fracSide .cside-btn").forEach(b=>b.classList.toggle("on",b.dataset.name===fracSel));
   const c=fracCls&&fracCls.flatMap(g=>g.classes).find(x=>x.name===fracSel);
@@ -3019,9 +3049,17 @@ function renderPvNav(){
   n.innerHTML=`<button class="cside-btn${pvSection===null?" on":""}" data-s=""><span>All sections</span></button>`+
     pvSections.map((s,i)=>`<button class="cside-btn${pvSection===i?" on":""}" data-s="${i}" title="${esc(s.title)}">
       <span>${esc(s.title.length>20?s.title.slice(0,20)+"…":s.title)}</span>
-      <span class="n">${s.active}</span></button>`).join("");
+      <span class="n">${s.active}</span><span class="csec-copy" data-c="${i}" title="Copy this section's rules">⧉</span></button>`).join("");
   n.querySelectorAll(".cside-btn").forEach(b=>b.onclick=()=>{
-    pvSection=b.dataset.s===""?null:parseInt(b.dataset.s);renderPvNav();renderPreview();});}
+    pvSection=b.dataset.s===""?null:parseInt(b.dataset.s);renderPvNav();renderPreview();});
+  // ⧉ on a section copies just that section — no need to select it + "Copy all"
+  n.querySelectorAll(".csec-copy").forEach(el=>el.onclick=async e=>{
+    e.stopPropagation();
+    const i=parseInt(el.dataset.c);
+    const lo=Math.max(0,pvSections[i].start-2);
+    const hi=i+1<pvSections.length?pvSections[i+1].start-2:prevLines.length;
+    const ok=await copyText(prevLines.slice(lo,hi).join("\n"));
+    toast(ok?`📋 ${pvSections[i].title} copied (${hi-lo} lines)`:"Clipboard blocked");});}
 function pvVisible(){
   const q=($("prevFilter").value||"").toLowerCase();
   let lo=0,hi=prevLines.length;
@@ -3199,6 +3237,8 @@ function applyInfo(i){
 async function init(){
   info=await api().app_info();
   $("ver").textContent="v"+info.version;
+  $("ver").title="What changed in this version?";
+  $("ver").onclick=()=>showPostUpdateNotes(true);
   applyInfo(info);
   // First run: no bot folder yet → try to find Exiled Bot automatically and
   // connect it, so a new user doesn't have to browse for the folder by hand.

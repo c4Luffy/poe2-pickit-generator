@@ -6,6 +6,23 @@ download lives.
 
 ---
 
+## [v4.26.0] — 2026-07-14 — Search everywhere, copy one section, re-read the notes
+
+### Every item tab has a search box now
+**Chance, Exceptional and Fracture** get the same 🔎 filter Craft and Economy already
+had — and **Ctrl+F** focuses it on every one of those tabs. The Fracture search goes
+one further: it matches **target mod text**, not just class names — type *"skill
+level"* and you see exactly which classes fracture for a +skill-level mod.
+
+### Copy one section from Preview
+Hover a section in Preview's side list and a small **⧉** appears — click it to copy
+just that section's rules (say, only your Currency block) without selecting anything.
+
+### Click the version number to re-read What's New
+Closed the update notes too fast? They used to be gone forever. The **version label**
+in the sidebar is now clickable and re-opens the notes for the version you're on,
+any time.
+
 ## [v4.25.0] — 2026-07-14 — Item Check pastes itself, and the league finally saves
 
 ### Item Check: Ctrl+C in game, click the tab — done
@@ -1038,6 +1055,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.26.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.26.0
 [v4.25.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.25.0
 [v4.24.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.24.0
 [v4.23.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.23.0

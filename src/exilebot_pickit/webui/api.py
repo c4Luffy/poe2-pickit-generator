@@ -775,9 +775,9 @@ class AppApi:
         threading.Thread(target=_close, daemon=True).start()
         return {"ok": True}
 
-    def whats_new(self):
+    def whats_new(self, force=False):
         """The release notes for the version now running — shown once, on the first
-        launch after an update.
+        launch after an update. ``force`` re-opens them on demand (the version label).
 
         The app already told you what was in an update *before* you installed it; it
         never told you what changed once you were actually on it. That mattered after
@@ -787,16 +787,21 @@ class AppApi:
         fall back to GitHub for anyone who downloaded the exe by hand.
         """
         try:
-            seen = str(self.cfg.get("last_seen_version") or "")
-            if seen == VERSION:
-                return {"show": False}
-            # A brand-new install has nothing to catch up on — don't greet a first-time
-            # user with a changelog. Only someone with existing settings has *upgraded*.
-            upgraded = bool(self.cfg.get("history") or self.cfg.get("league")
-                            or self.cfg.get("bot_folder"))
-            if not upgraded:
-                self.mark_whats_new_seen()
-                return {"show": False}
+            # force = the user clicked the version number to re-read the notes: skip
+            # both the already-seen check and the fresh-install guard, and leave the
+            # seen-state alone — a deliberate look is not an announcement.
+            if not force:
+                seen = str(self.cfg.get("last_seen_version") or "")
+                if seen == VERSION:
+                    return {"show": False}
+                # A brand-new install has nothing to catch up on — don't greet a
+                # first-time user with a changelog. Only someone with existing
+                # settings has *upgraded*.
+                upgraded = bool(self.cfg.get("history") or self.cfg.get("league")
+                                or self.cfg.get("bot_folder"))
+                if not upgraded:
+                    self.mark_whats_new_seen()
+                    return {"show": False}
 
             notes = ""
             if str(self.cfg.get("pending_version") or "") == VERSION:

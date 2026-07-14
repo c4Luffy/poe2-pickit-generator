@@ -519,3 +519,17 @@ def test_get_clipboard_round_trips_with_copy_text(api):
         assert r["text"] == item
     else:                                      # no clipboard here — never an exception
         assert r["text"] == ""
+
+
+def test_whats_new_force_reopens_seen_notes_without_marking(api):
+    """Clicking the version number re-opens the notes even after they were dismissed —
+    and reading them on demand must not touch the seen-state."""
+    from exilebot_pickit.version import VERSION
+    api.cfg["league"] = "L"
+    api.cfg["last_seen_version"] = VERSION          # already seen -> normal path hides
+    api.cfg["pending_version"] = VERSION
+    api.cfg["pending_notes"] = "## the notes"
+    assert api.whats_new()["show"] is False
+    r = api.whats_new(True)
+    assert r["show"] is True and r["version"] == VERSION and "the notes" in r["notes"]
+    assert api.cfg["last_seen_version"] == VERSION  # untouched
