@@ -6,6 +6,28 @@ download lives.
 
 ---
 
+## [v4.24.0] — 2026-07-13 — The app tells you what changed
+
+Updating used to be a black box. The app would show you what was in an update **before**
+you installed it — and then, once you were actually running it, never mention it again.
+After this week's update crashes, people ended up on a new version with no idea what had
+happened to them.
+
+Now the first launch after an update opens a **What's new** panel with that version's
+release notes. It appears once, then never again. The notes are saved at download time,
+so it works with **no network** — and a brand-new user isn't greeted with a changelog
+they have no context for.
+
+### Fixed
+- **Numbers looked wobbly.** Candara, Corbel and Constantia — the faces behind Delirium,
+  Venom, Twilight and Ossuary — default to **old-style figures**: digits of differing
+  heights that dip below the baseline like lowercase letters. Every number in the app
+  (floors, prices, item levels) came out uneven on those themes. Lining figures are now
+  forced on every theme.
+- The release-notes panel rendered markdown badly: raw `*asterisks*` instead of italics,
+  and uneven gaps because the source newlines were being printed on top of the
+  paragraphs. It now renders properly, on one consistent rhythm.
+
 ## [v4.23.0] — 2026-07-13 — Exceptional bases: item level 79 is reachable now
 
 The **Minimum item level** was hard-clamped to **80–82**, so you simply could not ask
@@ -994,6 +1016,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.24.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.24.0
 [v4.23.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.23.0
 [v4.22.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.22.1
 [v4.22.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.22.0

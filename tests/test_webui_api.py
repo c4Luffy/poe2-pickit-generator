@@ -461,3 +461,45 @@ def test_base_min_level_can_be_set_to_79(api):
     assert api.cfg["base_min_level"] == 79
     assert api.app_info()["base_min_level"] == 79
     assert api._snapshot()["base_min_level"] == 79      # and it reaches the generator
+
+
+# ── What's new (post-update) ──────────────────────────────────────────────────
+
+def test_whats_new_shows_once_after_an_update(api):
+    """The app told you what an update contained BEFORE you installed it, then never
+    mentioned it again — so people landed on a new version with no idea what changed."""
+    from exilebot_pickit.version import VERSION
+    api.cfg["league"] = "L"                       # an existing user, not a fresh install
+    api.cfg["pending_version"] = VERSION          # notes cached at download time
+    api.cfg["pending_notes"] = "## Fixed\nthe thing"
+
+    r = api.whats_new()
+    assert r["show"] is True
+    assert r["version"] == VERSION
+    assert "the thing" in r["notes"]              # served from cache: works offline
+
+    api.mark_whats_new_seen()
+    assert api.whats_new()["show"] is False       # and never again for this version
+
+
+def test_whats_new_does_not_greet_a_brand_new_user(api):
+    """A first-time user has nothing to catch up on. Opening the app with a changelog
+    in their face is noise, not a welcome."""
+    api.cfg.pop("league", None)
+    api.cfg["history"] = []
+    assert api.whats_new()["show"] is False
+    from exilebot_pickit.version import VERSION
+    assert api.cfg["last_seen_version"] == VERSION   # silently marked, so no nag later
+
+
+def test_whats_new_survives_no_network(api, monkeypatch):
+    """No cached notes and GitHub unreachable: still announce the version rather than
+    blowing up or showing nothing."""
+    api.cfg["league"] = "L"
+    api.cfg["pending_version"] = ""
+    import requests
+    monkeypatch.setattr(requests, "get",
+                        lambda *a, **k: (_ for _ in ()).throw(OSError("offline")))
+    r = api.whats_new()
+    assert r["show"] is True and r["notes"] == "" and r["url"].endswith(
+        api.app_info()["version"])

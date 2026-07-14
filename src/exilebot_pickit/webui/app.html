@@ -170,6 +170,11 @@
   ::-webkit-scrollbar-thumb:hover{background:var(--gold-dim)}
   ::-webkit-scrollbar-corner{background:transparent}
   body{zoom:1.1;background:var(--bg);color:var(--text);font:14.5px/1.5 var(--font);
+       /* Candara, Corbel and Constantia default to OLD-STYLE figures: digits with
+          differing heights that dip below the baseline like lowercase letters. On the
+          themes using those faces, every number in the app (floors, prices, item
+          levels) came out wobbly. Force lining figures on every theme. */
+       font-variant-numeric:lining-nums;
        height:90.9vh;display:flex;flex-direction:row;overflow:hidden;transition:background .25s,color .25s}
   /* ── Custom title bar (frameless window) ── */
   /* Native OS window frame is used now (see poc.py) — hide the page's own
@@ -523,8 +528,25 @@
         max-width:560px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
   .modal-hd{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border)}
   .modal-hd b{font-size:16px}
-  .modal-bd{padding:18px 20px;overflow-y:auto;font-size:13.5px;line-height:1.6;white-space:pre-wrap}
-  .modal-bd h3{color:var(--gold);font-size:14px;margin:2px 0 8px}
+  /* No white-space:pre-wrap here — the notes are markdown, and keeping the raw
+     newlines printed them ON TOP of the <p>/<h3> tags, which is what left those
+     big empty gaps between paragraphs. */
+  /* One gap, everywhere. Per-element margins gave 9px between paragraphs but 18px
+     before a heading, so the column breathed unevenly. A flex gap makes every block
+     sit on the same rhythm — the heading separates by weight and colour, not by air. */
+  .modal-bd{padding:18px 20px;overflow-y:auto;font-size:13.5px;line-height:1.6;
+    display:flex;flex-direction:column;gap:12px}
+  .modal-bd>*{margin:0}
+  .modal-bd h3{color:var(--gold);font-size:12.5px;text-transform:uppercase;
+    letter-spacing:.07em;font-weight:700}
+  .modal-bd ul{padding-left:17px;display:flex;flex-direction:column;gap:6px}
+  .modal-bd b{color:var(--gold-br);font-weight:600}
+  .modal-bd i{font-style:italic;color:var(--dim)}
+  .modal-bd code{font:12px/1.4 Consolas,ui-monospace,monospace;background:var(--bg3);
+    border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--text)}
+  .modal-bd blockquote{padding:9px 13px;color:var(--dim);
+    border-left:2px solid var(--gold-dim);background:var(--bg3);border-radius:0 9px 9px 0}
+  .modal-bd hr{border:0;border-top:1px solid var(--border);width:100%}
   .modal-ft{padding:13px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
   /* .hrow is a <tr> — never display:flex (that breaks it out of table layout
      and de-aligns the columns from <thead>). Separators come from the td rule. */
@@ -1796,16 +1818,57 @@ async function doInstall(){
   if(r&&r.error){upd._err=r.error;uState("error");}
   // on success the app is being closed by the backend
 }
-function openWhatsNew(){
-  $("wnTitle").textContent=`What's new in v${upd.version}`;
-  const notes=(upd.notes||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")
-    .replace(/^### (.*)$/gm,'<h3>$1</h3>').replace(/^## (.*)$/gm,'<h3>$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
-  $("wnBody").innerHTML=notes||"See the release page for details.";
+/* Release notes are markdown. The old renderer only handled ## and **bold**, so
+   *italics* showed up as literal asterisks and every other line was left raw. */
+function wnMd(src){
+  const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const inline=s=>esc(s)
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+    .replace(/\*(.+?)\*/g,'<i>$1</i>')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g,'$1');      // links: keep the words, drop the url
+  const out=[];let para=[],list=false;
+  const flushP=()=>{if(para.length){out.push("<p>"+inline(para.join(" "))+"</p>");para=[];}};
+  const flushL=()=>{if(list){out.push("</ul>");list=false;}};
+  for(const raw of String(src||"").split(/\r?\n/)){
+    const l=raw.trim();
+    if(!l){flushP();flushL();continue;}
+    const h=l.match(/^#{1,4}\s+(.*)$/);
+    if(h){flushP();flushL();out.push("<h3>"+inline(h[1])+"</h3>");continue;}
+    if(/^([-*_])\1{2,}$/.test(l)){flushP();flushL();out.push("<hr>");continue;}
+    const b=l.match(/^[-*]\s+(.*)$/);
+    if(b){flushP();if(!list){out.push("<ul>");list=true;}out.push("<li>"+inline(b[1])+"</li>");continue;}
+    if(l.startsWith(">")){flushP();flushL();
+      out.push("<blockquote>"+inline(l.replace(/^>\s?/,""))+"</blockquote>");continue;}
+    flushL();para.push(l);                 // wrapped lines belong to the SAME paragraph
+  }
+  flushP();flushL();
+  return out.join("");}
+function wnRender(ver,notes,head){
+  $("wnTitle").textContent=head;
+  $("wnBody").innerHTML=wnMd(notes)||"See the release page for details.";
+  $("wnBody").scrollTop=0;
   $("wnModal").classList.add("on");}
-$("wnClose").onclick=()=>$("wnModal").classList.remove("on");
+function openWhatsNew(){                       // an update is available, not installed
+  $("wnDl").style.display="";
+  wnRender(upd.version,upd.notes,`What's new in v${upd.version}`);}
+/* The first launch AFTER an update. The app used to tell you what an update contained
+   only BEFORE you installed it, and then never mention it again — so people ended up on
+   a new version with no idea what had changed. Notes are cached at download time, so
+   this works with no network. */
+let _wnPost=false;
+async function showPostUpdateNotes(){
+  const r=await api().whats_new();
+  if(!r||!r.show)return;
+  _wnPost=true;
+  $("wnDl").style.display="none";              // nothing left to download
+  wnRender(r.version,r.notes,`Updated to v${r.version} — what's new`);}
+function wnDismiss(){
+  $("wnModal").classList.remove("on");
+  if(_wnPost){_wnPost=false;api().mark_whats_new_seen();}}
+$("wnClose").onclick=wnDismiss;
 $("wnDl").onclick=()=>{$("wnModal").classList.remove("on");startDownload();};
-$("wnModal").onclick=e=>{if(e.target.id==="wnModal")$("wnModal").classList.remove("on");};
+$("wnModal").onclick=e=>{if(e.target.id==="wnModal")wnDismiss();};
 
 /* ── generate ── */
 async function poll(){
@@ -3246,6 +3309,7 @@ function setupNudge(botFolder){
 
 window.addEventListener("pywebviewready",()=>init().then(()=>{
   gdStart(false).catch(()=>{});          // health check runs itself; never blocks boot
+  showPostUpdateNotes().catch(()=>{});   // first launch after an update: say what changed
 }).catch(e=>{
   const t="STARTUP ERROR: "+(e&&(e.stack||e.message)||e);
   try{api().js_error(t);}catch(_){}

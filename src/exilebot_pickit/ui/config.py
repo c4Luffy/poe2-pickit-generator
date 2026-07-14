@@ -68,6 +68,11 @@ DEFAULT_CONFIG = {
     "min_exalt": 0.0,
     "min_exalt_gear": 0.0,
     "min_exalt_unique": 0.0,
+    # What's-new: the version whose notes the user has already seen, plus the notes
+    # stashed at download time so the panel still works with no network.
+    "last_seen_version": "",
+    "pending_version": "",
+    "pending_notes": "",
     # floors are always stored in EXALT; these are just the unit each one is
     # displayed in, so "Chaos 1" doesn't come back as "60.57176 Exalt"
     "floor_unit_unique": "Exalt",

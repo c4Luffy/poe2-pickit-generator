@@ -580,6 +580,14 @@ class AppApi:
                     subprocess.Popen(["explorer", "/select,", dest])
                 except Exception:
                     pass
+            # Keep this release's notes: after the swap the app relaunches and shows
+            # them as "what's new", and doing it now means that works with no network.
+            try:
+                self.cfg["pending_version"] = ver
+                self.cfg["pending_notes"] = str(data.get("body") or "")[:8000]
+                save_config(self.cfg)
+            except Exception:
+                pass
             self._dl_finish({"ok": True, "path": dest, "version": ver, "frozen": frozen})
         except Exception as e:
             # download failed — the old version is completely untouched
@@ -710,6 +718,60 @@ class AppApi:
             time.sleep(1.5)
             os._exit(0)
         threading.Thread(target=_close, daemon=True).start()
+        return {"ok": True}
+
+    def whats_new(self):
+        """The release notes for the version now running — shown once, on the first
+        launch after an update.
+
+        The app already told you what was in an update *before* you installed it; it
+        never told you what changed once you were actually on it. That mattered after
+        the update crashes: people got a new exe and no idea what had happened.
+
+        Notes come from the copy stashed at download time (so this works offline), and
+        fall back to GitHub for anyone who downloaded the exe by hand.
+        """
+        try:
+            seen = str(self.cfg.get("last_seen_version") or "")
+            if seen == VERSION:
+                return {"show": False}
+            # A brand-new install has nothing to catch up on — don't greet a first-time
+            # user with a changelog. Only someone with existing settings has *upgraded*.
+            upgraded = bool(self.cfg.get("history") or self.cfg.get("league")
+                            or self.cfg.get("bot_folder"))
+            if not upgraded:
+                self.mark_whats_new_seen()
+                return {"show": False}
+
+            notes = ""
+            if str(self.cfg.get("pending_version") or "") == VERSION:
+                notes = str(self.cfg.get("pending_notes") or "")
+            if not notes:
+                try:
+                    import requests
+                    from exilebot_pickit.ui.updater import VERSION_URL
+                    base = VERSION_URL.rsplit("/", 1)[0]
+                    r = requests.get(f"{base}/tags/v{VERSION}", timeout=8,
+                                     headers={"User-Agent": f"poe2-pickit/{VERSION}",
+                                              "Accept": "application/vnd.github+json"})
+                    if r.status_code == 200:
+                        notes = str((r.json() or {}).get("body") or "")[:8000]
+                except Exception:
+                    notes = ""
+            return {"show": True, "version": VERSION, "notes": notes,
+                    "url": f"https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v{VERSION}"}
+        except Exception as e:
+            return {"show": False, "error": str(e)}
+
+    def mark_whats_new_seen(self):
+        """Don't show these notes again."""
+        try:
+            self.cfg["last_seen_version"] = VERSION
+            self.cfg["pending_version"] = ""
+            self.cfg["pending_notes"] = ""
+            save_config(self.cfg)
+        except Exception:
+            pass
         return {"ok": True}
 
     def check_update(self):
