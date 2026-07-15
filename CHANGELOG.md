@@ -6,6 +6,29 @@ download lives.
 
 ---
 
+## [v4.30.0] — 2026-07-15 — Switching a floor's currency keeps the floor
+
+Change the **unit** next to a floor — Exalt → Chaos, say — and the app used to keep the
+*number* and quietly change what it meant. A **9 EXALT** floor became **9 CHAOS**, which
+is **~520 ex** — 58× stricter — while the box still innocently read "9". On Divine it was
+424× stricter. Your bot would start walking past almost everything and nothing on screen
+said why.
+
+Now the unit picker does what a unit picker should: it **converts**. 9 ex shown in chaos
+becomes **0.16 chaos** — same floor, written differently, exactly like switching km to
+miles. Your bot picks up the identical items.
+
+And it tells you, so there's no guessing:
+- *"Same 9 ex floor — just written in chaos. Your bot picks up exactly the same items."*
+- When a floor is too small to write in a unit (9 ex is 0.02 divine, which rounds to
+  nothing): *"9 ex is too small to write in divine — it stays in exalt."* — instead of the
+  dropdown silently snapping back with no explanation.
+
+Two quieter fixes rode along: switching a unit no longer **clears your active preset** (the
+floor it set didn't change, so the preset is still true), and no longer **re-saves the
+floor**, which had let display rounding creep into the real number on every flick of the
+dropdown.
+
 ## [v4.29.3] — 2026-07-15 — Two old UI bugs, and 19 KB of dead weight
 
 Both of these were spotted during the UI polish pass that got reverted for being slow.
@@ -1200,6 +1223,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.30.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.30.0
 [v4.29.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.3
 [v4.29.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.2
 [v4.29.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.1

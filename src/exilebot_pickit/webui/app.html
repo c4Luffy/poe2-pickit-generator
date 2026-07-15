@@ -1608,8 +1608,39 @@ function _saveFloors(){clearTimeout(_floorT);
     // looking for all the world like the setting had been thrown away.
     api().set_setting("floor_unit_unique",$("uUnit").value);
     api().set_setting("floor_unit_gear",$("gUnit").value);},400);}
-["uAmt","uUnit"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();_presetOff();}));
-["gAmt","gUnit"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();_presetOff();}));
+/* Typing a number and switching a unit are NOT the same edit, and sharing one handler
+   conflated them:
+     typing    -> the floor changed. Re-read the box.
+     switching -> the floor did NOT change, only how it's written. Convert it, the way
+                  km->miles does: same distance, different number.
+   Re-reading the box against the new rate is what turned a 9 ex floor into 9 chaos =
+   519 ex while the box innocently still said "9" — the same shape as the 58x preset bug
+   in v4.29.2: a number sitting still while its meaning moves underneath it. */
+const _unitRate=u=>u==="Divine"?(divRate>1?divRate:0):u==="Chaos"?(chaosEx>0?chaosEx:0):1;
+let _lastUnit={uUnit:"Exalt",gUnit:"Exalt"};
+function _saveUnits(){
+  api().set_setting("floor_unit_unique",$("uUnit").value);
+  api().set_setting("floor_unit_gear",$("gUnit").value);}
+function onUnitPick(amtId,unitId,recalc){
+  const want=$(unitId).value, prev=_lastUnit[unitId]||"Exalt";
+  const ex=(parseFloat($(amtId).value)||0)*(_unitRate(prev)||1);   // the floor, as it stands
+  showFloor(amtId,unitId,ex);          // same floor, rewritten in the unit they asked for
+  const got=$(unitId).value;           // ...unless showFloor refused one it can't hold
+  _lastUnit[unitId]=got;
+  recalc();
+  /* Only the unit moved. Never re-save the floor here: the shown value is rounded to 2dp,
+     so writing it back would let that rounding creep into the real number every time
+     someone flicked the dropdown. The active preset also stays valid — the floor it set
+     is still the floor. */
+  _saveUnits();
+  const exTxt=(+ex.toFixed(2))+" ex";
+  toast(got===want
+    ? `Same ${exTxt} floor — just written in ${got.toLowerCase()}. Your bot picks up exactly the same items.`
+    : `${exTxt} is too small to write in ${want.toLowerCase()} — it would round away to nothing, so it stays in exalt.`);}
+["uAmt"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();_presetOff();}));
+["gAmt"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();_presetOff();}));
+$("uUnit").addEventListener("change",()=>onUnitPick("uAmt","uUnit",uEx));
+$("gUnit").addEventListener("change",()=>onUnitPick("gAmt","gUnit",gEx));
 /* Show an exalt floor in the unit the user picked. Rounded — an unrounded 60.57176
    overflows the box and reads like a bug. Falls back to Exalt when that unit's live rate
    hasn't arrived yet (never divide by a rate we don't have), AND when the answer would
@@ -1636,6 +1667,7 @@ function restoreFloors(){
   if(info.floor_unit_gear)$("gUnit").value=info.floor_unit_gear;
   showFloor("uAmt","uUnit",info.min_unique||0);
   showFloor("gAmt","gUnit",info.min_gear||0);
+  _lastUnit={uUnit:$("uUnit").value,gUnit:$("gUnit").value};  // showFloor may have overridden
   uEx();gEx();updTracks();}
 
 /* ── console dials: drag-track sliders + fill tracks + quality/level sync ── */
@@ -3286,6 +3318,7 @@ function applyInfo(i){
      unit is on screen (and falls back to Exalt until that rate has actually arrived). */
   showFloor("uAmt","uUnit",i.min_unique||0);
   showFloor("gAmt","gUnit",i.min_gear||0);
+  _lastUnit={uUnit:$("uUnit").value,gUnit:$("gUnit").value};   // keep the picker's origin in step
   $("outBase").value=i.output_base;
   $("botFolderLbl").textContent=i.bot_folder||"not set";
   setupNudge(i.bot_folder);        // fresh install → point them at the guide
