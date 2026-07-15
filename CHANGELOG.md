@@ -6,6 +6,15 @@ download lives.
 
 ---
 
+## [v4.32.3] — 2026-07-15 — Fixed an Economy crash when switching leagues
+
+A review pass turned up a real error in the logs: changing your league while the Economy
+tab was mid-action could throw *"Cannot read properties of null"* and leave the category
+list blank. The Economy data is cleared the instant you switch leagues, and three render
+functions read it without checking. They now bail cleanly until the new league's data
+lands. (The smooth floor dragging from the last build also quietly applies to the quality
+and item-level sliders.)
+
 ## [v4.32.2] — 2026-07-15 — Smooth floor dragging
 
 The floor slider had a 0.12s width animation, so while you dragged, the fill and handle
@@ -1296,6 +1305,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.32.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.3
 [v4.32.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.2
 [v4.32.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.1
 [v4.32.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.0

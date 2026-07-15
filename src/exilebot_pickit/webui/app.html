@@ -2080,6 +2080,10 @@ document.querySelectorAll("#unitChips .chip").forEach(c=>c.onclick=()=>{
   c.classList.add("on");ecoUnit=c.dataset.u;eco&&renderEco();});
 $("ecoReload").onclick=()=>{eco=null;loadEco();};
 function renderChips(){
+  // eco is cleared to null on a league change. The category dbl-click handler awaits
+  // set_category before re-rendering, so switching league mid-await would land here with
+  // eco null -> "Cannot read properties of null (reading 'cats')". Bail instead.
+  if(!eco)return;
   const c=$("ecoChips");c.innerHTML="";
   const group=k=>k.startsWith("_ap_")?"Always pick":(k.startsWith("unique_")?"Uniques":"Market");
   let lastG=null;
@@ -2106,6 +2110,7 @@ function ecoMatch(it,q){
   const words=(it.name+" "+(it.base||"")).toLowerCase().split(/[\s'-]+/);
   return q.split(/\s+/).every(t=>words.some(w=>w.startsWith(t)));}
 function ecoRows(){
+  if(!eco)return [];              // league changed mid-flight — no data to page over
   const q=($("ecoSearch").value||"").trim().toLowerCase();
   let rows=[];
   if(q){for(const cat of eco.cats)for(const it of cat.items)
@@ -2129,6 +2134,7 @@ function sparkSvg(pts,dir){
     +`<circle cx="${x(pts.length-1).toFixed(1)}" cy="${y(pts[pts.length-1]).toFixed(1)}" r="1.6" fill="${c}"/>`
     +`</svg>`;}
 function renderEco(){
+  if(!eco)return;                // guard every entry: eco is null between league switches
   const q=($("ecoSearch").value||"").toLowerCase();
   const body=$("ecoBody");body.innerHTML="";
   let rows=ecoRows();
