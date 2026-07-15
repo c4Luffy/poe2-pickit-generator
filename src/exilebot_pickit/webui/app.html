@@ -2065,7 +2065,7 @@ async function loadEco(){
   const st=$("ecoStale");
   if(eco.stale&&eco.stale.length){st.textContent=`⚠ Offline: ${eco.stale.length} categories are showing cached prices (poe.ninja unreachable).`;st.classList.add("on");}
   else st.classList.remove("on");
-  if(!ecoCat)ecoCat=eco.cats[0].key;
+  if(!ecoCat&&eco.cats&&eco.cats.length)ecoCat=eco.cats[0].key;   // empty cats would crash
   renderChips();renderEco();
   $("ecoInfo").textContent=`1 div = ${eco.divine_rate} ex`;
   $("ecoRateV").textContent=`${eco.divine_rate} ex`;$("ecoRate").style.display="flex";}

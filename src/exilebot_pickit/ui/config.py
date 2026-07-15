@@ -217,7 +217,11 @@ def load_config():
     import time as _time
     for attempt in (0, 1):
         try:
-            with open(CONFIG_PATH, encoding="utf-8") as f:
+            # utf-8-sig, not utf-8: a UTF-8 BOM (added by Notepad "Save As", PowerShell's
+            # Set-Content -Encoding UTF8, or some editors) makes plain json.load raise, and
+            # the app would then wipe to .corrupt.bak and lose every setting. -sig strips a
+            # leading BOM if present and reads BOM-less files identically.
+            with open(CONFIG_PATH, encoding="utf-8-sig") as f:
                 data = json.load(f)
             if not isinstance(data, dict):
                 raise ValueError("config root is not an object")

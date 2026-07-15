@@ -141,3 +141,20 @@ def test_concurrent_saves_never_corrupt_the_config(tmp_config):
     leftovers = [f for f in os.listdir(os.path.dirname(cfgmod.CONFIG_PATH))
                  if f.endswith(".tmp")]
     assert not leftovers, f"temp files left behind: {leftovers}"
+
+
+def test_config_with_utf8_bom_still_loads(tmp_config):
+    """A UTF-8 BOM (Notepad "Save As", PowerShell Set-Content -Encoding UTF8, some
+    editors) must not make the app lose every setting. Plain utf-8 json.load chokes on
+    the leading BOM; utf-8-sig strips it. This corrupted a real user's live config."""
+    import json
+    payload = {"league": "Runes of Aldur", "min_exalt_gear": 7.0, "theme": "relic"}
+    # write the file WITH a BOM, the way the offending tools do
+    with open(cfgmod.CONFIG_PATH, "w", encoding="utf-8-sig") as f:
+        json.dump(payload, f)
+    assert open(cfgmod.CONFIG_PATH, "rb").read()[:3] == b"\xef\xbb\xbf"   # BOM really there
+
+    cfg = cfgmod.load_config()
+    assert cfg["league"] == "Runes of Aldur"     # loaded, not wiped to defaults
+    assert cfg["min_exalt_gear"] == 7.0
+    assert not os.path.exists(cfgmod.CONFIG_PATH + ".corrupt.bak")  # never quarantined

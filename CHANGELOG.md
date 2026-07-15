@@ -6,6 +6,23 @@ download lives.
 
 ---
 
+## [v4.32.4] — 2026-07-15 — Full-app review: config no longer lost to a BOM
+
+A top-to-bottom scan of every file. Two real fixes:
+
+- **Your settings could be wiped by an invisible character.** If the config file ever
+  picked up a UTF-8 BOM — from Notepad's "Save As", PowerShell, or some editors — the app
+  failed to read it, quarantined it, and fell back to defaults: league, floors, profiles,
+  history, all seemingly gone. (This actually happened once.) The app now reads straight
+  past a BOM. Nothing is lost.
+- Hardened an Economy edge case that could crash if poe.ninja ever returned an empty
+  category list.
+
+Everything else came back clean: the pickit never emits a rule that would match every
+item, the headless CLI produces the same sections as the app, the price client backs off
+and honours rate-limits correctly, the updater compares versions numerically (so 4.9 <
+4.30), and the bundled game data still matches the current patch (0 drift).
+
 ## [v4.32.3] — 2026-07-15 — Fixed an Economy crash when switching leagues
 
 A review pass turned up a real error in the logs: changing your league while the Economy
@@ -1305,6 +1322,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.32.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.4
 [v4.32.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.3
 [v4.32.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.2
 [v4.32.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.1
