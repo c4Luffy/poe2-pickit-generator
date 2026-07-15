@@ -1,0 +1,29 @@
+# Dependabot — flags a dependency that has a newer (often security-fixed) release
+# and opens a PR to bump it. Two ecosystems this repo actually uses:
+#   pip            → the app's Python deps (requirements.txt / pyproject.toml)
+#   github-actions → the action versions pinned in .github/workflows/*
+#
+# Weekly + a small PR cap so it stays a quiet trickle, not a flood. Nothing
+# auto-merges — every bump is a reviewable PR that must pass CI first.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"

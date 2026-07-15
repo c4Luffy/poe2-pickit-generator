@@ -64,6 +64,55 @@ def test_generate_writes_files_and_history(api, tmp_path):
     assert d["active"] > 0 and d["safety"] == ""
 
 
+def test_no_active_rule_is_typeless(tmp_path, monkeypatch):
+    """Catastrophe guard. Exiled Bot treats a rule with no
+    [Type]/[Category]/[WeaponCategory] condition as 'grab EVERYTHING on the
+    ground' — the single worst thing this app can ship (CLAUDE.md calls it out
+    as load-bearing). Feed *every* category real data so every rule builder
+    runs, generate a full .ipd, and assert not one active (uncommented,
+    [StashItem]) line is type-less."""
+    def _cur(nv):
+        return {"core": {"rates": {"exalted": 1.0}},
+                "items": [{"id": n, "name": n, "image": "/i.png"} for n, _ in nv],
+                "lines": [{"id": n, "primaryValue": v} for n, v in nv]}
+    def _uni(nv):
+        return {"core": {"rates": {"exalted": 1.0}},
+                "lines": [{"name": n, "baseType": "Some Base", "primaryValue": v,
+                           "icon": "https://x/i.png"} for n, v in nv]}
+
+    def fake_fetch(league, categories, **kw):
+        out = {}
+        for tup in categories:
+            key, is_unique = tup[0], (tup[3] if len(tup) > 3 else False)
+            out[key] = (_uni([("Alpha Item", 900), ("Cheap Item", 2)]) if is_unique
+                        else _cur([("Big Thing", 900), ("Small Thing", 3)]))
+        return out
+
+    monkeypatch.setattr(gen, "fetch_all_payloads", fake_fetch)
+    monkeypatch.setattr(webapi.gen, "fetch_all_payloads", fake_fetch)
+    monkeypatch.setattr(webapi, "OUTPUT_DIR", str(tmp_path))
+    monkeypatch.setattr(webapi, "save_config", lambda cfg: None)
+
+    a = webapi.AppApi.__new__(webapi.AppApi)
+    a._lock = threading.Lock()
+    a._status = {"running": False, "log": [], "done": None}
+    a._last_lines = []
+    a.cfg = {"output_base": "t", "history": [], "item_states": {},
+             "category_enabled": {}, "backup_count": 0}
+    a._generate("L", 1, 1)                       # floors of 1 keep the most rules
+    assert a._status["done"]["ok"], a._status["done"]
+
+    lines = (tmp_path / "t.ipd").read_text(encoding="utf-8").splitlines()
+    typed = ("[Type] ==", "[Category] ==", "[WeaponCategory] ==")
+    offenders = [l for l in lines
+                 if l.strip() and not l.lstrip().startswith("//")
+                 and "[StashItem]" in l and not l.lstrip().startswith(typed)]
+    assert not offenders, (
+        f"{len(offenders)} type-less active rule(s) would vacuum up ALL ground "
+        "loot:\n" + "\n".join(offenders[:10]))
+    assert len(lines) > 100                      # sanity: a full pickit was written
+
+
 def test_safety_net_blocks_on_rule_collapse(api):
     # Previous run claims 10x the rules this data can produce.
     api.cfg["history"] = [{"active": 100000}]
@@ -501,20 +550,24 @@ def test_get_clipboard_round_trips_with_copy_text(api):
     sides degrade gracefully instead of raising — auto-paste is best-effort.
 
     The clipboard is process-wide OS state, so another app can hold it for an instant
-    (this made the test flaky). A write that comes back "busy" is a transient OS
-    condition, not a bug — retry briefly, and if it still won't take, there's nothing
-    to verify."""
+    OR overwrite it between our write and our read — both are transient OS conditions,
+    not bugs. So retry the whole round-trip: any attempt that reads back exactly proves
+    the code works. A real bug fails *every* attempt, and still fails the assert below —
+    the retry absorbs flakes without making the test vacuous."""
     import time
     item = "Item Class: Belts\nRarity: Unique\nHeadhunter\nLeather Belt"
     wrote = {}
     for _ in range(5):
         wrote = api.copy_text(item)
         if wrote.get("ok"):
-            break
-        time.sleep(0.1)                        # clipboard momentarily held elsewhere
+            r = api.get_clipboard()
+            assert isinstance(r, dict) and isinstance(r.get("text"), str)
+            if r["text"] == item:
+                return                         # round-tripped — the thing under test works
+        time.sleep(0.1)                        # held/clobbered elsewhere — try again
     r = api.get_clipboard()
     assert isinstance(r, dict) and isinstance(r.get("text"), str)
-    if wrote.get("ok"):                        # our write landed — must read back exactly
+    if wrote.get("ok"):                        # writes land but never read back → real bug
         assert r["text"] == item
     elif "busy" in str(wrote.get("error", "")):
         pytest.skip("clipboard held by another process — nothing to verify")

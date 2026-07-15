@@ -1201,10 +1201,11 @@
         <div style="color:var(--gold);font-size:11.5px;font-weight:600;letter-spacing:.8px;margin-bottom:8px">📄 FILES</div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <button class="ghost mini" id="dbgDiag">📋 Copy diagnostics</button>
+          <button class="ghost mini" id="dbgReport">🐛 Report a problem</button>
           <button class="ghost mini" id="dbgLog">Open debug log</button>
           <button class="ghost mini" id="dbgCfg">Open config file</button>
         </div>
-        <div class="hint" style="margin-top:5px">Paste the diagnostics when asking for help. Edit the config only with the app closed.</div>
+        <div class="hint" style="margin-top:5px">Report a problem opens a GitHub issue with your diagnostics already filled in. Edit the config only with the app closed.</div>
       </div>
     </div>
   </div>
@@ -2905,6 +2906,32 @@ $("dbgDiag").onclick=async()=>{
     ...(d.log||[]).slice(-30)
   ].join("\n");
   toast(await copyText(txt)?"📋 Diagnostics copied — paste anywhere":"Clipboard blocked");};
+$("dbgReport").onclick=async()=>{
+  // Open a GitHub issue with the diagnostics already filled in — no server, no
+  // silent telemetry; the user reviews and submits it. Body is capped so the URL
+  // stays under GitHub's prefill limit.
+  const d=await api().debug_info();
+  const i=info||{};
+  const diag=[
+    `app: ${i.version?"v"+i.version:"?"} · league: ${i.league||"—"} · theme: ${i.theme||"—"}`,
+    `floors: gear ${i.min_gear} ex · uniques ${i.min_unique} ex · base q${i.base_quality} ilvl${i.base_min_level}`,
+    `auto-floor: ${i.auto_floor?("on "+i.auto_floor_pct+"%"):"off"} · bot folder: ${i.bot_folder?"set":"not set"} · auto-copy: ${i.auto_copy?"on":"off"}`,
+    `cache: ${JSON.stringify(d.cache)}`,
+    ``,`— last log lines —`,
+    ...((d.log||[]).slice(-15))
+  ].join("\n").slice(0,2500);
+  const body=[
+    "**What went wrong?**",
+    "_Describe what you were doing and what you expected to happen._",
+    "","",
+    "---",
+    "_Diagnostics (auto-filled — please keep, it helps a lot):_",
+    "```",diag,"```"
+  ].join("\n");
+  const url="https://github.com/c4Luffy/poe2-pickit-generator/issues/new?title="
+    +encodeURIComponent("Bug report: ")+"&body="+encodeURIComponent(body);
+  const r=await api().open_url(url);
+  toast(r&&r.error?"Couldn't open the browser":"Opening a pre-filled bug report ↗");};
 $("dbgCfg").onclick=async()=>{const r=await api().open_file("config");if(r&&r.error)toast(r.error);};
 $("dbgWipe").onclick=()=>dbg("Ready.");
 const ICK_VD={
