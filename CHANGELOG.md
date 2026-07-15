@@ -6,6 +6,19 @@ download lives.
 
 ---
 
+## [v4.31.1] — 2026-07-15 — Show the reference (it was hidden), slider to 100 ex
+
+Two quick follow-ups to v4.31.0.
+
+- **The chaos/divine reference line never actually appeared.** It lived inside a
+  container (`.dial-extra`) that was set to `display:none` when the under-floor sparkline
+  was shelved — so the reference was invisible with it. Pulled it out; it now shows right
+  under each floor: **17** ex · ≈ 0.29 chaos. (Its style selector was also dead — it
+  targeted a `.floor` ancestor that doesn't exist — so even unhidden it would have been
+  unstyled.)
+- **The floor slider now runs to 100 ex** (was 50). You can still type any number; this
+  is just how far the drag reaches.
+
 ## [v4.31.0] — 2026-07-15 — Floors are simply in exalt now
 
 The Chaos/Divine dropdown next to each floor is gone. It was a bug factory — the 58x
@@ -1242,6 +1255,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.31.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.1
 [v4.31.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.0
 [v4.30.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.30.0
 [v4.29.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.3
