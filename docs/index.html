@@ -124,9 +124,9 @@ section{padding-block:clamp(68px,8vw,104px)}
 
 /* real product tour */
 .tour{border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--ink),var(--ink2))}
-.tour-frame{min-width:0;padding:10px;border:1px solid var(--line2);border-radius:16px;background:#0a0908;box-shadow:0 24px 60px var(--shadow)}
+.tour-frame{width:100%;max-width:834px;min-width:0;margin-inline:auto;padding:10px;border:1px solid var(--line2);border-radius:16px;background:#0a0908;box-shadow:0 24px 60px var(--shadow)}
 .tour-picture{display:block;min-width:0;overflow:hidden;border:1px solid #302b26;border-radius:10px;background:#08090b}
-.tour-picture img{width:100%;height:auto;aspect-ratio:900/521;object-fit:cover}
+.tour-picture img{display:block;width:100%;height:auto;aspect-ratio:1624/941;object-fit:cover}
 .tour-caption{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:13px;color:var(--faint);font-size:12px}
 .tour-caption strong{color:var(--tx);font-weight:700}.tour-caption a{text-decoration:underline;text-underline-offset:.18em}.tour-route{margin-top:16px;color:var(--dim);font-size:12.5px;text-align:center;overflow-wrap:anywhere}
 
@@ -339,9 +339,9 @@ footer{padding:42px 0;color:var(--faint);font-size:13px}.footer-grid{display:fle
         <picture class="tour-picture">
           <source media="(prefers-reduced-motion: reduce)" srcset="shots/01-generate.png" type="image/png">
           <source srcset="pickit-tour.webp" type="image/webp">
-          <img src="pickit-tour.gif" width="900" height="521" loading="lazy" decoding="async" alt="Pickit Generator Workbench showing its Generate and configuration screens">
+          <img src="shots/01-generate.png" width="1624" height="941" loading="lazy" decoding="async" alt="Pickit Generator Workbench showing its Generate and configuration screens">
         </picture>
-        <div class="tour-caption"><strong>Real captures &middot; earlier release &middot; all 13 tabs</strong><span>Current navigation uses one clean uppercase type treatment &middot; <a href="shots/03-item-check.png" target="_blank" rel="noopener">view Item Check still</a></span></div>
+        <div class="tour-caption"><strong>Full-resolution real captures &middot; earlier release &middot; all 13 tabs</strong><span>Current navigation uses one clean uppercase type treatment &middot; <a href="shots/03-item-check.png" target="_blank" rel="noopener">view Item Check still</a></span></div>
       </div>
       <p class="tour-route reveal">Generate · Preview · Item Check · History · Economy · Chance · Craft · Exceptional · Fracture · Magic &amp; Rare · Setup guide · Settings · Debug</p>
     </div>
