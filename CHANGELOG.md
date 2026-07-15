@@ -6,6 +6,14 @@ download lives.
 
 ---
 
+## [v4.31.3] — 2026-07-15 — The floor slider actually reaches a divine now
+
+v4.31.2 made the slider span 0 → 1 divine, but it was stuck at its 100 ex fallback: the
+divine rate only arrived after you opened Economy or generated, so a fresh Generate tab
+never had it. The rate is now fetched on load (in the same call that already gets the
+chaos rate for the reference line), so the slider spans a real divine — about 424 ex
+today — from the moment the tab opens, and tracks the price live.
+
 ## [v4.31.2] — 2026-07-15 — Floor slider spans a full divine; reference is chaos-only
 
 - **The floor slider now runs from 0 to one Divine**, and follows the live divine price —
@@ -1263,6 +1271,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.31.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.3
 [v4.31.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.2
 [v4.31.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.1
 [v4.31.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.0

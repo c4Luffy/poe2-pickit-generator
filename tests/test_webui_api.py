@@ -673,3 +673,12 @@ def test_preset_floors_are_unit_agnostic_in_the_engine(api):
         # the unit is display-only and must never leak into the stored floor
         assert api.app_info()["min_gear"] == p["cfg"]["min_exalt_gear"]
         assert api.app_info()["min_unique"] == p["cfg"]["min_exalt_unique"]
+
+
+def test_chaos_ex_also_returns_the_divine_rate(api):
+    """The Generate tab needs both from one fetch: chaos for the reference line, divine
+    for the floor slider's top. The divine rate used to arrive only after Economy or a
+    generate, so the slider was stuck on its 100 ex fallback."""
+    r = api.chaos_ex("L")
+    assert r["ex"] == 85.0      # Chaos Orb, from the fixture currency payload
+    assert r["div"] == 700.0    # Divine Orb — now returned too

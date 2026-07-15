@@ -2343,18 +2343,27 @@ class AppApi:
         return {"ok": True}
 
     def chaos_ex(self, league):
-        """Exalt value of 1 Chaos Orb (for the Chaos display unit)."""
+        """Exalt value of 1 Chaos Orb AND 1 Divine Orb, from the one currency payload.
+
+        The Generate tab needs both — chaos for the reference line under each floor, divine
+        for the floor slider's top end — and this is the only currency fetch it makes on
+        load (the divine rate otherwise only arrived after opening Economy or generating,
+        which is why the slider was stuck on its 100 ex fallback)."""
         try:
             p = gen.fetch_all_payloads(league, [("currency", "Currency", "Currency", False)])["currency"]
-            r = gen.exalted_rate(p)
+            r = gen.exalted_rate(p) or 1.0
             by_id = {i["id"]: i for i in p.get("items", [])}
+            chaos = divine = 0.0
             for line in p.get("lines", []):
                 it = by_id.get(line.get("id"))
-                if it and it.get("name") == "Chaos Orb":
-                    return {"ex": float(line.get("primaryValue") or 0) * (r or 1.0)}
-            return {"ex": 0.0}
+                nm = it.get("name") if it else ""
+                if nm == "Chaos Orb":
+                    chaos = float(line.get("primaryValue") or 0) * r
+                elif nm == "Divine Orb":
+                    divine = float(line.get("primaryValue") or 0) * r
+            return {"ex": chaos, "div": divine}
         except Exception:
-            return {"ex": 0.0}
+            return {"ex": 0.0, "div": 0.0}
 
     def open_output(self):
         try:

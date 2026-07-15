@@ -3352,6 +3352,8 @@ async function init(){
      left them; only the rate moved, so recompute the exalt floor and store that. */
   const _rates=()=>api().chaos_ex(sel.value).then(r=>{
     chaosEx=r.ex||0;
+    if(r.div>1)divRate=r.div;   // divine rate now arrives on load, so the floor slider
+                                // spans a real divine instead of the 100 ex fallback
     if(!_floorsRestored){_floorsRestored=true;restoreFloors();}
     else{uEx();gEx();updTracks();_saveFloors();}});
   sel.onchange=()=>{api().set_setting("league",sel.value);eco=null;_rates();updMktLeague();};
