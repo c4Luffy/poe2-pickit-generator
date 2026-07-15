@@ -10,6 +10,7 @@ Everything JS-callable returns plain JSON-able dicts/lists. Long work
 (generation) runs on a worker thread; the page polls status() for log lines.
 """
 
+import math
 import os
 import random
 import re
@@ -97,6 +98,14 @@ class AppApi:
     def set_setting(self, key, value):
         if key not in _SETTABLE:
             return {"error": f"setting '{key}' not allowed"}
+        if key == "output_base":
+            # This becomes a filename (and a backup-name prefix). Unsanitized it
+            # broke three ways: an absolute path made os.path.join ignore
+            # OUTPUT_DIR entirely; Windows-reserved chars (: ? * < > | " / \)
+            # made the atomic write raise AFTER backup rotation already ran; and
+            # a backslash broke every startswith(base + "-") backup-prefix check.
+            value = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", str(value)).strip(". ") \
+                or "poe2_pickit"
         self.cfg[key] = value
         if key == "min_exalt_gear":            # keep legacy mirror in sync
             self.cfg["min_exalt"] = value
@@ -215,7 +224,11 @@ class AppApi:
                     single point can't be drawn, so both come back as None.
                     """
                     pts = (spark or {}).get("data") or []
-                    vals = [float(v) for v in pts if isinstance(v, (int, float))]
+                    # isfinite: a NaN/Infinity reaching the bridge is fatal — pywebview
+                    # json.dumps emits the bare token, JS JSON.parse throws, and the
+                    # awaiting promise hangs forever (Economy stuck on its spinner).
+                    vals = [float(v) for v in pts
+                            if isinstance(v, (int, float)) and math.isfinite(v)]
                     return [round(v, 2) for v in vals] if len(vals) >= 2 else None
 
                 if is_unique:
@@ -225,6 +238,8 @@ class AppApi:
                             continue
                         seen.add(nm)
                         ev = float(line.get("primaryValue") or 0.0) * (r or 1.0)
+                        if not math.isfinite(ev):
+                            ev = 0.0           # NaN over the bridge hangs the JS promise
                         items.append({"name": nm, "base": line.get("baseType", ""),
                                       "ex": round(ev, 2),
                                       "enabled": cat_states.get(nm, {}).get("enabled", True),
@@ -242,6 +257,8 @@ class AppApi:
                             continue
                         seen.add(nm)
                         ev = float(line.get("primaryValue") or 0.0) * (r or 1.0)
+                        if not math.isfinite(ev):
+                            ev = 0.0           # NaN over the bridge hangs the JS promise
                         img = it.get("image") or ""
                         if img and img.startswith("/"):
                             img = "https://web.poecdn.com" + img
@@ -359,6 +376,8 @@ class AppApi:
             k32.GlobalLock.restype = wintypes.LPVOID
             k32.GlobalLock.argtypes = [wintypes.HGLOBAL]
             k32.GlobalUnlock.argtypes = [wintypes.HGLOBAL]
+            k32.GlobalFree.restype = wintypes.HGLOBAL
+            k32.GlobalFree.argtypes = [wintypes.HGLOBAL]
             u32.SetClipboardData.restype = wintypes.HANDLE
             u32.SetClipboardData.argtypes = [wintypes.UINT, wintypes.HANDLE]
             s = str(text)
@@ -373,10 +392,15 @@ class AppApi:
                     return {"error": "clipboard alloc failed"}
                 p = k32.GlobalLock(h)
                 if not p:
+                    k32.GlobalFree(h)                      # ours until SetClipboardData takes it
                     return {"error": "clipboard lock failed"}
                 ctypes.memmove(p, buf, size)
                 k32.GlobalUnlock(h)
-                u32.SetClipboardData(13, h)                # CF_UNICODETEXT
+                # The system owns the handle ONLY if this succeeds; on failure we
+                # must free it — and must not report ok with an emptied clipboard.
+                if not u32.SetClipboardData(13, h):        # CF_UNICODETEXT
+                    k32.GlobalFree(h)
+                    return {"error": "clipboard write failed"}
             finally:
                 u32.CloseClipboard()
             return {"ok": True}
@@ -705,7 +729,12 @@ class AppApi:
         bat = os.path.join(tempfile.gettempdir(), "exilebot_pickit_update.bat")
         script = (
             "@echo off\r\n"
-            "setlocal enabledelayedexpansion\r\n"
+            # Plain setlocal, NOT enabledelayedexpansion: with delayed expansion
+            # active, a '!' anywhere in the install path is eaten at parse time —
+            # TGT/SRC then point at nonexistent files, every move fails, :restore
+            # restores nothing and the app never relaunches. The counters below
+            # use goto-loops (each line re-parsed per jump), so plain %n% works.
+            "setlocal\r\n"
             # A one-file exe unpacks itself to %TEMP%\\_MEIxxxxxx and advertises that
             # path in _MEIPASS2. Anything we spawn inherits it — so the new exe would
             # think it is a child of the old one, SKIP unpacking itself, and read from
@@ -723,12 +752,12 @@ class AppApi:
             "set /a n=0\r\n"
             ":waitpid\r\n"
             f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL\r\n'
-            "if not errorlevel 1 (\r\n"
-            "  set /a n+=1\r\n"
-            "  if !n! GEQ 90 goto giveup\r\n"
-            "  ping -n 2 127.0.0.1 >NUL\r\n"
-            "  goto waitpid\r\n"
-            ")\r\n"
+            "if errorlevel 1 goto ready\r\n"
+            "set /a n+=1\r\n"
+            "if %n% GEQ 90 goto giveup\r\n"
+            "ping -n 2 127.0.0.1 >NUL\r\n"
+            "goto waitpid\r\n"
+            ":ready\r\n"
             # 2) A one-file exe is TWO processes: the bootloader that unpacked it, and
             #    the app. os.getpid() only knows the app's — the bootloader outlives it,
             #    still holding the .exe open while it deletes %TEMP%\\_MEIxxxxxx. Overwriting
@@ -743,7 +772,7 @@ class AppApi:
             'move /y "%SRC%" "%TGT%" >NUL 2>NUL\r\n'
             "if not errorlevel 1 goto done\r\n"
             "set /a n+=1\r\n"
-            "if !n! GEQ 60 goto restore\r\n"
+            "if %n% GEQ 60 goto restore\r\n"
             "ping -n 2 127.0.0.1 >NUL\r\n"
             "goto swap\r\n"
             ":restore\r\n"
@@ -1139,8 +1168,12 @@ class AppApi:
         keep = {k: self.cfg.get(k) for k in
                 ("history", "profiles", "last_gen_prices",
                  "window_geometry_web", "league")}
+        import copy
         self.cfg.clear()
-        self.cfg.update(DEFAULT_CONFIG)
+        # deepcopy: plain update() shares DEFAULT_CONFIG's nested dicts, and
+        # set_item() then mutates the DEFAULTS in place — the next reset
+        # "restores" those stale toggles (the reported reset-didn't-reset bug).
+        self.cfg.update(copy.deepcopy(DEFAULT_CONFIG))
         self.cfg.update({k: v for k, v in keep.items() if v is not None})
         save_config(self.cfg)
         return {"ok": True, "info": self.app_info()}
@@ -1192,7 +1225,9 @@ class AppApi:
         ATTR_ORDER = {"Str": 0, "Dex": 1, "Int": 2, "Str/Dex": 3,
                       "Str/Int": 4, "Dex/Int": 5, "Str/Dex/Int": 6, "—": 9}
         out = []
-        for cat, entries in gen._BASE_TYPES_BY_CATEGORY.items():
+        # list(): snapshot in one C-level op — the background game-data refresh
+        # can swap this dict's contents mid-iteration on another thread.
+        for cat, entries in list(gen._BASE_TYPES_BY_CATEGORY.items()):
             bases = []
             for n, _s in entries:
                 bi = BASE_STATS.get(n, {})
@@ -1340,13 +1375,25 @@ class AppApi:
             return out
 
     def generate(self, league, min_gear, min_unique):
+        # Coerce BEFORE committing running=True: a bad value (or a failed thread
+        # start) after the flag was set left status stuck on "running" forever —
+        # every later Generate answered "already running" until an app restart.
+        try:
+            g, u = float(min_gear or 0), float(min_unique or 0)
+        except (TypeError, ValueError):
+            return {"error": "floors must be numbers"}
         with self._lock:
             if self._status["running"]:
                 return {"error": "already running"}
             self._status = {"running": True, "log": [], "done": None}
-        threading.Thread(target=self._generate,
-                         args=(league, float(min_gear or 0), float(min_unique or 0)),
-                         daemon=True).start()
+        try:
+            threading.Thread(target=self._generate, args=(league, g, u),
+                             daemon=True).start()
+        except Exception as e:
+            with self._lock:
+                self._status = {"running": False, "log": [],
+                                "done": {"ok": False, "error": str(e)}}
+            return {"error": str(e)}
         return {"ok": True}
 
     def _snapshot(self):
@@ -1557,9 +1604,19 @@ class AppApi:
                 pass    # blocked — the .ipd is on disk for manual inspection only
             elif self.cfg.get("auto_copy") and bot:
                 if os.path.isdir(bot):
-                    shutil.copy2(ipd, os.path.join(bot, os.path.basename(ipd)))
-                    copied = bot
-                    self._log(f"✓ Auto-copied to {bot}")
+                    # Atomic, like every other write: a plain copy2 into the folder
+                    # the bot READS could be seen half-written (truncated rule list —
+                    # the bot silently walks past loot), and an error here used to
+                    # fail the WHOLE generate even though the .ipd on disk is fine.
+                    try:
+                        dst = os.path.join(bot, os.path.basename(ipd))
+                        shutil.copy2(ipd, dst + ".tmp")
+                        os.replace(dst + ".tmp", dst)
+                        copied = bot
+                        self._log(f"✓ Auto-copied to {bot}")
+                    except OSError as e:
+                        self._log(f"✗ Auto-copy failed ({e}) — the pickit is in the "
+                                  "output folder, copy it by hand")
                 else:
                     self._log("✗ Auto-copy skipped: bot folder doesn't exist")
             fdir = (self.cfg.get("poe2_filter_dir") or "").strip() or _default_dir()
@@ -2367,6 +2424,10 @@ class AppApi:
                     chaos = float(line.get("primaryValue") or 0) * r
                 elif nm == "Divine Orb":
                     divine = float(line.get("primaryValue") or 0) * r
+            if not math.isfinite(chaos):
+                chaos = 0.0                    # NaN over the bridge hangs the JS promise
+            if not math.isfinite(divine):
+                divine = 0.0
             return {"ex": chaos, "div": divine}
         except Exception:
             return {"ex": 0.0, "div": 0.0}

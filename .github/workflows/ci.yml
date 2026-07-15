@@ -102,7 +102,6 @@ jobs:
           --collect-all webview --collect-all clr_loader --collect-all pythonnet
           --collect-data certifi
           --hidden-import certifi --hidden-import charset_normalizer --hidden-import urllib3
-          --hidden-import PIL --hidden-import PIL.Image --hidden-import PIL.ImageDraw
           --exclude-module unittest --exclude-module pydoc --exclude-module doctest
           --exclude-module lib2to3 --exclude-module test
           --exclude-module numpy --exclude-module pandas --exclude-module matplotlib --exclude-module scipy

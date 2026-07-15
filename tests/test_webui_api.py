@@ -770,3 +770,59 @@ def test_debug_digest_counts_js_errors_not_just_python(api, tmp_path, monkeypatc
     assert kinds.get("JS error (UI)") == 2, kinds     # both JSERR lines counted
     assert kinds.get("load_config") == 1
     assert e["total"] == 3                            # not 1
+
+
+# ── Full-scan regression tests (2026-07-15): the highest-damage untested paths ──
+
+def test_auto_copy_success_lands_full_file_in_bot_folder(api, tmp_path):
+    """The SUCCESS path of bot-folder auto-copy — the app's whole purpose. Only the
+    blocked/missing-folder cases were tested; a regression here means generate
+    reports success while the bot silently reads a stale pickit forever."""
+    bot = tmp_path / "bot_pickit"
+    bot.mkdir()
+    api.cfg["auto_copy"] = True
+    api.cfg["bot_folder"] = str(bot)
+    api._generate("L", 5, 20)
+    d = api._status["done"]
+    assert d and d["ok"], d
+    assert d["copied"] == str(bot)
+    src = (tmp_path / "t.ipd").read_text(encoding="utf-8")
+    dst = (bot / "t.ipd").read_text(encoding="utf-8")
+    assert dst == src and len(dst) > 1000        # complete, byte-identical copy
+    assert not (bot / "t.ipd.tmp").exists()      # atomic temp cleaned up
+
+
+def test_profile_round_trip_restores_every_snapshot_key(api):
+    """profile_load rebuilds settings key by key with .get defaults — any key drift
+    between snapshot and load silently restores a 0-ex floor, and the next generate
+    is a vacuum pickit. Round-trip every key exactly."""
+    api.cfg.update({"min_exalt_gear": 7.5, "min_exalt": 7.5, "min_exalt_unique": 22.0,
+                    "output_base": "farmset", "include_bases": False,
+                    "auto_floor": True, "auto_floor_pct": 30,
+                    "base_quality": 20, "base_min_level": 80})
+    api.cfg["item_states"] = {"currency": {"Chaos Orb": {"enabled": False}}}
+    api.cfg["category_enabled"] = {"essences": False}
+    saved = api._profile_snapshot()
+    assert api.profile_save("test-prof")["ok"]
+
+    # trash every saved setting, then load the profile back
+    api.cfg.update({"min_exalt_gear": 0.0, "min_exalt": 0.0, "min_exalt_unique": 0.0,
+                    "output_base": "other", "include_bases": True,
+                    "auto_floor": False, "auto_floor_pct": 40,
+                    "base_quality": 25, "base_min_level": 82,
+                    "item_states": {}, "category_enabled": {}})
+    assert api.profile_load("test-prof")["ok"]
+    assert api._profile_snapshot() == saved      # every key, exact
+    assert api.cfg["min_exalt_gear"] == 7.5      # floors non-zero (no vacuum)
+    assert api.cfg["min_exalt"] == 7.5           # legacy mirror kept in sync
+
+
+def test_output_base_is_sanitized_against_paths_and_reserved_chars(api):
+    """output_base becomes a filename and a backup prefix — absolute paths escaped
+    OUTPUT_DIR entirely and reserved chars crashed the write after backup rotation."""
+    api.set_setting("output_base", r"C:\Windows\evil")
+    assert "\\" not in api.cfg["output_base"] and ":" not in api.cfg["output_base"]
+    api.set_setting("output_base", "a?b*c")
+    assert api.cfg["output_base"] == "a_b_c"
+    api.set_setting("output_base", "...")
+    assert api.cfg["output_base"] == "poe2_pickit"    # nothing left -> default

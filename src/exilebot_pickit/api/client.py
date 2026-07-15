@@ -86,7 +86,9 @@ def _retry_after_secs(resp) -> float | None:
     """Server-requested wait from a Retry-After header, or None."""
     try:
         v = (resp.headers.get("Retry-After") or "").strip()
-        return float(v) if v else None
+        # max(0): a negative value would reach time.sleep(), which raises
+        # ValueError INSIDE the retry handler and escapes the whole helper.
+        return max(0.0, float(v)) if v else None
     except (ValueError, AttributeError):
         return None
 
@@ -115,7 +117,14 @@ def _request_with_retry(url: str, params: dict, *, retries: int = 3, backoff: fl
                     if attempt < retries - 1:
                         time.sleep(wait)
                     continue
-        except (requests.ConnectionError, requests.Timeout) as e:
+        except (requests.ConnectionError, requests.Timeout,
+                requests.exceptions.ChunkedEncodingError,
+                requests.exceptions.ContentDecodingError) as e:
+            last_exc = e                 # connection died mid-body — retryable
+        except json.JSONDecodeError as e:
+            # A 200 with a corrupt/truncated body (flaky proxy, edge error page).
+            # JSONDecodeError subclasses ValueError, so before this clause it fell
+            # into the no-retry branch below and wasted the remaining attempts.
             last_exc = e
         except ValueError as e:          # oversized response — do not retry
             raise e
@@ -202,7 +211,10 @@ def save_payload_to_disk(league: str, key: str, payload: dict):
         return
     try:
         fname = _disk_cache_file(league, key)
-        tmp   = fname + ".tmp"
+        # Unique temp per save: a shared "<name>.tmp" let two threads (Economy
+        # fetch + a generate, both refreshing after the TTL) interleave writes
+        # and atomically promote garbage over a good cache file.
+        tmp = f"{fname}.{os.getpid()}-{threading.get_ident()}.tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump({"ts": time.time(), "payload": payload}, f)
         os.replace(tmp, fname)   # atomic on Windows + POSIX

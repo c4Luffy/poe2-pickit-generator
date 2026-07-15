@@ -51,11 +51,18 @@ jobs:
           TEST_ALERT: ${{ inputs.test_alert }}
         run: |
           python - <<'PY'
-          import json, os
+          import json, os, sys
           try:
               r = json.load(open("result.json"))
           except Exception:
               r = {"critical": 0, "advisory": 0, "findings": [], "error": "checker produced no output"}
+          # A broken checker must FAIL the run, not read as "everything in sync".
+          # (An error result has critical=0/advisory=0, so it used to map to
+          # has=no and the watch could die silently forever — dead sources,
+          # broken import — while looking green every day.)
+          if r.get("error"):
+              print(f"::error::game-data checker itself failed: {r['error']}")
+              sys.exit(1)
           crit, adv = int(r.get("critical", 0)), int(r.get("advisory", 0))
           has = crit > 0 or adv > 0
           # manual "test the pipe" run: force one issue so you can confirm it emails you

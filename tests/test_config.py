@@ -158,3 +158,48 @@ def test_config_with_utf8_bom_still_loads(tmp_config):
     assert cfg["league"] == "Runes of Aldur"     # loaded, not wiped to defaults
     assert cfg["min_exalt_gear"] == 7.0
     assert not os.path.exists(cfgmod.CONFIG_PATH + ".corrupt.bak")  # never quarantined
+
+
+# ── Full-scan regression tests (2026-07-15) ──────────────────────────────────
+
+def test_second_corruption_never_overwrites_first_quarantine(tmp_config):
+    """corruption #1 quarantines the user's REAL config to .corrupt.bak — often
+    hand-recoverable. corruption #2 must not overwrite that only surviving copy
+    with fresh junk; it gets its own timestamped name."""
+    with open(cfgmod.CONFIG_PATH, "w", encoding="utf-8") as f:
+        f.write('{"league": "precious user data...')          # truncated JSON
+    cfgmod.load_config()
+    bak = cfgmod.CONFIG_PATH + ".corrupt.bak"
+    assert os.path.exists(bak)
+    first = open(bak, encoding="utf-8").read()
+
+    with open(cfgmod.CONFIG_PATH, "w", encoding="utf-8") as f:
+        f.write("totally different junk")                     # corruption #2
+    cfgmod.load_config()
+    assert open(bak, encoding="utf-8").read() == first        # untouched
+    import glob
+    others = [p for p in glob.glob(cfgmod.CONFIG_PATH + ".corrupt-*.bak")]
+    assert others, "second corruption was not quarantined separately"
+
+
+def test_defaults_are_never_polluted_by_config_mutation(tmp_config):
+    """load_config must hand out DEEP copies: mutating the returned config's
+    nested dicts used to write into DEFAULT_CONFIG itself, so 'Reset to
+    defaults' restored the pollution instead of the defaults."""
+    cfg = cfgmod.load_config()                                # first run path
+    cfg["item_states"].setdefault("currency", {})["Chaos Orb"] = {"enabled": False}
+    cfg["history"].append({"run": 1})
+    assert cfgmod.DEFAULT_CONFIG["item_states"] == {}         # pristine
+    assert cfgmod.DEFAULT_CONFIG["history"] == []
+
+
+def test_explicit_null_in_config_is_reset_to_default(tmp_config):
+    """An explicit JSON null (hand-edit, imported backup) used to sail through
+    type coercion, persist, and crash dict consumers on every launch."""
+    import json
+    with open(cfgmod.CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump({"category_enabled": None, "history": None, "league": "L"}, f)
+    cfg = cfgmod.load_config()
+    assert cfg["category_enabled"] == {}                      # reset, not None
+    assert cfg["history"] == []
+    assert cfg["league"] == "L"                               # good keys kept

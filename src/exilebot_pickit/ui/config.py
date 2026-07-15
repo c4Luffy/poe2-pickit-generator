@@ -1,6 +1,6 @@
 """Config path bootstrap, defaults, and load/save."""
 
-import sys, os, json, shutil, logging, tempfile, threading
+import sys, os, json, copy, shutil, logging, tempfile, threading
 from logging.handlers import RotatingFileHandler
 
 # Serialises savers inside this process (the UI thread and the generate worker
@@ -14,7 +14,14 @@ _SAVE_LOCK = threading.Lock()
 if getattr(sys, 'frozen', False):
     _exe_dir = os.path.dirname(sys.executable)
     _cfg_dir = os.path.join(_exe_dir, "ExileBot2PickitGenerator_data")
-    os.makedirs(_cfg_dir, exist_ok=True)
+    try:
+        os.makedirs(_cfg_dir, exist_ok=True)
+    except OSError:
+        # exe lives somewhere unwritable (Program Files, a read-only share) —
+        # fall back to %APPDATA% instead of dying with a raw traceback at import.
+        _cfg_dir = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")),
+                                "exilebot-pickit")
+        os.makedirs(_cfg_dir, exist_ok=True)
     # One-time migration: move loose files from older versions into the data folder.
     for _name in ("pickit_gui_config.json", "wiki_icon_cache.json", "pickit_output",
                   "icon_cache", "presets", "price_cache", "latest.ipd"):
@@ -89,7 +96,10 @@ DEFAULT_CONFIG = {
     # League names already seen in the dropdown — one NOT in this list
     # triggers the "new league detected" banner on the Generate tab.
     "known_leagues": [],
-    "window_geometry_web": "",
+    # dict {w,h,x,y} — poc.py saves one on close. Was "" (a string), which made
+    # _coerce_types see dict-vs-str on every load and wipe the saved geometry:
+    # the window opened at the default size/position forever.
+    "window_geometry_web": {},
     "include_bases": True,
     # Auto floor: recompute both value floors from live prices on every
     # generate ("keep top N%" percentile).
@@ -192,10 +202,13 @@ def _coerce_types(cfg):
     Guards startup against hand-edited or cross-version configs — a list where
     a dict is expected (e.g. ``"category_enabled": []``) used to crash Tk var
     construction on every launch. Numbers are interchangeable (int/float/bool),
-    everything else must match the default's type exactly."""
+    everything else must match the default's type exactly. An explicit JSON
+    ``null`` is a mismatch too — defaults are merged before this runs, so a None
+    here can only come from the file, and letting it through persisted a config
+    that crashed dict/list consumers on every launch."""
     for key, default in DEFAULT_CONFIG.items():
         v = cfg.get(key)
-        if v is None or isinstance(default, type(v)) or isinstance(v, type(default)):
+        if v is not None and (isinstance(default, type(v)) or isinstance(v, type(default))):
             continue
         if isinstance(default, (int, float)) and isinstance(v, (int, float)) \
                 and not isinstance(v, bool):
@@ -227,14 +240,17 @@ def load_config():
                 raise ValueError("config root is not an object")
             break
         except FileNotFoundError:
-            return dict(DEFAULT_CONFIG)      # first run — nothing to recover
+            # deepcopy, not dict(): a shallow copy shares the nested dicts/lists
+            # with DEFAULT_CONFIG, so later in-place mutation (set_item etc.)
+            # silently polluted the defaults — "Reset to defaults" stopped resetting.
+            return copy.deepcopy(DEFAULT_CONFIG)   # first run — nothing to recover
         except Exception:
             if attempt == 0:
                 _time.sleep(0.15)            # maybe a save was mid-flight
                 continue
             return _config_load_failed()
     try:
-        cfg = dict(DEFAULT_CONFIG)
+        cfg = copy.deepcopy(DEFAULT_CONFIG)
         cfg.update(data)
         _coerce_types(cfg)
         if cfg.get("base_min_level") == 75:
@@ -256,6 +272,12 @@ def _config_load_failed():
     # every setting/profile/exclusion, and tell the UI to say so.
     try:
         bak = CONFIG_PATH + ".corrupt.bak"
+        if os.path.exists(bak):
+            # NEVER overwrite an earlier quarantine — it may be the only surviving
+            # copy of the user's real settings (often hand-recoverable). A second
+            # corruption event gets its own timestamped name instead.
+            import time as _time
+            bak = CONFIG_PATH + _time.strftime(".corrupt-%Y%m%d-%H%M%S.bak")
         shutil.copyfile(CONFIG_PATH, bak)
         CONFIG_LOAD_ERROR = (
             "Your settings file couldn't be read, so defaults were loaded.\n"
@@ -263,7 +285,7 @@ def _config_load_failed():
     except Exception:
         CONFIG_LOAD_ERROR = ("Your settings file couldn't be read, "
                              "so defaults were loaded.")
-    return dict(DEFAULT_CONFIG)
+    return copy.deepcopy(DEFAULT_CONFIG)
 
 
 def save_config(cfg):
@@ -286,13 +308,27 @@ def save_config(cfg):
     """
     import time as _time
     with _SAVE_LOCK:
+        # Serialize FIRST, into a string, with a retry: pywebview runs every JS
+        # call on its own thread, so another bridge call can mutate cfg while we
+        # iterate it — json.dump then raises "dictionary changed size during
+        # iteration" and the whole save is silently dropped (the log showed 107
+        # such losses in one day). The race is transient; a re-read attempt wins.
         fd, tmp = None, None
         try:
+            payload = None
+            for attempt in range(4):
+                try:
+                    payload = json.dumps(cfg, indent=2)
+                    break
+                except RuntimeError:
+                    if attempt == 3:
+                        raise               # → logged below; save_config never raises
+                    _time.sleep(0.02 * (attempt + 1))
             fd, tmp = tempfile.mkstemp(dir=os.path.dirname(CONFIG_PATH) or ".",
                                        prefix=".pickit_cfg-", suffix=".tmp")
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 fd = None                      # fdopen owns it now
-                json.dump(cfg, f, indent=2)
+                f.write(payload)
                 f.flush()
                 os.fsync(f.fileno())           # don't replace with a buffered file
             for attempt in range(4):

@@ -76,6 +76,13 @@ def main() -> int:
            capture_output=True).returncode == 0:
         die(f"tag {tag} already exists")
 
+    # Sync with the remote BEFORE the gates, so the gates validate exactly the
+    # tree that ships. (This used to happen after the commit, exit code ignored:
+    # a remote commit pushed mid-release got folded in UNGATED, and a rebase
+    # conflict left the repo mid-rebase with the bump already committed.)
+    if run(["git", "pull", "--rebase", "-q", "origin", "main"]).returncode != 0:
+        die("git pull --rebase failed — resolve (or `git rebase --abort`) and rerun")
+
     # CHANGELOG must mention this version (soft — warn, don't block)
     if CHANGELOG.exists() and f"[{tag}]" not in CHANGELOG.read_text(encoding="utf-8"):
         print(f"⚠ CHANGELOG has no '## [{tag}]' entry — add it before release.")
@@ -106,10 +113,11 @@ def main() -> int:
     run(["git", "add", "-A"])
     if run(["git", "commit", "-q", "-m", f"{tag}: {a.message}"]).returncode != 0:
         die("git commit failed (nothing to commit?)")
-    # rebase on remote in case another push landed, then push commit + tag
-    run(["git", "pull", "--rebase", "-q", "origin", "main"])
+    # No pull here: the sync happened BEFORE the gates. If someone pushed during
+    # the gate run, fail loudly rather than tagging code the gates never saw.
     if run(["git", "push", "-q", "origin", "main"]).returncode != 0:
-        die("git push failed")
+        die("git push failed — remote moved during the release? "
+            "rerun (the pre-gate sync will pick the new commits up)")
     run(["git", "tag", tag])
     if run(["git", "push", "-q", "origin", tag]).returncode != 0:
         die(f"pushing tag {tag} failed")
@@ -134,20 +142,29 @@ def _wait_and_publish(tag: str, notes: str | None) -> None:
     import json
     import time
     print("  waiting for the release build …")
+    # Match the run to THIS tag (headBranch == the tag name for tag pushes).
+    # Grabbing the newest run used to race: seconds after the push, the newest
+    # run is often the PREVIOUS release's finished build — watch returned
+    # instantly and the asset check then failed with a bogus "no exe" error.
     rid = None
-    for _ in range(30):                        # ~5 min
-        out = run(["gh", "run", "list", "--workflow=release.yml", "--limit", "1",
+    for _ in range(30):                        # ~5 min for the run to appear
+        out = run(["gh", "run", "list", "--workflow=release.yml", "--limit", "5",
                    "--json", "databaseId,headBranch,status"],
                   capture_output=True, text=True).stdout
         try:
-            rid = (json.loads(out) or [{}])[0].get("databaseId")
+            rid = next((r.get("databaseId") for r in json.loads(out) or []
+                        if r.get("headBranch") == tag), None)
         except Exception:
             rid = None
         if rid:
             break
         time.sleep(10)
     if rid:
-        run(["gh", "run", "watch", str(rid), "--exit-status"], capture_output=True)
+        if run(["gh", "run", "watch", str(rid), "--exit-status"],
+               capture_output=True).returncode != 0:
+            die(f"release build FAILED — see `gh run view {rid}`")
+    else:
+        print(f"  ⚠ never saw a run for {tag} — checking release assets anyway")
     assets = run(["gh", "release", "view", tag, "--json", "assets",
                   "--jq", ".assets[].name"], capture_output=True, text=True).stdout
     if "ExileBot2PickitGenerator.exe" not in assets:

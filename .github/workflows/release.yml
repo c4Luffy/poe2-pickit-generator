@@ -15,8 +15,10 @@ permissions:
   contents: write
 
 jobs:
-  # A tag must never ship a red build: run the full test suite first and make
-  # the build job depend on it.
+  # A tag must never ship a red build: run EVERY gate ci.yml runs — not just
+  # pytest. A tag push does NOT trigger ci.yml, so anything missing here is
+  # simply not checked before the exe publishes; pytest-only was exactly the
+  # v4.22.0 hole (a broken app.html shipped green).
   test:
     runs-on: windows-latest
     steps:
@@ -25,11 +27,24 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - name: Install and test
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # Separate steps, NOT one multi-line run: PowerShell only propagates the
+      # LAST command's exit code, so a pytest failure inside a combined block
+      # would be masked by a passing gate after it.
+      - name: Install
         run: |
-          pip install -r requirements.txt pytest
+          pip install -r requirements.txt pytest "ruff==0.15.20"
           pip install -e .
-          python -m pytest -q
+      - name: Tests
+        run: python -m pytest -q
+      - name: Lint
+        run: python -m ruff check .
+      - name: UI gate (app.html)
+        run: python tools/check_ui.py
+      - name: UI logic tests
+        run: node tests/test_ui_logic.mjs
 
   build-and-release:
     needs: test

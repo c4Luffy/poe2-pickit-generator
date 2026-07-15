@@ -114,17 +114,27 @@ def _apply(data: dict) -> None:
     """Merge validated remote data into the live module structures."""
     bt = data.get("base_types")
     if bt:
-        _bt._BASE_TYPES_BY_CATEGORY.clear()
-        for cat, entries in bt.items():
-            _bt._BASE_TYPES_BY_CATEGORY[cat] = tuple((n, s) for n, s in entries)
+        # Build the replacement fully FIRST, then swap with two C-level ops
+        # (update + prune). The old clear-then-Python-loop left the dict half
+        # empty for the whole loop while other threads (a generate, the base
+        # catalog) read it — RuntimeError mid-iteration or missing sections.
+        new = {cat: tuple((n, s) for n, s in entries) for cat, entries in bt.items()}
+        _bt._BASE_TYPES_BY_CATEGORY.update(new)
+        for stale in [k for k in _bt._BASE_TYPES_BY_CATEGORY if k not in new]:
+            del _bt._BASE_TYPES_BY_CATEGORY[stale]
         # generator snapshots the valid-base set at import — rebuild it so the
-        # validator accepts (and suggests) the refreshed bases.
+        # validator accepts (and suggests) the refreshed bases. Must mirror the
+        # import-time formula EXACTLY (generator.py builds it as pruned bases
+        # | accessories | craft bases): omitting the craft-base union made every
+        # craft rule fail validation the moment a craft base left the pruned
+        # exceptional list — but only after this background refresh landed.
         try:
             from exilebot_pickit import generator as _gen
             _gen.VALID_EQUIPMENT_BASES = (
                 frozenset(n for ents in _bt._BASE_TYPES_BY_CATEGORY.values()
                           for n, _ in ents)
                 | _gen._ACCESSORY_BASES
+                | frozenset(_gen._CRAFT_BASE_DEFENCE)
             )
         except Exception:
             pass
@@ -159,11 +169,18 @@ def _apply(data: dict) -> None:
         _corr.TABLET_UNIQUES[:] = [tuple(e) for e in tb["uniques"]]
     nf = data.get("name_fixes") or {}
     if nf.get("corrections") is not None:
-        _corr.ITEM_NAME_CORRECTIONS.clear()
-        _corr.ITEM_NAME_CORRECTIONS.update(nf["corrections"])
+        # update-then-prune, not clear-then-update: a generate on another thread
+        # reading between the two ops must never see an EMPTY corrections map
+        # (it would write uncorrected names the bot silently can't match).
+        src = nf["corrections"]
+        _corr.ITEM_NAME_CORRECTIONS.update(src)
+        for stale in [k for k in _corr.ITEM_NAME_CORRECTIONS if k not in src]:
+            del _corr.ITEM_NAME_CORRECTIONS[stale]
     if nf.get("skip") is not None:
-        _corr.ITEM_NAME_SKIP.clear()
-        _corr.ITEM_NAME_SKIP.update(nf["skip"])
+        src = set(nf["skip"])
+        _corr.ITEM_NAME_SKIP.update(src)
+        _corr.ITEM_NAME_SKIP.difference_update(
+            [k for k in _corr.ITEM_NAME_SKIP if k not in src])
     if data.get("chance_bases"):
         try:
             from exilebot_pickit import generator as _gen
@@ -193,6 +210,11 @@ def load_cached_game_data(cache_dir: str) -> tuple:
     try:
         with open(cache_file, encoding="utf-8") as f:
             wrapper = json.load(f)
+        if not isinstance(wrapper, dict):
+            # valid JSON that isn't an object ([], "x", 123) — .get() on it raised
+            # AttributeError past the handler below and killed the refresh thread,
+            # silently disabling remote game-data updates until the file was removed.
+            raise ValueError("cache root is not an object")
         cached, cached_ts = wrapper.get("data"), float(wrapper.get("ts", 0))
         cached_ver = str(wrapper.get("app_version") or "")
     except (OSError, ValueError, TypeError):

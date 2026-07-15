@@ -58,21 +58,27 @@ def main() -> int:
     else:
         print("structure : OK (doctype, html/head/title/body, style + css braces balanced)")
 
-    # 1) JS syntax via node --check on the largest <script> body (the app script)
+    # 1) JS syntax via node --check on EVERY <script> body. Checking only the
+    # largest was a latent hole: the day a second <script> block appears (a
+    # bootstrap snippet, a data island), a syntax error in it would kill the app
+    # while this gate printed ALL CHECKS PASSED.
     scripts = re.findall(r"<script[^>]*>(.*?)</script>", h, re.S)
-    body = max(scripts, key=len) if scripts else ""
+    body = "\n;\n".join(scripts)          # ids/bridge scans cover all blocks too
     if not shutil.which("node"):
         print("node --check: SKIPPED (node not installed) — install Node.js to run this check")
     else:
         tmp = os.path.join(os.path.dirname(APP), "_uicheck_tmp.js")
         try:
-            with open(tmp, "w", encoding="utf-8") as f:
-                f.write(body)
-            r = subprocess.run(["node", "--check", tmp], capture_output=True, text=True)
-            if r.returncode != 0:
-                fail.append("JS node --check FAILED:\n" + (r.stderr or r.stdout))
-            else:
-                print(f"node --check: OK ({len(body)} chars of JS)")
+            for i, block in enumerate(scripts):
+                with open(tmp, "w", encoding="utf-8") as f:
+                    f.write(block)
+                r = subprocess.run(["node", "--check", tmp], capture_output=True, text=True)
+                if r.returncode != 0:
+                    fail.append(f"JS node --check FAILED (script block {i + 1} of "
+                                f"{len(scripts)}):\n" + (r.stderr or r.stdout))
+            if not any(f.startswith("JS node --check") for f in fail):
+                print(f"node --check: OK ({len(body)} chars of JS in "
+                      f"{len(scripts)} block(s))")
         finally:
             if os.path.exists(tmp):
                 os.remove(tmp)

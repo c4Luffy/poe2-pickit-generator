@@ -556,3 +556,36 @@ def test_loot_filter_shows_salvage_and_stashunid_not_just_stashitem():
     ipd2 = ['//[Rarity] == "Rare" # [Salvage] == "true"']
     out2 = "\n".join(gen.build_loot_filter(ipd2))
     assert "Rarity = Rare" not in out2
+
+
+# ── Full-scan regression tests (2026-07-15): exclusions at the consumer end ──
+
+def test_disabled_unique_is_actually_excluded_from_output():
+    """The set-builder side of exclusions is tested; this pins the CONSUMER —
+    a regression here silently ignores every user exclusion."""
+    payload = {"core": {"rates": {"exalted": 1.0}},
+               "lines": [{"name": "Headhunter", "baseType": "Heavy Belt",
+                          "primaryValue": 500.0},
+                         {"name": "Kaom's Heart", "baseType": "Glorious Plate",
+                          "primaryValue": 400.0}]}
+    out = "\n".join(gen.build_unique_lines(payload, 1.0, min_exalt=0.0,
+                                            disabled_names={"Headhunter"}))
+    active = [l for l in out.splitlines()
+              if "Headhunter" in l and not l.lstrip().startswith("//")]
+    assert not active, "disabled unique still has an ACTIVE rule"
+    assert "Kaom's Heart" in out                    # the enabled one still there
+
+
+def test_disabled_currency_not_resurrected_by_always_names():
+    """always_names must not override an explicit user disable — the subtle
+    rule the exclusion pipeline depends on."""
+    payload = {"core": {"rates": {"exalted": 1.0}},
+               "items": [{"id": "exalted-orb", "name": "Exalted Orb"}],
+               "lines": [{"id": "exalted-orb", "primaryValue": 1.0}]}
+    out = "\n".join(gen.build_exchange_lines(
+        payload, 1.0, min_exalt=0.0,
+        enabled_names=set(),                        # user disabled EVERYTHING
+        always_names=["Exalted Orb"]))
+    active = [l for l in out.splitlines()
+              if "Exalted Orb" in l and l.lstrip().startswith("[")]
+    assert not active, "always_names resurrected an explicitly disabled item"
