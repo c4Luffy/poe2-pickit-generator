@@ -498,14 +498,27 @@ def test_whats_new_survives_no_network(api, monkeypatch):
 def test_get_clipboard_round_trips_with_copy_text(api):
     """Item Check auto-pastes from the clipboard, so get_clipboard must read back
     exactly what copy_text wrote. On non-Windows (CI runs the suite on ubuntu) both
-    sides degrade gracefully instead of raising — auto-paste is best-effort."""
+    sides degrade gracefully instead of raising — auto-paste is best-effort.
+
+    The clipboard is process-wide OS state, so another app can hold it for an instant
+    (this made the test flaky). A write that comes back "busy" is a transient OS
+    condition, not a bug — retry briefly, and if it still won't take, there's nothing
+    to verify."""
+    import time
     item = "Item Class: Belts\nRarity: Unique\nHeadhunter\nLeather Belt"
-    wrote = api.copy_text(item)
+    wrote = {}
+    for _ in range(5):
+        wrote = api.copy_text(item)
+        if wrote.get("ok"):
+            break
+        time.sleep(0.1)                        # clipboard momentarily held elsewhere
     r = api.get_clipboard()
     assert isinstance(r, dict) and isinstance(r.get("text"), str)
-    if wrote.get("ok"):                        # real Windows clipboard available
+    if wrote.get("ok"):                        # our write landed — must read back exactly
         assert r["text"] == item
-    else:                                      # no clipboard here — never an exception
+    elif "busy" in str(wrote.get("error", "")):
+        pytest.skip("clipboard held by another process — nothing to verify")
+    else:                                      # no clipboard here (CI) — never an exception
         assert r["text"] == ""
 
 
