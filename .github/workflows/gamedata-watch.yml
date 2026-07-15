@@ -1,4 +1,4 @@
-# Weekly watch for PoE2 patches that change the game data our rules depend on.
+# Daily watch for PoE2 patches that change the game data our rules depend on.
 #
 # Runs tools/check_game_data.py against the LIVE sources (NeverSink's filter + the GGPK
 # mod dump). If a patch renamed/removed a stat id, broke a weight, or dropped a base our
@@ -6,13 +6,14 @@
 # game_data.json — the deliberate manual gate. It never edits data itself: auto-committing
 # game data unreviewed is exactly where being wrong ships a broken pickit.
 #
-# Low-noise: nothing happens when the data is in sync, and one issue stays open until
-# resolved rather than a new one every week.
+# Runs daily so a mid-week patch is caught within a day, not up to a week later.
+# Low-noise regardless of cadence: nothing happens when the data is in sync, and one
+# issue stays open (commented on) until resolved rather than a fresh one each run.
 name: Game-data patch watch
 
 on:
   schedule:
-    - cron: "0 12 * * 1"     # Mondays, 12:00 UTC
+    - cron: "0 12 * * *"     # every day, 12:00 UTC
   workflow_dispatch:          # ...and on demand
     inputs:
       test_alert:
