@@ -6,6 +6,23 @@ download lives.
 
 ---
 
+## [v4.29.3] — 2026-07-15 — Two old UI bugs, and 19 KB of dead weight
+
+Both of these were spotted during the UI polish pass that got reverted for being slow.
+They cost nothing to fix, so they were worth doing on their own.
+
+- **Your price floors were rendering at the wrong size.** The design asks for big brass
+  24px numbers; an inline `font-size:16px` left on the two inputs quietly overruled the
+  stylesheet, so they'd always been 16px. They're now the size they were meant to be
+  (and the box is wider, so a long value can't clip).
+- **19 KB of font was loading on every launch for nothing.** The app embedded the
+  **Marcellus** typeface for a single CSS rule — and **no element in the app has that
+  class**. It styled nothing, and had been dead weight for a while. Gone, along with
+  the last embedded font: every face in the app now ships with Windows.
+
+That also settles the old split where page headings used one serif and "hero" headings
+another. There was only ever one heading font actually on screen.
+
 ## [v4.29.2] — 2026-07-15 — Presets were silently 58x too strict on a chaos floor
 
 Found while re-checking the wizard, but this one was never about the wizard.
@@ -1183,6 +1200,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.29.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.3
 [v4.29.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.2
 [v4.29.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.1
 [v4.29.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.0
