@@ -6,6 +6,17 @@ download lives.
 
 ---
 
+## [v4.32.0] — 2026-07-15 — Floor quick-pick chips (the slider is gone), div back on the reference
+
+- **The floor drag-slider is replaced by quick-pick chips.** Once the slider spanned a
+  whole divine, every common floor was crushed into a 1%-wide sliver on the left — you
+  couldn't drag to a small number. Now you tap a chip: **Off · 1 · 5 · 10 · 25 · 50 · 100 ·
+  1 div**. The number box still takes any exact value, and "1 div" follows the live divine
+  price. The active value is highlighted.
+- **The reference line shows divine again**, next to chaos: **≈ 7.28 chaos · 0.99 div**.
+  (It only adds divine once the floor is big enough to read in it, ~40 ex+, so a small
+  floor stays a clean single chaos figure.)
+
 ## [v4.31.3] — 2026-07-15 — The floor slider actually reaches a divine now
 
 v4.31.2 made the slider span 0 → 1 divine, but it was stuck at its 100 ex fallback: the
@@ -1271,6 +1282,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.32.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.0
 [v4.31.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.3
 [v4.31.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.2
 [v4.31.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.1
