@@ -1,0 +1,82 @@
+# Weekly watch for PoE2 patches that change the game data our rules depend on.
+#
+# Runs tools/check_game_data.py against the LIVE sources (NeverSink's filter + the GGPK
+# mod dump). If a patch renamed/removed a stat id, broke a weight, or dropped a base our
+# rules name, it opens (or comments on) a GitHub issue so a human knows to update
+# game_data.json — the deliberate manual gate. It never edits data itself: auto-committing
+# game data unreviewed is exactly where being wrong ships a broken pickit.
+#
+# Low-noise: nothing happens when the data is in sync, and one issue stays open until
+# resolved rather than a new one every week.
+name: Game-data patch watch
+
+on:
+  schedule:
+    - cron: "0 12 * * 1"     # Mondays, 12:00 UTC
+  workflow_dispatch: {}       # ...and on demand
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Check game data against the live patch
+        # never let a network blip fail the job — the report step decides what to do
+        run: python tools/check_game_data.py --json --force > result.json || true
+
+      - name: Build the report
+        id: report
+        run: |
+          python - <<'PY'
+          import json, os
+          try:
+              r = json.load(open("result.json"))
+          except Exception:
+              r = {"critical": 0, "advisory": 0, "findings": [], "error": "checker produced no output"}
+          crit, adv = int(r.get("critical", 0)), int(r.get("advisory", 0))
+          has = crit > 0 or adv > 0
+          with open(os.environ["GITHUB_OUTPUT"], "a") as g:
+              g.write(f"has={'yes' if has else 'no'}\n")
+          if has:
+              out = [f"The weekly game-data check found **{crit} critical** and **{adv} advisory** "
+                     "finding(s) — a PoE2 patch has likely changed something our rules depend on.\n"]
+              for f in r.get("findings", []):
+                  mark = "❌" if f["level"] == "critical" else "⚠️"
+                  out.append(f"- {mark} **[{f['kind']}] {f['title']}** — {f['detail']}  \n"
+                             f"  _used by: {', '.join(f.get('where', []))}_")
+              out.append("\n**Next step:** run `python tools/check_game_data.py` locally, update "
+                         "`game_data.json` / the data modules, and re-verify (see the "
+                         "`verify-game-data` guidance). This issue was filed automatically; it "
+                         "will not spam — one stays open until the drift is resolved.")
+              open("body.md", "w", encoding="utf-8").write("\n".join(out))
+          PY
+
+      - name: Open or update the alert issue
+        if: steps.report.outputs.has == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Game data drifted from the current PoE2 patch"
+          num=$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            echo "updating existing issue #$num"
+            gh issue comment "$num" --body-file body.md
+          else
+            echo "opening a new issue"
+            gh issue create --title "$title" --body-file body.md
+          fi

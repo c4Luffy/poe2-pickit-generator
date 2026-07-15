@@ -33,9 +33,15 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--force", action="store_true",
                     help="re-download the sources instead of using the cache")
+    ap.add_argument("--json", action="store_true",
+                    help="emit the raw result as JSON (for the scheduled patch-watch)")
     args = ap.parse_args()
 
     r = run_check(force=args.force)
+    if args.json:
+        import json
+        print(json.dumps(r))
+        return 2 if r["error"] else (1 if r["critical"] else 0)
     if r["error"]:
         print(f"✗ {r['error']}")
         return 2

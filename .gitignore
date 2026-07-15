@@ -75,3 +75,7 @@ desktop.ini
 
 # Game-data checker cache (tools/check_game_data.py)
 tools/.gamedata_cache/
+
+# game-data patch-watch scratch files
+result.json
+body.md
