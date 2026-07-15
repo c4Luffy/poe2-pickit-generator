@@ -6,6 +6,13 @@ download lives.
 
 ---
 
+## [v4.32.1] — 2026-07-15 — Back to the slider
+
+The quick-pick chips didn't read as an editable control — nothing said "change me". The
+drag-slider is back (it has an always-visible handle, so it obviously invites dragging).
+It still spans 0 → 1 divine and follows the live divine price, and the reference line
+under it keeps chaos + divine.
+
 ## [v4.32.0] — 2026-07-15 — Floor quick-pick chips (the slider is gone), div back on the reference
 
 - **The floor drag-slider is replaced by quick-pick chips.** Once the slider spanned a
@@ -1282,6 +1289,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.32.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.1
 [v4.32.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.0
 [v4.31.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.3
 [v4.31.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.2
