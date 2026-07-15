@@ -13,7 +13,12 @@ name: Game-data patch watch
 on:
   schedule:
     - cron: "0 12 * * 1"     # Mondays, 12:00 UTC
-  workflow_dispatch: {}       # ...and on demand
+  workflow_dispatch:          # ...and on demand
+    inputs:
+      test_alert:
+        description: "Open a TEST issue to verify the alert + email flow (safe; close it after)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -41,6 +46,8 @@ jobs:
 
       - name: Build the report
         id: report
+        env:
+          TEST_ALERT: ${{ inputs.test_alert }}
         run: |
           python - <<'PY'
           import json, os
@@ -50,6 +57,16 @@ jobs:
               r = {"critical": 0, "advisory": 0, "findings": [], "error": "checker produced no output"}
           crit, adv = int(r.get("critical", 0)), int(r.get("advisory", 0))
           has = crit > 0 or adv > 0
+          # manual "test the pipe" run: force one issue so you can confirm it emails you
+          if os.environ.get("TEST_ALERT") == "true" and not has:
+              with open(os.environ["GITHUB_OUTPUT"], "a") as g:
+                  g.write("has=yes\n")
+              open("body.md", "w", encoding="utf-8").write(
+                  "✅ **This is a test.** You triggered the game-data watch with *test alert* on, "
+                  "so it filed this to prove the alert + email pipeline works. Your game data is "
+                  "actually in sync — nothing is wrong. **Close this issue.** A real patch alert "
+                  "lists exactly what changed and which rules it affects.")
+              raise SystemExit(0)
           with open(os.environ["GITHUB_OUTPUT"], "a") as g:
               g.write(f"has={'yes' if has else 'no'}\n")
           if has:
