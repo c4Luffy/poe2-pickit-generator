@@ -92,8 +92,16 @@ jobs:
           title="Game data drifted from the current PoE2 patch"
           num=$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')
           if [ -n "$num" ]; then
-            echo "updating existing issue #$num"
-            gh issue comment "$num" --body-file body.md
+            # Daily cadence must not mean daily emails: comment only when the
+            # findings CHANGED since the last alert (issue body or newest comment).
+            gh issue view "$num" --json body,comments \
+              --jq '([.body] + [.comments[].body])[-1]' > last_alert.md
+            if python -c "import sys;a=open('last_alert.md',encoding='utf-8').read().strip();b=open('body.md',encoding='utf-8').read().strip();sys.exit(0 if a==b else 1)"; then
+              echo "issue #$num already reports these exact findings — staying quiet"
+            else
+              echo "findings changed — updating issue #$num"
+              gh issue comment "$num" --body-file body.md
+            fi
           else
             echo "opening a new issue"
             gh issue create --title "$title" --body-file body.md
