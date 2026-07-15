@@ -6,6 +6,25 @@ download lives.
 
 ---
 
+## [v4.31.0] — 2026-07-15 — Floors are simply in exalt now
+
+The Chaos/Divine dropdown next to each floor is gone. It was a bug factory — the 58x
+preset explosion, the "60.57176 Exalt" display bug, and the convert-vs-reinterpret
+confusion all came from it — and it was redundant: the little line under each slider
+already shows your floor in every currency.
+
+So the floor is just a number in **exalt** now (a plain "ex" label, like the quality and
+item-level dials). No dropdown, no `0.16 chaos` in the box, and that whole family of bugs
+is impossible.
+
+You still see chaos and divine — as a **reference**, under the slider, where you read them
+instead of typing them:
+
+> **25** ex &nbsp; ≈ 0.43 chaos
+
+Chaos always shows; **divine only appears once the floor is high enough to mean something**
+(~40 ex+). A "0.01 div" reference on a 6 ex floor is noise, so it's hidden until it isn't.
+
 ## [v4.30.0] — 2026-07-15 — Switching a floor's currency keeps the floor
 
 Change the **unit** next to a floor — Exalt → Chaos, say — and the app used to keep the
@@ -1223,6 +1242,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.31.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.0
 [v4.30.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.30.0
 [v4.29.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.3
 [v4.29.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.2

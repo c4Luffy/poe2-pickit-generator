@@ -640,10 +640,9 @@
   .th-name{font-size:14px;font-weight:600;color:var(--text)}
   .th-desc{font-size:11.5px;color:var(--dim);margin-top:3px}
   .value{display:flex;align-items:center;gap:8px;justify-content:flex-end;min-width:160px}
-  /* 72px fits ~5 characters of 24px Consolas. The floors are compact now (showFloor
-     drops trailing zeros, so "50" / "0.1" / "5.76"), but a hand-typed "1234.56" is 7 —
-     hence the extra room. The inline font-size:16px that used to sit on these inputs
-     silently beat this rule, so the design's 24px never actually rendered. */
+  /* Floors are compact whole-ish exalt numbers; 104px covers a hand-typed "1234.56".
+     (An inline font-size:16px on these inputs used to beat this rule, so the design's
+     24px never rendered until it was removed.) */
   .value input{width:104px;background:transparent;border:none;padding:0;text-align:right;
     font:700 24px/1.1 Consolas,ui-monospace,monospace;color:var(--gold);font-variant-numeric:tabular-nums}
   .value input:focus{outline:none}
@@ -851,7 +850,7 @@
         <div class="threshold">
           <div class="th-main"><div class="th-name">Currency &amp; items floor</div>
             <div class="th-desc">Currency, essences, runes, fragments, gems — everything except uniques. Rare-gear rules are scored, not priced, so this never affects them.</div></div>
-          <span class="value"><input id="gAmt" type="number" min="0" step="1" value="0"> <select id="gUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></span>
+          <span class="value"><input id="gAmt" type="number" min="0" step="0.5" value="0"> <span class="unit">ex</span></span>
           <div class="dtrack"><i id="gTrack"></i></div>
           <div class="dial-extra"><div class="subv" id="gSub"></div><div class="sparkrow">
           <svg id="gSpark" viewBox="0 0 130 34" preserveAspectRatio="none"></svg>
@@ -861,7 +860,7 @@
         <div class="threshold">
           <div class="th-main"><div class="th-name">Unique floor</div>
             <div class="th-desc">Unique weapons, armours, accessories, flasks, charms, jewels, relics</div></div>
-          <span class="value"><input id="uAmt" type="number" min="0" step="1" value="0"> <select id="uUnit"><option>Exalt</option><option>Chaos</option><option>Divine</option></select></span>
+          <span class="value"><input id="uAmt" type="number" min="0" step="0.5" value="0"> <span class="unit">ex</span></span>
           <div class="dtrack"><i id="uTrack"></i></div>
           <div class="dial-extra"><div class="subv" id="uSub"></div><svg id="uSpark" viewBox="0 0 130 34" preserveAspectRatio="none"></svg><div class="v" id="uAvg">–</div><div class="hint" style="margin:7px 0 0">Source: <a href="#" id="ninjaLink" style="color:var(--gold)">poe.ninja ↗</a></div></div>
         </div>
@@ -1588,87 +1587,36 @@ document.addEventListener("keydown",e=>{
   }});
 
 /* ── floors ── */
-function subCalc(a,u,s,noun){const v=parseFloat($(a).value)||0,unit=$(u).value;
-  const ex=unit==="Divine"&&divRate>1?v*divRate:
-           unit==="Chaos"&&chaosEx>0?v*chaosEx:v;
+/* Floors are always in EXALT now. subCalc just draws the reference line — the same
+   floor written in the other currencies, so someone who thinks in chaos can read it
+   without ever typing in it. A unit is shown only when it rounds to something real
+   (a 7 ex floor is 0.00 divine — printing that helps nobody). */
+function subCalc(a,s,noun){
+  const ex=parseFloat($(a).value)||0;
+  if(ex<=0){$(s).textContent=`Picking up ${noun}.`;return 0;}
   const parts=[];
-  if(ex>0){parts.push(ex.toFixed(0)+" ex");
-    if(chaosEx>0&&unit!=="Chaos")parts.push("~"+Math.round(ex/chaosEx)+" chaos");
-    if(divRate>1&&unit!=="Divine")parts.push((ex/divRate).toFixed(2)+" div");}
-  $(s).textContent=ex<=0?`Picking up ${noun}.`:"≈ "+parts.join(" · ");
+  // Chaos is the currency people actually price mid-tier loot in, so always show it.
+  // Divine only appears once the floor is high enough to read in divine at all (>= 0.1,
+  // ~40 ex+): "0.01 div" on a 6 ex floor is noise, not a reference.
+  if(chaosEx>0)parts.push((ex/chaosEx).toFixed(2)+" chaos");
+  if(divRate>1&&ex/divRate>=0.1)parts.push((ex/divRate).toFixed(2)+" div");
+  $(s).textContent=parts.length?"\u2248 "+parts.join(" \u00b7 "):"";
   return ex;}
-const uEx=()=>subCalc("uAmt","uUnit","uSub","every unique");
-const gEx=()=>subCalc("gAmt","gUnit","gSub","everything");
+const uEx=()=>subCalc("uAmt","uSub","every unique");
+const gEx=()=>subCalc("gAmt","gSub","everything");
 let _floorT=null;
 function _saveFloors(){clearTimeout(_floorT);
   _floorT=setTimeout(()=>{api().set_setting("min_exalt_unique",uEx());
-    api().set_setting("min_exalt_gear",gEx());
-    // Remember the unit too. The floor itself is stored in exalt (correct), but with
-    // the unit forgotten, "Chaos 1" reopened as "60.57176 Exalt" — the same floor,
-    // looking for all the world like the setting had been thrown away.
-    api().set_setting("floor_unit_unique",$("uUnit").value);
-    api().set_setting("floor_unit_gear",$("gUnit").value);},400);}
-/* Typing a number and switching a unit are NOT the same edit, and sharing one handler
-   conflated them:
-     typing    -> the floor changed. Re-read the box.
-     switching -> the floor did NOT change, only how it's written. Convert it, the way
-                  km->miles does: same distance, different number.
-   Re-reading the box against the new rate is what turned a 9 ex floor into 9 chaos =
-   519 ex while the box innocently still said "9" — the same shape as the 58x preset bug
-   in v4.29.2: a number sitting still while its meaning moves underneath it. */
-const _unitRate=u=>u==="Divine"?(divRate>1?divRate:0):u==="Chaos"?(chaosEx>0?chaosEx:0):1;
-let _lastUnit={uUnit:"Exalt",gUnit:"Exalt"};
-function _saveUnits(){
-  api().set_setting("floor_unit_unique",$("uUnit").value);
-  api().set_setting("floor_unit_gear",$("gUnit").value);}
-function onUnitPick(amtId,unitId,recalc){
-  const want=$(unitId).value, prev=_lastUnit[unitId]||"Exalt";
-  const ex=(parseFloat($(amtId).value)||0)*(_unitRate(prev)||1);   // the floor, as it stands
-  showFloor(amtId,unitId,ex);          // same floor, rewritten in the unit they asked for
-  const got=$(unitId).value;           // ...unless showFloor refused one it can't hold
-  _lastUnit[unitId]=got;
-  recalc();
-  /* Only the unit moved. Never re-save the floor here: the shown value is rounded to 2dp,
-     so writing it back would let that rounding creep into the real number every time
-     someone flicked the dropdown. The active preset also stays valid — the floor it set
-     is still the floor. */
-  _saveUnits();
-  const exTxt=(+ex.toFixed(2))+" ex";
-  toast(got===want
-    ? `Same ${exTxt} floor — just written in ${got.toLowerCase()}. Your bot picks up exactly the same items.`
-    : `${exTxt} is too small to write in ${want.toLowerCase()} — it would round away to nothing, so it stays in exalt.`);}
-["uAmt"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();_presetOff();}));
-["gAmt"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();_presetOff();}));
-$("uUnit").addEventListener("change",()=>onUnitPick("uAmt","uUnit",uEx));
-$("gUnit").addEventListener("change",()=>onUnitPick("gAmt","gUnit",gEx));
-/* Show an exalt floor in the unit the user picked. Rounded — an unrounded 60.57176
-   overflows the box and reads like a bug. Falls back to Exalt when that unit's live rate
-   hasn't arrived yet (never divide by a rate we don't have), AND when the answer would
-   round away to nothing: 2 ex is 0.0047 div, which at 2dp is "0.00" — i.e. no floor at
-   all, so the bot would take everything. A unit you can't express the number in is the
-   wrong unit to show it in. */
-function showFloor(amtId,unitId,ex){
-  const u=$(unitId).value;
-  const rate=u==="Divine"?(divRate>1?divRate:0):u==="Chaos"?(chaosEx>0?chaosEx:0):0;
-  if(rate>0){
-    const v=+(ex/rate).toFixed(2);
-    // Only keep a unit the number actually survives. Two decimals of divine can't hold
-    // a small exalt floor: 6 ex is 0.0141 div, shown as "0.01", read back as 4.25 ex —
-    // a 29% cut nobody asked for. So round-trip it, and drop to exalt when it drifts.
-    // (0 ex is genuinely 0 in every unit.)
-    if(!ex||(v>0&&Math.abs(v*rate-ex)<=Math.max(0.05,ex*0.05))){$(amtId).value=String(v);return;}
-  }
-  $(unitId).value="Exalt";
-  $(amtId).value=String(+(+ex).toFixed(2));}
+    api().set_setting("min_exalt_gear",gEx());},400);}
+["uAmt"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();_presetOff();updTracks();}));
+["gAmt"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();_presetOff();updTracks();}));
 let _floorsRestored=false;
 function restoreFloors(){
   if(!info)return;
-  if(info.floor_unit_unique)$("uUnit").value=info.floor_unit_unique;
-  if(info.floor_unit_gear)$("gUnit").value=info.floor_unit_gear;
-  showFloor("uAmt","uUnit",info.min_unique||0);
-  showFloor("gAmt","gUnit",info.min_gear||0);
-  _lastUnit={uUnit:$("uUnit").value,gUnit:$("gUnit").value};  // showFloor may have overridden
+  $("uAmt").value=info.min_unique||0;
+  $("gAmt").value=info.min_gear||0;
   uEx();gEx();updTracks();}
+
 
 /* ── console dials: drag-track sliders + fill tracks + quality/level sync ── */
 function updTracks(){
@@ -1742,13 +1690,7 @@ async function applyAutoFloor(){
   if(r.error){$("autoHint").textContent="✗ "+r.error;return;}
   // Respect each section's chosen unit — convert the exalt floor into it. Only
   // fall back to Exalt if that unit's live rate isn't available yet.
-  const applyOne=(amtId,unitId,ex)=>{
-    let unit=$(unitId).value,val;
-    if(unit==="Divine"&&divRate>1)val=+(ex/divRate).toFixed(2);
-    else if(unit==="Chaos"&&chaosEx>0)val=Math.round(ex/chaosEx);
-    else{$(unitId).value="Exalt";val=Math.round(ex);}
-    $(amtId).value=val;};
-  applyOne("uAmt","uUnit",r.unique);applyOne("gAmt","gUnit",r.gear);
+  $("uAmt").value=Math.round(r.unique);$("gAmt").value=Math.round(r.gear);
   api().set_setting("min_exalt_unique",uEx());api().set_setting("min_exalt_gear",gEx());
   $("autoHint").textContent=`Keeps top ${r.keep_pct}%: uniques ≥ ${r.unique} ex (${r.kept_unique}/${r.total_unique}), rest ≥ ${r.gear} ex (${r.kept_gear}/${r.total_gear}).`;}
 function setAutoPill(on){
@@ -2766,8 +2708,6 @@ async function loadHistory(){
     if($("swAuto").classList.contains("on")){
       $("swAuto").classList.remove("on");
       await api().set_setting("auto_floor",false);setAutoPill(false);}
-    $("uUnit").value="Exalt";$("gUnit").value="Exalt";
-    api().set_setting("floor_unit_unique","Exalt");api().set_setting("floor_unit_gear","Exalt");
     $("uAmt").value=uf;$("gAmt").value=gf;
     uEx();gEx();updTracks();
     await api().set_setting("min_exalt_unique",uf);
@@ -3311,14 +3251,9 @@ function applyInfo(i){
   const th=["relic","venom","void","ossuary","delirium","umbral","abyss","twilight",
             "blight"].includes(i.theme)?i.theme:"relic";
   document.documentElement.dataset.theme=th;syncTheme(th);
-  /* Floors are stored in EXALT. Writing one straight into the box while the unit select
-     still reads "Chaos" silently multiplies it by the chaos rate: applying Balanced
-     (6 ex) with a chaos floor produced 6 chaos ~= 346 ex — ~58x what the preset promised,
-     and the bot then walked past nearly everything. showFloor() converts into whatever
-     unit is on screen (and falls back to Exalt until that rate has actually arrived). */
-  showFloor("uAmt","uUnit",i.min_unique||0);
-  showFloor("gAmt","gUnit",i.min_gear||0);
-  _lastUnit={uUnit:$("uUnit").value,gUnit:$("gUnit").value};   // keep the picker's origin in step
+  // Floors are stored and shown in exalt (there is no other unit to convert into now).
+  $("uAmt").value=i.min_unique||0;
+  $("gAmt").value=i.min_gear||0;
   $("outBase").value=i.output_base;
   $("botFolderLbl").textContent=i.bot_folder||"not set";
   setupNudge(i.bot_folder);        // fresh install → point them at the guide

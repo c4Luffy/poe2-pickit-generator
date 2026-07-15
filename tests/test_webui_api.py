@@ -426,31 +426,19 @@ def test_clean_env_keeps_everything_else(monkeypatch):
     assert env.get("PATH") == "keepme"
 
 
-# ── Floor display units ───────────────────────────────────────────────────────
+# ── Floors ────────────────────────────────────────────────────────────────────
 
-def test_floor_display_unit_is_remembered(api):
-    """The floor is stored in EXALT, which is right. But the chosen display UNIT was
-    never saved — so a user who set "Chaos 1" reopened the app to "60.57176 Exalt".
-    Same floor, but it reads exactly like the setting was thrown away."""
-    api.set_setting("min_exalt_unique", 60.57176)     # == 1 chaos at the time
-    api.set_setting("floor_unit_unique", "Chaos")
-    assert api.cfg["floor_unit_unique"] == "Chaos"
-
+def test_floors_are_plain_exalt(api):
+    """Floors are stored and shown in exalt only — the Chaos/Divine display dropdown was
+    removed (it was a bug factory: the 58x preset bug, the "60.57176" display bug, the
+    convert-vs-reinterpret confusion). The stored value is the exalt floor, full stop."""
+    api.set_setting("min_exalt_unique", 6.0)
+    api.set_setting("min_exalt_gear", 2.0)
     i = api.app_info()
-    assert i["min_unique"] == 60.57176                # the floor itself is untouched
-    assert i["floor_unit_unique"] == "Chaos"          # and the UI knows to show chaos
-
-
-def test_floor_unit_defaults_to_exalt(api):
-    i = api.app_info()
-    assert i["floor_unit_unique"] == "Exalt"
-    assert i["floor_unit_gear"] == "Exalt"
-
-
-def test_floor_units_are_in_the_settings_allowlist():
-    """set_setting silently drops keys that aren't allowed — the unit would never persist."""
-    assert "floor_unit_unique" in webapi._SETTABLE
-    assert "floor_unit_gear" in webapi._SETTABLE
+    assert i["min_unique"] == 6.0 and i["min_gear"] == 2.0
+    # the dead display-unit keys must not come back
+    assert "floor_unit_unique" not in i and "floor_unit_gear" not in i
+    assert "floor_unit_unique" not in webapi._SETTABLE
 
 
 def test_base_min_level_can_be_set_to_79(api):

@@ -35,7 +35,6 @@ _SETTABLE = {
     "base_quality", "base_min_level", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir",
     "magic_rare_flasks", "known_leagues", "rare_gear_enabled",
-    "floor_unit_unique", "floor_unit_gear",
     "setup_done",
 }
 
@@ -82,9 +81,6 @@ class AppApi:
             "auto_copy": bool(c.get("auto_copy", False)),
             "min_gear": float(c.get("min_exalt_gear", 0.0)),
             "min_unique": float(c.get("min_exalt_unique", 0.0)),
-            # the floor is stored in exalt; this is only how to SHOW it back
-            "floor_unit_unique": c.get("floor_unit_unique", "Exalt"),
-            "floor_unit_gear": c.get("floor_unit_gear", "Exalt"),
             "include_bases": bool(c.get("include_bases", True)),
             "auto_floor": bool(c.get("auto_floor", False)),
             "auto_floor_pct": int(c.get("auto_floor_pct", 40) or 40),
