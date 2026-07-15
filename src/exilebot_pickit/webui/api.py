@@ -36,6 +36,7 @@ _SETTABLE = {
     "copy_filter_to_game", "poe2_filter_dir",
     "magic_rare_flasks", "known_leagues", "rare_gear_enabled",
     "floor_unit_unique", "floor_unit_gear",
+    "setup_done",
 }
 
 
@@ -70,6 +71,11 @@ class AppApi:
         return {
             "version": VERSION, "output_dir": OUTPUT_DIR,
             "league": c.get("league") or "",
+            # First-run wizard. "Have you ever actually generated?" is the only honest
+            # test of a new user: league is auto-saved the moment the list loads (v4.25.0)
+            # and bot_folder is auto-detected, so neither says anything about experience.
+            "setup_done": bool(c.get("setup_done", False)),
+            "has_history": bool(c.get("history")),
             "theme": (c.get("theme") or "dark").lower(),
             "output_base": c.get("output_base", "poe2_pickit"),
             "bot_folder": c.get("bot_folder", ""),

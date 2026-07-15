@@ -6,6 +6,30 @@ download lives.
 
 ---
 
+## [v4.29.0] — 2026-07-15 — A setup wizard for first-timers
+
+A new user opened the app to **13 tabs and two sliders**, with nothing saying which
+three things actually matter. The pieces were all there — auto bot-detection, presets,
+the setup guide — but you had to *notice* them.
+
+Now a brand-new install gets walked through it in four steps:
+
+1. **Welcome** — what the app does, in one line, and which league you're farming
+2. **Your bot** — it's usually already found and connected, so this just shows you where.
+   If not, Search again / Browse are right there (and skipping is fine — generating still
+   works, the file just won't travel to the bot on its own)
+3. **How much loot?** — pick a preset; it sets every floor and switch at once
+4. **That's it** — press Generate. Plus the one thing to check if the bot ignores you.
+
+It only ever appears for someone who has **never generated** — the honest test of a new
+user, since your league is saved automatically the moment the app opens and the bot
+folder is auto-detected. Skipping counts as done, so nobody gets nagged twice. The
+backdrop deliberately doesn't dismiss it: a stray click shouldn't silently mark setup
+complete.
+
+**Been here for ages and want it anyway?** The Setup guide has a **▶ Walk me through it**
+button. It's the same wizard, and it destroys nothing.
+
 ## [v4.28.0] — 2026-07-15 — One typeface, everywhere
 
 Themes each had their **own** body face, heading face and tab style (v4.21.0). Side by
@@ -1114,6 +1138,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.29.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.0
 [v4.28.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.28.0
 [v4.27.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.27.0
 [v4.26.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.26.1

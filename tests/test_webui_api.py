@@ -584,3 +584,33 @@ def test_sparkline_is_dropped_when_it_cannot_be_drawn(api, monkeypatch):
                             for k, *_ in cats})
     cat = next(c for c in api.economy("L")["cats"] if c["key"] == "unique_weapons")
     assert cat["items"][0]["spark"] == [0.0, 4.0, 6.0]
+
+
+# ── First-run wizard ──────────────────────────────────────────────────────────
+
+def test_wizard_signal_is_have_you_ever_generated(api):
+    """A brand-new user is one who has never GENERATED. league is auto-saved the moment
+    the list loads (v4.25.0) and bot_folder is auto-detected on first run, so neither
+    proves the user has ever actually used the app."""
+    api.cfg["league"] = "Runes of Aldur"       # set automatically at launch
+    api.cfg["bot_folder"] = r"D:\ExiledBot2"   # found automatically
+    api.cfg["history"] = []
+    i = api.app_info()
+    assert i["setup_done"] is False and i["has_history"] is False   # -> still a newcomer
+
+    api.cfg["history"] = [{"active": 1200}]    # they generated once
+    assert api.app_info()["has_history"] is True                    # -> no wizard
+
+
+def test_wizard_never_shows_twice(api):
+    """Finishing OR skipping sets the flag — nobody gets nagged on every launch."""
+    assert api.app_info()["setup_done"] is False
+    api.set_setting("setup_done", True)
+    assert api.cfg["setup_done"] is True
+    assert api.app_info()["setup_done"] is True
+
+
+def test_setup_done_is_a_settable_key():
+    """set_setting silently drops keys off the allowlist — the flag would never persist
+    and the wizard would greet the user forever."""
+    assert "setup_done" in webapi._SETTABLE

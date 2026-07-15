@@ -700,6 +700,19 @@
     letter-spacing:.14em;text-transform:uppercase;color:var(--ok);font-weight:700}
   .market .m-live .pulse{margin:0}
   .market .sp{flex:1}
+  /* first-run wizard */
+  .wz-dots{display:flex;gap:5px;align-items:center}
+  .wz-dots i{width:6px;height:6px;border-radius:50%;background:var(--border);display:block}
+  .wz-dots i.on{background:var(--gold)}
+  .wz-lead{font-size:14px;color:var(--text)}
+  .wz-ok{border:1px solid var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--bg3));
+    border-radius:10px;padding:12px 14px}
+  .wz-warn{border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--bg3));
+    border-radius:10px;padding:12px 14px}
+  .wz-path{font:12px/1.5 Consolas,ui-monospace,monospace;color:var(--gold-br);
+    word-break:break-all;display:block;margin-top:4px}
+  #wzPick{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
+  #wzLeague{width:100%;padding:11px 12px}
   #ver{cursor:pointer}
   #ver:hover{color:var(--gold);text-decoration:underline}
   .csec-copy{margin-left:6px;color:var(--dim);font-size:12px;flex:0 0 auto;
@@ -1254,6 +1267,9 @@
 <div class="page" id="p-guide">
   <h1>Setup guide</h1><div class="sub">Five minutes, once. Step 3c is the one everybody misses — skip it and the bot quietly ignores everything you generate.</div>
 
+  <div class="eco-head"><button class="primary" id="wzAgain" style="padding:9px 16px">▶ Walk me through it</button>
+    <span class="hint" style="margin:0">Four questions — the same wizard a new install gets. Nothing here is destroyed by running it again.</span></div>
+
   <div class="card" style="border-color:var(--gold-dim)"><h2>What this app actually does</h2>
     <div class="hint">It checks what items are <b>worth money on poe.ninja right now</b>, and writes a <b>pickit</b> — a <code>.ipd</code> file that tells Exiled Bot 2 what to pick up. Prices move, so you press Generate again whenever you want the bot's loot list refreshed.</div>
   </div>
@@ -1422,6 +1438,21 @@
 
 </main>
 <div class="toast" id="toast"></div>
+<div class="modal" id="wzModal">
+  <div class="modal-box" style="max-width:640px">
+    <div class="modal-hd">
+      <span style="font-size:19px" id="wzIcon">👋</span><b id="wzTitle">Welcome</b>
+      <span class="hint" style="margin:0 0 0 auto" id="wzStep"></span>
+    </div>
+    <div class="modal-bd" id="wzBody"></div>
+    <div class="modal-ft">
+      <button class="ghost mini" id="wzSkip" style="margin-right:auto">Skip setup</button>
+      <button class="ghost mini" id="wzBack">Back</button>
+      <button class="primary" id="wzNext" style="padding:8px 18px">Next</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="wnModal">
   <div class="modal-box">
     <div class="modal-hd"><span style="font-size:19px">🎉</span><b id="wnTitle">What's new</b></div>
@@ -3332,6 +3363,104 @@ async function init(){
   updMktLeague();
   if(sel.value)_rates();
   uEx();gEx();}
+/* ── first-run wizard ──────────────────────────────────────────────────────
+   Four steps for someone who has never generated. It drives the REAL controls
+   (#league, apply_preset, bot_folder) instead of holding its own copy, so skipping
+   out at any point leaves exactly what the user chose — nothing to sync back. */
+let wzAt=0;
+const WZ=[
+ {ic:"👋", t:"Welcome", build:()=>{
+   const opts=[...$("league").options].map(o=>
+     `<option value="${esc(o.value)}"${o.value===$("league").value?" selected":""}>${esc(o.textContent)}</option>`).join("");
+   return `<div class="wz-lead">This turns <b>live poe.ninja prices</b> into a pickit file
+     your bot reads — so it only stops for loot that's actually worth money today.</div>
+     <div class="hint">Three questions and you're done.</div>
+     <div><b>Which league are you farming?</b>
+       <div class="hint" style="margin:2px 0 7px">Prices are pulled for this league.</div>
+       <select id="wzLeague">${opts}</select></div>`;},
+   wire:()=>{$("wzLeague").onchange=()=>{
+     const s=$("league");s.value=$("wzLeague").value;s.onchange();};}},
+
+ {ic:"🤖", t:"Your bot", build:()=>{
+   const f=(info.bot_folder||"").trim();
+   return f
+     ? `<div class="wz-ok"><b>\u2705 Found Exiled Bot — already connected.</b>
+          <span class="wz-path">${esc(f)}</span></div>
+        <div class="hint">Every Generate drops the pickit straight in there. Nothing to do.</div>`
+     : `<div class="wz-warn"><b>\u26a0 I couldn't find Exiled Bot on this PC.</b></div>
+        <div class="hint">Point me at it and every Generate deploys there automatically.
+          You can also do this later in Settings — generating still works, the file just
+          won't reach the bot on its own.</div>
+        <div style="display:flex;gap:8px">
+          <button class="ghost mini" id="wzFind">🔍 Search again</button>
+          <button class="primary" id="wzBrowse" style="padding:7px 14px">Browse\u2026</button>
+        </div>`;},
+   wire:()=>{
+     const done=async p=>{await api().set_setting("bot_folder",p);
+       await api().set_setting("auto_copy",true);
+       info=await api().app_info();applyInfo(info);loadBotConn();
+       toast("Connected: "+p);wzRender();};
+     const fb=$("wzFind"),bb=$("wzBrowse");
+     if(fb)fb.onclick=async()=>{fb.disabled=true;fb.textContent="Searching\u2026";
+       const r=await api().detect_bot_folder();
+       if(r&&r.found)return done(r.path);
+       fb.disabled=false;fb.textContent="🔍 Search again";
+       toast("Still no luck — use Browse\u2026");};
+     if(bb)bb.onclick=async()=>{const r=await api().browse_folder();if(r&&r.path)done(r.path);};}},
+
+ {ic:"🎯", t:"How much loot?", build:()=>
+   `<div class="wz-lead">Pick a starting point. It sets every floor and switch at once —
+      you can fine-tune anything afterwards, or change your mind any time.</div>
+    <div id="wzPick">${PRESETS.map(p=>{
+      const m=[1,2,3,4].map(n=>`<i class="${n<=p.strict?"on":""}"></i>`).join("");
+      return `<button class="pcard${p.key===presetActive?" on":""}" data-k="${esc(p.key)}">
+        <span class="p-ic">${p.icon}</span><span class="p-name">${esc(p.name)}</span>
+        <span class="p-tag">${esc(p.tag)}</span><span class="p-meter">${m}</span></button>`;}).join("")}</div>
+    <div class="hint" id="wzPickHint">${presetActive
+      ?esc((PRESETS.find(p=>p.key===presetActive)||{}).floors||"")
+      :"Nothing picked yet — <b>Balanced</b> suits most people."}</div>`,
+   wire:()=>{$("wzPick").querySelectorAll(".pcard").forEach(b=>{
+     b.onclick=async()=>{await applyPreset(b.dataset.k);wzRender();};});}},
+
+ {ic:"\u26a1", t:"That's it", build:()=>{
+   const f=(info.bot_folder||"").trim();
+   return `<div class="wz-lead">Close this and press <b>\u26a1 Generate</b>. It fetches today's
+      prices and writes your pickit${f?" — then copies it to your bot":""}.</div>
+     ${f?"":`<div class="hint">\u26a0 No bot folder yet, so the file stays in the app's output
+        folder. <b>Settings \u2192 Bot folder</b> when you're ready.</div>`}
+     <div class="hint"><b>If the bot ignores the pickit</b>, open <b>Settings \u2192 Bot connection</b> —
+       it checks the one step everybody misses and offers to fix it.</div>
+     <div class="hint">Prices move daily, so re-generate whenever you play.
+       <b>🔍 Item Check</b> tells you why any item was taken or skipped.</div>`;}}
+];
+function wzRender(){
+  const s=WZ[wzAt];
+  $("wzIcon").textContent=s.ic;
+  $("wzTitle").textContent=s.t;
+  $("wzStep").innerHTML=`<span class="wz-dots">${WZ.map((_,i)=>
+    `<i class="${i<=wzAt?"on":""}"></i>`).join("")}</span>`;
+  $("wzBody").innerHTML=s.build();
+  $("wzBody").scrollTop=0;
+  if(s.wire)s.wire();
+  $("wzBack").style.visibility=wzAt?"visible":"hidden";
+  $("wzNext").textContent=wzAt===WZ.length-1?"Let's go":"Next";}
+async function wzClose(){
+  $("wzModal").classList.remove("on");
+  await api().set_setting("setup_done",true);   // finished or skipped — never nag twice
+  info.setup_done=true;}
+function wzOpen(){wzAt=0;wzRender();$("wzModal").classList.add("on");}
+$("wzNext").onclick=()=>{if(wzAt<WZ.length-1){wzAt++;wzRender();}else wzClose();};
+$("wzBack").onclick=()=>{if(wzAt){wzAt--;wzRender();}};
+$("wzSkip").onclick=wzClose;
+$("wzAgain").onclick=wzOpen;   // Setup guide -> replay it on demand
+/* Deliberately NOT dismissible by clicking the backdrop: it is four steps, and a
+   stray click behind the box shouldn't silently mark setup as done. Skip is right there. */
+function maybeWizard(){
+  // Never generated = never actually used it. league is auto-saved at launch and the
+  // bot folder is auto-detected, so neither of those proves anything about experience.
+  if(info.setup_done||info.has_history)return;
+  wzOpen();}
+
 /* -- game-data health check -------------------------------------------- */
 let gdPoll=null;
 async function gdStart(force){
@@ -3413,6 +3542,7 @@ function setupNudge(botFolder){
 
 window.addEventListener("pywebviewready",()=>init().then(()=>{
   gdStart(false).catch(()=>{});          // health check runs itself; never blocks boot
+  maybeWizard();                         // brand-new user: walk them through it once
   showPostUpdateNotes().catch(()=>{});   // first launch after an update: say what changed
 }).catch(e=>{
   const t="STARTUP ERROR: "+(e&&(e.stack||e.message)||e);

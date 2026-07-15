@@ -70,6 +70,8 @@ DEFAULT_CONFIG = {
     "min_exalt_unique": 0.0,
     # What's-new: the version whose notes the user has already seen, plus the notes
     # stashed at download time so the panel still works with no network.
+    # First-run wizard: set once it is finished OR skipped, so it never nags twice.
+    "setup_done": False,
     "last_seen_version": "",
     "pending_version": "",
     "pending_notes": "",
