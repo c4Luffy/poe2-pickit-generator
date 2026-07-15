@@ -47,6 +47,9 @@ jobs:
       - name: UI safety gate (webui/app.html — one bad id or JS error kills the whole app)
         run: python tools/check_ui.py
 
+      - name: UI logic tests (behaviour of the real app.html functions)
+        run: node tests/test_ui_logic.mjs
+
       - name: Validate [ItemLevel] placement in all generated rules
         # [ItemLevel] belongs BEFORE the # (ground-side filter): the bot reads
         # game memory, so ilvl is known pre-pickup — its own editor lists Item
