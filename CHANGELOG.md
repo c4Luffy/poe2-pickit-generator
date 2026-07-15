@@ -6,6 +6,39 @@ download lives.
 
 ---
 
+## [v4.34.0] — 2026-07-16 — Deep-scan release: 14 fixes from a full-code audit
+
+A multi-angle audit of every file in the project, with every finding verified against
+the code before fixing. Nothing about how rules are generated changed — this release is
+about the app around them being solid.
+
+Fixes you'll actually notice:
+
+- **The window finally remembers its size and position.** A type mix-up wiped the saved
+  geometry on every launch, so the app always opened at the default size. Resize it once
+  — it stays.
+- **"Reset to defaults" now truly resets.** Toggling items after a reset used to leak
+  into the defaults themselves, so the next reset restored your old toggles instead of
+  a clean slate.
+- **🐛 Report a problem** (Debug tab): one click opens a GitHub issue with your
+  diagnostics pre-filled — you review it, you send it. No hidden telemetry, ever.
+- **Settings changes can no longer be silently dropped** when a save lands at the same
+  instant as another action (the log had recorded 107 such losses in a single day).
+
+Fixes for things that would have bitten later:
+
+- The pickit copied into your bot folder is now written atomically — the generated
+  `.ipd` can never be picked up half-written, and a copy error no longer fails the
+  whole generate.
+- A second config corruption can no longer overwrite the backup of the first — the one
+  file that still held your settings.
+- Updating the app from a folder with `!` in its path no longer breaks the update swap.
+- A rare price-data glitch (NaN) could hang a tab forever; corrupt poe.ninja responses
+  are now retried instead of abandoned.
+- Release builds now run *every* safety gate (not just the test suite) before an exe
+  can publish, and the daily game-data watch fails loudly if it ever breaks instead of
+  looking green forever.
+
 ## [v4.33.0] — 2026-07-15 — The app tells you when something breaks
 
 Until now, when the app hit an error it wrote it to a log file and said nothing. You'd
@@ -1337,6 +1370,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.34.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.34.0
 [v4.33.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.33.0
 [v4.32.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.4
 [v4.32.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.3

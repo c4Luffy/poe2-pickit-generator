@@ -80,7 +80,9 @@ def main() -> int:
     # tree that ships. (This used to happen after the commit, exit code ignored:
     # a remote commit pushed mid-release got folded in UNGATED, and a rebase
     # conflict left the repo mid-rebase with the bump already committed.)
-    if run(["git", "pull", "--rebase", "-q", "origin", "main"]).returncode != 0:
+    # --autostash: the working tree legitimately carries this release's changes.
+    if run(["git", "pull", "--rebase", "--autostash", "-q",
+            "origin", "main"]).returncode != 0:
         die("git pull --rebase failed — resolve (or `git rebase --abort`) and rerun")
 
     # CHANGELOG must mention this version (soft — warn, don't block)
