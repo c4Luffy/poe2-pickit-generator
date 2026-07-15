@@ -6,6 +6,33 @@ download lives.
 
 ---
 
+## [v4.29.1] — 2026-07-15 — The wizard, made honest
+
+Four fixes from walking the beginner's own path through yesterday's wizard.
+
+### It was telling new users their bot was connected when it wasn't
+Step 2 said **"✅ Found Exiled Bot — already connected. Nothing to do"** purely because a
+folder path existed. Finding the folder is **not** being connected: if the bot's
+`pickit.ini` points `active_profile` at another name, it **silently ignores every pickit
+you make**. Settings has always worded that state bluntly — *"the bot is IGNORING
+everything you generate"* — and the setup guide calls it *the one step everybody misses*.
+So the wizard built for people who don't know any better was confidently telling them
+the exact opposite. It now runs the real check and offers **✓ Fix it for me**.
+
+### It walked beginners into a stash full of junk
+A fresh install has **no floor at all** (0 ex) — the bot stops for anything with a price,
+looser than Vacuum. So *Next → Next → Next → Generate* handed a newcomer precisely the
+outcome the wizard exists to prevent. Step 3 now lands you on **Balanced** and says so;
+any other card is one tap away.
+
+### Also
+- **The last step actually generates now.** "Close this and press Generate" was a cop-out;
+  the button is **⚡ Generate now** and it does the job.
+- **The preset cards overflowed the panel.** They reserve 148px each for the Generate-tab
+  row — five of those forced 740px into a 600px box, so *Currency only* fell off the edge.
+- Step 3 no longer says *"sets every floor"* to someone who has never heard the word
+  **floor**.
+
 ## [v4.29.0] — 2026-07-15 — A setup wizard for first-timers
 
 A new user opened the app to **13 tabs and two sliders**, with nothing saying which
@@ -1138,6 +1165,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.29.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.1
 [v4.29.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.0
 [v4.28.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.28.0
 [v4.27.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.27.0

@@ -711,7 +711,12 @@
     border-radius:10px;padding:12px 14px}
   .wz-path{font:12px/1.5 Consolas,ui-monospace,monospace;color:var(--gold-br);
     word-break:break-all;display:block;margin-top:4px}
-  #wzPick{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
+  /* .pcard reserves min-width:148px for the Generate-tab row, so five of them force
+     740px inside a 600px modal. In here the grid does the sizing. min-width:0 on the
+     grid itself too: it is a flex child of .modal-bd, and flex items refuse to shrink
+     below their content without it. */
+  #wzPick{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;min-width:0}
+  #wzPick .pcard{min-width:0}
   #wzLeague{width:100%;padding:11px 12px}
   #ver{cursor:pointer}
   #ver:hover{color:var(--gold);text-decoration:underline}
@@ -3367,7 +3372,12 @@ async function init(){
    Four steps for someone who has never generated. It drives the REAL controls
    (#league, apply_preset, bot_folder) instead of holding its own copy, so skipping
    out at any point leaves exactly what the user chose — nothing to sync back. */
-let wzAt=0;
+let wzAt=0,wzConn=null;
+/* Two of step 2's branches offer the same pair. Rendering the ids from one constant
+   keeps the id audit honest — it can't know the branches are mutually exclusive. */
+const WZ_FIND=`<div style="display:flex;gap:8px">
+           <button class="ghost mini" id="wzFind">🔍 Search again</button>
+           <button class="primary" id="wzBrowse" style="padding:7px 14px">Browse\u2026</button></div>`;
 const WZ=[
  {ic:"👋", t:"Welcome", build:()=>{
    const opts=[...$("league").options].map(o=>
@@ -3381,26 +3391,47 @@ const WZ=[
    wire:()=>{$("wzLeague").onchange=()=>{
      const s=$("league");s.value=$("wzLeague").value;s.onchange();};}},
 
- {ic:"🤖", t:"Your bot", build:()=>{
-   const f=(info.bot_folder||"").trim();
-   return f
-     ? `<div class="wz-ok"><b>\u2705 Found Exiled Bot — already connected.</b>
-          <span class="wz-path">${esc(f)}</span></div>
-        <div class="hint">Every Generate drops the pickit straight in there. Nothing to do.</div>`
-     : `<div class="wz-warn"><b>\u26a0 I couldn't find Exiled Bot on this PC.</b></div>
-        <div class="hint">Point me at it and every Generate deploys there automatically.
-          You can also do this later in Settings — generating still works, the file just
-          won't reach the bot on its own.</div>
-        <div style="display:flex;gap:8px">
-          <button class="ghost mini" id="wzFind">🔍 Search again</button>
-          <button class="primary" id="wzBrowse" style="padding:7px 14px">Browse\u2026</button>
-        </div>`;},
+ {ic:"🤖", t:"Your bot",
+   /* Finding the folder is NOT being connected. If the bot's pickit.ini points
+      active_profile at another name it silently ignores every pickit you make — the
+      Setup Guide calls it "the one everybody misses", and Settings words it as "the bot
+      is IGNORING everything you generate". A wizard for beginners telling them
+      "connected, nothing to do" on a folder path alone would be exactly that lie, so
+      run the same check Settings runs. */
+   prep:async()=>{wzConn=await api().bot_connection();},
+   build:()=>{
+     const c=wzConn||{},f=(c.folder||"").trim();
+     if(c.state==="ok")
+       return `<div class="wz-ok"><b>\u2705 Connected — your bot is reading your pickit.</b>
+           <span class="wz-path">${esc(f)}</span></div>
+         <div class="hint">Found it on this PC by itself. Every Generate deploys there. Nothing to do.</div>`;
+     if(c.state==="mismatch")
+       return `<div class="wz-warn" style="border-color:var(--err)">
+           <b style="color:var(--err)">\u26a0 Your bot would ignore everything you generate.</b>
+           <div class="hint" style="margin:5px 0 0">${esc(c.detail||"")}</div></div>
+         <div class="hint">This is the step everybody misses — the folder is right, but the bot
+           is told to read a different pickit. One click fixes it.</div>
+         <div style="display:flex;gap:8px"><button class="primary" id="wzFix" style="padding:7px 14px">\u2713 Fix it for me</button></div>`;
+     if(c.state==="noini")
+       return `<div class="wz-warn"><b>\u26a0 That doesn't look like the bot's Pickit folder.</b>
+           <div class="hint" style="margin:5px 0 0">${esc(c.detail||"")}</div></div>
+         ${WZ_FIND}`;
+     return `<div class="wz-warn"><b>\u26a0 I couldn't find Exiled Bot on this PC.</b>
+         <div class="hint" style="margin:5px 0 0">${esc(c.detail||"")}</div></div>
+       <div class="hint">Point me at its <b>Pickit</b> folder and every Generate deploys there.
+         Skipping is fine — generating still works, the file just won't travel to the bot.</div>
+       ${WZ_FIND}`;},
    wire:()=>{
      const done=async p=>{await api().set_setting("bot_folder",p);
        await api().set_setting("auto_copy",true);
        info=await api().app_info();applyInfo(info);loadBotConn();
        toast("Connected: "+p);wzRender();};
-     const fb=$("wzFind"),bb=$("wzBrowse");
+     const fx=$("wzFix"),fb=$("wzFind"),bb=$("wzBrowse");
+     if(fx)fx.onclick=async()=>{fx.disabled=true;fx.textContent="Fixing\u2026";
+       const r=await api().fix_bot_profile();
+       if(r&&r.ok){toast("Fixed — the bot now reads your pickit");loadBotConn();wzRender();}
+       else{fx.disabled=false;fx.textContent="\u2713 Fix it for me";
+         toast((r&&r.error)||"Couldn't fix it — see Settings");}};
      if(fb)fb.onclick=async()=>{fb.disabled=true;fb.textContent="Searching\u2026";
        const r=await api().detect_bot_folder();
        if(r&&r.found)return done(r.path);
@@ -3408,24 +3439,33 @@ const WZ=[
        toast("Still no luck — use Browse\u2026");};
      if(bb)bb.onclick=async()=>{const r=await api().browse_folder();if(r&&r.path)done(r.path);};}},
 
- {ic:"🎯", t:"How much loot?", build:()=>
-   `<div class="wz-lead">Pick a starting point. It sets every floor and switch at once —
-      you can fine-tune anything afterwards, or change your mind any time.</div>
+ {ic:"🎯", t:"How much loot?",
+   /* A fresh install has NO floor (0 ex), so the bot stops for anything with a price —
+      looser than Vacuum. Next-Next-Next-Generate therefore walked a beginner straight
+      into "why is my stash full of junk", which is the thing this wizard exists to
+      prevent. Land them on Balanced and say so; every card is one tap away. */
+   prep:async()=>{if(!presetActive&&PRESETS.some(p=>p.key==="balanced"))await applyPreset("balanced");},
+   build:()=>
+   `<div class="wz-lead">How much should your bot stop for? Each option sets a
+      <b>minimum value</b> — anything worth less than that, the bot walks past.</div>
     <div id="wzPick">${PRESETS.map(p=>{
       const m=[1,2,3,4].map(n=>`<i class="${n<=p.strict?"on":""}"></i>`).join("");
       return `<button class="pcard${p.key===presetActive?" on":""}" data-k="${esc(p.key)}">
         <span class="p-ic">${p.icon}</span><span class="p-name">${esc(p.name)}</span>
         <span class="p-tag">${esc(p.tag)}</span><span class="p-meter">${m}</span></button>`;}).join("")}</div>
-    <div class="hint" id="wzPickHint">${presetActive
-      ?esc((PRESETS.find(p=>p.key===presetActive)||{}).floors||"")
-      :"Nothing picked yet — <b>Balanced</b> suits most people."}</div>`,
+    <div class="hint" id="wzPickHint">${(()=>{
+      const p=PRESETS.find(x=>x.key===presetActive);
+      if(!p)return "Tap one to start.";
+      return `<b>${esc(p.name)}</b> \u2014 ${esc(p.floors)}<br>${esc(p.cost)}`;})()}</div>
+    <div class="hint">Tap any other card to switch. Nothing is locked in — you can retune
+      every number later on the Generate tab.</div>`,
    wire:()=>{$("wzPick").querySelectorAll(".pcard").forEach(b=>{
      b.onclick=async()=>{await applyPreset(b.dataset.k);wzRender();};});}},
 
- {ic:"\u26a1", t:"That's it", build:()=>{
+ {ic:"\u26a1", t:"Ready", build:()=>{
    const f=(info.bot_folder||"").trim();
-   return `<div class="wz-lead">Close this and press <b>\u26a1 Generate</b>. It fetches today's
-      prices and writes your pickit${f?" — then copies it to your bot":""}.</div>
+   return `<div class="wz-lead">That's everything. Press the button below and I'll fetch
+      today's prices and build your pickit${f?" — then drop it straight into your bot's folder":""}.</div>
      ${f?"":`<div class="hint">\u26a0 No bot folder yet, so the file stays in the app's output
         folder. <b>Settings \u2192 Bot folder</b> when you're ready.</div>`}
      <div class="hint"><b>If the bot ignores the pickit</b>, open <b>Settings \u2192 Bot connection</b> —
@@ -3433,23 +3473,31 @@ const WZ=[
      <div class="hint">Prices move daily, so re-generate whenever you play.
        <b>🔍 Item Check</b> tells you why any item was taken or skipped.</div>`;}}
 ];
-function wzRender(){
+async function wzRender(){
   const s=WZ[wzAt];
   $("wzIcon").textContent=s.ic;
   $("wzTitle").textContent=s.t;
   $("wzStep").innerHTML=`<span class="wz-dots">${WZ.map((_,i)=>
     `<i class="${i<=wzAt?"on":""}"></i>`).join("")}</span>`;
+  $("wzBack").style.visibility=wzAt?"visible":"hidden";
+  $("wzNext").textContent=wzAt===WZ.length-1?"\u26a1 Generate now":"Next";
+  if(s.prep){                       // a step that must ask the backend before it can speak
+    $("wzBody").innerHTML='<div class="hint">Checking\u2026</div>';
+    try{await s.prep();}catch(_){}
+  }
   $("wzBody").innerHTML=s.build();
   $("wzBody").scrollTop=0;
-  if(s.wire)s.wire();
-  $("wzBack").style.visibility=wzAt?"visible":"hidden";
-  $("wzNext").textContent=wzAt===WZ.length-1?"Let's go":"Next";}
+  if(s.wire)s.wire();}
 async function wzClose(){
   $("wzModal").classList.remove("on");
   await api().set_setting("setup_done",true);   // finished or skipped — never nag twice
   info.setup_done=true;}
 function wzOpen(){wzAt=0;wzRender();$("wzModal").classList.add("on");}
-$("wzNext").onclick=()=>{if(wzAt<WZ.length-1){wzAt++;wzRender();}else wzClose();};
+$("wzNext").onclick=async()=>{
+  if(wzAt<WZ.length-1){wzAt++;wzRender();return;}
+  await wzClose();
+  doGenerate();          // finish the job rather than pointing at the button
+};
 $("wzBack").onclick=()=>{if(wzAt){wzAt--;wzRender();}};
 $("wzSkip").onclick=wzClose;
 $("wzAgain").onclick=wzOpen;   // Setup guide -> replay it on demand

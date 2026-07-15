@@ -614,3 +614,58 @@ def test_setup_done_is_a_settable_key():
     """set_setting silently drops keys off the allowlist — the flag would never persist
     and the wizard would greet the user forever."""
     assert "setup_done" in webapi._SETTABLE
+
+
+def test_bot_connection_distinguishes_found_from_actually_connected(api, tmp_path):
+    """The wizard's step 2 used to say "connected" because a folder path existed. It
+    doesn't mean the bot reads your pickit: if pickit.ini's active_profile names another
+    file, the bot silently ignores everything you generate — the step the Setup Guide
+    calls "the one everybody misses". Same folder, two very different verdicts."""
+    pickit = tmp_path / "Configuration" / "default" / "Pickit"
+    pickit.mkdir(parents=True)
+    ini = pickit.parent / "pickit.ini"
+    api.cfg["bot_folder"] = str(pickit)
+    api.cfg["output_base"] = "poe2_pickit"
+    api.cfg["auto_copy"] = True
+
+    ini.write_text("active_profile=someone_elses_filter\n")
+    bad = api.bot_connection()
+    assert bad["state"] == "mismatch", bad          # found, but NOT connected
+    assert bad["detail"]
+
+    ini.write_text("active_profile=poe2_pickit\n")
+    good = api.bot_connection()
+    assert good["state"] == "ok", good              # only now is it true
+
+
+def test_fix_bot_profile_repairs_the_mismatch(api, tmp_path):
+    """The wizard offers "Fix it for me" on a mismatch — it has to actually work."""
+    pickit = tmp_path / "Configuration" / "default" / "Pickit"
+    pickit.mkdir(parents=True)
+    ini = pickit.parent / "pickit.ini"
+    ini.write_text("active_profile=wrong_name\nother_setting=1\n")
+    api.cfg["bot_folder"] = str(pickit)
+    api.cfg["output_base"] = "poe2_pickit"
+    api.cfg["auto_copy"] = True
+
+    assert api.bot_connection()["state"] == "mismatch"
+    r = api.fix_bot_profile()
+    assert r.get("ok"), r
+    assert api.bot_connection()["state"] == "ok"
+    assert "other_setting=1" in ini.read_text()     # never trample the bot's other keys
+
+
+def test_wizard_fallback_preset_exists_and_has_a_real_floor(api):
+    """A fresh install has NO floor (0 ex), so the wizard lands a beginner on Balanced
+    rather than letting Next-Next-Next-Generate hand them a vacuum pickit. If this preset
+    were renamed or its floors dropped to 0, that protection would silently vanish."""
+    from exilebot_pickit.ui.config import PRESETS
+    p = next((x for x in PRESETS if x["key"] == "balanced"), None)
+    assert p, "the wizard falls back to 'balanced' by key — it's gone"
+    assert p["cfg"]["min_exalt_gear"] > 0, "balanced must set a real floor"
+    assert p["cfg"]["min_exalt_unique"] > 0
+
+    api.cfg["min_exalt_gear"] = 0.0        # the fresh-install state
+    api.cfg["min_exalt_unique"] = 0.0
+    api.apply_preset("balanced")
+    assert api.cfg["min_exalt_gear"] > 0 and api.cfg["min_exalt_unique"] > 0
