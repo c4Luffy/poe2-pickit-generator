@@ -39,6 +39,14 @@ jobs:
       - name: Run tests
         run: python -m pytest -v
 
+      - name: Set up Node (for the app.html JS syntax check)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: UI safety gate (webui/app.html — one bad id or JS error kills the whole app)
+        run: python tools/check_ui.py
+
       - name: Validate [ItemLevel] placement in all generated rules
         # [ItemLevel] belongs BEFORE the # (ground-side filter): the bot reads
         # game memory, so ilvl is known pre-pickup — its own editor lists Item
