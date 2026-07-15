@@ -1600,13 +1600,9 @@ document.addEventListener("keydown",e=>{
 function subCalc(a,s,noun){
   const ex=parseFloat($(a).value)||0;
   if(ex<=0){$(s).textContent=`Picking up ${noun}.`;return 0;}
-  const parts=[];
-  // Chaos is the currency people actually price mid-tier loot in, so always show it.
-  // Divine only appears once the floor is high enough to read in divine at all (>= 0.1,
-  // ~40 ex+): "0.01 div" on a 6 ex floor is noise, not a reference.
-  if(chaosEx>0)parts.push((ex/chaosEx).toFixed(2)+" chaos");
-  if(divRate>1&&ex/divRate>=0.1)parts.push((ex/divRate).toFixed(2)+" div");
-  $(s).textContent=parts.length?"\u2248 "+parts.join(" \u00b7 "):"";
+  // Reference is chaos-only: it's the currency people actually price mid-tier loot in,
+  // and one clean number reads better than two. (The slider still spans up to a divine.)
+  $(s).textContent=chaosEx>0?`\u2248 ${(ex/chaosEx).toFixed(2)} chaos`:"";
   return ex;}
 const uEx=()=>subCalc("uAmt","uSub","every unique");
 const gEx=()=>subCalc("gAmt","gSub","everything");
@@ -1630,22 +1626,28 @@ function updTracks(){
   // empty at 21 and full at 30 instead of always looking ~80% full.
   const w=(id,v,lo,hi)=>{const t=$(id);
     if(t)t.style.width=Math.max(0,Math.min(100,(v-lo)/((hi-lo)||1)*100))+"%";};
-  w("uTrack",parseFloat($("uAmt").value)||0,0,100);
-  w("gTrack",parseFloat($("gAmt").value)||0,0,100);
+  w("uTrack",parseFloat($("uAmt").value)||0,0,floorMax());
+  w("gTrack",parseFloat($("gAmt").value)||0,0,floorMax());
   w("bqTrack",parseFloat($("bqGen").value)||21,21,30);
   w("blTrack",parseFloat($("blGen").value)||79,79,82);}
 ["uAmt","gAmt","bqGen","blGen"].forEach(i=>$(i).addEventListener("input",updTracks));
+/* The floor slider spans 0 → one Divine, and follows the live divine price so its top
+   moves with the market. Falls back to 100 ex until the rate has loaded. Typing a number
+   still works and isn't capped by this. */
+const floorMax=()=>divRate>1?Math.round(divRate):100;
 /* recipe rows: the fill track IS the control — drag (or click) to set.
-   Values snap to each dial's own range/step; typing in the number still works. */
-const SLIDERS={gTrack:["gAmt",0,100,1],uTrack:["uAmt",0,100,1],
+   Values snap to each dial's own range/step; typing in the number still works. The floor
+   sliders take a function for their max so it tracks the divine price live. */
+const SLIDERS={gTrack:["gAmt",0,floorMax,1],uTrack:["uAmt",0,floorMax,1],
                bqTrack:["bqGen",21,30,1],blTrack:["blGen",79,82,1]};
 Object.entries(SLIDERS).forEach(([tid,cfg])=>{
-  const [iid,lo,hi,stp]=cfg;
+  const [iid,lo,hiSpec,stp]=cfg;
+  const hi=()=>typeof hiSpec==="function"?hiSpec():hiSpec;
   const bar=$(tid);if(!bar)return;
   const tr=bar.parentElement;               // the .dtrack rail
   const setFrom=ev=>{const r=tr.getBoundingClientRect();
     let f=(ev.clientX-r.left)/(r.width||1);f=Math.max(0,Math.min(1,f));
-    let v=lo+f*(hi-lo);v=Math.round(v/stp)*stp;
+    let v=lo+f*(hi()-lo);v=Math.round(v/stp)*stp;
     const el=$(iid);
     if(String(el.value)!==String(v)){el.value=v;
       el.dispatchEvent(new Event("input",{bubbles:true}));}};

@@ -6,6 +6,14 @@ download lives.
 
 ---
 
+## [v4.31.2] — 2026-07-15 — Floor slider spans a full divine; reference is chaos-only
+
+- **The floor slider now runs from 0 to one Divine**, and follows the live divine price —
+  so its top moves with the market (about 424 ex today). Drag anywhere in that range;
+  typing an exact number still works and isn't capped.
+- **The reference line under each floor shows chaos only now.** Divine on a small floor
+  was a tiny, hard-to-read fraction — one clean chaos number reads better.
+
 ## [v4.31.1] — 2026-07-15 — Show the reference (it was hidden), slider to 100 ex
 
 Two quick follow-ups to v4.31.0.
@@ -1255,6 +1263,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.31.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.2
 [v4.31.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.1
 [v4.31.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.0
 [v4.30.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.30.0
