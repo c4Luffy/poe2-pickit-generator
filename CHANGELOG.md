@@ -6,6 +6,24 @@ download lives.
 
 ---
 
+## [v4.29.2] — 2026-07-15 — Presets were silently 58x too strict on a chaos floor
+
+Found while re-checking the wizard, but this one was never about the wizard.
+
+**If your floor unit was Chaos or Divine, applying any preset quietly wrecked it.** The
+floor is stored in exalt, and applying a preset dropped that exalt number straight into
+the box — while the unit dropdown still said **Chaos**. So "Balanced · uniques from 6 ex"
+became **6 chaos ≈ 346 ex**, and on a divine floor **6 div ≈ 2,551 ex**. Your bot then
+walked past nearly everything, while the app cheerfully displayed the preset's name.
+
+The value shown is now converted into whatever unit is on screen.
+
+**And a unit is only used if the number survives it.** Two decimals of divine cannot hold
+a small exalt floor — 2 ex is 0.0047 div, which displays as **0.00**, i.e. no floor at
+all, and the bot would have taken *everything*. Rather than trade one wrong number for
+another, each floor is round-tripped: if the unit can't hold it, the box shows **exalt**
+and says so.
+
 ## [v4.29.1] — 2026-07-15 — The wizard, made honest
 
 Four fixes from walking the beginner's own path through yesterday's wizard.
@@ -1165,6 +1183,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.29.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.2
 [v4.29.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.1
 [v4.29.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.29.0
 [v4.28.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.28.0

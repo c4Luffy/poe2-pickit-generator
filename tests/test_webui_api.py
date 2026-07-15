@@ -669,3 +669,19 @@ def test_wizard_fallback_preset_exists_and_has_a_real_floor(api):
     api.cfg["min_exalt_unique"] = 0.0
     api.apply_preset("balanced")
     assert api.cfg["min_exalt_gear"] > 0 and api.cfg["min_exalt_unique"] > 0
+
+
+def test_preset_floors_are_unit_agnostic_in_the_engine(api):
+    """Guards the data half of the applyInfo/unit bug: whatever unit the UI shows, the
+    engine stores and uses EXALT. applyInfo() used to drop the raw exalt number into the
+    box while the unit select still said Chaos/Divine, so uEx() multiplied it back up —
+    applying Balanced on a divine floor asked the bot for 2551 ex instead of 6. The JS
+    fix rounds-trips through showFloor(); this pins the invariant it relies on."""
+    from exilebot_pickit.ui.config import PRESETS
+    for p in PRESETS:
+        api.apply_preset(p["key"])
+        assert api.cfg["min_exalt_gear"] == p["cfg"]["min_exalt_gear"]
+        assert api.cfg["min_exalt_unique"] == p["cfg"]["min_exalt_unique"]
+        # the unit is display-only and must never leak into the stored floor
+        assert api.app_info()["min_gear"] == p["cfg"]["min_exalt_gear"]
+        assert api.app_info()["min_unique"] == p["cfg"]["min_exalt_unique"]

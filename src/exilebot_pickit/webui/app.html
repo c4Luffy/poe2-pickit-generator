@@ -1612,15 +1612,24 @@ function _saveFloors(){clearTimeout(_floorT);
 ["uAmt","uUnit"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();_presetOff();}));
 ["gAmt","gUnit"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();_presetOff();}));
 /* Show an exalt floor in the unit the user picked. Rounded — an unrounded 60.57176
-   overflows the box and reads like a bug. Falls back to Exalt until that unit's live
-   rate has actually arrived, so we never divide by a rate we don't have yet. */
+   overflows the box and reads like a bug. Falls back to Exalt when that unit's live rate
+   hasn't arrived yet (never divide by a rate we don't have), AND when the answer would
+   round away to nothing: 2 ex is 0.0047 div, which at 2dp is "0.00" — i.e. no floor at
+   all, so the bot would take everything. A unit you can't express the number in is the
+   wrong unit to show it in. */
 function showFloor(amtId,unitId,ex){
   const u=$(unitId).value;
-  let v;
-  if(u==="Divine"&&divRate>1)v=+(ex/divRate).toFixed(2);
-  else if(u==="Chaos"&&chaosEx>0)v=+(ex/chaosEx).toFixed(2);
-  else{$(unitId).value="Exalt";v=+(+ex).toFixed(2);}
-  $(amtId).value=String(v);}
+  const rate=u==="Divine"?(divRate>1?divRate:0):u==="Chaos"?(chaosEx>0?chaosEx:0):0;
+  if(rate>0){
+    const v=+(ex/rate).toFixed(2);
+    // Only keep a unit the number actually survives. Two decimals of divine can't hold
+    // a small exalt floor: 6 ex is 0.0141 div, shown as "0.01", read back as 4.25 ex —
+    // a 29% cut nobody asked for. So round-trip it, and drop to exalt when it drifts.
+    // (0 ex is genuinely 0 in every unit.)
+    if(!ex||(v>0&&Math.abs(v*rate-ex)<=Math.max(0.05,ex*0.05))){$(amtId).value=String(v);return;}
+  }
+  $(unitId).value="Exalt";
+  $(amtId).value=String(+(+ex).toFixed(2));}
 let _floorsRestored=false;
 function restoreFloors(){
   if(!info)return;
@@ -3271,7 +3280,13 @@ function applyInfo(i){
   const th=["relic","venom","void","ossuary","delirium","umbral","abyss","twilight",
             "blight"].includes(i.theme)?i.theme:"relic";
   document.documentElement.dataset.theme=th;syncTheme(th);
-  $("uAmt").value=i.min_unique||0;$("gAmt").value=i.min_gear||0;
+  /* Floors are stored in EXALT. Writing one straight into the box while the unit select
+     still reads "Chaos" silently multiplies it by the chaos rate: applying Balanced
+     (6 ex) with a chaos floor produced 6 chaos ~= 346 ex — ~58x what the preset promised,
+     and the bot then walked past nearly everything. showFloor() converts into whatever
+     unit is on screen (and falls back to Exalt until that rate has actually arrived). */
+  showFloor("uAmt","uUnit",i.min_unique||0);
+  showFloor("gAmt","gUnit",i.min_gear||0);
   $("outBase").value=i.output_base;
   $("botFolderLbl").textContent=i.bot_folder||"not set";
   setupNudge(i.bot_folder);        // fresh install → point them at the guide
