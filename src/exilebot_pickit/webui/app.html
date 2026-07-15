@@ -789,7 +789,7 @@
   <div class="nav-links" data-lg="system">
   <div class="nav-btn" data-p="guide">📖 Setup guide</div>
   <div class="nav-btn" data-p="set">⚙ Settings</div>
-  <div class="nav-btn" data-p="dbg">🔧 Debug</div>
+  <div class="nav-btn" data-p="dbg">🔧 Debug<span class="badge" id="dbgBadge" style="display:none;background:var(--err);color:#fff"></span></div>
   </div>
   </div>
   <div class="nav-right">
@@ -1531,7 +1531,7 @@ function openPage(p){
   }
   if(p==="hist")loadHistory();
   if(p==="set"){renderSetNav();loadBackups();loadBotConn();}
-  if(p==="dbg")loadDebug();
+  if(p==="dbg"){loadDebug();_errCount=0;bumpErrBadge(0);}   // opened it — badge acknowledged
 }
 document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>openPage(b.dataset.p));
 document.querySelectorAll(".nav-grp").forEach(gp=>gp.onclick=()=>openPage(_lastTab[gp.dataset.g]));
@@ -3602,13 +3602,33 @@ window.addEventListener("pywebviewready",()=>init().then(()=>{
   gdStart(false).catch(()=>{});          // health check runs itself; never blocks boot
   maybeWizard();                         // brand-new user: walk them through it once
   showPostUpdateNotes().catch(()=>{});   // first launch after an update: say what changed
+  seedErrBadge();                        // surface any error from the last hour on the Debug tab
 }).catch(e=>{
   const t="STARTUP ERROR: "+(e&&(e.stack||e.message)||e);
   try{api().js_error(t);}catch(_){}
+  try{bumpErrBadge();}catch(_){}
   try{logLine(t,"err");}catch(_){}
   try{toast(t.slice(0,120));}catch(_){}
 }));
+/* Error badge on the Debug tab. A crash that only lands in debug.log is a crash nobody
+   sees — the Debug tab surfaces it, but only once you open it. This badge makes a problem
+   visible from anywhere: it bumps the instant a JS error is caught, and is seeded on
+   launch from any errors the log recorded in the last hour. */
+let _errCount=0;
+function bumpErrBadge(n){
+  _errCount+=(n===undefined?1:n);        // bumpErrBadge(0) must add 0, not fall back to 1
+  const b=$("dbgBadge");if(!b)return;
+  b.textContent=_errCount>99?"99+":String(_errCount);
+  b.style.display=_errCount?"inline-flex":"none";
+  b.title=_errCount+" error"+(_errCount>1?"s":"")+" — open Debug to see them";}
+async function seedErrBadge(){
+  try{const d=await api().debug_info();const e=d.errors||{};
+    const last=(e.by_type&&e.by_type[0]||{}).last||"";
+    // only surface errors from the last hour: older ones are historical, not an alarm
+    if(last&&(Date.now()-Date.parse(last.replace(" ","T")))<36e5)bumpErrBadge((e.total||0)&&1);
+  }catch(_){}}
 window.onerror=(m,src,line)=>{try{api().js_error("JS error: "+m+" @"+line);}catch(_){}
+  try{bumpErrBadge();}catch(_){}
   try{toast(("JS error: "+m).slice(0,120));}catch(_){}};
 setTimeout(()=>{if(typeof pywebview==="undefined"){document.title="BRIDGE MISSING";}},6000);
 </script>

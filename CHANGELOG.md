@@ -6,6 +6,21 @@ download lives.
 
 ---
 
+## [v4.33.0] — 2026-07-15 — The app tells you when something breaks
+
+Until now, when the app hit an error it wrote it to a log file and said nothing. You'd
+only know if you went digging — or if you happened to see a glitch and screenshotted it.
+
+- **A red badge now appears on the Debug tab the moment something goes wrong** — a UI
+  error mid-session, or anything the last hour recorded on launch. You see there's a
+  problem from anywhere in the app, without hunting for it. Open Debug and it clears.
+- **Fixed: the error summary was blind to UI errors.** It counted only Python-side
+  failures, so a run of front-end crashes — the kind this app actually hits — showed up
+  as "errors: clean." It now counts both, so the count is honest.
+
+This is groundwork, not a feature you'll use daily — but it means a bug reaches *me*
+faster, so it gets fixed faster.
+
 ## [v4.32.4] — 2026-07-15 — Full-app review: config no longer lost to a BOM
 
 A top-to-bottom scan of every file. Two real fixes:
@@ -1322,6 +1337,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.33.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.33.0
 [v4.32.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.4
 [v4.32.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.3
 [v4.32.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.2

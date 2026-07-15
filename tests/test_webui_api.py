@@ -682,3 +682,25 @@ def test_chaos_ex_also_returns_the_divine_rate(api):
     r = api.chaos_ex("L")
     assert r["ex"] == 85.0      # Chaos Orb, from the fixture currency payload
     assert r["div"] == 700.0    # Divine Orb — now returned too
+
+
+def test_debug_digest_counts_js_errors_not_just_python(api, tmp_path, monkeypatch):
+    """The Debug tab's error digest matched only 'EXC' (Python) lines, so a wave of
+    'JSERR' (front-end) crashes — the kind this app actually hits — showed up as
+    'errors: clean'. Both must be counted now."""
+    from exilebot_pickit.ui import config as cfgmod
+    log = tmp_path / "debug.log"
+    log.write_text(
+        "2026-07-15 10:00:00,000 ERROR EXC load_config\n"
+        "json.decoder.JSONDecodeError: bad\n"
+        "2026-07-15 10:01:00,000 ERROR JSERR JS error: Cannot read properties of null @2100\n"
+        "2026-07-15 10:02:00,000 ERROR JSERR JS error: something else @42\n"
+        "2026-07-15 10:03:00,000 INFO config saved\n",
+        encoding="utf-8")
+    monkeypatch.setattr(cfgmod, "LOG_PATH", str(log))
+
+    e = api.debug_info()["errors"]
+    kinds = {t["kind"]: t["count"] for t in e["by_type"]}
+    assert kinds.get("JS error (UI)") == 2, kinds     # both JSERR lines counted
+    assert kinds.get("load_config") == 1
+    assert e["total"] == 3                            # not 1

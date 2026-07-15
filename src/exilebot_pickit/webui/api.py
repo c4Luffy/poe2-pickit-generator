@@ -1085,9 +1085,15 @@ class AppApi:
             counts, last_seen = collections.Counter(), {}
             for ln in lines:
                 m = re.search(r"(ERROR|CRITICAL)\s+EXC\s+(\S+)", ln)
-                if not m:
+                if m:
+                    kind = m.group(2)
+                elif re.search(r"(ERROR|CRITICAL)\s+JSERR", ln):
+                    # JS/UI errors were NOT counted here — the digest matched only EXC,
+                    # so a wave of front-end crashes (the kind this app actually hits)
+                    # showed "errors: clean". Group them under one kind.
+                    kind = "JS error (UI)"
+                else:
                     continue
-                kind = m.group(2)
                 counts[kind] += 1
                 last_seen[kind] = ln[:19]           # timestamp prefix
             by_type = [{"kind": k, "count": n, "last": last_seen.get(k, "")}
