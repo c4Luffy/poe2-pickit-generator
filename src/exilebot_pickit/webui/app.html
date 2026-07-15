@@ -670,6 +670,11 @@
     margin-top:4px;cursor:pointer;touch-action:none;position:relative}
   .threshold .dtrack i{display:block;height:100%;width:0;border-radius:4px;position:relative;
     background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width .12s}
+  /* While dragging, the fill must follow the cursor instantly. The .12s width transition
+     is what made the handle lag behind the pointer ("sad") — keep it for click/preset
+     set, drop it mid-drag. */
+  .threshold .dtrack.dragging i{transition:none}
+  .threshold .dtrack.dragging i::after{box-shadow:0 0 0 2px var(--gold),0 3px 8px rgba(0,0,0,.55)}
   .threshold .dtrack i::after{content:"";position:absolute;top:50%;right:-8px;
     width:15px;height:15px;border-radius:50%;transform:translateY(-50%);
     background:var(--gold-br);border:2px solid var(--bg);
@@ -1656,9 +1661,12 @@ Object.entries(SLIDERS).forEach(([tid,cfg])=>{
     if(String(el.value)!==String(v)){el.value=v;
       el.dispatchEvent(new Event("input",{bubbles:true}));}};
   tr.addEventListener("pointerdown",ev=>{
-    ev.preventDefault();tr.setPointerCapture(ev.pointerId);setFrom(ev);
+    ev.preventDefault();tr.setPointerCapture(ev.pointerId);
+    tr.classList.add("dragging");          // instant fill-follow, no lag
+    setFrom(ev);
     const mv=e=>setFrom(e);
-    const up=()=>{tr.removeEventListener("pointermove",mv);
+    const up=()=>{tr.classList.remove("dragging");
+      tr.removeEventListener("pointermove",mv);
       tr.removeEventListener("pointerup",up);tr.removeEventListener("pointercancel",up);
       $(iid).dispatchEvent(new Event("change",{bubbles:true}));};
     tr.addEventListener("pointermove",mv);

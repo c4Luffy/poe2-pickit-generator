@@ -6,6 +6,13 @@ download lives.
 
 ---
 
+## [v4.32.2] — 2026-07-15 — Smooth floor dragging
+
+The floor slider had a 0.12s width animation, so while you dragged, the fill and handle
+lagged behind your cursor — it felt heavy. The animation is now switched off *during* a
+drag (the handle tracks the pointer instantly) and kept for click-to-set and presets, so
+those still glide. The handle also lifts slightly while held.
+
 ## [v4.32.1] — 2026-07-15 — Back to the slider
 
 The quick-pick chips didn't read as an editable control — nothing said "change me". The
@@ -1289,6 +1296,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.32.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.2
 [v4.32.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.1
 [v4.32.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.0
 [v4.31.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.31.3
