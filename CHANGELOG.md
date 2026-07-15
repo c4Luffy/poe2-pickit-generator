@@ -6,6 +6,26 @@ download lives.
 
 ---
 
+## [v4.28.0] — 2026-07-15 — One typeface, everywhere
+
+Themes each had their **own** body face, heading face and tab style (v4.21.0). Side by
+side, one of them was simply better: **Blight's** — plain **Segoe UI**, with uppercase,
+bold, letter-spaced tabs. So that is now the whole app, on every theme.
+
+Themes are **colour** again, which is what they were always best at. Two bonuses: the
+subtly different `Segoe UI Variable Text` (the old default) is gone, and so are
+Candara/Corbel/Constantia — the faces whose old-style figures made every number in the
+app look wobbly until v4.24.0 had to force lining digits.
+
+### Fixed — the in-game filter instructions were incomplete
+Settings said: *pick "poe2_pickit" in Options → Game → Filters, and it's working.* That
+reads like one-time setup. It isn't. **PoE2 only reads a filter at the moment you pick
+it** — copying a fresh one over the old file changes nothing in a running game, so you
+were playing with a filter from whenever you last selected it.
+
+The setting now says so: after every Generate, re-select the filter in that dropdown
+(switch away and back) before the game will use it.
+
 ## [v4.27.0] — 2026-07-15 — Price trends, patch tracking, and an honest age pill
 
 ### 📈 7-day trends in Economy
@@ -1094,6 +1114,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.28.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.28.0
 [v4.27.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.27.0
 [v4.26.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.26.1
 [v4.26.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.26.0

@@ -15,9 +15,14 @@
     --dim:#9d9589; --ok:#829d78; --err:#b85c4c; --warn:#c99a4a; --steel:#9bb091;
     /* Each theme's own voice. System faces only — an embedded variable body font is
        what made the app laggy under body{zoom:1.1}; these cost nothing. */
-    --font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    /* ONE typography system for every theme — the owner picked Blight's on sight
+       ("much better than other ... make it global"), so themes are colour again and
+       v4.21.0's per-theme faces are gone. Note plain "Segoe UI", NOT "Segoe UI
+       Variable Text": the Variable face was the old default and reads softer and
+       wider at this size — that is the difference he spotted. */
+    --font:"Segoe UI",system-ui,sans-serif;
     --head:Georgia,"Times New Roman",serif;
-    --nav-r:8px; --nav-tt:none; --nav-ls:.01em; --nav-w:500;
+    --nav-r:3px; --nav-tt:uppercase; --nav-ls:.10em; --nav-w:700;
   }
   /* ── base cards (Chance / Craft, mockup style) ── */
   .bc2{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);
@@ -79,16 +84,12 @@
   .preset-detail .pd-floors{color:var(--gold);font-weight:600;margin-top:4px}
   .preset-detail .pd-cost{color:var(--dim);margin-top:4px}
   /* ── Theme gallery — all dark, distinct personalities ── */
-  html[data-theme="void"]{--font:"Segoe UI",system-ui,sans-serif; --head:"Palatino Linotype",Palatino,serif;
-    --nav-r:6px; --nav-tt:uppercase; --nav-ls:.09em; --nav-w:600}
   html[data-theme="void"] .primary{color:#fff}
   html[data-theme="venom"]{           /* Venom — emerald, matches the mascot */
     --bg:#070b08; --bg2:#0f1512; --bg3:#161d18; --border:#28352c;
     --gold:#6cc24a; --gold-dim:#356e30; --gold-br:#98e07a; --text:#e3eee4;
     --dim:#94a894; --ok:#829d78; --err:#b85c4c; --warn:#6cc24a; --steel:#c99a4a;
   }
-  html[data-theme="venom"]{--font:Corbel,"Segoe UI",sans-serif; --head:"Trebuchet MS","Segoe UI",sans-serif;
-    --nav-r:999px; --nav-tt:none; --nav-ls:.01em; --nav-w:600}
   html[data-theme="venom"] .primary{color:#0c160c}
   html[data-theme="void"]{            /* Void — arcane violet */
     --bg:#08070d; --bg2:#13111c; --bg3:#1a1726; --border:#332a45;
@@ -125,24 +126,12 @@
     --gold:#c5d92f; --gold-dim:#6e7a1a; --gold-br:#e2f25c; --text:#e4e8d2;
     --dim:#9aa085; --ok:#829d78; --err:#c0472e; --warn:#c5d92f; --steel:#c99a4a;
   }
-  html[data-theme="blight"]{--font:"Segoe UI",system-ui,sans-serif; --head:Consolas,ui-monospace,monospace;
-    --nav-r:3px; --nav-tt:uppercase; --nav-ls:.10em; --nav-w:700}
   html[data-theme="blight"] .primary{color:#12160a}
   /* these accents are all pale/bright -> the primary button needs dark ink, not white */
-  html[data-theme="ossuary"]{--font:Constantia,Georgia,serif; --head:"Marcellus","Segoe UI",serif;
-    --nav-r:3px; --nav-tt:uppercase; --nav-ls:.12em; --nav-w:500}
   html[data-theme="ossuary"] .primary{color:#1a1713}
-  html[data-theme="delirium"]{--font:Candara,"Segoe UI",sans-serif; --head:Candara,"Segoe UI",sans-serif;
-    --nav-r:13px; --nav-tt:none; --nav-ls:.02em; --nav-w:500}
   html[data-theme="delirium"] .primary{color:#1a1016}
-  html[data-theme="umbral"]{--font:"Segoe UI",system-ui,sans-serif; --head:"Segoe UI",system-ui,sans-serif;
-    --nav-r:2px; --nav-tt:uppercase; --nav-ls:.14em; --nav-w:600}
   html[data-theme="umbral"] .primary{color:#0d0d10}
-  html[data-theme="abyss"]{--font:"Segoe UI",system-ui,sans-serif; --head:Consolas,ui-monospace,monospace;
-    --nav-r:4px; --nav-tt:uppercase; --nav-ls:.08em; --nav-w:600}
   html[data-theme="abyss"] .primary{color:#03201c}
-  html[data-theme="twilight"]{--font:Corbel,"Segoe UI",sans-serif; --head:Georgia,"Times New Roman",serif;
-    --nav-r:11px; --nav-tt:none; --nav-ls:.01em; --nav-w:500}
   html[data-theme="twilight"] .primary{color:#1a0f06}
   html[data-theme="relic"] .primary{color:#1b1409}
   /* Relic = the Exile's Workbench brass palette (same as :root default) */
@@ -170,10 +159,10 @@
   ::-webkit-scrollbar-thumb:hover{background:var(--gold-dim)}
   ::-webkit-scrollbar-corner{background:transparent}
   body{zoom:1.1;background:var(--bg);color:var(--text);font:14.5px/1.5 var(--font);
-       /* Candara, Corbel and Constantia default to OLD-STYLE figures: digits with
-          differing heights that dip below the baseline like lowercase letters. On the
-          themes using those faces, every number in the app (floors, prices, item
-          levels) came out wobbly. Force lining figures on every theme. */
+       /* Segoe UI already uses lining figures, but pin it: the per-theme faces this
+          replaced (Candara/Corbel/Constantia) defaulted to OLD-STYLE ones — digits of
+          differing heights that dip below the baseline — and every number in the app
+          read as wobbly until v4.24.0 forced this. Cheap insurance against a relapse. */
        font-variant-numeric:lining-nums;
        height:90.9vh;display:flex;flex-direction:row;overflow:hidden;transition:background .25s,color .25s}
   /* ── Custom title bar (frameless window) ── */
@@ -1420,7 +1409,8 @@
       <div class="set-row"><div class="lab"><b>PoE2 filter folder</b>
         <span id="fltDirLbl">not set</span></div><div class="sp"></div>
         <button class="ghost mini" id="fltBrowse">Browse…</button></div>
-      <div class="hint" style="margin:8px 0 0">To use it: in PoE2 → Options → Game → Filters, pick "poe2_pickit". If it loads without an error there, it's working.</div>
+      <div class="hint" style="margin:8px 0 0">To use it: in PoE2 → <b>Options → Game → Filters</b>, pick <b>"poe2_pickit"</b>. If it loads without an error there, it's working.</div>
+      <div class="hint" style="margin:6px 0 0;color:var(--warn)">⚠ <b>PoE2 only reads a filter when you pick it.</b> Copying a new one over the old file changes nothing in a running game — after every Generate you have to go back to that dropdown and re-select it (switch to another filter and back) before the game uses it.</div>
     </details>
   </div>
       </div>
