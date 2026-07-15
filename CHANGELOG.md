@@ -6,6 +6,34 @@ download lives.
 
 ---
 
+## [v4.27.0] — 2026-07-15 — Price trends, patch tracking, and an honest age pill
+
+### 📈 7-day trends in Economy
+Every unique row now draws a **sparkline** of its last 7 days beside the % change, so
+you can see at a glance whether something is climbing or bleeding out — not just where
+it landed today. poe.ninja has been sending us this curve all along; we were reading
+one number off it and throwing the shape away.
+
+### 🧬 The health check now tells you what the *patch* changed
+It only ever asked "are your rules still valid?". It now also answers the other half —
+**"did the game move?"** — by diffing NeverSink's drop list (1,357 bases) against the
+copy it saved last time:
+
+> 🧬 **The game's drop list changed** · last change 2026-07-15
+> **started dropping: 3** — Gloam Ring, Dusk Circlet, Penumbra Band
+
+The finding is **kept** until the next real change, so it can't vanish before you look.
+The first check just records a baseline — with nothing to compare against, claiming a
+change would be a fabrication.
+
+### Fixed
+- **The freshness pill was lying.** It said *"prices fetched 35h ago"*, which was never
+  true: the price cache lives in memory with a **15-minute** life and is empty at
+  launch, so a Generate **always** fetches live prices. It was really showing when you
+  last *generated*. It now says what it means — **"pickit built 35h ago"** — and turns
+  amber past a day, because that's the thing that actually goes stale: the file on
+  disk, while the market moves under it.
+
 ## [v4.26.1] — 2026-07-14 — Clear means clear
 
 One bug from a fresh audit of the last two releases: pressing **Clear** in Item Check
@@ -1066,6 +1094,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.27.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.27.0
 [v4.26.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.26.1
 [v4.26.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.26.0
 [v4.25.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.25.0

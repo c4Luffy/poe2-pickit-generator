@@ -497,6 +497,10 @@
   .icn{width:26px;height:26px;object-fit:contain;vertical-align:middle;margin-right:8px}
   .chg{font-size:11.5px;white-space:nowrap}
   .chg.up{color:var(--ok)}.chg.dn{color:var(--err)}.chg.flat{color:var(--dim);opacity:.55}
+  td.chgcell{text-align:right;white-space:nowrap}
+  .spk{vertical-align:middle;margin-right:6px;opacity:.8;transition:opacity .12s}
+  tr.item:hover .spk{opacity:1}
+  tr.item.dis .spk{opacity:.3}
   .rowbtn{background:transparent;border:1px solid var(--border);color:var(--dim);
           border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer}
   .rowbtn:hover{color:var(--gold);border-color:var(--gold-dim)}
@@ -983,7 +987,7 @@
       <table><thead><tr>
         <th data-s="name" style="width:34%">Item<span class="s-ind"></span></th>
         <th data-s="ex" style="text-align:right">Value<span class="s-ind"></span></th>
-        <th data-s="chg" style="text-align:right;width:64px">Δ<span class="s-ind"></span></th>
+        <th data-s="chg" style="text-align:right;width:116px" title="7-day trend and total change (poe.ninja)">7d Δ<span class="s-ind"></span></th>
         <th style="text-align:center;width:84px">In pickit</th>
         <th style="width:54px"></th>
       </tr></thead><tbody id="ecoBody"></tbody></table>
@@ -1713,13 +1717,22 @@ $("genDocs").onclick=()=>api().open_url("https://github.com/c4Luffy/poe2-pickit-
 $("ninjaLink").onclick=e=>{e.preventDefault();api().open_url("https://poe.ninja/poe2/economy");};
 $("okOpen").onclick=()=>api().open_output();
 
-/* freshness pill: how old the last price fetch (= last generate) is */
+/* Age pill. It reads the newest HISTORY row, so it has only ever known when you last
+   GENERATED — it said "prices fetched 35h ago", which was never true: the price cache
+   is in-memory with a 15-minute TTL and is empty at launch, so any generate always
+   fetches live. What actually goes stale is the .ipd on disk, because the market moved
+   under it. So the pill now says that, and starts nudging once it is a day old. */
 let _freshAt=0;
 function updFresh(){
   if(!_freshAt){$("fresh").style.display="none";return;}
   const m=Math.floor((Date.now()-_freshAt)/60000);
-  $("freshTx").textContent="prices fetched "+
-    (m<1?"just now":m<60?m+" min ago":Math.floor(m/60)+"h "+(m%60)+"m ago");
+  const age=m<1?"just now":m<60?m+" min ago":Math.floor(m/60)+"h "+(m%60)+"m ago";
+  const old=m>=1440;                       // a day+ — prices have genuinely moved
+  $("freshTx").textContent=(old?"⚠ pickit built ":"pickit built ")+age;
+  $("fresh").title=old
+    ?"Prices move daily — press Generate to rebuild this pickit from today's market."
+    :"When your bot's pickit file was last built. Prices are always fetched live on Generate.";
+  $("fresh").style.color=old?"var(--warn)":"";
   $("fresh").style.display="inline-flex";}
 setInterval(updFresh,60000);
 async function initFresh(){
@@ -2071,6 +2084,22 @@ function ecoRows(){
       if(ecoMatch(it,q))rows.push([cat,it]);}
   else{const cat=eco.cats.find(c=>c.key===ecoCat);if(cat)rows=cat.items.map(i=>[cat,i]);}
   return rows;}
+/* Sparkline from the 7-day curve poe.ninja already sends us (we only ever read
+   totalChange out of it and binned the shape). Points are cumulative % change from
+   day 0 — a trend, not a price. Thin line + emphasised endpoint, in the same colour
+   as the % beside it so the pair reads as one thing. */
+function sparkSvg(pts,dir){
+  if(!pts||pts.length<2)return "";
+  const W=46,H=14,P=1.5;
+  const lo=Math.min(...pts),hi=Math.max(...pts),flat=hi===lo,rng=(hi-lo)||1;
+  const x=i=>P+i*(W-2*P)/(pts.length-1);
+  const y=v=>flat?H/2:H-P-((v-lo)/rng)*(H-2*P);   // a flat line belongs mid-height
+  const d=pts.map((v,i)=>`${i?"L":"M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
+  const c=dir>0?"var(--ok)":dir<0?"var(--err)":"var(--dim)";
+  return `<svg class="spk" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
+    +`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/>`
+    +`<circle cx="${x(pts.length-1).toFixed(1)}" cy="${y(pts[pts.length-1]).toFixed(1)}" r="1.6" fill="${c}"/>`
+    +`</svg>`;}
 function renderEco(){
   const q=($("ecoSearch").value||"").toLowerCase();
   const body=$("ecoBody");body.innerHTML="";
@@ -2093,8 +2122,9 @@ function renderEco(){
     const chg=it.chg==null?`<span class="chg flat">–</span>`:
       (it.chg===0?`<span class="chg flat">– 0%</span>`:
       `<span class="chg ${it.chg>0?"up":"dn"}">${it.chg>0?"▲":"▼"} ${Math.abs(it.chg)}%</span>`);
+    const dir=it.chg==null?0:(it.chg>0?1:it.chg<0?-1:0);
     tr.innerHTML=`<td title="${esc(it.name)}">${nm}</td><td class="val">${it.static?'<span class="pill">always picked</span>':fmtVal(it.ex)}</td>
-      <td style="text-align:right">${chg}</td>
+      <td class="chgcell"${it.spark?' title="7-day price trend"':""}>${sparkSvg(it.spark,dir)}${chg}</td>
       <td style="text-align:center"><span class="pill ${it.enabled?"on":""}">${it.enabled?"● keep":"skip"}</span></td>
       <td><button class="rowbtn">copy</button></td>`;
     tr.querySelector(".rowbtn").onclick=async e=>{e.stopPropagation();
@@ -3347,7 +3377,23 @@ function gdRender(r){
     `${r.checked_bases||0} base names against the game's own data `+
     `(${(s.mods||0).toLocaleString()} mods, ${(s.bases||0).toLocaleString()} bases)`+
     (adv?` \u00b7 ${adv} note${adv>1?"s":""}`:"")+(r.checked_at?` \u00b7 ${r.checked_at}`:"");
-  $("gdList").innerHTML=(r.findings||[]).map(f=>{
+  // What the PATCH changed — the other half of the question. Everything above asks
+  // "are our rules still valid?"; this says whether the game's drop list moved.
+  const dp=r.drops;
+  let dhtml="";
+  if(dp&&!dp.baseline&&((dp.n_added||dp.added&&dp.added.length)||(dp.n_removed||dp.removed&&dp.removed.length))){
+    const na=dp.n_added!=null?dp.n_added:(dp.added||[]).length;
+    const nr=dp.n_removed!=null?dp.n_removed:(dp.removed||[]).length;
+    const row=(list,n,label,col)=>!n?"":
+      `<div style="margin-top:6px"><b style="color:${col}">${label} ${n}</b>
+        <span class="hint" style="margin:0 0 0 6px">${esc(list.join(", "))}${n>list.length?` … +${n-list.length} more`:""}</span></div>`;
+    dhtml=`<div style="border-top:1px solid var(--border);padding:9px 0">
+      <div style="font-weight:600;font-size:12.5px">🧬 The game's drop list changed
+        <span class="hint" style="margin-left:6px">last change ${esc(dp.at||"")}</span></div>
+      ${row(dp.added||[],na,"started dropping:","var(--ok)")}
+      ${row(dp.removed||[],nr,"stopped dropping:","var(--err)")}
+    </div>`;}
+  $("gdList").innerHTML=dhtml+(r.findings||[]).map(f=>{
     const isC=f.level==="critical";
     return `<div style="border-top:1px solid var(--border);padding:9px 0">
       <div style="font-weight:600;font-size:12.5px;color:${isC?"var(--warn)":"var(--dim)"}">
@@ -3355,7 +3401,7 @@ function gdRender(r){
         <span class="pill" style="margin-left:6px;font-size:10px">${esc(f.kind)}</span></div>
       <div class="hint" style="margin-top:3px">${esc(f.detail)}</div>
       <div class="hint" style="margin-top:2px;color:var(--dim)">Used by: ${esc((f.where||[]).join(", "))}</div>
-    </div>`;}).join("")||`<div class="hint" style="margin-top:8px">Nothing to fix.</div>`;
+    </div>`;}).join("")||(dhtml?"":`<div class="hint" style="margin-top:8px">Nothing to fix.</div>`);
   setStatus("data", crit?String(crit):"✓", crit?"var(--err)":"var(--ok)",
             crit?(crit+" rule(s) may match nothing"):"In sync with the current patch");
   if(crit){

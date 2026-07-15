@@ -204,6 +204,18 @@ class AppApi:
                         return round((ev - old) / old * 100, 1)
                     return None
 
+                def _spark(spark):
+                    """The 7-day shape poe.ninja already sends us, for a row sparkline.
+
+                    Each point is the cumulative % change from day 0, so the line shows
+                    the trend, not absolute prices. We only ever read totalChange out of
+                    this and threw the curve away. poe.ninja does emit nulls, and a
+                    single point can't be drawn, so both come back as None.
+                    """
+                    pts = (spark or {}).get("data") or []
+                    vals = [float(v) for v in pts if isinstance(v, (int, float))]
+                    return [round(v, 2) for v in vals] if len(vals) >= 2 else None
+
                 if is_unique:
                     for line in p.get("lines", []):
                         nm = line.get("name")
@@ -215,7 +227,8 @@ class AppApi:
                                       "ex": round(ev, 2),
                                       "enabled": cat_states.get(nm, {}).get("enabled", True),
                                       "icon": line.get("icon") or "",
-                                      "chg": _chg(nm, ev, line.get("sparkLine"))})
+                                      "chg": _chg(nm, ev, line.get("sparkLine")),
+                                      "spark": _spark(line.get("sparkLine"))})
                 else:
                     by_id = {i["id"]: i for i in p.get("items", [])}
                     for line in p.get("lines", []):

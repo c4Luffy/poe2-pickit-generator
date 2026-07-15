@@ -84,6 +84,59 @@ def _fetch(url: str, name: str, force: bool) -> bytes:
         raise
 
 
+# ── what the patch itself changed ─────────────────────────────────────────────
+_SNAP = "drop_snapshot.json"
+
+
+def _drop_delta(current: set) -> dict:
+    """What started/stopped dropping since the last check.
+
+    The rest of run_check asks "are OUR rules still valid?". This asks the other
+    question — "did the GAME move?" — by diffing NeverSink's drop list against the
+    copy we saved last time. NeverSink is the source of truth for what actually
+    drops (the game's base table also holds legacy and [DNT] entries).
+
+    The delta is *persisted*, not just reported: it is only detected on the one run
+    that first sees it, and would otherwise be lost the moment the snapshot updates.
+    First run records a baseline and reports nothing — there is nothing to compare to.
+    """
+    path = os.path.join(_cache_dir(), _SNAP)
+    now = time.strftime("%Y-%m-%d %H:%M")
+    prev, last = None, None
+    try:
+        with open(path, encoding="utf-8") as f:
+            saved = json.load(f)
+        if isinstance(saved.get("bases"), list):
+            prev = set(saved["bases"])
+        last = saved.get("last_delta")
+    except Exception:
+        pass
+
+    def _save(bases, delta):
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump({"bases": sorted(bases), "at": now, "last_delta": delta},
+                          f, indent=1)
+        except Exception:
+            pass
+
+    if prev is None:                       # first ever check
+        _save(current, None)
+        return {"baseline": True, "added": [], "removed": [], "at": now}
+
+    added, removed = sorted(current - prev), sorted(prev - current)
+    if added or removed:
+        # cap the lists: a NeverSink restructure can move hundreds at once, and a
+        # wall of names helps nobody
+        delta = {"baseline": False, "at": now,
+                 "added": added[:40], "removed": removed[:40],
+                 "n_added": len(added), "n_removed": len(removed)}
+        _save(current, delta)
+        return delta
+    _save(current, last)                   # nothing moved — keep the last real delta
+    return last or {"baseline": False, "added": [], "removed": [], "at": now}
+
+
 # ── indexing the game's data ──────────────────────────────────────────────────
 def index_mods(mods: dict):
     """(affix_stat_ids, any_item_stat_ids) — ids granted by a normal item
@@ -205,6 +258,7 @@ def run_check(force: bool = False) -> dict:
     ns_bases = neversink_bases(ns_text)
     result["sources"] = {"mods": len(mods), "affix_stats": len(affix),
                          "bases": len(real_bases), "neversink": len(ns_bases)}
+    result["drops"] = _drop_delta(ns_bases)
 
     def flag(level, kind, title, detail, where):
         result["findings"].append({"level": level, "kind": kind, "title": title,

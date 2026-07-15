@@ -533,3 +533,54 @@ def test_whats_new_force_reopens_seen_notes_without_marking(api):
     r = api.whats_new(True)
     assert r["show"] is True and r["version"] == VERSION and "the notes" in r["notes"]
     assert api.cfg["last_seen_version"] == VERSION  # untouched
+
+
+# ── Economy sparklines ────────────────────────────────────────────────────────
+
+def test_economy_exposes_the_sparkline_curve_not_just_the_percent(api, monkeypatch):
+    """poe.ninja sends a 7-day curve per unique; we only ever read totalChange and
+    threw the shape away. The Economy rows now carry it so they can draw a trend."""
+    payload = {"core": {"rates": {"exalted": 1.0}},
+               "lines": [{"name": "Big Sword", "baseType": "B", "primaryValue": 900,
+                          "sparkLine": {"totalChange": -8.28,
+                                        "data": [0, -0.68, -4.27, -11.25, -8.28]}}]}
+
+    def fake(league, categories, **kw):
+        return {k: (payload if k == "unique_weapons" else
+                    {"core": {"rates": {"exalted": 1.0}}, "items": [], "lines": []})
+                for k, *_ in categories}
+    monkeypatch.setattr(webapi.gen, "fetch_all_payloads", fake)
+
+    cat = next(c for c in api.economy("L")["cats"] if c["key"] == "unique_weapons")
+    it = cat["items"][0]
+    assert it["chg"] == -8.3                      # the % stays rounded to 1dp
+    assert it["spark"] == [0.0, -0.68, -4.27, -11.25, -8.28]
+
+
+def test_sparkline_is_dropped_when_it_cannot_be_drawn(api, monkeypatch):
+    """poe.ninja emits nulls, and one point is not a line. Both must come back None
+    rather than a stub the renderer would have to guess at."""
+    def mk(data):
+        return {"core": {"rates": {"exalted": 1.0}},
+                "lines": [{"name": "Big Sword", "baseType": "B", "primaryValue": 9,
+                           "sparkLine": {"totalChange": 1, "data": data}}]}
+
+    for data in ([5], [None, None], [], None):
+        monkeypatch.setattr(webapi.gen, "fetch_all_payloads",
+                            lambda lg, cats, _d=data, **kw: {
+                                k: (mk(_d) if k == "unique_weapons" else
+                                    {"core": {"rates": {"exalted": 1.0}},
+                                     "items": [], "lines": []})
+                                for k, *_ in cats})
+        cat = next(c for c in api.economy("L")["cats"] if c["key"] == "unique_weapons")
+        assert cat["items"][0]["spark"] is None, data
+
+    # nulls mixed with real points: keep the real ones
+    monkeypatch.setattr(webapi.gen, "fetch_all_payloads",
+                        lambda lg, cats, **kw: {
+                            k: (mk([0, None, 4, 6]) if k == "unique_weapons" else
+                                {"core": {"rates": {"exalted": 1.0}},
+                                 "items": [], "lines": []})
+                            for k, *_ in cats})
+    cat = next(c for c in api.economy("L")["cats"] if c["key"] == "unique_weapons")
+    assert cat["items"][0]["spark"] == [0.0, 4.0, 6.0]
