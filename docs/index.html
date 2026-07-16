@@ -174,7 +174,7 @@ button{font:inherit}
 /* Proof */
 .proof-bar{padding-block:16px;border-bottom:1px solid var(--line);background:var(--bg)}
 .proof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.proof-item{display:flex;gap:13px;align-items:center;padding:17px 18px;border:1px solid var(--line);border-radius:12px;background:var(--bg-soft)}
+.proof-item{min-height:116px;display:flex;flex-direction:column;gap:9px;align-items:center;justify-content:center;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--bg-soft);text-align:center}
 .proof-mark{
   width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;
   border:1px solid rgba(217,168,79,.35);border-radius:50%;background:var(--gold-wash);
@@ -182,7 +182,7 @@ button{font:inherit}
 }
 .proof-mark svg{width:15px;height:15px}
 .proof-item b{display:block;font-size:13.5px}
-.proof-item span{display:block;color:var(--quiet);font-size:11.5px;margin-top:1px}
+.proof-item>div>span{display:block;color:var(--quiet);font-size:11.5px;margin-top:2px}
 
 /* Shared */
 section{padding-block:clamp(72px,8vw,108px)}
@@ -386,7 +386,7 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
   .proof-grid{grid-template-columns:1fr}
   .proof-bar{padding-block:12px}
   .proof-grid{gap:7px}
-  .proof-item{padding:14px 16px}
+  .proof-item{min-height:104px;padding:15px 16px}
   .proof-mark{width:29px;height:29px;flex-basis:29px}
   .start-note{flex-direction:column;gap:5px}
   .report-grid{grid-template-columns:1fr}
