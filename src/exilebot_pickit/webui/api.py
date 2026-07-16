@@ -58,10 +58,13 @@ class AppApi:
         # latest.ipd was an always-same-name duplicate of the output pickit that
         # nothing ever read — users opening the folder couldn't tell which file
         # their bot needed. We stopped writing it; remove any stale copy.
-        try:
-            os.remove(os.path.join(OUTPUT_DIR, "latest.ipd"))
-        except OSError:
-            pass
+        # UNLESS the user's own output name is "latest" — then latest.ipd IS
+        # their real pickit and deleting it here would destroy it every launch.
+        if (self.cfg.get("output_base") or "").strip().lower() != "latest":
+            try:
+                os.remove(os.path.join(OUTPUT_DIR, "latest.ipd"))
+            except OSError:
+                pass
         # Self-updating game data (new bases / unique categories from the repo):
         # cached copy synchronously, fresh copy in the background — same as Tk.
         try:
@@ -1056,17 +1059,31 @@ class AppApi:
         try:
             if os.path.getsize(path) > 5 * 1024 * 1024:
                 return {"error": "That file is over 5 MB — not a pickit."}
-            with open(path, encoding="utf-8-sig", errors="replace") as f:
-                text = f.read()
+            with open(path, "rb") as f:
+                raw = f.read()
         except OSError as e:
             return {"error": f"Couldn't read the file: {e}"}
+        # Hand-made pickits are often ANSI (Notepad legacy save): a strict
+        # UTF-8 try first, then Windows-1252 — errors="replace" alone turned
+        # accented names into '�', which then matched nothing in game.
+        try:
+            text = raw.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            try:
+                text = raw.decode("cp1252")
+            except UnicodeDecodeError:
+                text = raw.decode("utf-8-sig", errors="replace")
         res = convert_pickit_text(text, hide_rest=bool(hide_rest),
                                   source_name=os.path.basename(path))
-        self._import_filter_text = ("\n".join(res["filter_lines"]) + "\n"
-                                    if res["ok"] else "")
-        self._import_filter_name = (
-            os.path.splitext(os.path.basename(path))[0] + ".filter")
-        self._import_src_path = path
+        # One writer at a time: convert can be triggered from the picker, the
+        # hide switch and drag&drop — without the lock a slow convert could
+        # leave file A's filter stored under file B's name for Save to write.
+        with self._lock:
+            self._import_filter_text = ("\n".join(res["filter_lines"]) + "\n"
+                                        if res["ok"] else "")
+            self._import_filter_name = (
+                os.path.splitext(os.path.basename(path))[0] + ".filter")
+            self._import_src_path = path
         out = {"ok": res["ok"], "report": res["report"],
                "name": os.path.basename(path)}
         if res["ok"]:
@@ -1078,11 +1095,15 @@ class AppApi:
         """Save the converted filter; the dialog starts in the PoE2 client
         filter folder so the game sees it right after."""
         import webview
-        if not getattr(self, "_import_filter_text", ""):
+        with self._lock:
+            text = getattr(self, "_import_filter_text", "")
+            fname = getattr(self, "_import_filter_name", "my_pickit.filter")
+            src = getattr(self, "_import_src_path", "")
+        if not text:
             return {"error": "Convert a pickit first."}
         w = webview.windows[0]
         fdir = (self.cfg.get("poe2_filter_dir") or "").strip() or _default_dir()
-        kw = {"save_filename": getattr(self, "_import_filter_name", "my_pickit.filter")}
+        kw = {"save_filename": fname}
         if fdir and os.path.isdir(fdir):
             kw["directory"] = fdir
         path = w.create_file_dialog(webview.SAVE_DIALOG, **kw)
@@ -1090,15 +1111,22 @@ class AppApi:
             return {"cancelled": True}
         if isinstance(path, (list, tuple)):
             path = path[0]
+        path = str(path)
+        # "The pickit is only read, never changed" — a save target that IS the
+        # source pickit (or any .ipd) would replace a pickit with filter text.
+        if src and os.path.normcase(os.path.abspath(path)) == \
+                os.path.normcase(os.path.abspath(src)):
+            return {"error": "That's your pickit file — pick a different name."}
+        if path.lower().endswith(".ipd"):
+            return {"error": "That would overwrite a pickit — save as .filter."}
         try:
-            gen.write_text_atomic(str(path), self._import_filter_text)
+            gen.write_text_atomic(path, text)
         except OSError as e:
             return {"error": f"Couldn't save: {e}"}
         # Remember the conversion so the tab can warn when the source pickit
         # changes after this save (the filter would silently drift stale).
-        self.cfg["filter_from_pickit"] = {
-            "src": getattr(self, "_import_src_path", ""),
-            "out": str(path), "at": time.time()}
+        self.cfg["filter_from_pickit"] = {"src": src, "out": path,
+                                          "at": time.time()}
         save_config(self.cfg)
         self._log(f"✓ Filter created from pickit: {os.path.basename(str(path))}")
         return {"ok": True, "path": str(path)}

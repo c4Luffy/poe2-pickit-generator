@@ -108,6 +108,71 @@ def test_hide_rest_still_hides_but_warns_on_untranslatable_rule():
     assert '"SomethingWeird"' in r["untranslatable"][0]["reason"]
 
 
+def test_widened_only_counts_rules_that_made_it_into_the_filter():
+    # A rule that produces NOTHING must not count as "shown wider" — that
+    # hint claims the item still gets a label, which would be a lie here.
+    res = convert_pickit_text('[ItemTier] >= "5" # [StashItem] == "true"')
+    r = res["report"]
+    assert r["widened"] == 0
+    assert r["untranslatable_total"] == 1
+    assert r["converted"] == 0
+
+
+def test_named_rules_translate_all_conditions_exactly():
+    # Rarity AND Quality on one named rule both survive into the same block
+    # (previously the bucket chain silently dropped the second condition).
+    res = convert_pickit_text(
+        '[Type] == "Sacred Focus" && [Rarity] == "Normal" && [Quality] >= "25" # [StashItem] == "true"')
+    txt = _joined(res)
+    assert "Rarity = Normal" in txt and "Quality >= 25" in txt
+    assert res["report"]["widened"] == 0   # nothing was dropped
+
+
+def test_hash_inside_a_name_cannot_hide_a_sibling_name():
+    # split('#') used to cut inside the quoted name: the second name vanished
+    # from the filter with ZERO report trace — the worst possible failure.
+    res = convert_pickit_text(
+        '[Type] == "Good Blade" && [Type] == "Hash # Axe" # [StashItem] == "true"')
+    txt = _joined(res)
+    assert '"Good Blade"' in txt              # sibling still shown
+    assert "Hash # Axe" not in txt            # inexpressible name excluded…
+    assert res["report"]["untranslatable_total"] == 1   # …but loudly reported
+
+
+def test_unknown_rarity_token_is_dropped_not_passed_through():
+    # 'Rarity = rare' (bad token) could make the game reject the whole filter.
+    res = convert_pickit_text('[Category] == "Ring" && [Rarity] == "rare" # [StashItem] == "true"')
+    txt = _joined(res)
+    assert "Rarity = rare" not in txt
+    assert 'Class == "Rings"' in txt          # rule still shown, wider
+    assert res["report"]["widened"] == 1
+
+
+def test_unmapped_category_with_other_conditions_counts_as_widened():
+    res = convert_pickit_text('[Category] == "Weird" && [Rarity] == "Rare" # [Salvage] == "true"')
+    txt = _joined(res)
+    assert "Rarity = Rare" in txt             # superset kept
+    assert res["report"]["widened"] == 1      # …and the widening is admitted
+
+
+def test_bom_before_comment_is_still_a_comment():
+    res = convert_pickit_text('﻿// header comment\n[Type] == "Divine Orb" # [StashItem] == "true"')
+    r = res["report"]
+    assert r["disabled"] == 1 and r["rules"] == 1 and r["untranslatable_total"] == 0
+
+
+def test_non_string_input_is_safe():
+    for bad in (None, 42, [b"x"], b"bytes"):
+        res = convert_pickit_text(bad)
+        assert res["ok"] is False and res["filter_lines"] == []
+
+
+def test_hide_not_applied_when_nothing_converted():
+    res = convert_pickit_text("no rules here at all", hide_rest=True)
+    assert res["ok"] is False
+    assert res["report"]["hide_applied"] is False
+
+
 def test_show_blocks_are_styled():
     res = convert_pickit_text(SAMPLE, hide_rest=True)
     txt = _joined(res)

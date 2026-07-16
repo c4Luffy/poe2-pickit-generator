@@ -6,6 +6,32 @@ download lives.
 
 ---
 
+## [v4.35.2] — 2026-07-16 — Same-day audit: 12 fixes from two code audits + a live sweep
+
+The new tab is hours old, so it got the full treatment the same day: an adversarial
+code review, a 37-input attack battery against the converter, and a click-through of
+every page in the running app. Everything found was fixed:
+
+- **One divine, everywhere.** The floor slider's reference line and the LIVE bar could
+  show two different divine rates (one live, one from your last run). Every fresh rate
+  now updates all of them together — what you see is one number, the live one.
+- **The Discord button wears the real Discord logo** now.
+- **Converter hardening (Create your filter):**
+  - a `#` inside an item name could silently drop that name from the filter — the one
+    way an item your pickit wants could end up hidden with no warning. Names a filter
+    can't express (`#` or `"`) are now excluded *and loudly reported*.
+  - named rules translate **all** their conditions exactly — a rule with rarity AND
+    quality kept only one before (the filter just showed a bit more than needed).
+  - the "shown wider" count is now honest in both directions.
+  - an unknown rarity word is dropped (shown wider) instead of being passed through,
+    where it could have made the game reject the entire filter.
+  - hand-made pickits saved as ANSI (accented item names) now decode correctly.
+- **Small but real:** naming your output "latest" no longer collides with the
+  duplicate-cleanup (it would have deleted the real pickit at every launch); Save can
+  never overwrite a pickit file; two converts can't race each other; drag & drop no
+  longer blocks normal text-dragging into inputs; a failed convert can't leave the
+  previous file's numbers on screen under the new file's name.
+
 ## [v4.35.1] — 2026-07-16 — Create your filter: drag & drop + open folder
 
 Two comforts for the new tab, same day:
@@ -1410,6 +1436,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.35.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.2
 [v4.35.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.1
 [v4.35.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.0
 [v4.34.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.34.0

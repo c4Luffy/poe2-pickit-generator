@@ -70,6 +70,35 @@ _STYLE_GOLD = ["SetFontSize 35"]
 _MAX_LISTED = 30
 
 
+# The game's filter parser only knows these rarity words; anything else on a
+# Rarity line could make the client reject the WHOLE filter, so unknown values
+# are dropped (wider) instead of passed through.
+_VALID_RARITIES = {"Normal", "Magic", "Rare", "Unique"}
+
+# Characters a filter string can't carry: '#' starts a comment, '"' ends the
+# string, and the syntax has no escaping. No real PoE2 item name contains
+# either — a name that does is hand-crafted and simply can't be expressed.
+_UNEXPRESSIBLE = ('"', "#")
+
+
+def _pickup_half(line: str) -> str:
+    """Everything before the first '#' OUTSIDE quotes — the pickup conditions.
+    A naive split('#') used to cut inside quoted names and silently lose them."""
+    in_q = False
+    i, n = 0, len(line)
+    while i < n:
+        c = line[i]
+        if in_q and c == "\\" and i + 1 < n:
+            i += 2
+            continue
+        if c == '"':
+            in_q = not in_q
+        elif c == "#" and not in_q:
+            return line[:i]
+        i += 1
+    return line
+
+
 def _parse_rule(cond_part: str):
     """Extract the filter-expressible pieces of one rule's pickup half."""
     names = [n.replace('\\"', '"') for n in gen._LF_TYPE_RE.findall(cond_part)]
@@ -100,54 +129,73 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
     Never raises on bad input — unreadable lines are counted and listed, and
     a file with no usable rules returns ``ok=False`` with the report intact.
     """
-    plain: list = []
-    unique: list = []
-    by_rarity: dict = {"Normal": [], "Magic": [], "Rare": []}
-    by_quality: dict = {}
-    by_sockets: dict = {}
+    named_groups: dict = {}   # (rarity, quality, sockets) -> [names], exact translation
     generic: list = []
 
     rules = converted = widened = disabled = assumed_pickup = 0
     untranslatable: list = []
     untranslatable_total = 0
 
+    def _flag(no, line, reason):
+        nonlocal untranslatable_total
+        untranslatable_total += 1
+        if len(untranslatable) < _MAX_LISTED:
+            untranslatable.append({"line": no, "text": line[:160],
+                                   "reason": reason})
+
+    if not isinstance(text, str):
+        text = ""
     for no, raw in enumerate(text.splitlines(), 1):
-        line = raw.strip()
+        line = raw.strip().lstrip("﻿")   # a BOM is not part of a comment marker
         if not line:
             continue
         if line.startswith("/"):
             disabled += 1
             continue
         rules += 1
-        cond_part = line.split("#", 1)[0]
+        cond_part = _pickup_half(line)
         if not gen._LF_ACTION_RE.search(line):
             # No recognised action — include it anyway. Showing an extra item
             # is harmless; hiding one the bot wanted is not.
             assumed_pickup += 1
         r = _parse_rule(cond_part)
-        if r["unknown"]:
-            widened += 1
+        # "wide": a check was dropped, so the filter shows MORE than the rule.
+        # Counted only for rules that actually make it into the filter.
+        wide = bool(r["unknown"])
+        rarity = r["rarity"]
+        if rarity and rarity not in _VALID_RARITIES:
+            rarity = None
+            wide = True
+        bad_names = [n for n in r["names"]
+                     if any(ch in n for ch in _UNEXPRESSIBLE)]
+        names = [n for n in r["names"] if n and n not in bad_names]
 
-        if r["names"]:
-            if r["rarity"] == "Unique":
-                unique.extend(r["names"])
-            elif r["rarity"] in by_rarity:
-                by_rarity[r["rarity"]].extend(r["names"])
-            elif r["quality"] is not None:
-                by_quality.setdefault(r["quality"], []).extend(r["names"])
-            elif r["sockets"] is not None:
-                by_sockets.setdefault(r["sockets"], []).extend(r["names"])
-            else:
-                plain.extend(r["names"])
+        if bad_names:
+            # The lost name can never be expressed — the rule counts as
+            # untranslatable (so a Hide gets the loud warning), but any
+            # expressible sibling names on the same line still get shown.
+            if names:
+                key = (rarity, r["quality"], r["sockets"])
+                named_groups.setdefault(key, []).extend(names)
+            _flag(no, line, "an item name on this line contains '#' or '\"' — "
+                            "a filter string can't carry that name")
+            continue
+        if names:
+            key = (rarity, r["quality"], r["sockets"])
+            named_groups.setdefault(key, []).extend(names)
             converted += 1
+            if wide:
+                widened += 1
             continue
         conds = []
         if r["category"]:
             classes = _CATEGORY_CLASS.get(r["category"].lower())
             if classes:
                 conds.append("Class == " + " ".join(f'"{c}"' for c in classes))
-        if r["rarity"]:
-            conds.append(f"Rarity = {r['rarity']}")
+            else:
+                wide = True   # category dropped — whatever remains shows wider
+        if rarity:
+            conds.append(f"Rarity = {rarity}")
         if r["sockets"] is not None:
             conds.append(f"Sockets >= {r['sockets']}")
         if r["quality"] is not None:
@@ -155,20 +203,22 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
         if conds:
             generic.append(conds)
             converted += 1
+            if wide:
+                widened += 1
             continue
         reason = (f"category \"{r['category']}\" has no filter equivalent"
                   if r["category"] else "no conditions a filter can express")
-        untranslatable_total += 1
-        if len(untranslatable) < _MAX_LISTED:
-            untranslatable.append({"line": no, "text": line[:160],
-                                   "reason": reason})
+        _flag(no, line, reason)
 
+    # ok = something actually made it into the filter (a partially-translated
+    # rule can emit sibling names without counting as converted).
+    ok = bool(named_groups or generic)
     # Hide means hide (owner's call): when requested it is always applied.
     # If rules couldn't be translated, their items may be hidden in game even
     # though the bot still picks them up — that risk is surfaced loudly in the
     # report and in the filter itself instead of refusing to hide.
-    hide_applied = bool(hide_rest)
-    hide_risky = bool(hide_rest and untranslatable_total)
+    hide_applied = bool(hide_rest and ok)
+    hide_risky = bool(hide_applied and untranslatable_total)
 
     src = source_name or "pickit"
     out: list = [
@@ -179,14 +229,23 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
         f"# Generated on: {time.strftime('%Y-%m-%dT%H:%M:%S')}",
         "",
     ]
-    out += gen._lf_show_blocks(plain, _STYLE_NAMED)
-    out += gen._lf_show_blocks(unique, ["Rarity = Unique"] + _STYLE_UNIQUE)
-    for rar in ("Normal", "Magic", "Rare"):
-        out += gen._lf_show_blocks(by_rarity[rar], [f"Rarity = {rar}"] + _STYLE_GEAR)
-    for q in sorted(by_quality):
-        out += gen._lf_show_blocks(by_quality[q], [f"Quality >= {q}"] + _STYLE_GEAR)
-    for s in sorted(by_sockets):
-        out += gen._lf_show_blocks(by_sockets[s], [f"Sockets >= {s}"] + _STYLE_GEAR)
+    # Named rules translate EXACTLY: every recognised condition on the line
+    # (rarity + quality + sockets, in any combination) rides along with the
+    # names — nothing silently dropped.
+    def _grp_key(k):
+        rar, q, s = k
+        return (rar or "", -1 if q is None else q, -1 if s is None else s)
+    for key in sorted(named_groups, key=_grp_key):
+        rar, q, s = key
+        extra = []
+        if rar:
+            extra.append(f"Rarity = {rar}")
+        if q is not None:
+            extra.append(f"Quality >= {q}")
+        if s is not None:
+            extra.append(f"Sockets >= {s}")
+        style = _STYLE_UNIQUE if rar == "Unique" else _STYLE_NAMED
+        out += gen._lf_show_blocks(named_groups[key], extra + style)
     for conds in gen._dedupe_cond_lists(generic):
         out += ["Show"] + [f"    {c}" for c in conds + _STYLE_GEAR] + [""]
 
@@ -203,7 +262,6 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
                     ""]
         out += ["# Hide everything else", "Hide", ""]
 
-    ok = converted > 0
     return {
         "ok": ok,
         "filter_lines": out if ok else [],

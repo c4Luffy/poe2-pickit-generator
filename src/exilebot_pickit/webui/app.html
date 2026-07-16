@@ -804,7 +804,7 @@
       <div class="tpick-menu" id="tpickMenu"></div>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="ghost mini" id="lnkDiscord" style="flex:1" title="Join the Discord">💬 Discord</button>
+      <button class="ghost mini" id="lnkDiscord" style="flex:1" title="Join the Discord"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" style="vertical-align:-2px" aria-hidden="true"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/></svg> Discord</button>
       <button class="ghost mini" id="lnkSite" style="flex:1" title="Exiled Bot website">🌐 Exiled Bot</button>
     </div>
   </div>
@@ -1690,6 +1690,12 @@ function updTracks(){
    moves with the market. Falls back to 100 ex until the rate has loaded. Typing a number
    still works and isn't capped by this. */
 const floorMax=()=>divRate>1?Math.round(divRate):100;
+/* ONE writer for the divine rate: every fresh value (load, league change,
+   generate, economy) lands here, so the floor reference line, the slider max
+   and the LIVE bar can never show two different divines again. */
+function setDivRate(v){v=Number(v)||0;if(v<=1)return;
+  divRate=v;const el=$("sDiv");if(el)el.textContent=Math.round(v);
+  try{uEx();gEx();updTracks();}catch(_){}}
 /* recipe rows: the fill track IS the control — drag (or click) to set.
    Values snap to each dial's own range/step; typing in the number still works. The floor
    sliders take a function for their max so it tracks the divine price live. */
@@ -1820,7 +1826,9 @@ async function initFresh(){
       $("sActive").textContent=(r.active||0).toLocaleString();
       $("sSkip").textContent=(r.commented||0).toLocaleString();
       $("lrRules").textContent=((r.active||0)+(r.commented||0)).toLocaleString();
-      if(r.divine_rate)$("sDiv").textContent=r.divine_rate;
+      /* history is yesterday's rate — only a placeholder; never overwrite a
+         fresher value the load fetch may already have written */
+      if(r.divine_rate&&$("sDiv").textContent==="–")$("sDiv").textContent=r.divine_rate;
       if(r.duration)$("sSecs").textContent=String(r.duration).replace(/s$/,"");
       $("sum").style.display="block";}}catch(_){}}
 
@@ -1975,7 +1983,7 @@ async function poll(){
   if(st.running)return setTimeout(poll,400);
   running=false;$("go").disabled=false;$("bar").classList.remove("on");
   const d=st.done||{};
-  if(d.ok){divRate=d.divine_rate||divRate;$("okPanel").classList.add("on");renderSparks();sideMark(true);
+  if(d.ok){if(d.divine_rate)setDivRate(d.divine_rate);$("okPanel").classList.add("on");renderSparks();sideMark(true);
     _freshAt=Date.now();updFresh();
     $("sActive").textContent=d.active.toLocaleString();
     $("sCats").textContent=d.cats_ok+(d.cats_fail?` (+${d.cats_fail}✗)`:"");
@@ -2106,7 +2114,7 @@ async function loadEco(){
       if(!p.running){clearInterval(iv);res(p.result);}
     },250);});
   if(eco.error){$("ecoInfo").textContent="✗ "+eco.error+" — check your connection and Refresh prices.";eco=null;return;}
-  divRate=eco.divine_rate||divRate;
+  if(eco.divine_rate)setDivRate(eco.divine_rate);
   api().chaos_ex($("league").value).then(r=>{chaosEx=r.ex||0;if(ecoUnit==="chaos")renderEco();});
   const st=$("ecoStale");
   if(eco.stale&&eco.stale.length){st.textContent=`⚠ Offline: ${eco.stale.length} categories are showing cached prices (poe.ninja unreachable).`;st.classList.add("on");}
@@ -3268,12 +3276,23 @@ $("prevFilter").addEventListener("input",renderPreview);
 
 /* ── settings ── */
 /* ── From my pickit: any .ipd → matching loot filter ── */
-let mypkPath="";
+let mypkPath="",mypkBusy=false;
 async function mypkConvert(){
-  if(!mypkPath)return;
+  if(!mypkPath||mypkBusy)return;
+  mypkBusy=true;
+  try{await _mypkConvert();}finally{mypkBusy=false;}
+}
+async function _mypkConvert(){
   const hide=$("mypkHide").classList.contains("on");
   const r=await api().import_pickit_convert(mypkPath,hide);
-  if(r.error){toast(r.error);return;}
+  if(r.error){
+    /* don't leave the PREVIOUS file's results on screen under this file's
+       name — reset the tab so what you see is never a mixed state */
+    toast(r.error);
+    mypkPath="";$("mypkFile").textContent="No file loaded.";
+    $("mypkResult").style.display="none";$("mypkPrevCard").style.display="none";
+    return;
+  }
   $("mypkResult").style.display="";
   const rep=r.report;
   $("mypkRules").textContent=rep.rules;
@@ -3297,12 +3316,15 @@ async function mypkConvert(){
   else $("mypkPrevCard").style.display="none";
 }
 $("mypkChoose").onclick=async()=>{
+  if(mypkBusy)return;
   const c=await api().import_pickit_choose();
   if(!c||!c.path)return;
   mypkPath=c.path;$("mypkFile").textContent=c.path;$("mypkSaved").textContent="";
   await mypkConvert();
 };
-$("mypkHide").onclick=async()=>{$("mypkHide").classList.toggle("on");await mypkConvert();};
+$("mypkHide").onclick=async()=>{
+  if(mypkBusy)return;   // don't flip the visual while a convert owns the state
+  $("mypkHide").classList.toggle("on");await mypkConvert();};
 $("mypkSave").onclick=async()=>{
   const r=await api().import_pickit_save();
   if(r.error){toast(r.error);return;}
@@ -3314,11 +3336,15 @@ $("mypkSave").onclick=async()=>{
 $("mypkOpenDir").onclick=async()=>{const r=await api().import_pickit_open_saved();
   if(r&&r.error)toast(r.error);};
 // Drop a .ipd anywhere in the window → jump to the tab and convert it.
-document.addEventListener("dragover",e=>{e.preventDefault();});
+// Only FILE drags are intercepted — cancelling every drop also killed normal
+// text drag&drop into inputs across the whole app.
+const _isFileDrag=e=>e.dataTransfer&&Array.from(e.dataTransfer.types||[]).includes("Files");
+document.addEventListener("dragover",e=>{if(_isFileDrag(e))e.preventDefault();});
 document.addEventListener("drop",async e=>{
+  if(!_isFileDrag(e))return;
   e.preventDefault();
-  const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
-  if(!f)return;
+  const f=e.dataTransfer.files&&e.dataTransfer.files[0];
+  if(!f||mypkBusy)return;
   if(!/\.ipd$/i.test(f.name||"")){toast("Drop a .ipd pickit file");return;}
   const p=f.pywebviewFullPath||"";   // pywebview exposes the real path on drop
   if(!p){toast("Drag & drop isn't available here — use Choose pickit…");return;}
@@ -3515,8 +3541,8 @@ async function init(){
      left them; only the rate moved, so recompute the exalt floor and store that. */
   const _rates=()=>api().chaos_ex(sel.value).then(r=>{
     chaosEx=r.ex||0;
-    if(r.div>1)divRate=r.div;   // divine rate now arrives on load, so the floor slider
-                                // spans a real divine instead of the 100 ex fallback
+    if(r.div>1)setDivRate(r.div);   // divine rate now arrives on load, so the floor slider
+                                    // spans a real divine instead of the 100 ex fallback
     if(!_floorsRestored){_floorsRestored=true;restoreFloors();}
     else{uEx();gEx();updTracks();_saveFloors();}});
   sel.onchange=()=>{api().set_setting("league",sel.value);eco=null;_rates();updMktLeague();};

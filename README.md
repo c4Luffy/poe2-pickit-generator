@@ -14,10 +14,10 @@ deploys it, and confirms Exiled Bot 2 is listening to the same profile.
 
 <br>
 
-[![Download for Windows](https://img.shields.io/badge/Download_for_Windows-d2a24f?style=for-the-badge&logo=windows&logoColor=181104)](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.1/ExileBot2PickitGenerator.exe)
+[![Download for Windows](https://img.shields.io/badge/Download_for_Windows-d2a24f?style=for-the-badge&logo=windows&logoColor=181104)](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.2/ExileBot2PickitGenerator.exe)
 [![Open website](https://img.shields.io/badge/Open_website-79bd62?style=for-the-badge&logo=githubpages&logoColor=10200c)](https://c4luffy.github.io/poe2-pickit-generator/)
 
-[![Release v4.35.1](https://img.shields.io/badge/release-v4.35.1-c99a4a?labelColor=171411)](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.1)
+[![Release v4.35.2](https://img.shields.io/badge/release-v4.35.2-c99a4a?labelColor=171411)](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.2)
 [![Total downloads](https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?color=829d78&labelColor=171411)](https://github.com/c4Luffy/poe2-pickit-generator/releases)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%20%2F%2011-6e6255?logo=windows&logoColor=white)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
 [![MIT license](https://img.shields.io/badge/license-MIT-6e6255)](LICENSE)
@@ -27,7 +27,7 @@ deploys it, and confirms Exiled Bot 2 is listening to the same profile.
 > [!IMPORTANT]
 > **Using v4.20.0 or v4.21.0? Update manually once.** The updater in those two
 > releases is broken and may show an error or reopen the old app. Close
-> it, **[download v4.35.1](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.1/ExileBot2PickitGenerator.exe)**,
+> it, **[download v4.35.2](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.2/ExileBot2PickitGenerator.exe)**,
 > then open the new file. Your settings, profiles, and Exiled Bot folder stay
 > unchanged. Future in-app updates will work normally.
 
@@ -56,7 +56,7 @@ in-game loot filter can be generated alongside it.
 
 ## Quick start
 
-**[Download the v4.35.1 portable Windows app](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.1/ExileBot2PickitGenerator.exe)**
+**[Download the v4.35.2 portable Windows app](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.2/ExileBot2PickitGenerator.exe)**
 and open it. Before your first Generate, the four-step wizard appears
 automatically:
 
@@ -123,7 +123,7 @@ choose **Check this item**.
 - **Multi-unit pricing** that reads exalt, divine, and chaos values.
 - **Portable single-file app:** no installer and no Python required.
 
-## Latest release: [v4.35.1](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.1)
+## Latest release: [v4.35.2](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.2)
 
 ### Create your filter — any pickit becomes an in-game loot filter
 
@@ -145,6 +145,10 @@ nothing leaves your PC.
   tells you and reloads it in one click.
 - **v4.35.1:** drag & drop a `.ipd` anywhere on the window to convert it, and
   an **📂 Open folder** button jumps to the saved filter.
+- **v4.35.2:** same-day audit — two code reviews, a 37-input attack battery,
+  and a live-app sweep produced 12 fixes: one consistent divine rate
+  everywhere, exact condition translation, hardened parsing, and the real
+  Discord logo.
 - The output folder no longer holds two identical pickits — the unused
   `latest.ipd` duplicate is gone.
 
@@ -163,7 +167,7 @@ because the executable is not code-signed.
 
 - The complete source and release workflow are public.
 - Every release includes a
-  **[SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.1/SHA256SUMS.txt)**.
+  **[SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.2/SHA256SUMS.txt)**.
 - The app reads public price data from poe.ninja and update data from GitHub.
 - It never asks for your Path of Exile account.
 
