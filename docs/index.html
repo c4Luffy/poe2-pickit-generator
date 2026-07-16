@@ -172,15 +172,15 @@ button{font:inherit}
 .hero-path small{display:block;color:var(--quiet);font-size:9.5px;margin-top:1px}
 
 /* Proof */
-.proof-bar{border-bottom:1px solid var(--line);background:var(--bg-soft)}
-.proof-grid{display:grid;grid-template-columns:repeat(3,1fr)}
-.proof-item{display:flex;gap:13px;align-items:center;padding:22px 24px;border-right:1px solid var(--line)}
-.proof-item:last-child{border-right:0}
+.proof-bar{padding-block:16px;border-bottom:1px solid var(--line);background:var(--bg)}
+.proof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.proof-item{display:flex;gap:13px;align-items:center;padding:17px 18px;border:1px solid var(--line);border-radius:12px;background:var(--bg-soft)}
 .proof-mark{
   width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;
   border:1px solid rgba(217,168,79,.35);border-radius:50%;background:var(--gold-wash);
-  color:var(--gold-light);font-size:12px;font-weight:900;
+  color:var(--gold-light);
 }
+.proof-mark svg{width:15px;height:15px}
 .proof-item b{display:block;font-size:13.5px}
 .proof-item span{display:block;color:var(--quiet);font-size:11.5px;margin-top:1px}
 
@@ -305,19 +305,17 @@ section{padding-block:clamp(72px,8vw,108px)}
 .release-foot{grid-column:1/-1;padding-top:15px;border-top:1px solid var(--line);color:var(--quiet);font-size:12px}
 .release-foot strong{color:var(--muted)}
 
-/* Optional tour */
+/* App tour */
 .tour-section{padding-block:44px;background:var(--bg);border-bottom:1px solid var(--line)}
 .tour-drawer{border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden}
-.tour-drawer>summary{
+.tour-head{
   display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:76px;
-  padding:17px 20px;cursor:pointer;list-style:none;
+  padding:17px 20px;
 }
-.tour-drawer>summary::-webkit-details-marker{display:none}
-.tour-summary b{display:block;font-size:14px}
+.tour-summary h2{display:block;font:800 14px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .tour-summary span{display:block;margin-top:2px;color:var(--quiet);font-size:11.5px}
-.tour-open{color:var(--gold-light);font-size:12px;font-weight:800;white-space:nowrap}
-.tour-open::after{content:" +"}
-.tour-drawer[open] .tour-open::after{content:" \2212"}
+.tour-always{display:inline-flex;align-items:center;gap:7px;color:var(--gold-light);font-size:11px;font-weight:800;white-space:nowrap;text-transform:uppercase;letter-spacing:.08em}
+.tour-always::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(141,204,119,.1)}
 .tour-body{padding:0 20px 20px}
 .tour-frame{max-width:834px;margin-inline:auto;padding:8px;border:1px solid var(--line-bright);border-radius:13px;background:#090a08}
 .tour-frame img{width:100%;aspect-ratio:1624/941;object-fit:cover;border-radius:8px}
@@ -350,9 +348,11 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
 .footer-row{display:flex;align-items:flex-start;justify-content:space-between;gap:30px}
 .footer-row .brand{width:max-content}
 .fineprint{margin-top:7px}
-.footer-links{display:flex;gap:18px;flex-wrap:wrap;justify-content:flex-end}
-.footer-links a{color:var(--muted)}
-.footer-links a:hover{color:var(--text)}
+.footer-links{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.footer-links a{display:inline-flex;align-items:center;gap:7px;padding:7px 9px;border-radius:7px;color:var(--muted)}
+.footer-links svg{width:14px;height:14px;flex:none;color:var(--quiet);transition:color .18s ease,transform .18s ease}
+.footer-links a:hover{color:var(--text);background:rgba(255,255,255,.035)}
+.footer-links a:hover svg{color:var(--gold);transform:translateY(-1px)}
 
 /* Progressive motion */
 .reveal{opacity:1;transform:none}
@@ -384,8 +384,9 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
   .hero h1{font-size:clamp(42px,13vw,58px);max-width:10ch}
   .hero-lead{font-size:16px}
   .proof-grid{grid-template-columns:1fr}
-  .proof-item{border-right:0;border-bottom:1px solid var(--line);padding:15px 18px}
-  .proof-item:last-child{border-bottom:0}
+  .proof-bar{padding-block:12px}
+  .proof-grid{gap:7px}
+  .proof-item{padding:14px 16px}
   .proof-mark{width:29px;height:29px;flex-basis:29px}
   .start-note{flex-direction:column;gap:5px}
   .report-grid{grid-template-columns:1fr}
@@ -495,9 +496,9 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
 
   <div class="proof-bar" role="region" aria-label="What the app handles">
     <div class="wrap proof-grid">
-      <div class="proof-item"><span class="proof-mark" aria-hidden="true">01</span><div><b>Current league prices</b><span>Fetched from poe.ninja</span></div></div>
-      <div class="proof-item"><span class="proof-mark" aria-hidden="true">02</span><div><b>Read-only conversion</b><span>Your imported pickit is never changed</span></div></div>
-      <div class="proof-item"><span class="proof-mark" aria-hidden="true">03</span><div><b>Everything stays local</b><span>No pickit is uploaded anywhere</span></div></div>
+      <div class="proof-item"><span class="proof-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18L8 13L12 16L21 7"/><path d="M15 7H21V13"/></svg></span><div><b>Current league prices</b><span>Fetched from poe.ninja</span></div></div>
+      <div class="proof-item"><span class="proof-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L20 6V12C20 17 16.6 20.1 12 21C7.4 20.1 4 17 4 12V6Z"/><path d="M8.5 12L11 14.5L16 9.5"/></svg></span><div><b>Read-only conversion</b><span>Your imported pickit is never changed</span></div></div>
+      <div class="proof-item"><span class="proof-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7A4 4 0 0 1 16 7V10"/></svg></span><div><b>Everything stays local</b><span>No pickit is uploaded anywhere</span></div></div>
     </div>
   </div>
 
@@ -624,20 +625,20 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
     </div>
   </section>
 
-  <section class="tour-section" id="tour">
+  <section class="tour-section" id="tour" aria-labelledby="tour-title">
     <div class="wrap">
-      <details class="tour-drawer" id="tourDetails">
-        <summary>
-          <span class="tour-summary"><b>Want to explore all 13 tabs?</b><span>Optional tour &middot; real running-app captures from an earlier release</span></span>
-          <span class="tour-open">Open tour</span>
-        </summary>
+      <div class="tour-drawer">
+        <div class="tour-head">
+          <div class="tour-summary"><h2 id="tour-title">Explore all 13 tabs</h2><span>Real running-app captures from an earlier release</span></div>
+          <span class="tour-always">App tour</span>
+        </div>
         <div class="tour-body">
           <div class="tour-frame">
-            <img id="tourImage" src="shots/02-preview.png" data-animated-src="pickit-tour.webp" width="1624" height="941" loading="lazy" decoding="async" alt="Earlier-release Pickit Generator Preview screen; opening the tour animates through all 13 tabs">
+            <img id="tourImage" src="shots/02-preview.png" data-animated-src="pickit-tour.webp" width="1624" height="941" loading="lazy" decoding="async" alt="Tour through all 13 tabs using real running-app captures from an earlier release">
           </div>
           <div class="tour-caption"><strong>Every frame is a real capture &middot; earlier release</strong><span><a href="pickit-tour.webp" target="_blank" rel="noopener">Open the full tour in a new tab</a></span></div>
         </div>
-      </details>
+      </div>
     </div>
   </section>
 
@@ -719,11 +720,11 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
       <p class="fineprint">Not affiliated with Grinding Gear Games or Exiled Bot.</p>
     </div>
     <div class="footer-links">
-      <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest">Releases</a>
-      <a href="https://github.com/c4Luffy/poe2-pickit-generator">Source</a>
-      <a href="https://github.com/c4Luffy/poe2-pickit-generator/blob/main/CHANGELOG.md">Changelog</a>
-      <a href="https://discord.gg/T7DU3Afve6">Discord</a>
-      <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
+      <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/latest"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V21H3V8"/><path d="M1 3H23V8H1Z"/><path d="M10 12H14"/></svg><span>Releases</span></a>
+      <a href="https://github.com/c4Luffy/poe2-pickit-generator"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><path d="M6 7V17"/><path d="M18 7V9A4 4 0 0 1 14 13H10A4 4 0 0 0 6 17"/></svg><span>Source</span></a>
+      <a href="https://github.com/c4Luffy/poe2-pickit-generator/blob/main/CHANGELOG.md"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8Z"/><path d="M14 2V8H20"/><path d="M8 13H16M8 17H14"/></svg><span>Changelog</span></a>
+      <a href="https://discord.gg/T7DU3Afve6"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M19.54 5.34A17.3 17.3 0 0 0 15.26 4a11.8 11.8 0 0 0-.55 1.13 16 16 0 0 0-5.42 0A11.8 11.8 0 0 0 8.74 4a17.4 17.4 0 0 0-4.29 1.34C1.74 9.38 1 13.32 1.37 17.2a17.5 17.5 0 0 0 5.25 2.66c.43-.58.81-1.2 1.14-1.85-.63-.24-1.24-.54-1.82-.88l.45-.35c3.51 1.63 7.32 1.63 10.79 0l.45.35c-.58.34-1.19.64-1.82.88.33.65.71 1.27 1.14 1.85a17.4 17.4 0 0 0 5.25-2.66c.44-4.5-.75-8.4-2.66-11.86ZM8.52 14.81c-1.06 0-1.93-.98-1.93-2.18s.85-2.18 1.93-2.18 1.95.99 1.93 2.18c0 1.2-.85 2.18-1.93 2.18Zm6.96 0c-1.06 0-1.93-.98-1.93-2.18s.85-2.18 1.93-2.18 1.95.99 1.93 2.18c0 1.2-.85 2.18-1.93 2.18Z"/></svg><span>Discord</span></a>
+      <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7V13"/><path d="M12 17H12.01"/></svg><span>Issues</span></a>
     </div>
   </div>
 </footer>
@@ -770,15 +771,23 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
     }
   }
 
-  var tourDetails=document.getElementById("tourDetails");
   var tourImage=document.getElementById("tourImage");
-  if(tourDetails&&tourImage&&!reduced){
-    tourDetails.addEventListener("toggle",function(){
-      if(tourDetails.open&&tourImage.dataset.animatedSrc){
-        tourImage.src=tourImage.dataset.animatedSrc;
-        delete tourImage.dataset.animatedSrc;
-      }
-    });
+  if(tourImage&&!reduced&&tourImage.dataset.animatedSrc){
+    var loadTour=function(){
+      tourImage.src=tourImage.dataset.animatedSrc;
+      delete tourImage.dataset.animatedSrc;
+    };
+    if("IntersectionObserver" in window){
+      var tourObserver=new IntersectionObserver(function(entries){
+        if(entries.some(function(entry){return entry.isIntersecting;})){
+          loadTour();
+          tourObserver.disconnect();
+        }
+      },{rootMargin:"180px 0px",threshold:.01});
+      tourObserver.observe(tourImage);
+    }else{
+      loadTour();
+    }
   }
 
   fetch("https://api.github.com/repos/c4Luffy/poe2-pickit-generator/releases/tags/v4.35.2",{headers:{Accept:"application/vnd.github+json"}})
