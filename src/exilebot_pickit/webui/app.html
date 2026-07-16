@@ -2121,14 +2121,23 @@ async function loadEco(){
   else st.classList.remove("on");
   if(!ecoCat&&eco.cats&&eco.cats.length)ecoCat=eco.cats[0].key;   // empty cats would crash
   renderChips();renderEco();
-  $("ecoInfo").textContent=`1 div = ${eco.divine_rate} ex`;
+  $("ecoInfo").textContent="";   // rate lives in the top-right badge only — it was shown twice
   $("ecoRateV").textContent=`${eco.divine_rate} ex`;$("ecoRate").style.display="flex";}
 // Returns HTML (single call site, inside an innerHTML template): the unit gets
 // its own span so it can be tinted gold, mockup-style.
+// Values from 10K up abbreviate (2.27M ex) with the exact number on hover —
+// a wall of seven-digit prices was unreadable in the table.
+const _abbrVal=x=>{x=Math.round(x);
+  if(x>=1e6)return (x/1e6).toFixed(x>=1e7?0:2)+"M";
+  if(x>=1e4)return (x/1e3).toFixed(x>=1e5?0:1)+"K";
+  return x.toLocaleString();};
+const _valCell=(n,unit)=>{const r=Math.round(n);
+  return (r>=1e4?`<span title="${r.toLocaleString()} ${unit}">${_abbrVal(n)}</span>`
+                :n.toLocaleString())+`<span class="u">${unit}</span>`;};
 function fmtVal(ex){
   if(ecoUnit==="div"&&divRate>1)return (ex/divRate).toFixed(2)+'<span class="u">div</span>';
-  if(ecoUnit==="chaos"&&chaosEx>0)return Math.round(ex/chaosEx).toLocaleString()+'<span class="u">c</span>';
-  return ex.toLocaleString()+'<span class="u">ex</span>';}
+  if(ecoUnit==="chaos"&&chaosEx>0)return _valCell(Math.round(ex/chaosEx),"c");
+  return _valCell(ex,"ex");}
 document.querySelectorAll("#unitChips .chip").forEach(c=>c.onclick=()=>{
   document.querySelectorAll("#unitChips .chip").forEach(x=>x.classList.remove("on"));
   c.classList.add("on");ecoUnit=c.dataset.u;eco&&renderEco();});
