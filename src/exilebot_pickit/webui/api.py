@@ -55,6 +55,13 @@ class AppApi:
         self.cfg = load_config()
         gen.set_disk_cache_dir(PRICE_CACHE_DIR)
         gen.prune_disk_cache(max_age_days=60)
+        # latest.ipd was an always-same-name duplicate of the output pickit that
+        # nothing ever read — users opening the folder couldn't tell which file
+        # their bot needed. We stopped writing it; remove any stale copy.
+        try:
+            os.remove(os.path.join(OUTPUT_DIR, "latest.ipd"))
+        except OSError:
+            pass
         # Self-updating game data (new bases / unique categories from the repo):
         # cached copy synchronously, fresh copy in the background — same as Tk.
         try:
@@ -1023,6 +1030,93 @@ class AppApi:
         save_config(self.cfg)
         return {"ok": True, "applied": applied, "info": self.app_info()}
 
+    # ── From my pickit: any .ipd → matching in-game loot filter ──────────────
+
+    def import_pickit_choose(self):
+        """File picker for the From-my-pickit tab. Starts in the bot's pickit
+        folder when one is configured — the user's .ipd usually lives there.
+        The chosen file is only ever read, never modified."""
+        import webview
+        w = webview.windows[0]
+        kw = {"file_types": ("Exiled Bot pickit (*.ipd)", "All files (*.*)")}
+        bot = (self.cfg.get("bot_folder") or "").strip()
+        if bot and os.path.isdir(bot):
+            kw["directory"] = bot
+        res = w.create_file_dialog(webview.OPEN_DIALOG, **kw)
+        if not res:
+            return {"cancelled": True}
+        return {"path": str(res[0] if isinstance(res, (list, tuple)) else res)}
+
+    def import_pickit_convert(self, path, hide_rest=False):
+        """Read a pickit file and convert it to loot-filter lines + a report."""
+        from exilebot_pickit.generators.pickit_import import convert_pickit_text
+        path = str(path or "").strip()
+        if not path or not os.path.isfile(path):
+            return {"error": "That file doesn't exist any more."}
+        try:
+            if os.path.getsize(path) > 5 * 1024 * 1024:
+                return {"error": "That file is over 5 MB — not a pickit."}
+            with open(path, encoding="utf-8-sig", errors="replace") as f:
+                text = f.read()
+        except OSError as e:
+            return {"error": f"Couldn't read the file: {e}"}
+        res = convert_pickit_text(text, hide_rest=bool(hide_rest),
+                                  source_name=os.path.basename(path))
+        self._import_filter_text = ("\n".join(res["filter_lines"]) + "\n"
+                                    if res["ok"] else "")
+        self._import_filter_name = (
+            os.path.splitext(os.path.basename(path))[0] + ".filter")
+        self._import_src_path = path
+        out = {"ok": res["ok"], "report": res["report"],
+               "name": os.path.basename(path)}
+        if res["ok"]:
+            out["preview"] = "\n".join(res["filter_lines"][:120])
+            out["lines"] = len(res["filter_lines"])
+        return out
+
+    def import_pickit_save(self):
+        """Save the converted filter; the dialog starts in the PoE2 client
+        filter folder so the game sees it right after."""
+        import webview
+        if not getattr(self, "_import_filter_text", ""):
+            return {"error": "Convert a pickit first."}
+        w = webview.windows[0]
+        fdir = (self.cfg.get("poe2_filter_dir") or "").strip() or _default_dir()
+        kw = {"save_filename": getattr(self, "_import_filter_name", "my_pickit.filter")}
+        if fdir and os.path.isdir(fdir):
+            kw["directory"] = fdir
+        path = w.create_file_dialog(webview.SAVE_DIALOG, **kw)
+        if not path:
+            return {"cancelled": True}
+        if isinstance(path, (list, tuple)):
+            path = path[0]
+        try:
+            gen.write_text_atomic(str(path), self._import_filter_text)
+        except OSError as e:
+            return {"error": f"Couldn't save: {e}"}
+        # Remember the conversion so the tab can warn when the source pickit
+        # changes after this save (the filter would silently drift stale).
+        self.cfg["filter_from_pickit"] = {
+            "src": getattr(self, "_import_src_path", ""),
+            "out": str(path), "at": time.time()}
+        save_config(self.cfg)
+        self._log(f"✓ Filter created from pickit: {os.path.basename(str(path))}")
+        return {"ok": True, "path": str(path)}
+
+    def import_pickit_status(self):
+        """Stale check for the Create-your-filter tab: has the source pickit
+        changed since the filter was saved from it?"""
+        info = self.cfg.get("filter_from_pickit") or {}
+        src, at = info.get("src") or "", info.get("at") or 0
+        if not src or not at or not os.path.isfile(src):
+            return {"stale": False}
+        try:
+            stale = os.path.getmtime(src) > float(at) + 1
+        except (OSError, ValueError):
+            return {"stale": False}
+        return {"stale": bool(stale), "src": os.path.basename(src),
+                "out": os.path.basename(info.get("out") or ""), "path": src}
+
     def list_backups(self):
         """Rotated .ipd backups (newest first) for the Settings restore picker."""
         base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
@@ -1060,7 +1154,6 @@ class AppApi:
             shutil.copy2(src, ipd)
             with open(ipd, encoding="utf-8") as f:
                 content = f.read()
-            gen.write_text_atomic(os.path.join(OUTPUT_DIR, "latest.ipd"), content)
             self._last_lines = content.splitlines()   # Preview shows the restored file
             copied = False
             bot = (self.cfg.get("bot_folder") or "").strip()
@@ -1569,7 +1662,6 @@ class AppApi:
                     self._log("✗ Backup rotation failed (continuing)")
             content = "\n".join(out)
             gen.write_text_atomic(ipd, content)
-            gen.write_text_atomic(os.path.join(OUTPUT_DIR, "latest.ipd"), content)
             flt = os.path.join(OUTPUT_DIR, base + ".filter")
             gen.write_text_atomic(flt, "\n".join(gen.build_loot_filter(out)))
             self._log(f"Wrote {os.path.basename(ipd)} + .filter")

@@ -6,6 +6,36 @@ download lives.
 
 ---
 
+## [v4.35.0] — 2026-07-16 — Create your filter: any pickit becomes an in-game loot filter
+
+New tab: **📥 Create your filter**. Bring *any* Exiled Bot pickit — hand-made, from a
+friend, from another tool, months of manual tuning — pick the file, and the app writes
+a loot filter the game understands. What your bot would grab is what you see highlighted
+on the ground. The pickit is only read, never changed, and nothing leaves your PC.
+
+- **An honest report, not magic.** After reading your file it tells you exactly what it
+  understood: rules read, converted, "shown wider" (rules that check mods or tiers only
+  the bot can see — those items still get a label, just without that check), and the
+  rare rule a filter genuinely can't express, listed with its line number and why.
+- **Hide means hide.** "Hide everything else" is ON by default — your screen shows only
+  what your pickit wants (plus gold, which is never hidden: bots grab it regardless of
+  any pickit). If a rule couldn't be translated, you get a loud warning instead of a
+  silent surprise. Turn it OFF while botting — hidden labels can stall the bot's pickup.
+- **Styled like it matters.** Named items get a gold border and a minimap dot; uniques
+  show in their orange with a light beam and a minimap star; gear rules stay quiet.
+- **It notices drift.** If your pickit changes after the filter was made, the tab warns
+  you the next time you open it — one click reloads the file so you can re-save.
+- Category rules translate properly (`Ring` → `Class == "Rings"`, flasks, waystones,
+  every armour and weapon class) — each class name verified against NeverSink's live
+  filter, because a wrong name would silently match nothing.
+
+Also in this release:
+
+- **The output folder no longer has two identical pickits.** `latest.ipd` was a
+  leftover duplicate that nothing actually read — users couldn't tell which file their
+  bot needed. It's gone (the app cleans up the old copy at launch); the folder is now
+  just your pickit, the optional `.filter`, and `backups/`.
+
 ## [v4.34.0] — 2026-07-16 — Deep-scan release: 14 fixes from a full-code audit
 
 A multi-angle audit of every file in the project, with every finding verified against
@@ -1370,6 +1400,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.35.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.0
 [v4.34.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.34.0
 [v4.33.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.33.0
 [v4.32.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.32.4

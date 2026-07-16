@@ -826,3 +826,29 @@ def test_output_base_is_sanitized_against_paths_and_reserved_chars(api):
     assert api.cfg["output_base"] == "a_b_c"
     api.set_setting("output_base", "...")
     assert api.cfg["output_base"] == "poe2_pickit"    # nothing left -> default
+
+
+def test_import_pickit_status_stale_detection(api, tmp_path):
+    """Create-your-filter: the tab warns when the source pickit changed after
+    the filter was saved from it (and stays quiet in every other state)."""
+    src = tmp_path / "mine.ipd"
+    src.write_text('[Type] == "Divine Orb" # [StashItem] == "true"', encoding="utf-8")
+
+    # nothing remembered -> never stale
+    assert api.import_pickit_status() == {"stale": False}
+
+    # saved AFTER the pickit's mtime -> fresh
+    api.cfg["filter_from_pickit"] = {"src": str(src), "out": "mine.filter",
+                                     "at": os.path.getmtime(src) + 60}
+    assert api.import_pickit_status()["stale"] is False
+
+    # pickit edited AFTER the save -> stale, with names for the banner
+    api.cfg["filter_from_pickit"]["at"] = os.path.getmtime(src) - 60
+    st = api.import_pickit_status()
+    assert st["stale"] is True
+    assert st["src"] == "mine.ipd" and st["out"] == "mine.filter"
+    assert st["path"] == str(src)
+
+    # source pickit deleted -> quiet, not a crash
+    src.unlink()
+    assert api.import_pickit_status() == {"stale": False}

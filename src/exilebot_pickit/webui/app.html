@@ -771,6 +771,7 @@
   <div class="nav-btn" data-p="prev">📜 Preview</div>
   <div class="nav-btn" data-p="item">🔍 Item Check</div>
   <div class="nav-btn" data-p="hist">🕰️ History</div>
+  <div class="nav-btn" data-p="mypk">📥 Create your filter</div>
   </div>
   <div class="nav-groups">
     <button class="nav-grp" data-g="tune">Loot Rules</button>
@@ -1277,6 +1278,48 @@
   <div id="ickOut" style="margin-top:14px"></div>
 </div>
 
+<!-- ══ FROM MY PICKIT ══ -->
+<div class="page" id="p-mypk">
+  <h1>Create your filter</h1>
+  <div class="sub">Turn any Exiled Bot pickit into a matching in-game loot filter — yours, a friend's, hand-made. The pickit is only read, never changed.</div>
+  <div class="banner warn" id="mypkStale" style="display:none"></div>
+
+  <div class="card">
+    <h2>1 · Choose the pickit</h2>
+    <div class="hint">Any <b>.ipd</b> file works — it doesn't have to come from this app. If your bot is connected, the picker opens right in its pickit folder.</div>
+    <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+      <button class="primary" id="mypkChoose">📂 Choose pickit…</button>
+      <span class="hint" style="margin:0;user-select:text" id="mypkFile">No file loaded.</span>
+    </div>
+  </div>
+
+  <div class="card" id="mypkResult" style="margin-top:14px;display:none">
+    <h2>2 · What the app understood</h2>
+    <div class="stats" style="grid-template-columns:repeat(4,1fr);margin:10px 0 4px">
+      <div class="stat"><b id="mypkRules">–</b><span>rules read</span></div>
+      <div class="stat"><b id="mypkConv">–</b><span>converted</span></div>
+      <div class="stat"><b id="mypkWide">–</b><span>shown wider</span></div>
+      <div class="stat"><b id="mypkSkip">–</b><span>can't translate</span></div>
+    </div>
+    <div class="hint" id="mypkWideHint" style="display:none">“Shown wider” rules check things only the bot can see (mods, tiers, values). The filter still shows those items — just without that check — so nothing the pickit wants is ever missing a label.</div>
+    <div class="banner warn" id="mypkWarn" style="display:none;cursor:default"></div>
+    <div id="mypkSkipList" style="display:none"></div>
+    <div class="set-row" style="margin-top:10px"><div class="lab"><b>Hide everything else in game</b>
+      <span>ON = clean screen, only your pickit's items show. ⚠ Turn OFF while botting — hidden labels can stall the bot's pickup.</span></div><div class="sp"></div>
+      <div class="switch on" id="mypkHide"><i></i></div></div>
+    <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+      <button class="primary" id="mypkSave">💾 Save filter</button>
+      <span class="hint" style="margin:0;user-select:text" id="mypkSaved"></span>
+    </div>
+    <div class="hint" style="margin-top:8px">Last step is in the game: <b>Options → Game → Filters</b> → pick your new filter. PoE2 only reads a filter after you select it.</div>
+  </div>
+
+  <div class="card" style="margin-top:14px;display:none" id="mypkPrevCard">
+    <h2>Filter preview</h2>
+    <pre id="mypkPreview" style="user-select:text;cursor:text;max-height:36.4vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word"></pre>
+  </div>
+</div>
+
 <!-- ══ SETTINGS ══ -->
 <!-- ══ SETUP GUIDE ══ -->
 <div class="page" id="p-guide">
@@ -1505,7 +1548,7 @@ function logLine(m,c){
 /* ── nav + theme ── */
 // Left rail: 3 section headers, every tab always visible beneath its header.
 // Clicking a header jumps to that section's last-used tab.
-const NAV_GROUPS={gen:"cockpit",prev:"cockpit",item:"cockpit",hist:"cockpit",
+const NAV_GROUPS={gen:"cockpit",prev:"cockpit",item:"cockpit",hist:"cockpit",mypk:"cockpit",
                   eco:"tune",chance:"tune",craft:"tune",exc:"tune",fracture:"tune",rare:"tune",
                   guide:"system",set:"system",dbg:"system"};
 const _lastTab={cockpit:"gen",tune:"eco",system:"set"};
@@ -1531,6 +1574,7 @@ function openPage(p){
     ickAutoPaste();                     // Ctrl+C in game, click the tab — that's it
   }
   if(p==="hist")loadHistory();
+  if(p==="mypk")mypkStatus();
   if(p==="set"){renderSetNav();loadBackups();loadBotConn();}
   if(p==="dbg"){loadDebug();_errCount=0;bumpErrBadge(0);}   // opened it — badge acknowledged
 }
@@ -3222,6 +3266,59 @@ $("prevBox").addEventListener("click",e=>{
 $("prevFilter").addEventListener("input",renderPreview);
 
 /* ── settings ── */
+/* ── From my pickit: any .ipd → matching loot filter ── */
+let mypkPath="";
+async function mypkConvert(){
+  if(!mypkPath)return;
+  const hide=$("mypkHide").classList.contains("on");
+  const r=await api().import_pickit_convert(mypkPath,hide);
+  if(r.error){toast(r.error);return;}
+  $("mypkResult").style.display="";
+  const rep=r.report;
+  $("mypkRules").textContent=rep.rules;
+  $("mypkConv").textContent=rep.converted;
+  $("mypkWide").textContent=rep.widened;
+  $("mypkSkip").textContent=rep.untranslatable_total;
+  $("mypkWideHint").style.display=rep.widened?"":"none";
+  const warn=$("mypkWarn");
+  if(!r.ok){warn.style.display="";warn.textContent="Nothing in that file could be converted — is it really an Exiled Bot pickit?";}
+  else if(rep.hide_risky){warn.style.display="";warn.textContent=`⚠ Hide is ON and ${rep.untranslatable_total} rule(s) can't be expressed in a filter — items only those rules match will be HIDDEN in game (the bot still picks them up).`;}
+  else warn.style.display="none";
+  const sk=$("mypkSkipList");
+  if(rep.untranslatable&&rep.untranslatable.length){
+    sk.style.display="";
+    sk.innerHTML="<div class='hint' style='margin-top:8px'>Rules the filter can't express (your bot still uses them — they're only missing from the filter):</div>"+
+      rep.untranslatable.map(u=>`<div class="hint" style="margin:2px 0 0">· line ${u.line}: <span style="opacity:.8">${esc(u.text)}</span> — ${esc(u.reason)}</div>`).join("");
+  }else sk.style.display="none";
+  $("mypkSave").disabled=!r.ok;
+  if(r.ok){$("mypkPrevCard").style.display="";
+    $("mypkPreview").textContent=r.preview+(r.lines>120?`\n… (${r.lines-120} more lines)`:"");}
+  else $("mypkPrevCard").style.display="none";
+}
+$("mypkChoose").onclick=async()=>{
+  const c=await api().import_pickit_choose();
+  if(!c||!c.path)return;
+  mypkPath=c.path;$("mypkFile").textContent=c.path;$("mypkSaved").textContent="";
+  await mypkConvert();
+};
+$("mypkHide").onclick=async()=>{$("mypkHide").classList.toggle("on");await mypkConvert();};
+$("mypkSave").onclick=async()=>{
+  const r=await api().import_pickit_save();
+  if(r.error){toast(r.error);return;}
+  if(r.cancelled)return;
+  $("mypkSaved").textContent="Saved: "+r.path;toast("Filter saved");
+  $("mypkStale").style.display="none";
+};
+async function mypkStatus(){
+  const r=await api().import_pickit_status();const b=$("mypkStale");
+  if(r&&r.stale){
+    b.style.display="";
+    b.textContent=`⚠ ${r.src} changed since ${r.out} was made from it — click here to load it again, then re-save.`;
+    b.onclick=async()=>{mypkPath=r.path;$("mypkFile").textContent=r.path;
+      $("mypkSaved").textContent="";b.style.display="none";await mypkConvert();};
+  }else b.style.display="none";
+}
+
 function sw(id,key,cur){const el=$(id);el.classList.toggle("on",cur);
   el.onclick=async()=>{const on=!el.classList.contains("on");
     el.classList.toggle("on",on);await api().set_setting(key,on);toast("Saved");};}

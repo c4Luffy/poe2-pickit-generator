@@ -1225,11 +1225,6 @@ def main():
     content = "\n".join(output_lines)
     write_text_atomic(args.output, content)
 
-    # ── Also write latest.ipd beside the output file ──────────────────────────
-    out_dir  = os.path.dirname(os.path.abspath(args.output)) or "."
-    latest   = os.path.join(out_dir, "latest.ipd")
-    write_text_atomic(latest, content)
-
     # ── Write CSV item report ─────────────────────────────────────────────────
     csv_path = os.path.splitext(args.output)[0] + "_items.csv"
     write_text_atomic(csv_path, build_csv_report(report_rows), newline="")
@@ -1241,7 +1236,6 @@ def main():
     active    = sum(1 for l in output_lines if l and not l.startswith("//") and "[StashItem]" in l)
     commented = sum(1 for l in output_lines if l.startswith("//") and "[StashItem]" in l)
     print(f"Written to   : {args.output}")
-    print(f"Latest copy  : {latest}")
     print(f"Item report  : {csv_path}")
     print(f"Loot filter  : {filter_path}")
     print(f"Active rules : {active}   Commented out: {commented}")

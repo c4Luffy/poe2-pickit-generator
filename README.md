@@ -14,10 +14,10 @@ deploys it, and confirms Exiled Bot 2 is listening to the same profile.
 
 <br>
 
-[![Download for Windows](https://img.shields.io/badge/Download_for_Windows-d2a24f?style=for-the-badge&logo=windows&logoColor=181104)](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.34.0/ExileBot2PickitGenerator.exe)
+[![Download for Windows](https://img.shields.io/badge/Download_for_Windows-d2a24f?style=for-the-badge&logo=windows&logoColor=181104)](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.0/ExileBot2PickitGenerator.exe)
 [![Open website](https://img.shields.io/badge/Open_website-79bd62?style=for-the-badge&logo=githubpages&logoColor=10200c)](https://c4luffy.github.io/poe2-pickit-generator/)
 
-[![Release v4.34.0](https://img.shields.io/badge/release-v4.34.0-c99a4a?labelColor=171411)](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.34.0)
+[![Release v4.35.0](https://img.shields.io/badge/release-v4.35.0-c99a4a?labelColor=171411)](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.0)
 [![Total downloads](https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?color=829d78&labelColor=171411)](https://github.com/c4Luffy/poe2-pickit-generator/releases)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%20%2F%2011-6e6255?logo=windows&logoColor=white)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
 [![MIT license](https://img.shields.io/badge/license-MIT-6e6255)](LICENSE)
@@ -27,7 +27,7 @@ deploys it, and confirms Exiled Bot 2 is listening to the same profile.
 > [!IMPORTANT]
 > **Using v4.20.0 or v4.21.0? Update manually once.** The updater in those two
 > releases is broken and may show an error or reopen the old app. Close
-> it, **[download v4.34.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.34.0/ExileBot2PickitGenerator.exe)**,
+> it, **[download v4.35.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.0/ExileBot2PickitGenerator.exe)**,
 > then open the new file. Your settings, profiles, and Exiled Bot folder stay
 > unchanged. Future in-app updates will work normally.
 
@@ -56,7 +56,7 @@ in-game loot filter can be generated alongside it.
 
 ## Quick start
 
-**[Download the v4.34.0 portable Windows app](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.34.0/ExileBot2PickitGenerator.exe)**
+**[Download the v4.35.0 portable Windows app](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.0/ExileBot2PickitGenerator.exe)**
 and open it. Before your first Generate, the four-step wizard appears
 automatically:
 
@@ -111,6 +111,9 @@ choose **Check this item**.
 - **Errors surface in-app:** a badge on the Debug tab counts anything that goes
   wrong, and **Report a problem** pre-fills a GitHub issue with your
   diagnostics for review before sending.
+- **Create your filter:** turn *any* Exiled Bot pickit into a matching in-game
+  loot filter — styled labels, an honest conversion report, and a warning when
+  the pickit changes afterwards.
 - **Changed filter and run history** so market-driven differences are visible.
 - **Best-effort bot-folder detection** with manual selection when needed.
 - **Backups before replacement** with restore support.
@@ -120,25 +123,28 @@ choose **Check this item**.
 - **Multi-unit pricing** that reads exalt, divine, and chaos values.
 - **Portable single-file app:** no installer and no Python required.
 
-## Latest release: [v4.34.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.34.0)
+## Latest release: [v4.35.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.0)
 
-### Stability deep-scan and one-click problem reports
+### Create your filter — any pickit becomes an in-game loot filter
 
-A full-code audit produced **14 verified fixes**. Nothing about rule
-generation changed — this release makes the app around it solid: the window
-finally remembers its size and position, **Reset to defaults** truly resets,
-settings can no longer be silently dropped mid-save or lost to config
-corruption, and the pickit is copied into the bot folder atomically, so the
-bot can never read a half-written file.
+New tab: **📥 Create your filter**. Bring *any* Exiled Bot pickit — hand-made,
+a friend's, another tool's — pick the file, and the app writes a loot filter
+that matches it: the items your pickit targets are the items you see
+highlighted on the ground. The pickit is only read, never changed, and
+nothing leaves your PC.
 
-- **🐛 Report a problem** (Debug tab) opens a GitHub issue with your
-  diagnostics pre-filled — you review it, you send it. No hidden telemetry.
-- A badge on the Debug tab now counts errors the moment they happen, front-end
-  or back (v4.33.0).
-- Value floors are now set in exalts with a live drag slider; a reference line
-  shows the chaos/divine equivalent as you move it (v4.30–v4.32).
-- Flaky poe.ninja responses (corrupt or cut-off downloads) are retried instead
-  of failing the generate.
+- **An honest report:** rules read, converted, "shown wider" (checks only the
+  bot can see — those items still get a label), and anything a filter truly
+  can't express, listed with its line and the reason.
+- **Hide means hide:** "Hide everything else" is ON by default for a clean
+  screen — gold is never hidden, and you get a loud warning if any rule
+  couldn't be translated. Turn it OFF while botting.
+- **Styled labels:** gold borders and minimap dots for named items; uniques in
+  their orange with a light beam and a minimap star.
+- **Drift warning:** if the pickit changes after the filter was made, the tab
+  tells you and reloads it in one click.
+- The output folder no longer holds two identical pickits — the unused
+  `latest.ipd` duplicate is gone.
 
 > [!IMPORTANT]
 > **Item Check is not a simulation.** It uses the same pickit-generation code
@@ -155,7 +161,7 @@ because the executable is not code-signed.
 
 - The complete source and release workflow are public.
 - Every release includes a
-  **[SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.34.0/SHA256SUMS.txt)**.
+  **[SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.0/SHA256SUMS.txt)**.
 - The app reads public price data from poe.ninja and update data from GitHub.
 - It never asks for your Path of Exile account.
 

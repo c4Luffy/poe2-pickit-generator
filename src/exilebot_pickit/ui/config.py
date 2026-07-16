@@ -126,6 +126,10 @@ DEFAULT_CONFIG = {
     # client folder. Bot users should leave it off.
     "copy_filter_to_game": False,
     "poe2_filter_dir": "",
+    # Create-your-filter tab: the last pickit→filter conversion, so the app can
+    # warn when the source pickit changed after the filter was saved.
+    # {"src": pickit path, "out": filter path, "at": unix time saved}
+    "filter_from_pickit": {},
 }
 
 
