@@ -1,26 +1,27 @@
 <div align="center">
 
-<img src="docs/logo.png" width="112" alt="PoE 2 Pickit Generator logo">
-
 # PoE 2 Pickit Generator
 
 ### for Exiled Bot 2
 
-**Live PoE2 prices in. A validated, bot-ready pickit out.**
+**Live PoE 2 prices in. A validated, bot-ready pickit out.**
 
 Choose your league and how greedy the bot should be. The app turns today's
 [poe.ninja](https://poe.ninja) economy into a complete pickit, validates it,
 deploys it, and confirms Exiled Bot 2 is listening to the same profile.
 
-<br>
+## [⬇&nbsp;&nbsp;Download v4.35.2 for Windows](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.2/ExileBot2PickitGenerator.exe)
 
-[![Download for Windows](https://img.shields.io/badge/Download_for_Windows-d2a24f?style=for-the-badge&logo=windows&logoColor=181104)](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.2/ExileBot2PickitGenerator.exe)
-[![Open website](https://img.shields.io/badge/Open_website-79bd62?style=for-the-badge&logo=githubpages&logoColor=10200c)](https://c4luffy.github.io/poe2-pickit-generator/)
+**Free · portable single-file `.exe` · no installer, no Python, no account**
 
 [![Release v4.35.2](https://img.shields.io/badge/release-v4.35.2-c99a4a?labelColor=171411)](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.2)
 [![Total downloads](https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?color=829d78&labelColor=171411)](https://github.com/c4Luffy/poe2-pickit-generator/releases)
-[![Windows 10/11](https://img.shields.io/badge/Windows-10%20%2F%2011-6e6255?logo=windows&logoColor=white)](https://github.com/c4Luffy/poe2-pickit-generator/releases/latest)
 [![MIT license](https://img.shields.io/badge/license-MIT-6e6255)](LICENSE)
+
+[Website](https://c4luffy.github.io/poe2-pickit-generator/) ·
+[Discord](https://discord.gg/T7DU3Afve6) ·
+[Changelog](CHANGELOG.md) ·
+[Issues](https://github.com/c4Luffy/poe2-pickit-generator/issues)
 
 </div>
 
@@ -31,28 +32,36 @@ deploys it, and confirms Exiled Bot 2 is listening to the same profile.
 > then open the new file. Your settings, profiles, and Exiled Bot folder stay
 > unchanged. Future in-app updates will work normally.
 
-<div align="center">
+## What it writes
 
-<br>
+Every Generate produces 2,000+ real Exiled Bot 2 rules, priced for your league
+today:
 
-<a href="docs/shots/03-item-check.png">
-  <img src="docs/shots/03-item-check.png" width="1000" alt="Item Check showing Try an example and a depends-on-the-rolls verdict for a pasted rare item">
-</a>
-
-<sub>Real running-app capture · Item Check in an earlier release</sub>
-
-</div>
-
-## What it does
-
-| Live market intelligence | Explainable, validated rules | Reliable bot handoff |
-|---|---|---|
-| Reads current league prices instead of shipping a frozen price list. | Checks stat IDs before deploy; Item Check then applies those same generated rules to the item copied in game. | The first-run wizard finds the bot, copies the output, reads <code>pickit.ini</code>, and confirms the active profile. |
-| Five presets plus editable floors and Auto-floor. | Reports Picked up, Ignored, or Depends on the rolls, with the deciding rule and an actionable explanation. | Offers one-click profile repair, rotating backups, and restore. |
+```text
+// PoE 2 pickit — generated from live poe.ninja prices
+[Type] == "Divine Orb" # [StashItem] == "true"
+[Type] == "Stellar Amulet" && [Rarity] == "Normal" && [ItemLevel] >= "82" # [StashItem] == "true"
+[Type] == "Heavy Belt" && [Rarity] == "Unique" # [UniqueName] == "Headhunter" && [StashItem] == "true"
+[Category] == "Waystone" && [WaystoneTier] >= "10" # [StashItem] == "true"
+// …and 2,000+ more, validated before they reach the bot
+```
 
 The generated pickit covers currency, uniques, bases, runes, essences,
 fragments, tablets, maps, waystones, rare gear, and more. An optional matching
 in-game loot filter can be generated alongside it.
+
+## What it does
+
+- **Live market intelligence** — reads current league prices instead of
+  shipping a frozen price list. Five presets plus editable floors and
+  Auto-floor.
+- **Explainable, validated rules** — checks stat IDs before deploy; Item Check
+  then applies those same generated rules to the item copied in game and
+  reports Picked up, Ignored, or Depends on the rolls, with the deciding rule
+  and an actionable explanation.
+- **Reliable bot handoff** — the first-run wizard finds the bot, copies the
+  output, reads `pickit.ini`, and confirms the active profile. One-click
+  profile repair, rotating backups, and restore.
 
 ## Quick start
 
@@ -78,14 +87,14 @@ Need to explain a specific drop? Hover it in game, press **Ctrl+C**, then open
 choose **Check this item**.
 
 > [!NOTE]
-> Exiled Bot only loads the <code>.ipd</code> named by <code>active_profile</code>.
+> Exiled Bot only loads the `.ipd` named by `active_profile`.
 > A copied file can exist while the bot keeps reading an older profile. The
 > connection check catches that silent mismatch.
 
 > [!NOTE]
 > After every Generate, reselect the optional in-game filter under
 > **Options → Game → Filters**. PoE 2 only reads it when selected. Exiled Bot
-> users can ignore this step because the bot reads the <code>.ipd</code> directly.
+> users can ignore this step because the bot reads the `.ipd` directly.
 
 ## Built for real runs
 
@@ -154,7 +163,7 @@ nothing leaves your PC.
 
 > [!IMPORTANT]
 > **Item Check is not a simulation.** It uses the same pickit-generation code
-> that writes the <code>.ipd</code> file and shows the exact line emitted for the
+> that writes the `.ipd` file and shows the exact line emitted for the
 > pasted item. For the same current settings, the tab and the generated file
 > cannot disagree.
 
@@ -178,15 +187,19 @@ because the executable is not code-signed.
 
 <br>
 
-<pre><code>python -m pip install -e .
-python -m exilebot_pickit</code></pre>
+```bash
+python -m pip install -e .
+python -m exilebot_pickit
+```
 
-<pre><code>python -m pip install pytest ruff
+```bash
+python -m pip install pytest ruff
 python -m pytest -q
-ruff check .</code></pre>
+ruff check .
+```
 
-The application code lives in <code>src/exilebot_pickit/</code>. Push a
-<code>vX.Y.Z</code> tag and the release workflow builds the Windows executable
+The application code lives in `src/exilebot_pickit/`. Push a
+`vX.Y.Z` tag and the release workflow builds the Windows executable
 and publishes its checksum.
 
 </details>
