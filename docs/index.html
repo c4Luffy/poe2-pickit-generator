@@ -8,206 +8,200 @@
 <link rel="icon" href="logo.png">
 <meta property="og:title" content="PoE 2 Pickit Generator for Exiled Bot 2">
 <meta property="og:description" content="Start from live poe.ninja prices or bring any Exiled Bot pickit. Generate clear pickit rules and a matching in-game loot filter.">
-<meta property="og:image" content="https://c4luffy.github.io/poe2-pickit-generator/shots/01-generate.png">
-<meta property="og:image:width" content="1864">
-<meta property="og:image:height" content="951">
-<meta property="og:image:alt" content="Current v4.35.2 Pickit Generator screen showing Generate and Create your filter">
+<meta property="og:image" content="https://c4luffy.github.io/poe2-pickit-generator/logo.png">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://c4luffy.github.io/poe2-pickit-generator/">
-<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="PoE 2 Pickit Generator for Exiled Bot 2">
 <meta name="twitter:description" content="Generate from live prices or turn any .ipd pickit into a matching in-game loot filter.">
-<meta name="twitter:image" content="https://c4luffy.github.io/poe2-pickit-generator/shots/01-generate.png">
-<meta name="twitter:image:alt" content="Current v4.35.2 Pickit Generator screen showing Generate and Create your filter">
-<meta name="theme-color" content="#0b0c09">
+<meta name="theme-color" content="#0c0b09">
 <meta name="color-scheme" content="dark">
 <link rel="canonical" href="https://c4luffy.github.io/poe2-pickit-generator/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Marcellus&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
 <style>
 :root{
   color-scheme:dark;
-  --bg:#0b0c09;
-  --bg-soft:#10120e;
-  --surface:#151711;
-  --surface-2:#1a1d16;
-  --line:#303328;
-  --line-bright:#4a4e3e;
-  --text:#f4efe4;
-  --muted:#aaa99f;
-  --quiet:#85877d;
-  --gold:#d9a84f;
-  --gold-light:#f1cb7d;
-  --gold-wash:rgba(217,168,79,.11);
-  --green:#8dcc77;
-  --green-wash:rgba(141,204,119,.11);
-  --orange:#d98343;
-  --red:#df7866;
-  --red-wash:rgba(223,120,102,.09);
-  --shadow:0 30px 80px rgba(0,0,0,.42);
+  --bg:#0c0b09;
+  --bg-raise:#11100d;
+  --panel:#161511;
+  --panel-2:#1b1a15;
+  --line:#2c2a23;
+  --line-strong:#43402f;
+  --text:#f2ede1;
+  --muted:#a8a598;
+  --quiet:#807d70;
+  --gold:#e0af57;
+  --gold-soft:#f0cb84;
+  --gold-wash:rgba(224,175,87,.1);
+  --green:#96d67e;
+  --green-soft:#bfe8ad;
+  --green-wash:rgba(150,214,126,.1);
+  --red:#e08573;
+  --red-soft:#eba795;
+  --red-wash:rgba(224,133,115,.09);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;scroll-padding-top:84px;overflow-x:clip}
+html{scroll-behavior:smooth;scroll-padding-top:86px;overflow-x:clip}
 body{
   min-width:320px;
-  background:
-    radial-gradient(960px 540px at 78% -8%,rgba(217,168,79,.12),transparent 72%),
-    var(--bg);
+  background:var(--bg);
   color:var(--text);
   font:16px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   -webkit-font-smoothing:antialiased;
   overflow-x:hidden;
 }
-img{display:block;max-width:100%;height:auto}
 a{color:var(--gold);text-decoration:none}
-p a,.faq a,.fineprint a,.update-alert a,.trust-note a,.filter-note a{
-  text-decoration:underline;text-underline-offset:.18em;
-}
-a:hover{color:var(--gold-light)}
+a:hover{color:var(--gold-soft)}
+p a,.faq a,.fineprint a,.update-alert a,.trust-foot a{text-decoration:underline;text-underline-offset:.18em}
 button{font:inherit}
-.serif{font-family:"Marcellus",Georgia,serif;font-weight:400;letter-spacing:.005em}
+.disp{font-family:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;font-weight:700;letter-spacing:-.015em}
 .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.9em}
-.wrap{width:min(1180px,100%);margin:0 auto;padding-inline:clamp(18px,4vw,32px)}
+.wrap{width:min(1140px,100%);margin:0 auto;padding-inline:clamp(18px,4vw,32px)}
 .skip{
   position:fixed;top:10px;left:10px;z-index:300;transform:translateY(-160%);
   padding:9px 14px;border-radius:9px;background:var(--text);color:var(--bg);font-weight:800;
 }
 .skip:focus{transform:none}
-:focus-visible{outline:2px solid var(--gold-light);outline-offset:3px}
+:focus-visible{outline:2px solid var(--gold-soft);outline-offset:3px}
 .kicker{
-  display:flex;width:fit-content;max-width:100%;align-items:center;gap:9px;
-  color:var(--gold-light);font-size:11px;font-weight:850;letter-spacing:.16em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:9px;
+  color:var(--gold-soft);font-size:11px;font-weight:800;letter-spacing:.17em;text-transform:uppercase;
 }
-.kicker::before{content:"";width:24px;height:1px;background:currentColor}
+.kicker::before{content:"";width:22px;height:1px;background:currentColor}
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:9px;
-  min-height:48px;padding:11px 20px;border:1px solid transparent;border-radius:12px;
+  min-height:48px;padding:11px 21px;border:1px solid transparent;border-radius:11px;
   font-weight:800;font-size:14.5px;line-height:1.2;cursor:pointer;
-  transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease;
+  transition:transform .15s ease,border-color .15s ease,background .15s ease,box-shadow .15s ease;
 }
 .btn:hover{transform:translateY(-1px)}
-.btn-primary{background:var(--gold);border-color:var(--gold);color:#181207}
-.btn-primary:hover{background:var(--gold-light);border-color:var(--gold-light);color:#181207;box-shadow:0 12px 34px rgba(217,168,79,.22)}
-.btn-secondary{background:rgba(21,23,17,.72);border-color:var(--line-bright);color:var(--text)}
-.btn-secondary:hover{border-color:var(--gold);color:var(--gold-light)}
-.btn-small{min-height:43px;padding:9px 15px;font-size:13.5px;border-radius:10px}
+.btn-primary{background:var(--gold);border-color:var(--gold);color:#191307}
+.btn-primary:hover{background:var(--gold-soft);border-color:var(--gold-soft);color:#191307;box-shadow:0 12px 32px rgba(224,175,87,.2)}
+.btn-secondary{background:transparent;border-color:var(--line-strong);color:var(--text)}
+.btn-secondary:hover{border-color:var(--gold);color:var(--gold-soft)}
+.btn-small{min-height:42px;padding:9px 15px;font-size:13.5px;border-radius:9px}
 
 /* Navigation */
 .site-nav{
-  position:sticky;top:0;z-index:120;border-bottom:1px solid rgba(48,51,40,.88);
-  background:rgba(11,12,9,.88);backdrop-filter:blur(16px);
+  position:sticky;top:0;z-index:120;border-bottom:1px solid var(--line);
+  background:rgba(12,11,9,.9);backdrop-filter:blur(14px);
 }
-.nav-row{height:70px;display:flex;align-items:center;gap:20px}
+.nav-row{height:68px;display:flex;align-items:center;gap:20px}
 .brand{display:flex;align-items:center;gap:11px;color:var(--text);min-width:0;white-space:nowrap}
-.brand img{width:34px;height:34px;object-fit:contain}
+.brand-mark{
+  width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;
+  border:1px solid var(--line-strong);border-radius:9px;background:var(--gold-wash);color:var(--gold-soft);
+}
+.brand-mark svg{width:16px;height:16px}
 .brand-copy{min-width:0}
-.brand-name{display:block;font-size:14px;font-weight:850;line-height:1.2}
+.brand-name{display:block;font-size:14px;font-weight:800;line-height:1.2}
 .brand-sub{display:block;color:var(--quiet);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
-.nav-links{display:flex;align-items:center;gap:23px;margin-left:auto;font-size:13.5px}
+.nav-links{display:flex;align-items:center;gap:22px;margin-left:auto;font-size:13.5px}
 .nav-links a{color:var(--muted)}
 .nav-links a:hover{color:var(--text)}
 .menu-btn{
   display:none;width:44px;height:44px;margin-left:auto;place-items:center;
-  border:1px solid var(--line-bright);border-radius:10px;background:transparent;color:var(--text);cursor:pointer;
+  border:1px solid var(--line-strong);border-radius:10px;background:transparent;color:var(--text);cursor:pointer;
 }
-.menu-btn:hover{border-color:var(--gold);color:var(--gold-light)}
-.mobile-menu{display:none;border-top:1px solid var(--line);padding:9px clamp(18px,4vw,32px) 14px;background:var(--bg-soft)}
+.menu-btn:hover{border-color:var(--gold);color:var(--gold-soft)}
+.mobile-menu{display:none;border-top:1px solid var(--line);padding:9px clamp(18px,4vw,32px) 14px;background:var(--bg-raise)}
 .mobile-menu a{display:block;min-height:44px;padding:10px 4px;border-bottom:1px solid var(--line);color:var(--text)}
 .mobile-menu a:last-child{border-bottom:0}
 
 /* Hero */
-.hero{position:relative;padding-block:clamp(48px,5vw,72px) clamp(52px,6vw,76px);border-bottom:1px solid var(--line);overflow:hidden}
+.hero{position:relative;padding-block:clamp(56px,7vw,92px);border-bottom:1px solid var(--line);overflow:hidden}
 .hero::before{
-  content:"";position:absolute;inset:0;pointer-events:none;opacity:.23;
-  background-image:linear-gradient(rgba(74,78,62,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(74,78,62,.35) 1px,transparent 1px);
-  background-size:80px 80px;mask-image:linear-gradient(to bottom,black,transparent 72%);
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:radial-gradient(760px 420px at 82% -12%,rgba(224,175,87,.13),transparent 70%);
 }
-.hero-grid{position:relative;display:grid;grid-template-columns:minmax(0,.9fr) minmax(560px,1.1fr);gap:clamp(36px,5vw,64px);align-items:start}
+.hero-grid{position:relative;display:grid;grid-template-columns:minmax(0,1.02fr) minmax(480px,.98fr);gap:clamp(38px,5vw,64px);align-items:center}
 .release-pill{
-  display:inline-flex;align-items:center;gap:9px;padding:7px 11px;
-  border:1px solid rgba(141,204,119,.3);border-radius:999px;background:var(--green-wash);
-  color:#b9e3ac;font-size:12px;font-weight:750;
+  display:inline-flex;align-items:center;gap:9px;padding:7px 12px;
+  border:1px solid rgba(150,214,126,.3);border-radius:999px;background:var(--green-wash);
+  color:var(--green-soft);font-size:12px;font-weight:750;
 }
-.release-pill i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(141,204,119,.1)}
-.hero-copy .kicker{margin-top:22px}
-.hero h1{max-width:16ch;margin-top:18px;font-size:clamp(44px,4.5vw,62px);line-height:1.02;text-wrap:balance}
-.hero h1 span{color:var(--gold-light)}
-.hero-lead{max-width:57ch;margin-top:23px;color:var(--muted);font-size:18px;line-height:1.68}
+.release-pill i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(150,214,126,.1)}
+.hero h1{margin-top:22px;font-size:clamp(40px,4.6vw,60px);line-height:1.04;max-width:15ch;text-wrap:balance}
+.hero h1 span{color:var(--gold-soft)}
+.hero-lead{max-width:56ch;margin-top:21px;color:var(--muted);font-size:17.5px;line-height:1.68}
 .hero-lead strong{color:var(--text);font-weight:750}
-.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:29px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
 .hero-micro{margin-top:13px;color:var(--quiet);font-size:12.5px}
-.hero-trust{display:flex;gap:9px 18px;flex-wrap:wrap;margin-top:21px;color:var(--muted);font-size:12.5px}
+.hero-trust{display:flex;gap:9px 18px;flex-wrap:wrap;margin-top:20px;color:var(--muted);font-size:12.5px}
 .hero-trust span{display:inline-flex;align-items:center;gap:7px}
 .hero-trust i{font-style:normal;color:var(--green);font-weight:900}
 .update-alert{
-  margin-top:23px;padding:14px 15px;border:1px solid rgba(217,168,79,.34);border-left:3px solid var(--gold);
-  border-radius:11px;background:rgba(217,168,79,.07);
+  margin-top:24px;padding:14px 15px;border:1px solid rgba(224,175,87,.32);border-left:3px solid var(--gold);
+  border-radius:11px;background:rgba(224,175,87,.06);
 }
-.update-alert strong{display:block;color:var(--gold-light);font-size:13px}
+.update-alert strong{display:block;color:var(--gold-soft);font-size:13px}
 .update-alert p{margin-top:4px;color:var(--muted);font-size:12.5px;line-height:1.55}
-.app-showcase{min-width:0;margin-top:118px}
-.app-shell{
-  position:relative;padding:10px;border:1px solid var(--line-bright);border-radius:18px;
-  background:#0a0b09;box-shadow:var(--shadow),0 0 70px rgba(217,168,79,.08);
-}
-.app-bar{height:32px;display:flex;align-items:center;gap:8px;padding:0 5px 9px;color:var(--quiet);font-size:10px;letter-spacing:.09em;text-transform:uppercase}
-.app-lights{display:flex;gap:5px}
-.app-lights i{display:block;width:6px;height:6px;border-radius:50%;background:#4b4d45}
-.app-view{display:block;overflow:hidden;border:1px solid #31342b;border-radius:10px;background:#080906}
-.app-view img{width:100%;aspect-ratio:1864/951;object-fit:cover}
-.app-label{margin-left:auto;color:#b8dda9}
-.app-showcase figcaption{margin-top:11px;color:var(--quiet);font-size:11.5px;text-align:center}
-.hero-paths{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-.hero-path{
-  display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid var(--line);
-  border-radius:11px;background:rgba(21,23,17,.78);color:var(--text);
-}
-.hero-path:hover{border-color:var(--gold);color:var(--text)}
-.hero-path span:first-child{
-  width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;
-  border-radius:50%;background:var(--gold-wash);color:var(--gold-light);font-size:11px;font-weight:900;
-}
-.hero-path b{display:block;font-size:11.5px}
-.hero-path small{display:block;color:var(--quiet);font-size:9.5px;margin-top:1px}
 
-/* Proof */
-.proof-bar{padding-block:16px;border-bottom:1px solid var(--line);background:var(--bg)}
-.proof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.proof-item{min-height:116px;display:flex;flex-direction:column;gap:9px;align-items:center;justify-content:center;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--bg-soft);text-align:center}
-.proof-mark{
-  width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;
-  border:1px solid rgba(217,168,79,.35);border-radius:50%;background:var(--gold-wash);
-  color:var(--gold-light);
+/* Hero output panel — pure CSS, no images */
+.output-panel{min-width:0}
+.code-window{
+  border:1px solid var(--line-strong);border-radius:15px;background:#0e0d0a;
+  box-shadow:0 28px 70px rgba(0,0,0,.45),0 0 60px rgba(224,175,87,.06);overflow:hidden;
 }
-.proof-mark svg{width:15px;height:15px}
-.proof-item b{display:block;font-size:13.5px}
-.proof-item>div>span{display:block;color:var(--quiet);font-size:11.5px;margin-top:2px}
+.code-bar{
+  display:flex;align-items:center;gap:10px;padding:11px 15px;border-bottom:1px solid var(--line);
+  color:var(--quiet);font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+}
+.code-dots{display:flex;gap:5px}
+.code-dots i{display:block;width:7px;height:7px;border-radius:50%;background:#4b4840}
+.code-bar .file{color:var(--muted);font-family:ui-monospace,Consolas,monospace;letter-spacing:0;text-transform:none;font-size:12px}
+.code-bar .live{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:var(--green-soft);letter-spacing:.05em}
+.code-bar .live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green)}
+.code-body{padding:17px 8px 19px 0;overflow-x:auto}
+.code-body pre{
+  font:12.5px/1.9 ui-monospace,SFMono-Regular,Consolas,monospace;
+  color:#cfcabb;min-width:max-content;
+}
+.code-body .ln{display:inline-block;width:44px;padding-right:16px;color:#4f4c42;text-align:right;user-select:none}
+.tok-c{color:#6e6a5c}
+.tok-k{color:var(--gold-soft)}
+.tok-s{color:var(--green-soft)}
+.tok-o{color:#8d897a}
+.code-foot{
+  display:flex;gap:8px 18px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line);
+  color:var(--quiet);font-size:11.5px;
+}
+.code-foot b{color:var(--muted);font-weight:700}
+.panel-caption{margin-top:11px;color:var(--quiet);font-size:11.5px;text-align:center}
+
+/* Numbers strip */
+.numbers{border-bottom:1px solid var(--line);background:var(--bg-raise)}
+.numbers-grid{display:grid;grid-template-columns:repeat(4,1fr)}
+.number-item{padding:26px 22px;border-left:1px solid var(--line);text-align:left}
+.number-item:first-child{border-left:0}
+.number-item b{display:block;color:var(--gold-soft);font-size:clamp(26px,2.6vw,34px);line-height:1.1;font-family:"Space Grotesk",sans-serif;letter-spacing:-.01em}
+.number-item span{display:block;margin-top:6px;color:var(--muted);font-size:12.5px;line-height:1.5}
 
 /* Shared */
-section{padding-block:clamp(72px,8vw,108px)}
-.section-intro{max-width:720px;margin-bottom:clamp(34px,5vw,52px)}
+section{padding-block:clamp(70px,8vw,104px)}
+.section-intro{max-width:720px;margin-bottom:clamp(32px,5vw,50px)}
 .section-intro.center{text-align:center;margin-inline:auto}
-.section-intro.center .kicker{margin-inline:auto}
-.section-intro h2{margin-top:14px;font-size:clamp(34px,4vw,52px);line-height:1.1;text-wrap:balance}
-.section-intro p{margin-top:15px;color:var(--muted);font-size:16.5px;max-width:63ch}
+.section-intro h2{margin-top:14px;font-size:clamp(30px,3.6vw,44px);line-height:1.12;text-wrap:balance}
+.section-intro p{margin-top:14px;color:var(--muted);font-size:16px;max-width:62ch}
 .section-intro.center p{margin-inline:auto}
 
 /* Two starting paths */
-.start-paths{background:linear-gradient(180deg,var(--bg),var(--bg-soft));border-bottom:1px solid var(--line)}
+.start-paths{border-bottom:1px solid var(--line)}
 .path-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.path-card{position:relative;padding:28px;border:1px solid var(--line);border-radius:18px;background:rgba(21,23,17,.8);overflow:hidden}
-.path-card::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--gold);opacity:.82}
+.path-card{position:relative;padding:28px;border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden}
+.path-card::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--gold);opacity:.85}
 .path-card.import::before{background:var(--green)}
-.path-tag{display:inline-flex;padding:5px 9px;border:1px solid rgba(217,168,79,.3);border-radius:999px;color:var(--gold-light);font-size:10px;font-weight:850;letter-spacing:.11em;text-transform:uppercase}
-.path-card.import .path-tag{border-color:rgba(141,204,119,.3);color:#bce3b0}
-.path-card h3{margin-top:17px;font-size:clamp(24px,2.6vw,32px);line-height:1.15}
+.path-tag{display:inline-flex;padding:5px 10px;border:1px solid rgba(224,175,87,.3);border-radius:999px;color:var(--gold-soft);font-size:10px;font-weight:850;letter-spacing:.11em;text-transform:uppercase}
+.path-card.import .path-tag{border-color:rgba(150,214,126,.3);color:var(--green-soft)}
+.path-card h3{margin-top:16px;font-size:clamp(22px,2.4vw,28px);line-height:1.15}
 .path-card>p{margin-top:11px;color:var(--muted);font-size:13.5px;max-width:52ch}
-.path-list{list-style:none;display:grid;gap:10px;margin-top:22px}
+.path-list{list-style:none;display:grid;gap:11px;margin-top:22px}
 .path-list li{display:grid;grid-template-columns:28px 1fr;gap:11px;align-items:start}
 .path-list i{
-  width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--line-bright);
-  border-radius:8px;background:var(--bg-soft);color:var(--gold);font-style:normal;font-size:10px;font-weight:900;
+  width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--line-strong);
+  border-radius:8px;background:var(--bg-raise);color:var(--gold);font-style:normal;font-size:10px;font-weight:900;
 }
 .path-card.import .path-list i{color:var(--green)}
 .path-list b{display:block;font-size:13px}
@@ -215,47 +209,47 @@ section{padding-block:clamp(72px,8vw,108px)}
 .path-list .mono{display:inline}
 .start-note{
   display:flex;align-items:flex-start;gap:14px;margin-top:18px;padding:15px 17px;
-  border:1px solid rgba(141,204,119,.22);border-radius:13px;background:var(--green-wash);
+  border:1px solid rgba(150,214,126,.22);border-radius:13px;background:var(--green-wash);
   color:var(--muted);font-size:13px;
 }
-.start-note b{color:#bce3b0;white-space:nowrap}
+.start-note b{color:var(--green-soft);white-space:nowrap}
 
 /* Create your filter */
-.filter-section{background:var(--bg);border-bottom:1px solid var(--line)}
-.filter-grid{display:grid;grid-template-columns:minmax(0,.78fr) minmax(520px,1.22fr);gap:clamp(42px,7vw,90px);align-items:start}
-.filter-copy h2{max-width:11ch;margin-top:15px;font-size:clamp(38px,4.6vw,58px);line-height:1.08}
-.filter-copy>p{margin-top:18px;color:var(--muted);font-size:16.5px;max-width:54ch}
+.filter-section{background:var(--bg-raise);border-bottom:1px solid var(--line)}
+.filter-grid{display:grid;grid-template-columns:minmax(0,.86fr) minmax(460px,1.14fr);gap:clamp(40px,6vw,80px);align-items:start}
+.filter-copy h2{margin-top:15px;font-size:clamp(32px,4vw,48px);line-height:1.08;max-width:12ch}
+.filter-copy>p{margin-top:17px;color:var(--muted);font-size:16px;max-width:54ch}
 .local-note{margin-top:22px;padding:15px 16px;border-left:3px solid var(--green);border-radius:0 11px 11px 0;background:var(--green-wash);color:var(--muted);font-size:13px}
-.local-note strong{display:block;color:#bce3b0;margin-bottom:3px}
-.report{padding:22px;border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:0 22px 60px rgba(0,0,0,.25)}
+.local-note strong{display:block;color:var(--green-soft);margin-bottom:3px}
+.report{padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
 .report-title{color:var(--quiet);font-size:10px;font-weight:850;letter-spacing:.13em;text-transform:uppercase}
 .report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}
-.report-item{padding:15px;border:1px solid var(--line);border-radius:11px;background:var(--bg-soft)}
+.report-item{padding:15px;border:1px solid var(--line);border-radius:11px;background:var(--bg-raise)}
 .report-item b{display:block;font-size:13px}
 .report-item span{display:block;margin-top:4px;color:var(--quiet);font-size:11.5px;line-height:1.5}
-.report-item.good b{color:#bce3b0}
-.report-item.wide b{color:var(--gold-light)}
-.report-item.warn b{color:#e8a194}
+.report-item.good b{color:var(--green-soft)}
+.report-item.wide b{color:var(--gold-soft)}
+.report-item.warn b{color:var(--red-soft)}
 .filter-note{
-  margin-top:14px;padding:15px 16px;border:1px solid rgba(223,120,102,.28);
+  margin-top:14px;padding:15px 16px;border:1px solid rgba(224,133,115,.28);
   border-radius:12px;background:var(--red-wash);color:var(--muted);font-size:12.5px;
 }
-.filter-note strong{display:block;color:#e8a194;margin-bottom:3px}
+.filter-note strong{display:block;color:var(--red-soft);margin-bottom:3px}
 .style-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
-.style-chip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg-soft);color:var(--muted);font-size:11px}
-.style-chip i{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(217,168,79,.1)}
-.style-chip.unique i{background:var(--orange);box-shadow:0 0 0 3px rgba(217,131,67,.1)}
+.style-chip{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg-raise);color:var(--muted);font-size:11px}
+.style-chip i{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(224,175,87,.1)}
+.style-chip.unique i{background:#d98343;box-shadow:0 0 0 3px rgba(217,131,67,.1)}
 
 /* Item Check */
-.item-check{background:var(--bg-soft);border-bottom:1px solid var(--line)}
-.item-grid{display:grid;grid-template-columns:minmax(0,.84fr) minmax(480px,1.16fr);gap:clamp(42px,7vw,90px);align-items:center}
-.item-copy h2{max-width:10ch;margin-top:15px;font-size:clamp(38px,4.5vw,56px);line-height:1.08}
-.item-copy>p{max-width:53ch;margin-top:18px;color:var(--muted);font-size:16.5px}
-.exact-note{margin-top:23px;padding:16px 17px;border-left:3px solid var(--gold);border-radius:0 12px 12px 0;background:var(--gold-wash);color:var(--muted);font-size:13.5px}
+.item-check{border-bottom:1px solid var(--line)}
+.item-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(440px,1.1fr);gap:clamp(40px,6vw,80px);align-items:center}
+.item-copy h2{margin-top:15px;font-size:clamp(32px,4vw,46px);line-height:1.08;max-width:12ch}
+.item-copy>p{max-width:53ch;margin-top:17px;color:var(--muted);font-size:16px}
+.exact-note{margin-top:22px;padding:16px 17px;border-left:3px solid var(--gold);border-radius:0 12px 12px 0;background:var(--gold-wash);color:var(--muted);font-size:13.5px}
 .exact-note strong{display:block;color:var(--text);font-size:14px;margin-bottom:3px}
-.check-panel{padding:22px;border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:0 22px 60px rgba(0,0,0,.23)}
+.check-panel{padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
 .check-flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:9px;align-items:stretch}
-.check-step{padding:17px 13px;border:1px solid var(--line);border-radius:11px;background:var(--bg)}
+.check-step{padding:16px 13px;border:1px solid var(--line);border-radius:11px;background:var(--bg-raise)}
 .check-step small{display:block;color:var(--gold);font-size:10px;font-weight:850;letter-spacing:.11em;text-transform:uppercase}
 .check-step b{display:block;margin-top:8px;font-size:13.5px}
 .check-step p{margin-top:4px;color:var(--quiet);font-size:11px;line-height:1.45}
@@ -263,71 +257,54 @@ section{padding-block:clamp(72px,8vw,108px)}
 .verdict-title{margin-top:19px;color:var(--quiet);font-size:10px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}
 .verdicts{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:9px}
 .verdict{padding:11px 10px;border:1px solid var(--line);border-radius:10px;text-align:center;font-size:11.5px;font-weight:800}
-.verdict.picked{border-color:rgba(141,204,119,.36);background:var(--green-wash);color:#bce3b0}
-.verdict.ignored{border-color:rgba(223,120,102,.34);background:var(--red-wash);color:#e9a89b}
-.verdict.depends{border-color:rgba(217,168,79,.34);background:var(--gold-wash);color:var(--gold-light)}
+.verdict.picked{border-color:rgba(150,214,126,.36);background:var(--green-wash);color:var(--green-soft)}
+.verdict.ignored{border-color:rgba(224,133,115,.34);background:var(--red-wash);color:var(--red-soft)}
+.verdict.depends{border-color:rgba(224,175,87,.34);background:var(--gold-wash);color:var(--gold-soft)}
 .rare-note{margin-top:16px;color:var(--quiet);font-size:12px;line-height:1.55}
 .rare-note strong{color:var(--muted)}
 
 /* Trust */
-.trust{background:var(--bg);border-bottom:1px solid var(--line)}
+.trust{background:var(--bg-raise);border-bottom:1px solid var(--line)}
 .trust-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.trust-card{padding:25px;border:1px solid var(--line);border-radius:16px;background:rgba(21,23,17,.78)}
+.trust-card{padding:25px;border:1px solid var(--line);border-radius:15px;background:var(--panel)}
 .trust-card .card-k{color:var(--gold);font-size:10px;font-weight:850;letter-spacing:.14em;text-transform:uppercase}
-.trust-card h3{margin-top:16px;font-size:18px}
+.trust-card h3{margin-top:15px;font-size:18px}
 .trust-card p{margin-top:9px;color:var(--muted);font-size:13.5px}
-.trust-card ul{list-style:none;margin-top:17px;display:grid;gap:8px;color:var(--quiet);font-size:12px}
+.trust-card ul{list-style:none;margin-top:16px;display:grid;gap:8px;color:var(--quiet);font-size:12px}
 .trust-card li{position:relative;padding-left:17px}
 .trust-card li::before{content:"";position:absolute;left:0;top:.65em;width:6px;height:6px;border-radius:50%;background:var(--green)}
-.trust-note{
+.trust-foot{
   display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:18px;
   padding:16px 18px;border:1px solid var(--line);border-radius:13px;color:var(--muted);font-size:13px;
 }
-.trust-note strong{color:var(--text)}
+.trust-foot strong{color:var(--text)}
 .trust-links{display:flex;gap:16px;white-space:nowrap}
 
 /* Release */
-.release{background:var(--bg-soft);border-bottom:1px solid var(--line)}
+.release{border-bottom:1px solid var(--line)}
 .release-panel{
-  display:grid;grid-template-columns:minmax(0,.72fr) minmax(500px,1.28fr);gap:clamp(34px,6vw,76px);
-  padding:clamp(26px,4vw,45px);border:1px solid rgba(217,168,79,.28);border-radius:20px;
-  background:linear-gradient(135deg,rgba(217,168,79,.1),rgba(21,23,17,.88) 48%);
+  display:grid;grid-template-columns:minmax(0,.78fr) minmax(440px,1.22fr);gap:clamp(32px,5vw,70px);
+  padding:clamp(26px,4vw,44px);border:1px solid rgba(224,175,87,.28);border-radius:18px;
+  background:linear-gradient(135deg,rgba(224,175,87,.09),var(--panel) 50%);
 }
-.release-badge{display:inline-flex;padding:6px 10px;border:1px solid rgba(217,168,79,.36);border-radius:999px;color:var(--gold-light);font-size:11px;font-weight:850;letter-spacing:.11em;text-transform:uppercase}
-.release-copy h2{margin-top:17px;font-size:clamp(30px,3.5vw,43px);line-height:1.12}
+.release-badge{display:inline-flex;padding:6px 10px;border:1px solid rgba(224,175,87,.36);border-radius:999px;color:var(--gold-soft);font-size:11px;font-weight:850;letter-spacing:.11em;text-transform:uppercase}
+.release-copy h2{margin-top:16px;font-size:clamp(26px,3.2vw,38px);line-height:1.12}
 .release-copy p{margin-top:13px;color:var(--muted);font-size:14px}
 .release-copy .text-link{display:inline-block;margin-top:18px;font-size:13px;font-weight:800}
 .release-list{list-style:none;display:grid;gap:10px}
-.release-list li{padding:14px 15px;border:1px solid var(--line);border-radius:12px;background:rgba(11,12,9,.48)}
+.release-list li{padding:14px 15px;border:1px solid var(--line);border-radius:12px;background:rgba(12,11,9,.5)}
 .release-list b{display:block;font-size:13.5px}
 .release-list span{display:block;margin-top:3px;color:var(--quiet);font-size:11.5px;line-height:1.5}
 .release-list .mono{display:inline}
 .release-foot{grid-column:1/-1;padding-top:15px;border-top:1px solid var(--line);color:var(--quiet);font-size:12px}
 .release-foot strong{color:var(--muted)}
 
-/* App tour */
-.tour-section{padding-block:44px;background:var(--bg);border-bottom:1px solid var(--line)}
-.tour-drawer{border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden}
-.tour-head{
-  display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:76px;
-  padding:17px 20px;
-}
-.tour-summary h2{display:block;font:800 14px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.tour-summary span{display:block;margin-top:2px;color:var(--quiet);font-size:11.5px}
-.tour-always{display:inline-flex;align-items:center;gap:7px;color:var(--gold-light);font-size:11px;font-weight:800;white-space:nowrap;text-transform:uppercase;letter-spacing:.08em}
-.tour-always::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(141,204,119,.1)}
-.tour-body{padding:0 20px 20px}
-.tour-frame{max-width:834px;margin-inline:auto;padding:8px;border:1px solid var(--line-bright);border-radius:13px;background:#090a08}
-.tour-frame img{width:100%;aspect-ratio:1624/941;object-fit:cover;border-radius:8px}
-.tour-caption{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px;color:var(--quiet);font-size:11px}
-.tour-caption strong{color:var(--muted)}
-
 /* FAQ */
-.faq-section{background:var(--bg-soft);border-bottom:1px solid var(--line)}
-.faq{max-width:890px;margin-inline:auto;border-top:1px solid var(--line)}
+.faq-section{background:var(--bg-raise);border-bottom:1px solid var(--line)}
+.faq{max-width:860px;margin-inline:auto;border-top:1px solid var(--line)}
 .faq details{border-bottom:1px solid var(--line)}
 .faq summary{
-  display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:66px;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:64px;
   padding:15px 2px;color:var(--text);font-size:15px;font-weight:800;list-style:none;cursor:pointer;
 }
 .faq summary::-webkit-details-marker{display:none}
@@ -336,15 +313,15 @@ section{padding-block:clamp(72px,8vw,108px)}
 .faq details>p,.faq details>.answer{padding:0 34px 19px 2px;color:var(--muted);font-size:13.5px}
 .shortcut-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 20px;margin:10px 0 4px}
 .shortcut{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px dashed var(--line);padding:6px 0}
-kbd{min-width:65px;padding:3px 7px;border:1px solid var(--line-bright);border-bottom-width:2px;border-radius:6px;background:var(--surface);color:var(--text);font:11px ui-monospace,Consolas,monospace;text-align:center}
+kbd{min-width:65px;padding:3px 7px;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:6px;background:var(--panel);color:var(--text);font:11px ui-monospace,Consolas,monospace;text-align:center}
 
 /* Final CTA and footer */
-.final-cta{position:relative;text-align:center;background:radial-gradient(650px 280px at 50% 50%,rgba(217,168,79,.13),transparent 72%),var(--bg)}
-.final-cta h2{font-size:clamp(38px,5vw,58px);line-height:1.08}
+.final-cta{position:relative;text-align:center;background:radial-gradient(620px 280px at 50% 50%,rgba(224,175,87,.12),transparent 72%)}
+.final-cta h2{font-size:clamp(32px,4.4vw,50px);line-height:1.08}
 .final-cta p{max-width:55ch;margin:14px auto 0;color:var(--muted)}
 .final-cta .hero-actions{justify-content:center}
 .final-cta .hero-micro{text-align:center}
-footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
+footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#090806}
 .footer-row{display:flex;align-items:flex-start;justify-content:space-between;gap:30px}
 .footer-row .brand{width:max-content}
 .fineprint{margin-top:7px}
@@ -359,14 +336,17 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
 .reveal-ready .reveal{opacity:0;transform:translateY(14px);transition:opacity .55s ease,transform .55s ease}
 .reveal-ready .reveal.in{opacity:1;transform:none}
 
-@media(max-width:1080px){
-  .hero-grid{grid-template-columns:1fr;gap:48px}
-  .hero-copy{max-width:780px}
-  .app-showcase{max-width:900px;margin-top:0}
+@media(max-width:1060px){
+  .hero-grid{grid-template-columns:1fr;gap:44px}
+  .hero-copy{max-width:760px}
+  .output-panel{max-width:820px}
   .filter-grid,.item-grid{grid-template-columns:1fr;gap:38px}
-  .filter-copy h2,.item-copy h2{max-width:13ch}
-  .report,.check-panel{max-width:800px}
+  .report,.check-panel{max-width:780px}
   .release-panel{grid-template-columns:1fr}
+  .numbers-grid{grid-template-columns:1fr 1fr}
+  .number-item{border-left:0;border-top:1px solid var(--line)}
+  .number-item:nth-child(-n+2){border-top:0}
+  .number-item:nth-child(even){border-left:1px solid var(--line)}
 }
 @media(max-width:900px){
   .nav-links,.nav-download{display:none}
@@ -376,24 +356,19 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
   .menu-ready .mobile-menu.open{display:grid}
   .path-grid{grid-template-columns:1fr}
   .trust-grid{grid-template-columns:1fr}
-  .trust-note{align-items:flex-start}
+  .trust-foot{align-items:flex-start}
 }
 @media(max-width:700px){
-  section{padding-block:64px}
-  .hero{padding-block:55px 60px}
-  .hero h1{font-size:clamp(42px,13vw,58px);max-width:10ch}
+  section{padding-block:62px}
+  .hero{padding-block:54px 60px}
+  .hero h1{font-size:clamp(36px,11vw,52px)}
   .hero-lead{font-size:16px}
-  .proof-grid{grid-template-columns:1fr}
-  .proof-bar{padding-block:12px}
-  .proof-grid{gap:7px}
-  .proof-item{min-height:104px;padding:15px 16px}
-  .proof-mark{width:29px;height:29px;flex-basis:29px}
   .start-note{flex-direction:column;gap:5px}
   .report-grid{grid-template-columns:1fr}
   .check-flow{grid-template-columns:1fr}
   .check-arrow{transform:rotate(90deg);height:18px}
   .verdicts{grid-template-columns:1fr}
-  .trust-note{flex-direction:column}
+  .trust-foot{flex-direction:column}
   .trust-links{white-space:normal;flex-wrap:wrap}
   .shortcut-grid{grid-template-columns:1fr}
   .footer-row{flex-direction:column}
@@ -404,18 +379,14 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
   .hero-actions{display:grid}
   .hero-actions .btn{width:100%}
   .hero-trust{display:grid;grid-template-columns:1fr 1fr}
-  .app-shell{padding:7px;border-radius:13px}
-  .app-bar{height:28px}
-  .app-label{display:none}
-  .hero-paths{grid-template-columns:1fr}
-  .section-intro h2{font-size:34px}
+  .numbers-grid{grid-template-columns:1fr}
+  .number-item{border-left:0!important;border-top:1px solid var(--line)}
+  .number-item:first-child{border-top:0}
+  .section-intro h2{font-size:30px}
   .path-card{padding:23px 21px}
-  .filter-copy h2,.item-copy h2{font-size:39px}
   .report,.check-panel{padding:14px}
   .release-panel{padding:22px}
-  .tour-drawer>summary{padding:15px}
-  .tour-body{padding:0 12px 12px}
-  .final-cta h2{font-size:40px}
+  .final-cta h2{font-size:34px}
 }
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
@@ -431,7 +402,7 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
 <nav class="site-nav" aria-label="Primary navigation">
   <div class="wrap nav-row">
     <a class="brand" href="#top" aria-label="PoE 2 Pickit Generator home">
-      <img src="logo.png" alt="" width="34" height="34">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L21 12L12 22L3 12Z"/><path d="M12 7L16.5 12L12 17L7.5 12Z"/></svg></span>
       <span class="brand-copy"><span class="brand-name">PoE 2 Pickit Generator</span><span class="brand-sub">for Exiled Bot 2</span></span>
     </a>
     <div class="nav-links">
@@ -459,9 +430,8 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
     <div class="wrap hero-grid">
       <div class="hero-copy reveal">
         <span class="release-pill"><i aria-hidden="true"></i><span class="version-label">v4.35.2</span> &middot; Create your filter</span>
-        <span class="kicker">Live-price pickits for Exiled Bot 2</span>
-        <h1 class="serif">Generate a pickit. <span>Or bring your own.</span></h1>
-        <p class="hero-lead">Need a new pickit? Choose your league and loot level, then Generate. Already have an <span class="mono">.ipd</span>? Drop it into the app and create a matching in-game loot filter. <strong>Both paths stay clear and local.</strong></p>
+        <h1 class="disp">Generate a pickit. <span>Or bring your own.</span></h1>
+        <p class="hero-lead">Need a new pickit? Choose your league and loot level, then Generate &mdash; the app writes 2,000+ rules from live poe.ninja prices. Already have an <span class="mono">.ipd</span>? Drop it in and create a matching in-game loot filter. <strong>Both paths stay clear and local.</strong></p>
         <div class="hero-actions">
           <a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.2/ExileBot2PickitGenerator.exe">Download <span class="version-label">v4.35.2</span></a>
           <a class="btn btn-secondary" href="#setup">Choose your starting point</a>
@@ -478,27 +448,28 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
         </aside>
       </div>
 
-      <figure class="app-showcase reveal">
-        <div class="app-shell">
-          <div class="app-bar"><span class="app-lights" aria-hidden="true"><i></i><i></i><i></i></span><span>Real app capture &middot; current release</span><span class="app-label">v4.35.2</span></div>
-          <a class="app-view" href="shots/01-generate.png" target="_blank" rel="noopener" aria-label="Open the current v4.35.2 app capture at full size">
-            <img src="shots/01-generate.png" width="1864" height="951" fetchpriority="high" alt="Current v4.35.2 Generate screen with the Create your filter tab visible in the navigation">
-          </a>
+      <div class="output-panel reveal">
+        <div class="code-window" role="img" aria-label="Example lines from a generated Exiled Bot 2 pickit file">
+          <div class="code-bar"><span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="file">latest.ipd</span><span class="live">live prices</span></div>
+          <div class="code-body"><pre><span class="ln">1</span><span class="tok-c">// PoE 2 pickit &mdash; generated from live poe.ninja prices</span>
+<span class="ln">2</span><span class="tok-k">[Type]</span> <span class="tok-o">==</span> <span class="tok-s">"Divine Orb"</span> <span class="tok-o">#</span> <span class="tok-k">[StashItem]</span> <span class="tok-o">==</span> <span class="tok-s">"true"</span>
+<span class="ln">3</span><span class="tok-k">[Type]</span> <span class="tok-o">==</span> <span class="tok-s">"Stellar Amulet"</span> <span class="tok-o">&amp;&amp;</span> <span class="tok-k">[Rarity]</span> <span class="tok-o">==</span> <span class="tok-s">"Normal"</span> <span class="tok-o">&amp;&amp;</span> <span class="tok-k">[ItemLevel]</span> <span class="tok-o">&gt;=</span> <span class="tok-s">"82"</span> <span class="tok-o">#</span> <span class="tok-k">[StashItem]</span> <span class="tok-o">==</span> <span class="tok-s">"true"</span>
+<span class="ln">4</span><span class="tok-k">[Type]</span> <span class="tok-o">==</span> <span class="tok-s">"Heavy Belt"</span> <span class="tok-o">&amp;&amp;</span> <span class="tok-k">[Rarity]</span> <span class="tok-o">==</span> <span class="tok-s">"Unique"</span> <span class="tok-o">#</span> <span class="tok-k">[UniqueName]</span> <span class="tok-o">==</span> <span class="tok-s">"Headhunter"</span> <span class="tok-o">&amp;&amp;</span> <span class="tok-k">[StashItem]</span> <span class="tok-o">==</span> <span class="tok-s">"true"</span>
+<span class="ln">5</span><span class="tok-k">[Category]</span> <span class="tok-o">==</span> <span class="tok-s">"Waystone"</span> <span class="tok-o">&amp;&amp;</span> <span class="tok-k">[WaystoneTier]</span> <span class="tok-o">&gt;=</span> <span class="tok-s">"10"</span> <span class="tok-o">#</span> <span class="tok-k">[StashItem]</span> <span class="tok-o">==</span> <span class="tok-s">"true"</span>
+<span class="ln">6</span><span class="tok-c">// &hellip;and 2,000+ more, priced for your league today</span></pre></div>
+          <div class="code-foot"><span><b>Validated</b> before deploy</span><span><b>Copied</b> to Exiled Bot</span><span><b>Checked</b> against <span class="mono">active_profile</span></span></div>
         </div>
-        <nav class="hero-paths" aria-label="Choose your starting point">
-          <a class="hero-path" href="#setup"><span aria-hidden="true">A</span><span><b>I need a pickit</b><small>League &rarr; preset &rarr; Generate</small></span></a>
-          <a class="hero-path" href="#create-filter"><span aria-hidden="true">B</span><span><b>I already have one</b><small>Drop <span class="mono">.ipd</span> &rarr; save filter</small></span></a>
-        </nav>
-        <figcaption>Current-release capture. Every product image on this page is a real running-app capture.</figcaption>
-      </figure>
+        <p class="panel-caption">Real rule syntax, straight from the generator &mdash; every line above is a valid Exiled Bot 2 rule.</p>
+      </div>
     </div>
   </header>
 
-  <div class="proof-bar" role="region" aria-label="What the app handles">
-    <div class="wrap proof-grid">
-      <div class="proof-item"><span class="proof-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18L8 13L12 16L21 7"/><path d="M15 7H21V13"/></svg></span><div><b>Current league prices</b><span>Fetched from poe.ninja</span></div></div>
-      <div class="proof-item"><span class="proof-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L20 6V12C20 17 16.6 20.1 12 21C7.4 20.1 4 17 4 12V6Z"/><path d="M8.5 12L11 14.5L16 9.5"/></svg></span><div><b>Read-only conversion</b><span>Your imported pickit is never changed</span></div></div>
-      <div class="proof-item"><span class="proof-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7A4 4 0 0 1 16 7V10"/></svg></span><div><b>Everything stays local</b><span>No pickit is uploaded anywhere</span></div></div>
+  <div class="numbers" role="region" aria-label="What the app handles">
+    <div class="wrap numbers-grid">
+      <div class="number-item"><b>2,000+</b><span>pickit rules written per Generate, priced for your league today</span></div>
+      <div class="number-item"><b>13 tabs</b><span>Generate, Preview, Item Check, Economy, Chance, Craft, and more</span></div>
+      <div class="number-item"><b>0 uploads</b><span>everything runs locally &mdash; no pickit ever leaves your machine</span></div>
+      <div class="number-item"><b>1 file</b><span>portable <span class="mono">.exe</span> &mdash; no installer, no Python, no account</span></div>
     </div>
   </div>
 
@@ -507,13 +478,13 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
     <div class="wrap">
       <div class="section-intro center reveal">
         <span class="kicker">Choose where you are starting</span>
-        <h2 class="serif">Two paths. Neither needs a manual.</h2>
+        <h2 class="disp">Two paths. Neither needs a manual.</h2>
         <p>The app keeps the first decision simple: build a new pickit from live prices, or create an in-game filter from a pickit you already trust.</p>
       </div>
       <div class="path-grid reveal">
         <article class="path-card">
           <span class="path-tag">I need a pickit</span>
-          <h3 class="serif">Generate from live prices</h3>
+          <h3 class="disp">Generate from live prices</h3>
           <p>The first-run wizard asks only for the decisions that matter. Balanced is ready if you do not want to tune anything yet.</p>
           <ol class="path-list">
             <li><i>1</i><span><b>Choose your league</b><span>Load the correct poe.ninja economy.</span></span></li>
@@ -524,7 +495,7 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
         </article>
         <article class="path-card import">
           <span class="path-tag">I already have a pickit</span>
-          <h3 class="serif">Create a matching loot filter</h3>
+          <h3 class="disp">Create a matching loot filter</h3>
           <p>Use any Exiled Bot <span class="mono">.ipd</span>&mdash;hand-made, from a friend, or written by another tool. The source file is only read.</p>
           <ol class="path-list">
             <li><i>1</i><span><b>Drop the file anywhere</b><span>Drag and drop the <span class="mono">.ipd</span>, or choose it inside Create your filter.</span></span></li>
@@ -541,7 +512,7 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
     <div class="wrap filter-grid">
       <div class="filter-copy reveal">
         <span class="kicker">Create your filter</span>
-        <h2 class="serif">See on the ground what the pickit selects.</h2>
+        <h2 class="disp">See on the ground what the pickit selects.</h2>
         <p>The converter turns pickit rules into a matching Path of Exile 2 loot filter. The conversion is deliberately honest: if the game filter cannot express a bot-only check, the report tells you exactly what happened.</p>
         <div class="local-note"><strong>Your pickit remains yours.</strong> The source <span class="mono">.ipd</span> is never modified, and nothing is uploaded. If the source changes after the filter is created, the app warns you.</div>
       </div>
@@ -566,7 +537,7 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
     <div class="wrap item-grid">
       <div class="item-copy reveal">
         <span class="kicker">When a drop looks wrong</span>
-        <h2 class="serif">Ask the generated pickit why.</h2>
+        <h2 class="disp">Ask the generated pickit why.</h2>
         <p>Hover an item in Path of Exile 2 and press <span class="mono">Ctrl+C</span>. Open Item Check and it normally pastes and checks the item automatically. You get the verdict, the deciding rule, and a practical fix.</p>
         <div class="exact-note"><strong>The verdict is not a simulation.</strong> Item Check runs the same generator that writes the <span class="mono">.ipd</span> and shows the actual emitted line. With the same settings, the tab and the generated pickit cannot disagree.</div>
       </div>
@@ -593,7 +564,7 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
     <div class="wrap">
       <div class="section-intro center reveal">
         <span class="kicker">Simple on the surface</span>
-        <h2 class="serif">Careful with every file underneath.</h2>
+        <h2 class="disp">Careful with every file underneath.</h2>
         <p>You can start with a preset or a drag-and-drop. The app still validates rules, reports conversion limits, and keeps recovery copies.</p>
       </div>
       <div class="trust-grid reveal">
@@ -601,7 +572,7 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
         <article class="trust-card"><span class="card-k">Honest output</span><h3>No silent rule loss</h3><p>Pickit generation and filter conversion both name problems instead of hiding them.</p><ul><li>Generated conditions validated before deploy</li><li>Untranslatable filter rules listed with reasons</li><li>Unusual item-name characters excluded and reported</li></ul></article>
         <article class="trust-card"><span class="card-k">Local and recoverable</span><h3>Your files stay under your control</h3><p>Imported pickits remain untouched, generated output stays local, and backups are kept.</p><ul><li>Hand-made ANSI pickits decode correctly</li><li>One pickit + one filter + backups in output</li><li>No duplicate <span class="mono">latest.ipd</span></li></ul></article>
       </div>
-      <div class="trust-note reveal"><span><strong>No game-account access.</strong> The app reads public price data from poe.ninja and release data from GitHub.</span><span class="trust-links"><a href="https://github.com/c4Luffy/poe2-pickit-generator">View source</a><a class="checksum-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.2/SHA256SUMS.txt">SHA-256 checksum</a></span></div>
+      <div class="trust-foot reveal"><span><strong>No game-account access.</strong> The app reads public price data from poe.ninja and release data from GitHub.</span><span class="trust-links"><a href="https://github.com/c4Luffy/poe2-pickit-generator">View source</a><a class="checksum-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.2/SHA256SUMS.txt">SHA-256 checksum</a></span></div>
     </div>
   </section>
 
@@ -610,7 +581,7 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
       <div class="release-panel reveal">
         <div class="release-copy">
           <span class="release-badge">Current release &middot; <span class="version-label">v4.35.2</span></span>
-          <h2 class="serif">Create your filter, hardened the same day.</h2>
+          <h2 class="disp">Create your filter, hardened the same day.</h2>
           <p>v4.35.0 introduced conversion, v4.35.1 made it faster to use, and v4.35.2 followed with two automated audits and a live-app sweep.</p>
           <a class="text-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.2">Read the release notes &rarr;</a>
         </div>
@@ -625,28 +596,11 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
     </div>
   </section>
 
-  <section class="tour-section" id="tour" aria-labelledby="tour-title">
-    <div class="wrap">
-      <div class="tour-drawer">
-        <div class="tour-head">
-          <div class="tour-summary"><h2 id="tour-title">Explore all 13 tabs</h2><span>Real running-app captures from an earlier release</span></div>
-          <span class="tour-always">App tour</span>
-        </div>
-        <div class="tour-body">
-          <div class="tour-frame">
-            <img id="tourImage" src="shots/02-preview.png" data-animated-src="pickit-tour.webp" width="1624" height="941" loading="lazy" decoding="async" alt="Tour through all 13 tabs using real running-app captures from an earlier release">
-          </div>
-          <div class="tour-caption"><strong>Every frame is a real capture &middot; earlier release</strong><span><a href="pickit-tour.webp" target="_blank" rel="noopener">Open the full tour in a new tab</a></span></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <section class="faq-section" id="faq">
     <div class="wrap">
       <div class="section-intro center reveal">
         <span class="kicker">Before you download</span>
-        <h2 class="serif">Straight answers, without the wall of text.</h2>
+        <h2 class="disp">Straight answers, without the wall of text.</h2>
       </div>
       <div class="faq reveal">
         <details open>
@@ -701,7 +655,7 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
 
   <section class="final-cta">
     <div class="wrap reveal">
-      <h2 class="serif">Start with prices. Or start with your pickit.</h2>
+      <h2 class="disp">Start with prices. Or start with your pickit.</h2>
       <p>Either way, the app guides the next step and tells you honestly what it created.</p>
       <div class="hero-actions">
         <a class="btn btn-primary download-link" href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.35.2/ExileBot2PickitGenerator.exe">Download <span class="version-label">v4.35.2</span> for Windows</a>
@@ -715,7 +669,7 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
 <footer>
   <div class="wrap footer-row">
     <div>
-      <a class="brand" href="#top"><img src="logo.png" alt="" width="34" height="34"><span class="brand-copy"><span class="brand-name">PoE 2 Pickit Generator</span><span class="brand-sub">for Exiled Bot 2</span></span></a>
+      <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L21 12L12 22L3 12Z"/><path d="M12 7L16.5 12L12 17L7.5 12Z"/></svg></span><span class="brand-copy"><span class="brand-name">PoE 2 Pickit Generator</span><span class="brand-sub">for Exiled Bot 2</span></span></a>
       <p class="fineprint">Built for the Exiled Bot 2 community &middot; prices by <a href="https://poe.ninja">poe.ninja</a></p>
       <p class="fineprint">Not affiliated with Grinding Gear Games or Exiled Bot.</p>
     </div>
@@ -768,25 +722,6 @@ footer{padding:38px 0;color:var(--quiet);font-size:12px;background:#080906}
       reveals.forEach(function(element){observer.observe(element);});
     }catch(error){
       root.classList.remove("reveal-ready");
-    }
-  }
-
-  var tourImage=document.getElementById("tourImage");
-  if(tourImage&&!reduced&&tourImage.dataset.animatedSrc){
-    var loadTour=function(){
-      tourImage.src=tourImage.dataset.animatedSrc;
-      delete tourImage.dataset.animatedSrc;
-    };
-    if("IntersectionObserver" in window){
-      var tourObserver=new IntersectionObserver(function(entries){
-        if(entries.some(function(entry){return entry.isIntersecting;})){
-          loadTour();
-          tourObserver.disconnect();
-        }
-      },{rootMargin:"180px 0px",threshold:.01});
-      tourObserver.observe(tourImage);
-    }else{
-      loadTour();
     }
   }
 
