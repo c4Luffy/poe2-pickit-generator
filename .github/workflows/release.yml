@@ -22,7 +22,7 @@ jobs:
   test:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -53,7 +53,7 @@ jobs:
       SIGN_PFX: ${{ secrets.SIGN_CERT_PFX_BASE64 }}
       SIGN_PWD: ${{ secrets.SIGN_CERT_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # version.py is the single source of truth (updater.py imports it), but a
       # RELEASE must match the tag — the auto-updater and download URLs are
