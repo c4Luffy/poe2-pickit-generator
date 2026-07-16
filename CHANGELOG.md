@@ -6,6 +6,16 @@ download lives.
 
 ---
 
+## [v4.35.1] — 2026-07-16 — Create your filter: drag & drop + open folder
+
+Two comforts for the new tab, same day:
+
+- **Drag & drop.** Drop a `.ipd` anywhere on the app window — it jumps to the
+  Create your filter tab and converts it on the spot. (If your system blocks
+  path access on drop, the app says so and the Choose button still works.)
+- **📂 Open folder.** After saving a filter, one click opens the folder it
+  landed in — no hunting for where it went.
+
 ## [v4.35.0] — 2026-07-16 — Create your filter: any pickit becomes an in-game loot filter
 
 New tab: **📥 Create your filter**. Bring *any* Exiled Bot pickit — hand-made, from a
@@ -1400,6 +1410,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.35.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.1
 [v4.35.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.0
 [v4.34.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.34.0
 [v4.33.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.33.0

@@ -1103,6 +1103,18 @@ class AppApi:
         self._log(f"✓ Filter created from pickit: {os.path.basename(str(path))}")
         return {"ok": True, "path": str(path)}
 
+    def import_pickit_open_saved(self):
+        """Open the folder holding the last filter saved from this tab."""
+        out = (self.cfg.get("filter_from_pickit") or {}).get("out") or ""
+        folder = os.path.dirname(out) if out else ""
+        if not folder or not os.path.isdir(folder):
+            return {"error": "Nothing saved yet."}
+        try:
+            os.startfile(folder)          # noqa: S606 (folder, no args)
+            return {"ok": True}
+        except OSError as e:
+            return {"error": str(e)}
+
     def import_pickit_status(self):
         """Stale check for the Create-your-filter tab: has the source pickit
         changed since the filter was saved from it?"""

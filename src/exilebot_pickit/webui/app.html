@@ -1286,7 +1286,7 @@
 
   <div class="card">
     <h2>1 · Choose the pickit</h2>
-    <div class="hint">Any <b>.ipd</b> file works — it doesn't have to come from this app. If your bot is connected, the picker opens right in its pickit folder.</div>
+    <div class="hint">Any <b>.ipd</b> file works — it doesn't have to come from this app. If your bot is connected, the picker opens right in its pickit folder. You can also just <b>drag the file onto this window</b>.</div>
     <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
       <button class="primary" id="mypkChoose">📂 Choose pickit…</button>
       <span class="hint" style="margin:0;user-select:text" id="mypkFile">No file loaded.</span>
@@ -1309,6 +1309,7 @@
       <div class="switch on" id="mypkHide"><i></i></div></div>
     <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
       <button class="primary" id="mypkSave">💾 Save filter</button>
+      <button class="ghost mini" id="mypkOpenDir" title="Open the folder with the saved filter" style="display:none">📂 Open folder</button>
       <span class="hint" style="margin:0;user-select:text" id="mypkSaved"></span>
     </div>
     <div class="hint" style="margin-top:8px">Last step is in the game: <b>Options → Game → Filters</b> → pick your new filter. PoE2 only reads a filter after you select it.</div>
@@ -3308,7 +3309,23 @@ $("mypkSave").onclick=async()=>{
   if(r.cancelled)return;
   $("mypkSaved").textContent="Saved: "+r.path;toast("Filter saved");
   $("mypkStale").style.display="none";
+  $("mypkOpenDir").style.display="";
 };
+$("mypkOpenDir").onclick=async()=>{const r=await api().import_pickit_open_saved();
+  if(r&&r.error)toast(r.error);};
+// Drop a .ipd anywhere in the window → jump to the tab and convert it.
+document.addEventListener("dragover",e=>{e.preventDefault();});
+document.addEventListener("drop",async e=>{
+  e.preventDefault();
+  const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+  if(!f)return;
+  if(!/\.ipd$/i.test(f.name||"")){toast("Drop a .ipd pickit file");return;}
+  const p=f.pywebviewFullPath||"";   // pywebview exposes the real path on drop
+  if(!p){toast("Drag & drop isn't available here — use Choose pickit…");return;}
+  openPage("mypk");
+  mypkPath=p;$("mypkFile").textContent=p;$("mypkSaved").textContent="";
+  await mypkConvert();
+});
 async function mypkStatus(){
   const r=await api().import_pickit_status();const b=$("mypkStale");
   if(r&&r.stale){
