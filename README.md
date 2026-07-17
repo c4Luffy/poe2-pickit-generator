@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.36.0/ExileBot2PickitGenerator.exe"><img alt="Download v4.36.0 for Windows" src="https://img.shields.io/badge/Download-v4.36.0-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&label=Downloads&labelColor=171411&color=829d78"></a>
 </p>
 
 <p align="center">
