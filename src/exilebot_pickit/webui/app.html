@@ -384,46 +384,21 @@
      Colors (--tx text, --bgc backdrop, --bc border, --bm beam) come straight
      from the engine's theme table — the DRESSING is ornate, the colors never
      lie about what the filter writes. */
-  /* FilterBlade-style preview card: ornate banner header, then flat
-     game-true labels (small-caps font, minimap icon inside the label). */
-  .lfprev-card{margin-top:12px;border:1px solid #33261a;border-radius:4px;
-    overflow:hidden;background:#0a0b0e;box-shadow:0 4px 14px rgba(0,0,0,.35)}
-  .lfprev-head{position:relative;text-align:center;padding:7px 40px;
-    font-family:"Fontin SmallCaps",Georgia,serif;font-variant:small-caps;
-    font-weight:700;font-size:17px;letter-spacing:.08em;color:#e0873a;
-    background:linear-gradient(180deg,#3d1f10,#2b140a 55%,#1e0d06);
-    border-bottom:1px solid #4d2c14;
-    box-shadow:inset 0 0 0 1px rgba(224,135,58,.28),inset 0 -8px 14px rgba(0,0,0,.45)}
-  .lfprev-head::before,.lfprev-head::after{position:absolute;top:50%;
-    transform:translateY(-52%);color:rgba(224,135,58,.5);font-size:15px}
-  .lfprev-head::before{content:"❧";left:13px}
-  .lfprev-head::after{content:"☙";right:13px}
-  .lfprev{position:relative;padding:30px 18px 16px;
-    display:flex;gap:16px 22px;flex-wrap:wrap;align-items:flex-end;justify-content:center;
-    /* torch-lit rocky ground, all procedural: warm light pools + fractal
-       noise texture mapped to browns — no image assets, works offline */
-    background:
-      radial-gradient(460px 230px at 14% 118%,rgba(226,132,48,.38),transparent 64%),
-      radial-gradient(460px 230px at 86% 118%,rgba(226,132,48,.32),transparent 64%),
-      radial-gradient(760px 340px at 50% -28%,rgba(96,80,56,.5),transparent 74%),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.11 0.13' numOctaves='5' seed='7'/><feColorMatrix type='matrix' values='0 0 0 0 0.24  0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0.9 0'/></filter><rect width='240' height='240' filter='url(%23n)'/></svg>"),
-      linear-gradient(180deg,#221a12,#15100b 55%,#0d0a07);
-    box-shadow:inset 0 0 80px rgba(0,0,0,.72),inset 0 -22px 40px rgba(0,0,0,.5)}
-  .lfprev-item{text-align:center;position:relative}
-  .lfprev-label{position:relative;z-index:1;display:inline-flex;align-items:center;gap:7px;
-    padding:3px 12px;font-family:"Fontin SmallCaps",Georgia,serif;font-weight:700;
+  /* Label preview, kept deliberately simple: the labels ARE the show —
+     flat game-true rectangles (small-caps font, minimap icon inside),
+     centered on a plain dark panel. Nothing else competes with them. */
+  .lfprev{margin-top:12px;border:1px solid var(--border);border-radius:10px;
+    padding:22px 16px 14px;background:#0c0d10;
+    display:flex;gap:16px 26px;flex-wrap:wrap;align-items:flex-end;justify-content:center}
+  .lfprev-item{text-align:center}
+  .lfprev-label{display:inline-flex;align-items:center;gap:7px;
+    padding:3px 13px;font-family:"Fontin SmallCaps",Georgia,serif;font-weight:700;
     font-variant:small-caps;letter-spacing:.02em;white-space:nowrap;
-    color:var(--tx);border:1px solid var(--bc);background:var(--bgc);
-    box-shadow:0 2px 6px rgba(0,0,0,.55),var(--glow,0 0 0 transparent)}
+    color:var(--tx);border:1px solid var(--bc);background:var(--bgc)}
   .lfprev-ico{font-size:.72em;line-height:1;font-family:ui-sans-serif,system-ui,sans-serif;
-    font-variant:normal;text-shadow:0 0 3px rgba(0,0,0,.8)}
-  .lfprev-beam{display:block;width:4px;height:40px;margin:0 auto -4px;border-radius:2px;
-    background:linear-gradient(color-mix(in srgb,var(--bm) 85%,#fff) 12%,var(--bm) 40%,transparent);
-    box-shadow:0 0 14px 3px color-mix(in srgb,var(--bm) 35%,transparent);
-    position:relative;z-index:0;animation:lfpulse 2.8s ease-in-out infinite}
-  @keyframes lfpulse{0%,100%{opacity:.8}50%{opacity:1}}
-  .lfprev-cap{display:block;margin-top:6px;font-size:10px;color:var(--dim);
-    white-space:nowrap;letter-spacing:.04em;text-shadow:0 1px 2px #000}
+    font-variant:normal}
+  .lfprev-cap{display:block;margin-top:5px;font-size:10px;color:var(--dim);
+    white-space:nowrap;letter-spacing:.04em}
   /* Run log: no horizontal scrolling ever (paths wrap with a hanging indent
      under their own text), and the box is user-resizable by its bottom edge. */
   .log{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 13px;
@@ -1356,10 +1331,7 @@
       <select id="mypkTheme" style="padding:9px 12px;min-width:190px"></select>
       <span class="hint" style="margin:0;flex:1;min-width:200px" id="mypkThemeDesc"></span>
     </div>
-    <div class="lfprev-card">
-      <div class="lfprev-head">Label Preview</div>
-      <div id="mypkThemePrev" class="lfprev"></div>
-    </div>
+    <div id="mypkThemePrev" class="lfprev"></div>
     <div class="hint" style="margin-top:6px;text-align:center;opacity:.75">Preview — how these labels will look on the ground in game, minimap icon included (sounds not shown)</div>
   </div>
 
@@ -3392,13 +3364,10 @@ function renderThemePreview(theme){
   $("mypkThemePrev").innerHTML=LF_SAMPLES.map(([kind,name,what])=>{
     const s=lfParse(t[kind]);
     const px=Math.round(s.size*.52);   // game font 18-45 → ~9-23px preview
-    const bm=LF_BEAMS[s.beam]||"#fff";
     const vars=`--tx:${s.text||"#c8c8c8"};--bgc:${s.bg||"rgba(0,0,0,.82)"};`+
-      `--bc:${s.border||"rgba(0,0,0,0)"};--bm:${bm};`+
-      (s.beam?`--glow:0 0 14px ${bm}55;`:"");
-    const beam=s.beam?`<i class="lfprev-beam" style="--bm:${bm}"></i>`:"";
+      `--bc:${s.border||"rgba(0,0,0,0)"}`;
     const ico=s.icoShape?`<span class="lfprev-ico" style="color:${LF_BEAMS[s.icoColor]||"#ddd"}">${LF_ICO[s.icoShape]||"◆"}</span>`:"";
-    return `<span class="lfprev-item" style="${vars}">${beam}<span class="lfprev-label" style="font-size:${px}px;line-height:1.35">${ico}${name}</span><small class="lfprev-cap">${what}</small></span>`;
+    return `<span class="lfprev-item" style="${vars}"><span class="lfprev-label" style="font-size:${px}px;line-height:1.35">${ico}${name}</span><small class="lfprev-cap">${what}</small></span>`;
   }).join("");
 }
 async function mypkConvert(){
