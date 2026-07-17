@@ -189,23 +189,14 @@ def test_show_blocks_are_styled():
     assert "SetFontSize 35" in txt[gold:gold + 120]
 
 
-def test_minimal_theme_reproduces_pre_theme_styles():
-    # "minimal" must stay byte-identical to what v4.35.x shipped, so users who
-    # liked the old quiet look can keep it forever.
-    res = convert_pickit_text(SAMPLE, hide_rest=True, theme="minimal")
-    txt = _joined(res)
-    assert "SetBorderColor 255 207 92" in txt          # old named style
-    assert "SetTextColor 175 96 37" in txt             # old unique style
-    assert "SetBackgroundColor" not in txt             # minimal has no backdrops
-    gold = txt.index('BaseType == "Gold"')
-    assert "SetFontSize 35" in txt[gold:gold + 120]
-
-
 def test_unknown_theme_falls_back_to_default_not_unstyled():
-    res = convert_pickit_text(SAMPLE, theme="no-such-theme")
-    txt = _joined(res)
-    assert "SetBackgroundColor 245 139 87" in txt      # classic named style
-    assert "MinimapIcon" in txt
+    # Includes the retired v4.36.0 theme names ("minimal", "contrast",
+    # "colorblind") a pre-cut config may still carry.
+    for stale in ("no-such-theme", "minimal", "contrast", "colorblind"):
+        res = convert_pickit_text(SAMPLE, theme=stale)
+        txt = _joined(res)
+        assert "SetBackgroundColor 245 139 87" in txt  # classic named style
+        assert "MinimapIcon" in txt
 
 
 def test_renamed_game_filter_is_detected():

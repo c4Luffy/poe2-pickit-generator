@@ -42,22 +42,15 @@ DEFAULT_THEME = "classic"
 # ~a tenth of a Divine at the usual ~500 ex rate: rare enough to stay special.
 JACKPOT_EXALT = 50.0
 
-# UI order: (key, label, one-line description shown next to the dropdown).
+# ONE theme, on the owner's order (2026-07-17: "don't need too many themes").
+# The table/lookup mechanism stays so a second theme is a data change away,
+# and get_style's fallback quietly maps any stored pre-cut value ("minimal",
+# "contrast", "colorblind") to classic.
 THEME_CHOICES = [
     ("classic", "Community classic",
-     "The familiar tiered look: red screamer for jackpots, gold currency, orange uniques."),
-    ("minimal", "Minimal",
-     "The quiet look the app shipped before themes — thin borders, no backgrounds."),
-    ("contrast", "High contrast",
-     "Black backgrounds, bright text, bigger labels — for busy screens."),
-    ("colorblind", "Colorblind safe",
-     "Blue/orange palette — no red-vs-green distinctions anywhere."),
+     "NeverSink's colors: red screamer for jackpots, gold currency, orange uniques."),
 ]
 
-# classic is written once in full; colorblind overrides only the kinds where
-# red/green must go (spread below), so a palette tweak to classic's neutral
-# rows can never silently diverge between the two.
-#
 # Values below are NeverSink's OWN (owner's request 2026-07-17): extracted
 # verbatim from his live PoE2 SOFT filter (the gamedata_cache copy tools/
 # check_game_data.py maintains) — jackpot = his S-tier currency (Divine Orb
@@ -86,68 +79,8 @@ _CLASSIC = {
     "gold": ["SetFontSize 35", "SetTextColor 255 255 255"],
 }
 
-# The exact style commands v4.35.x shipped (named/unique/gear/gold), so a user
-# who liked the pre-theme look keeps it. jackpot deliberately ALIASES named:
-# minimal has no screamer tier, and aliasing (not copying) makes that
-# un-drift-able. Note the commands are the same but block layout moved: styles
-# now sit after the BaseType line (NeverSink order) instead of before it —
-# the PoE2 parser is order-agnostic inside a block.
-_MINIMAL_NAMED = ["SetFontSize 38", "SetBorderColor 255 207 92",
-                  "MinimapIcon 2 Yellow Circle"]
-_MINIMAL = {
-    "jackpot": _MINIMAL_NAMED,
-    "named": _MINIMAL_NAMED,
-    "unique": ["SetFontSize 40", "SetTextColor 175 96 37",
-               "SetBorderColor 175 96 37", "PlayEffect Brown",
-               "MinimapIcon 1 Brown Star"],
-    "chance": ["SetFontSize 34"],
-    "gear": ["SetFontSize 32"],
-    "waystone": ["SetFontSize 34"],
-    "gold": ["SetFontSize 35"],
-}
-
-_CONTRAST = {
-    "jackpot": ["SetFontSize 45", "SetTextColor 0 0 0",
-                "SetBorderColor 255 255 255", "SetBackgroundColor 255 255 255",
-                "PlayAlertSound 6 300", "PlayEffect White",
-                "MinimapIcon 0 White Star"],
-    "named": ["SetFontSize 42", "SetTextColor 255 255 0",
-              "SetBorderColor 255 255 0", "SetBackgroundColor 0 0 0",
-              "MinimapIcon 1 Yellow Circle"],
-    "unique": ["SetFontSize 42", "SetTextColor 255 140 60",
-               "SetBorderColor 255 140 60", "SetBackgroundColor 0 0 0",
-               "PlayEffect Orange", "MinimapIcon 0 Orange Star"],
-    "chance": ["SetFontSize 40", "SetTextColor 0 255 255",
-               "SetBorderColor 0 255 255", "SetBackgroundColor 0 0 0",
-               "MinimapIcon 1 Cyan Moon"],
-    "gear": ["SetFontSize 34", "SetBorderColor 200 200 200"],
-    "waystone": ["SetFontSize 40", "SetTextColor 255 255 255",
-                 "SetBorderColor 255 255 255", "SetBackgroundColor 40 40 40",
-                 "MinimapIcon 1 White Square"],
-    "gold": ["SetFontSize 36", "SetTextColor 255 255 150"],
-}
-
 THEMES = {
     "classic": _CLASSIC,
-    "minimal": _MINIMAL,
-    "contrast": _CONTRAST,
-    # Colorblind = classic with every red/green-dependent kind moved onto the
-    # blue/orange axis; neutral kinds (named/gear/gold) are inherited, so they
-    # can never drift from classic.
-    "colorblind": {
-        **_CLASSIC,
-        "jackpot": ["SetFontSize 45", "SetTextColor 255 255 255",
-                    "SetBorderColor 255 255 255", "SetBackgroundColor 0 90 190",
-                    "PlayAlertSound 6 300", "PlayEffect Blue",
-                    "MinimapIcon 0 Blue Star"],
-        "unique": ["SetFontSize 42", "SetTextColor 255 150 40",
-                   "SetBorderColor 255 150 40", "SetBackgroundColor 0 0 0 208",
-                   "PlayEffect Orange", "MinimapIcon 1 Orange Star"],
-        "chance": ["SetFontSize 38", "SetTextColor 130 200 255",
-                   "SetBorderColor 130 200 255", "MinimapIcon 2 Blue Moon"],
-        "waystone": ["SetFontSize 38", "SetTextColor 255 255 255",
-                     "SetBorderColor 130 200 255", "MinimapIcon 1 Blue Square"],
-    },
 }
 
 

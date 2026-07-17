@@ -124,13 +124,14 @@ def test_waystone_block_is_styled():
         assert ln in ws
 
 
-def test_theme_parameter_switches_the_whole_output():
-    minimal = _flt("minimal")
-    assert "SetBackgroundColor" not in minimal
-    contrast = _flt("contrast")
-    assert "SetBackgroundColor 0 0 0" in contrast
-    # unknown theme falls back to default instead of stripping styles
-    assert "SetBorderColor" in _flt("does-not-exist")
+def test_single_theme_and_stale_names_fall_back():
+    # One theme by owner decision (2026-07-17); configs from the brief
+    # multi-theme window may still carry retired names — never unstyled.
+    assert list(THEMES) == [DEFAULT_THEME]
+    for stale in ("minimal", "contrast", "colorblind", "does-not-exist"):
+        txt = _flt(stale)
+        assert "SetBackgroundColor 245 139 87" in txt   # classic named style
+        assert "PlayAlertSound 6 300" in txt            # classic jackpot kept
 
 
 def test_conditions_come_before_style_lines_inside_a_block():
