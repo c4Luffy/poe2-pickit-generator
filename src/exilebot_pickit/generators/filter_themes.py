@@ -52,22 +52,27 @@ THEME_CHOICES = [
      "The owner's filter colors: red screamer for jackpots, orange currency and uniques."),
 ]
 
-# Values below are the OWNER'S OWN in-game filter codes (supplied 2026-07-17):
-# unique = his uniques style (dark-brown text on unique-orange, Brown Kite),
-# chance = his "Favourite Chance Bases" (Brown beam + Brown Kite), gear = his
-# "Good Exceptional" (White beam + White Kite), waystone = his rare-waystone
-# Orange Diamond, gold = his normal-stack dark backdrop. jackpot/named keep
-# the earlier NeverSink-derived currency look (red-on-white screamer / orange
-# Exalted tier) because the currency section of his filter wasn't provided —
-# swap these when he supplies those codes. No PlayAlertSound anywhere
-# (owner's standing order).
+# Values below are poe2filter.com's, taken VERBATIM from the owner's
+# downloaded preset filters (Desktop/filter/poe2filter5-6.filter,
+# 2026-07-17). The site's tier ladder is white < yellow < orange < red <
+# purple, told by beam + minimap circle; top currency also gets a colored
+# label on a cream backdrop. Mapping here: jackpot = the Divine/purple tier
+# (purple-on-cream 79 0 122 / 237 233 222), named = the orange tier
+# (123 67 11 on cream), unique = its uniques style (dark-brown on
+# unique-orange, Brown Kite), chance = its Favourite Chance Bases (Brown
+# beam + Brown Kite), gear = its Good Exceptional (White beam + White Kite),
+# waystone = rare-waystone Orange Diamond, gold = its gold backdrop
+# (#000000aa = 0 0 0 170). No PlayAlertSound anywhere (owner's standing
+# order).
 _CLASSIC = {
-    "jackpot": ["SetFontSize 45", "SetTextColor 255 0 0",
-                "SetBorderColor 255 0 0", "SetBackgroundColor 255 255 255",
-                "PlayEffect Red", "MinimapIcon 1 Red Kite"],
-    "named": ["SetFontSize 42", "SetTextColor 0 0 0",
-              "SetBorderColor 0 0 0", "SetBackgroundColor 245 139 87",
-              "MinimapIcon 1 Yellow Circle"],
+    "jackpot": ["SetFontSize 37", "SetTextColor 79 0 122 255",
+                "SetBorderColor 79 0 122 255",
+                "SetBackgroundColor 237 233 222 230",
+                "PlayEffect Purple", "MinimapIcon 1 Purple Circle"],
+    "named": ["SetFontSize 37", "SetTextColor 123 67 11 255",
+              "SetBorderColor 123 67 11 255",
+              "SetBackgroundColor 237 233 222 230",
+              "PlayEffect Orange", "MinimapIcon 2 Orange Circle"],
     "unique": ["SetFontSize 37", "SetTextColor 53 30 14 255",
                "SetBorderColor 53 30 14 255", "SetBackgroundColor 175 96 37 240",
                "PlayEffect Brown", "MinimapIcon 1 Brown Kite"],

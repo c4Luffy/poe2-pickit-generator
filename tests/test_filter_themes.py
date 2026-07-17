@@ -73,9 +73,10 @@ def test_jackpot_tier_fires_on_live_value_only():
     # Styles follow the BaseType line, so a forward slice covers one block.
     txt = _flt()
     jackpot_block = txt[txt.index('"Divine Orb"'):txt.index('"Chaos Orb"')]
-    assert "PlayEffect Red" in jackpot_block
+    assert "PlayEffect Purple" in jackpot_block
     chaos_block = txt[txt.index('"Chaos Orb"'):txt.index('"Heavy Belt"')]
-    assert "PlayEffect" not in chaos_block
+    assert "PlayEffect Purple" not in chaos_block
+    assert "PlayEffect Orange" in chaos_block
     # jackpot blocks must come first: the game takes the FIRST matching block
     assert txt.index('"Divine Orb"') < txt.index('"Chaos Orb"')
 
@@ -88,8 +89,8 @@ def test_always_jackpot_names_scream_even_without_a_price_comment():
            '[Type] == "Chaos Orb" # [StashItem] == "true"']
     txt = "\n".join(gen.build_loot_filter(ipd))
     mirror = txt[txt.index('"Mirror of Kalandra"'):txt.index('"Chaos Orb"')]
-    assert "PlayEffect Red" in mirror
-    assert "PlayEffect" not in txt[txt.index('"Chaos Orb"'):]
+    assert "PlayEffect Purple" in mirror
+    assert "PlayEffect Purple" not in txt[txt.index('"Chaos Orb"'):]
 
 
 def test_jackpot_threshold_is_honored_exactly():
@@ -97,8 +98,8 @@ def test_jackpot_threshold_is_honored_exactly():
     below = f'[Type] == "Below" # [StashItem] == "true" // ExValue = {JACKPOT_EXALT - 0.01:.2f}'
     txt = "\n".join(gen.build_loot_filter([at, below]))
     assert txt.index('"At Floor"') < txt.index('"Below"')
-    assert "PlayEffect Red" in txt[: txt.index('"Below"')]
-    assert "PlayEffect" not in txt[txt.index('"Below"'):]
+    assert "PlayEffect Purple" in txt[: txt.index('"Below"')]
+    assert "PlayEffect Purple" not in txt[txt.index('"Below"'):]
 
 
 def test_normal_rarity_bases_get_the_chance_look():
@@ -128,8 +129,8 @@ def test_single_theme_and_stale_names_fall_back():
     assert list(THEMES) == [DEFAULT_THEME]
     for stale in ("minimal", "contrast", "colorblind", "does-not-exist"):
         txt = _flt(stale)
-        assert "SetBackgroundColor 245 139 87" in txt   # classic named style
-        assert "PlayEffect Red" in txt                  # classic jackpot kept
+        assert "SetTextColor 123 67 11 255" in txt      # classic named style
+        assert "PlayEffect Purple" in txt               # classic jackpot kept
 
 
 def test_conditions_come_before_style_lines_inside_a_block():
