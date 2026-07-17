@@ -24,6 +24,10 @@ import re
 import time
 
 from exilebot_pickit import generator as gen
+from exilebot_pickit.generators.filter_classification import (
+    classify_rule, extract_divine_rate, section_from_comment,
+    threshold_summary, visual_report, visual_sort_key,
+)
 
 # Pickup-side conditions the converter can express in a loot filter. Anything
 # else found before the `#` (ItemTier, GemLevel, TotalResistances, …) is a
@@ -54,9 +58,9 @@ _CATEGORY_CLASS = {
     "currency": ["Stackable Currency"],
 }
 
-# Label styles come from the shared theme table (generators/filter_themes) so
-# an imported pickit's filter looks the same as a generated one. An imported
-# pickit carries no prices, so the jackpot tier never applies here.
+# Label styles and rule classification are shared with the automatic filter
+# writer. Generated IPDs retain their ExValue tiers; hand-written files fall
+# back to section/purpose styles when no price exists.
 
 # Keep the untranslatable list small enough for the UI report.
 _MAX_LISTED = 30
@@ -124,12 +128,22 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
     ``theme`` picks the label style set; unknown values fall back to the
     default theme inside the lookup.
     """
-    named_groups: dict = {}   # (rarity, quality, sockets) -> [names], exact translation
-    generic: list = []
+    # (visual kind, rarity, quality, sockets) -> names, exact translation.
+    named_groups: dict = {}
+    generic: list = []        # (visual kind, conditions)
 
     rules = converted = widened = disabled = assumed_pickup = 0
     untranslatable: list = []
     untranslatable_total = 0
+    visual_counts: dict = {}
+    visual_examples: dict = {}
+
+    def _record_visual(kind, names):
+        visual_counts[kind] = visual_counts.get(kind, 0) + 1
+        bucket = visual_examples.setdefault(kind, [])
+        for name in names:
+            if name and name not in bucket and len(bucket) < 3:
+                bucket.append(name)
 
     def _flag(no, line, reason):
         nonlocal untranslatable_total
@@ -140,6 +154,9 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
 
     if not isinstance(text, str):
         text = ""
+    text_lines = text.splitlines()
+    divine_rate = extract_divine_rate(text_lines)
+    section = None
     # The #1 real-world misuse: an in-game .filter renamed to .ipd (players
     # try to convert FilterBlade filters INTO pickits — this page goes the
     # other way). Detect the filter language so the UI can explain direction
@@ -148,10 +165,13 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
         re.search(r"^\s*(Show|Hide)\s*(#.*)?$", text, re.M)
         and re.search(r"^\s*(BaseType|Class|SetTextColor|SetFontSize)\b",
                       text, re.M))
-    for no, raw in enumerate(text.splitlines(), 1):
+    for no, raw in enumerate(text_lines, 1):
         line = raw.strip().lstrip("﻿")   # a BOM is not part of a comment marker
         if not line:
             continue
+        heading = section_from_comment(line)
+        if heading:
+            section = heading
         if line.startswith("/"):
             disabled += 1
             continue
@@ -162,6 +182,7 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
             # is harmless; hiding one the bot wanted is not.
             assumed_pickup += 1
         r = _parse_rule(cond_part)
+        kind = classify_rule(line, section, divine_rate)
         # "wide": a check was dropped, so the filter shows MORE than the rule.
         # Counted only for rules that actually make it into the filter.
         wide = bool(r["unknown"])
@@ -178,14 +199,16 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
             # untranslatable (so a Hide gets the loud warning), but any
             # expressible sibling names on the same line still get shown.
             if names:
-                key = (rarity, r["quality"], r["sockets"])
+                key = (kind, rarity, r["quality"], r["sockets"])
                 named_groups.setdefault(key, []).extend(names)
+                _record_visual(kind, names)
             _flag(no, line, "an item name on this line contains '#' or '\"' — "
                             "a filter string can't carry that name")
             continue
         if names:
-            key = (rarity, r["quality"], r["sockets"])
+            key = (kind, rarity, r["quality"], r["sockets"])
             named_groups.setdefault(key, []).extend(names)
+            _record_visual(kind, names)
             converted += 1
             if wide:
                 widened += 1
@@ -204,7 +227,9 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
         if r["quality"] is not None:
             conds.append(f"Quality >= {r['quality']}")
         if conds:
-            generic.append(conds)
+            generic.append((kind, conds))
+            label = r["category"] or rarity or "Condition-only rule"
+            _record_visual(kind, [label])
             converted += 1
             if wide:
                 widened += 1
@@ -229,17 +254,27 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
         "# Shows every item the pickit could take (pickup conditions only).",
         "# Bot-only checks (mods, tiers, values) can't exist in a filter, so",
         "# those rules are shown a little wider — never narrower.",
+        "# Appearance tiers are filter-only; they never change what the bot picks.",
         f"# Generated on: {time.strftime('%Y-%m-%dT%H:%M:%S')}",
+        "",
+    ]
+    th = threshold_summary(divine_rate)
+    out += [
+        f"# Value ladder: Mythic >= {th['mythic']:.2f} ex | "
+        f"Jackpot >= {th['jackpot']:.2f} ex | High >= {th['high']:.2f} ex | "
+        f"Useful >= {th['useful']:.2f} ex | Quiet below that",
         "",
     ]
     # Named rules translate EXACTLY: every recognised condition on the line
     # (rarity + quality + sockets, in any combination) rides along with the
     # names — nothing silently dropped.
     def _grp_key(k):
-        rar, q, s = k
-        return (rar or "", -1 if q is None else q, -1 if s is None else s)
+        kind, rar, q, s = k
+        return (visual_sort_key(kind), rar or "",
+                -1 if q is None else q, -1 if s is None else s)
+
     for key in sorted(named_groups, key=_grp_key):
-        rar, q, s = key
+        kind, rar, q, s = key
         extra = []
         if rar:
             extra.append(f"Rarity = {rar}")
@@ -247,11 +282,15 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
             extra.append(f"Quality >= {q}")
         if s is not None:
             extra.append(f"Sockets >= {s}")
-        style = gen.filter_theme_style(theme, "unique" if rar == "Unique" else "named")
+        style = gen.filter_theme_style(theme, kind)
         out += gen._lf_show_blocks(named_groups[key], extra, style_lines=style)
-    gear_style = gen.filter_theme_style(theme, "gear")
-    for conds in gen._dedupe_cond_lists(generic):
-        out += gen._lf_styled_block(conds, gear_style)
+    seen_generic = set()
+    for kind, conds in sorted(generic, key=lambda row: visual_sort_key(row[0])):
+        key = kind, tuple(conds)
+        if not conds or key in seen_generic:
+            continue
+        seen_generic.add(key)
+        out += gen._lf_styled_block(conds, gen.filter_theme_style(theme, kind))
 
     if hide_applied:
         # Safety: gold must never be hidden — bots grab it regardless of the
@@ -279,5 +318,7 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
             "untranslatable": untranslatable,
             "hide_applied": hide_applied,
             "hide_risky": hide_risky,
+            "visual_tiers": visual_report(visual_counts, visual_examples),
+            "visual_thresholds": th,
         },
     }

@@ -52,6 +52,13 @@ from exilebot_pickit.generators.filter_themes import (  # noqa: F401
     THEME_CHOICES as FILTER_THEME_CHOICES, THEMES as FILTER_THEMES,
     get_style as filter_theme_style,
 )
+from exilebot_pickit.generators.filter_classification import (  # noqa: F401
+    classify_rule as classify_filter_rule,
+    extract_divine_rate as filter_divine_rate,
+    section_from_comment as filter_section_from_comment,
+    threshold_summary as filter_threshold_summary,
+    visual_sort_key as filter_visual_sort_key,
+)
 
 
 
@@ -606,16 +613,6 @@ _LF_CATEGORY_RE = re.compile(r'\[Category\]\s*==\s*"(\w+)"')
 # wanted to salvage / stash-unid (reported by the community). The bot decides
 # what to do after pickup; the filter only needs to make the item visible.
 _LF_ACTION_RE   = re.compile(r'\[(StashItem|StashUnid|Salvage|Disenchant)\]')
-# Live value carried in the generated rule's trailing comment
-# ("// ExValue = 320.00") — lets the filter give truly expensive drops the
-# jackpot look. Imported pickits usually have no such comment: no match, no tier.
-_LF_EXVALUE_RE  = re.compile(r'//.*?ExValue\s*=\s*(\d+(?:\.\d+)?)')
-# Names that get the jackpot look even when their rule carries no ExValue
-# comment: always-pick rules are written bare when poe.ninja omits the item,
-# and these two are jackpot-worthy in any economy. Without this, a dropped
-# Mirror could show with the QUIET label — the one item nobody may miss.
-_LF_JACKPOT_ALWAYS = frozenset({"Mirror of Kalandra", "Divine Orb"})
-
 _LF_CHUNK = 30  # BaseTypes per Show block (matches reference IPD-derived filters)
 
 
@@ -625,8 +622,8 @@ def _lf_show_blocks(names, extra_lines, chunk: int = _LF_CHUNK,
 
     ``extra_lines`` are extra condition lines placed inside each block
     (e.g. 'Rarity = Unique', 'Quality >= 28'); ``style_lines`` are appearance
-    lines placed after the conditions (conditions first, then actions — the
-    order NeverSink's filter uses). A '# Part i/n' comment is added only when
+    lines placed after the conditions (conditions first, then actions). A
+    '# Part i/n' comment is added only when
     the names span more than one chunk.
     """
     names = list(dict.fromkeys(names))  # order-preserving de-dupe
@@ -661,17 +658,19 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None,
         generated_iso = time.strftime("%Y-%m-%dT%H:%M:%S")
     theme = theme or DEFAULT_FILTER_THEME
 
-    plain: list = []          # [Type] only (currency, essences, runes, gems, …)
-    jackpot: list = []        # …the subset worth JACKPOT_EXALT+ right now
-    unique: list = []         # [Rarity] == "Unique"
-    by_rarity = {"Normal": [], "Magic": [], "Rare": []}
-    by_quality: dict = {}     # quality int -> [names]
-    by_sockets: dict = {}     # socket  int -> [names]
-    generic: list = []        # non-[Type] action rules (e.g. salvage by rarity/sockets)
-    has_waystone = False
+    ipd_lines = list(ipd_lines)
+    divine_rate = filter_divine_rate(ipd_lines)
+    # (visual kind, rarity, quality, sockets) -> names. Value/purpose rides in
+    # the key, so a Divine can never be flattened into the Scroll block.
+    named_groups: dict = {}
+    generic: list = []        # (visual kind, filter conditions)
+    section = None
 
     for raw in ipd_lines:
         line = raw.strip()
+        heading = filter_section_from_comment(line)
+        if heading:
+            section = heading
         if not line or line.startswith("/"):
             continue              # blank, header, or commented-out (disabled) rule
         if not _LF_ACTION_RE.search(line):
@@ -681,9 +680,10 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None,
             # No [Type] — a category or condition-only rule (e.g. a salvage rule
             # gated by Rarity + Sockets). Build a generic Show from its
             # conditions so those items aren't hidden.
+            kind = classify_filter_rule(line, section, divine_rate)
             mc = _LF_CATEGORY_RE.search(line)
             if mc and mc.group(1) == "Waystone":
-                has_waystone = True
+                generic.append(("waystone", ['Class "Waystone"']))
                 continue
             conds = []
             mr = _LF_RARITY_RE.search(line)
@@ -701,30 +701,18 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None,
             if mq:
                 conds.append(f"Quality >= {mq.group(1)}")
             if conds:
-                generic.append(conds)
+                generic.append((kind, conds))
             continue
         name = mt.group(1).replace('\\"', '"')
+        kind = classify_filter_rule(line, section, divine_rate)
         mr = _LF_RARITY_RE.search(line)
         mq = _LF_QUALITY_RE.search(line)
         ms = _LF_SOCKETS_RE.search(line)
-        if mr and mr.group(1) == "Unique":
-            unique.append(name)
-        elif mr and mr.group(1) in by_rarity:
-            by_rarity[mr.group(1)].append(name)
-        elif mq:
-            by_quality.setdefault(int(mq.group(1)), []).append(name)
-        elif ms:
-            by_sockets.setdefault(int(ms.group(1)), []).append(name)
-        else:
-            mv = _LF_EXVALUE_RE.search(line)
-            if (mv and float(mv.group(1)) >= JACKPOT_EXALT) \
-                    or name in _LF_JACKPOT_ALWAYS:
-                jackpot.append(name)
-            else:
-                # No price comment (always-pick fallbacks, exotic bases,
-                # wombgifts, splinters) → value unknown → quiet label is the
-                # honest default.
-                plain.append(name)
+        msg = _LF_SOCKETS_GT_RE.search(line)
+        rarity = mr.group(1) if mr else None
+        quality = int(mq.group(1)) if mq else None
+        sockets = int(ms.group(1)) if ms else (int(msg.group(1)) + 1 if msg else None)
+        named_groups.setdefault((kind, rarity, quality, sockets), []).append(name)
 
     out: list = [
         "# Path of Exile 2 Filter - Generated from IPD",
@@ -732,35 +720,49 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None,
         "# Bot will pick these up and decide what to keep after identification",
         "# NOTE: [UniqueName] filters cannot be replicated here — unique items",
         "#       are shown by base type only. Value filtering stays in the .ipd.",
+        "# Appearance tiers are filter-only; they never change what the bot picks.",
         f"# Generated on: {generated_iso}",
         "",
     ]
+    th = filter_threshold_summary(divine_rate)
+    out += [
+        f"# Value ladder: Mythic >= {th['mythic']:.2f} ex | "
+        f"Jackpot >= {th['jackpot']:.2f} ex | High >= {th['high']:.2f} ex | "
+        f"Useful >= {th['useful']:.2f} ex | Quiet below that",
+        "",
+    ]
+
     def _st(kind):
         return filter_theme_style(theme, kind)
-    gear_style = _st("gear")
-    # Jackpot blocks come first: the game takes the FIRST matching block, so a
-    # duplicated name gets the screamer look, not the quiet one.
-    out += _lf_show_blocks(jackpot, [], style_lines=_st("jackpot"))
-    out += _lf_show_blocks(plain, [], style_lines=_st("named"))
-    out += _lf_show_blocks(unique, ["Rarity = Unique"], style_lines=_st("unique"))
-    # White (Normal) named bases share the "chance" look — chance bases, craft
-    # bases and normal tablets all read as "keep this white base" on the
-    # ground; the filter sees only conditions, not why the rule was written.
-    for rar, kind in (("Normal", "chance"), ("Magic", "gear"), ("Rare", "gear")):
-        out += _lf_show_blocks(by_rarity[rar], [f"Rarity = {rar}"],
-                               style_lines=_st(kind))
-    for q in sorted(by_quality):
-        out += _lf_show_blocks(by_quality[q], [f"Quality >= {q}"],
-                               style_lines=gear_style)
-    for s in sorted(by_sockets):
-        out += _lf_show_blocks(by_sockets[s], [f"Sockets >= {s}"],
-                               style_lines=gear_style)
-    if has_waystone:
-        out += _lf_styled_block(['Class "Waystone"'], _st("waystone"))
-    # Condition-only rules (salvage / stash-unid by rarity+sockets, no [Type]),
-    # de-duped — each becomes its own Show so the bot can see those items.
-    for conds in _dedupe_cond_lists(generic):
-        out += _lf_styled_block(conds, gear_style)
+
+    def _group_key(key):
+        kind, rarity, quality, sockets = key
+        return (filter_visual_sort_key(kind), rarity or "",
+                -1 if quality is None else quality,
+                -1 if sockets is None else sockets)
+
+    # Strongest block first: duplicate bases shared by multiple rules keep the
+    # highest available visual importance because the game takes first match.
+    for key in sorted(named_groups, key=_group_key):
+        kind, rarity, quality, sockets = key
+        extra = []
+        if rarity:
+            extra.append(f"Rarity = {rarity}")
+        if quality is not None:
+            extra.append(f"Quality >= {quality}")
+        if sockets is not None:
+            extra.append(f"Sockets >= {sockets}")
+        out += _lf_show_blocks(named_groups[key], extra, style_lines=_st(kind))
+
+    # Condition-only rules keep their section style and are de-duplicated by
+    # both purpose and conditions.
+    seen_generic = set()
+    for kind, conds in sorted(generic, key=lambda row: filter_visual_sort_key(row[0])):
+        key = kind, tuple(conds)
+        if not conds or key in seen_generic:
+            continue
+        seen_generic.add(key)
+        out += _lf_styled_block(conds, _st(kind))
 
     out += _lf_gold_guard(_st("gold"))
     out += [

@@ -54,7 +54,7 @@
     padding:6px 12px;font-size:12.5px;background:color-mix(in srgb,var(--gold) 8%,transparent)}
   .danger{color:var(--err)!important;border-color:color-mix(in srgb,var(--err) 55%,transparent)!important}
   .okpanel{border:1px solid var(--border);border-radius:12px;background:var(--bg3);
-    padding:16px;text-align:center;width:230px;flex-shrink:0;display:none}
+    padding:14px 16px;text-align:center;display:none}
   .okpanel.on{display:block}
   .okring{width:52px;height:52px;border-radius:50%;border:3px solid var(--ok);color:var(--ok);
     display:flex;align-items:center;justify-content:center;font-size:24px;margin:2px auto 10px}
@@ -406,8 +406,11 @@
        height:172px;min-height:130px;max-height:320px;resize:vertical;
        overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere;
        font:12px/1.6 Consolas,monospace;color:var(--dim)}
-  .log div{padding:2px 0 2px 62px;text-indent:-62px}
-  .log .t{opacity:.5;margin-right:7px}
+  /* timestamp column + message column: wraps cleanly at ANY panel width —
+     the old hanging indent turned narrow panels into one-word columns */
+  .log div{display:grid;grid-template-columns:50px minmax(0,1fr);gap:0 7px;padding:2px 0}
+  .log .t{opacity:.5}
+  .log .m{overflow-wrap:anywhere}
   .log .ok{color:var(--ok)}.log .err{color:var(--err)}
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}
   .stat{background:var(--bg3);border-radius:10px;padding:11px;text-align:center}
@@ -982,13 +985,13 @@
       <div class="toprow" id="sTop" style="display:none"></div>
       <div class="toprow" id="sDiff" style="display:none"></div>
 
-      <div style="display:flex;gap:12px;margin-top:14px;align-items:stretch">
-        <div class="log" id="log" style="flex:1;min-width:0">Ready.</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
         <div class="okpanel" id="okPanel">
         <div class="okring">✓</div>
         <div style="font-weight:600">Generated successfully</div>
         <button class="ghost mini" id="okOpen" style="margin-top:12px;width:100%">Open output folder</button>
       </div>
+        <div class="log" id="log" style="min-width:0">Ready.</div>
       </div>
     </section>
   </div>
@@ -1579,7 +1582,8 @@ function logLine(m,c){
   if(c)d.className=c;
   const t=document.createElement("span");t.className="t";
   t.textContent=new Date().toLocaleTimeString([],{hour12:false});
-  d.appendChild(t);d.appendChild(document.createTextNode(m));
+  const msg=document.createElement("span");msg.className="m";msg.textContent=m;
+  d.appendChild(t);d.appendChild(msg);
   l.appendChild(d);l.scrollTop=l.scrollHeight;}
 
 /* ── window controls (frameless) ──

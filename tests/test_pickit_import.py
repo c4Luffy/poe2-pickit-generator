@@ -178,7 +178,7 @@ def test_show_blocks_are_styled():
     # orange backdrop; uniques wear his dark-brown-on-orange with Brown Kite.
     res = convert_pickit_text(SAMPLE, hide_rest=True)
     txt = _joined(res)
-    assert "SetBackgroundColor 237 233 222 230" in txt  # named cream backdrop
+    assert "SetBackgroundColor 237 233 222 240" in txt  # Divine mythic cream
     assert "SetBackgroundColor 175 96 37 240" in txt   # his unique style
     assert "PlayEffect Brown" in txt
     assert "MinimapIcon 1 Brown Kite" in txt
@@ -195,7 +195,7 @@ def test_unknown_theme_falls_back_to_default_not_unstyled():
     for stale in ("no-such-theme", "minimal", "contrast", "colorblind"):
         res = convert_pickit_text(SAMPLE, theme=stale)
         txt = _joined(res)
-        assert "SetBackgroundColor 237 233 222 230" in txt  # classic named style
+        assert "SetTextColor 79 0 122 255" in txt      # Divine mythic kept
         assert "MinimapIcon" in txt
 
 

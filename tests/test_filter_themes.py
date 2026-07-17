@@ -69,15 +69,16 @@ def _flt(theme=None):
     return "\n".join(gen.build_loot_filter(_IPD, theme=theme))
 
 
-def test_jackpot_tier_fires_on_live_value_only():
-    # Styles follow the BaseType line, so a forward slice covers one block.
+def test_value_ladder_fires_on_live_value_only():
+    # Divine (320 ex = the file's own Divine rate) is mythic purple; Chaos at
+    # 2.5 ex is "useful" - readable, but no beam. First matching block wins,
+    # so the expensive tier must be emitted first.
     txt = _flt()
-    jackpot_block = txt[txt.index('"Divine Orb"'):txt.index('"Chaos Orb"')]
-    assert "PlayEffect Purple" in jackpot_block
-    chaos_block = txt[txt.index('"Chaos Orb"'):txt.index('"Heavy Belt"')]
-    assert "PlayEffect Purple" not in chaos_block
-    assert "PlayEffect Orange" in chaos_block
-    # jackpot blocks must come first: the game takes the FIRST matching block
+    divine_block = txt[txt.index('"Divine Orb"'):txt.index('"Chaos Orb"')]
+    assert "PlayEffect Purple" in divine_block
+    ci = txt.index('"Chaos Orb"')
+    chaos_block = txt[ci:txt.index("\nShow", ci)]   # just Chaos's own block
+    assert "PlayEffect" not in chaos_block
     assert txt.index('"Divine Orb"') < txt.index('"Chaos Orb"')
 
 
@@ -94,12 +95,16 @@ def test_always_jackpot_names_scream_even_without_a_price_comment():
 
 
 def test_jackpot_threshold_is_honored_exactly():
+    # No Divine header in this minimal file -> default 500-ex Divine: the
+    # jackpot band starts at exactly 50 ex (red); 49.99 falls to "high"
+    # (orange). Both beam, but with different colors.
     at = f'[Type] == "At Floor" # [StashItem] == "true" // ExValue = {JACKPOT_EXALT:.2f}'
     below = f'[Type] == "Below" # [StashItem] == "true" // ExValue = {JACKPOT_EXALT - 0.01:.2f}'
     txt = "\n".join(gen.build_loot_filter([at, below]))
     assert txt.index('"At Floor"') < txt.index('"Below"')
-    assert "PlayEffect Purple" in txt[: txt.index('"Below"')]
-    assert "PlayEffect Purple" not in txt[txt.index('"Below"'):]
+    assert "PlayEffect Red" in txt[: txt.index('"Below"')]
+    assert "PlayEffect Red" not in txt[txt.index('"Below"'):]
+    assert "PlayEffect Orange" in txt[txt.index('"Below"'):]
 
 
 def test_normal_rarity_bases_get_the_chance_look():
@@ -129,8 +134,8 @@ def test_single_theme_and_stale_names_fall_back():
     assert list(THEMES) == [DEFAULT_THEME]
     for stale in ("minimal", "contrast", "colorblind", "does-not-exist"):
         txt = _flt(stale)
-        assert "SetTextColor 123 67 11 255" in txt      # classic named style
-        assert "PlayEffect Purple" in txt               # classic jackpot kept
+        assert "SetTextColor 79 0 122 255" in txt      # mythic Divine kept
+        assert "PlayEffect Purple" in txt
 
 
 def test_conditions_come_before_style_lines_inside_a_block():
