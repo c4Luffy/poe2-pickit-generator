@@ -130,6 +130,10 @@ DEFAULT_CONFIG = {
     # warn when the source pickit changed after the filter was saved.
     # {"src": pickit path, "out": filter path, "at": unix time saved}
     "filter_from_pickit": {},
+    # Label theme for BOTH loot filters the app writes (generated + converted).
+    # Keys live in generators/filter_themes.THEMES; unknown values fall back to
+    # the default theme at use time, so a stale config can't strip styling.
+    "filter_theme": "classic",
 }
 
 

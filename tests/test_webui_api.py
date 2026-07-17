@@ -530,16 +530,18 @@ def test_whats_new_does_not_greet_a_brand_new_user(api):
 
 
 def test_whats_new_survives_no_network(api, monkeypatch):
-    """No cached notes and GitHub unreachable: still announce the version rather than
-    blowing up or showing nothing."""
+    """No cached notes and GitHub unreachable: the dialog still shows the REAL
+    highlights — they ship inside the exe (version.HIGHLIGHTS) precisely so an
+    offline or GitHub-less launch never degrades to an empty announcement."""
     api.cfg["league"] = "L"
     api.cfg["pending_version"] = ""
     import requests
     monkeypatch.setattr(requests, "get",
                         lambda *a, **k: (_ for _ in ()).throw(OSError("offline")))
     r = api.whats_new()
-    assert r["show"] is True and r["notes"] == "" and r["url"].endswith(
-        api.app_info()["version"])
+    from exilebot_pickit.version import HIGHLIGHTS
+    assert r["show"] is True and r["notes"] == HIGHLIGHTS
+    assert r["url"].endswith(api.app_info()["version"])
 
 
 # ── Clipboard (Item Check auto-paste) ─────────────────────────────────────────

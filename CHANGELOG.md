@@ -6,6 +6,30 @@ download lives.
 
 ---
 
+## [v4.36.0] — 2026-07-17 — Label themes: NeverSink's colors on every filter the app writes
+
+Both filters the app writes — the one generated next to every pickit and the one
+converted from any pickit — now share one **label theme**, picked once on the
+Create your filter page with a live "how it looks on the ground" preview:
+
+- **Four themes:** Community classic (default — colors, sizes and minimap icons
+  taken verbatim from NeverSink's live PoE2 filter), Minimal (the previous quiet
+  look), High contrast, and Colorblind safe (blue/orange, no red-vs-green).
+- **Jackpot tier:** rules worth 50+ exalted at generate time — plus Mirror of
+  Kalandra and Divine Orb always — get the red screamer with sound and beam.
+  Sounds exist ONLY on this tier; cheap drops stay quiet on purpose.
+- **Gold is never hidden** now also holds for the generated filter, not just
+  converted ones.
+- **Chance Bases:** every card now shows the unique you're chancing FOR (real
+  game art, works offline), and the list was trimmed to the owner's four:
+  Utility Belt, Heavy Belt, Gold Ring, Stellar Amulet.
+- **Prices refresh themselves** every 15 minutes — no more wiggling a floor
+  slider to see today's divine rate.
+- **Small comforts:** Economy names wrap instead of vanishing behind "…", the
+  run log wraps paths cleanly and is resizable, changing the theme after saving
+  a converted filter warns that the saved file still wears the old look, and
+  the CLI gained `--filter-theme`.
+
 ## [v4.35.2] — 2026-07-16 — Same-day audit: 12 fixes from two code audits + a live sweep
 
 The new tab is hours old, so it got the full treatment the same day: an adversarial
@@ -1436,6 +1460,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.36.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.36.0
 [v4.35.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.2
 [v4.35.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.1
 [v4.35.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.0

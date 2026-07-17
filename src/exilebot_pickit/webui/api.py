@@ -34,7 +34,7 @@ _SETTABLE = {
     "min_exalt_gear", "min_exalt_unique", "include_bases",
     "auto_floor", "auto_floor_pct",
     "base_quality", "base_min_level", "backup_count",
-    "copy_filter_to_game", "poe2_filter_dir",
+    "copy_filter_to_game", "poe2_filter_dir", "filter_theme",
     "magic_rare_flasks", "known_leagues", "rare_gear_enabled",
     "setup_done",
 }
@@ -43,6 +43,13 @@ _SETTABLE = {
 def _config_warning() -> str:
     from exilebot_pickit.ui import config as _c
     return _c.CONFIG_LOAD_ERROR or ""
+
+
+def _theme_or_default(value) -> str:
+    """THE theme normalization — read path, write path and import path all use
+    this one membership test so the stored value, the dropdown and the written
+    filter can never disagree about which theme applies."""
+    return value if value in gen.FILTER_THEMES else gen.DEFAULT_FILTER_THEME
 
 
 class AppApi:
@@ -103,6 +110,12 @@ class AppApi:
             "config_warning": _config_warning(),
             "known_leagues": list(c.get("known_leagues") or []),
             "active_preset": c.get("active_preset", "") or "",
+            "filter_theme": _theme_or_default(c.get("filter_theme")),
+            # (key, label, description) rows + the style table itself: the
+            # dropdown and its ground-label preview render from these, so the
+            # UI can never drift from generators/filter_themes.THEMES.
+            "filter_theme_choices": [list(t) for t in gen.FILTER_THEME_CHOICES],
+            "filter_themes": gen.FILTER_THEMES,
         }
 
     def set_setting(self, key, value):
@@ -116,6 +129,10 @@ class AppApi:
             # a backslash broke every startswith(base + "-") backup-prefix check.
             value = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", str(value)).strip(". ") \
                 or "poe2_pickit"
+        if key == "filter_theme":
+            # Never store a theme the engine doesn't know — the lookup would
+            # fall back anyway, but the UI dropdown must reflect a real choice.
+            value = _theme_or_default(value)
         self.cfg[key] = value
         if key == "min_exalt_gear":            # keep legacy mirror in sync
             self.cfg["min_exalt"] = value
@@ -861,6 +878,11 @@ class AppApi:
             if str(self.cfg.get("pending_version") or "") == VERSION:
                 notes = str(self.cfg.get("pending_notes") or "")
             if not notes:
+                # The highlights ship inside the exe (version.py) — the dialog
+                # must work offline and while GitHub is unreachable.
+                from exilebot_pickit.version import HIGHLIGHTS
+                notes = HIGHLIGHTS
+            if not notes:
                 try:
                     import requests
                     from exilebot_pickit.ui.updater import VERSION_URL
@@ -1030,6 +1052,9 @@ class AppApi:
                 self.cfg[k] = v
                 applied += 1
         _coerce_types(self.cfg)
+        # _coerce_types only checks TYPES; a backup can carry a str theme the
+        # engine doesn't know — normalize so cfg and the dropdown agree.
+        self.cfg["filter_theme"] = _theme_or_default(self.cfg.get("filter_theme"))
         save_config(self.cfg)
         return {"ok": True, "applied": applied, "info": self.app_info()}
 
@@ -1074,7 +1099,8 @@ class AppApi:
             except UnicodeDecodeError:
                 text = raw.decode("utf-8-sig", errors="replace")
         res = convert_pickit_text(text, hide_rest=bool(hide_rest),
-                                  source_name=os.path.basename(path))
+                                  source_name=os.path.basename(path),
+                                  theme=_theme_or_default(self.cfg.get("filter_theme")))
         # One writer at a time: convert can be triggered from the picker, the
         # hide switch and drag&drop — without the lock a slow convert could
         # leave file A's filter stored under file B's name for Save to write.
@@ -1125,8 +1151,11 @@ class AppApi:
             return {"error": f"Couldn't save: {e}"}
         # Remember the conversion so the tab can warn when the source pickit
         # changes after this save (the filter would silently drift stale).
-        self.cfg["filter_from_pickit"] = {"src": src, "out": path,
-                                          "at": time.time()}
+        # The theme rides along: switching themes later makes the saved file
+        # stale too — it still wears the old look until re-saved.
+        self.cfg["filter_from_pickit"] = {
+            "src": src, "out": path, "at": time.time(),
+            "theme": _theme_or_default(self.cfg.get("filter_theme"))}
         save_config(self.cfg)
         self._log(f"✓ Filter created from pickit: {os.path.basename(str(path))}")
         return {"ok": True, "path": str(path)}
@@ -1145,7 +1174,7 @@ class AppApi:
 
     def import_pickit_status(self):
         """Stale check for the Create-your-filter tab: has the source pickit
-        changed since the filter was saved from it?"""
+        changed — or the label theme — since the filter was saved from it?"""
         info = self.cfg.get("filter_from_pickit") or {}
         src, at = info.get("src") or "", info.get("at") or 0
         if not src or not at or not os.path.isfile(src):
@@ -1154,7 +1183,13 @@ class AppApi:
             stale = os.path.getmtime(src) > float(at) + 1
         except (OSError, ValueError):
             return {"stale": False}
-        return {"stale": bool(stale), "src": os.path.basename(src),
+        # Older saves carry no theme — don't declare every pre-theme save stale.
+        saved_theme = info.get("theme")
+        theme_stale = bool(saved_theme and saved_theme !=
+                           _theme_or_default(self.cfg.get("filter_theme")))
+        return {"stale": bool(stale or theme_stale),
+                "theme_stale": theme_stale and not stale,
+                "src": os.path.basename(src),
                 "out": os.path.basename(info.get("out") or ""), "path": src}
 
     def list_backups(self):
@@ -1327,9 +1362,12 @@ class AppApi:
 
     def chance_bases(self):
         st = self.cfg.get("item_states", {}).get("_chance", {})
-        from exilebot_pickit.data.icons import STATIC_ICONS
+        from exilebot_pickit.data.icons import STATIC_ICONS, UNIQUE_ICONS
+        # target_icon: art of the FIRST target unique ("what you get") — keyed
+        # by the first name on multi-target entries ("Ventor's Gamble / …").
         return [{"cat": cat, "base": base, "target": tgt,
                  "icon": STATIC_ICONS.get(base, ""),
+                 "target_icon": UNIQUE_ICONS.get(tgt.split(" / ")[0], ""),
                  "enabled": st.get(base, {}).get("enabled", True)}
                 for cat, base, tgt in gen.CHANCE_BASES]
 
@@ -1703,7 +1741,8 @@ class AppApi:
             content = "\n".join(out)
             gen.write_text_atomic(ipd, content)
             flt = os.path.join(OUTPUT_DIR, base + ".filter")
-            gen.write_text_atomic(flt, "\n".join(gen.build_loot_filter(out)))
+            gen.write_text_atomic(flt, "\n".join(gen.build_loot_filter(
+                out, theme=self.cfg.get("filter_theme"))))
             self._log(f"Wrote {os.path.basename(ipd)} + .filter")
 
             # ── Safety net ────────────────────────────────────────────────

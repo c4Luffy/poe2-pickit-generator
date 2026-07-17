@@ -54,17 +54,9 @@ _CATEGORY_CLASS = {
     "currency": ["Stackable Currency"],
 }
 
-# Label styles, kept close to the game's own visual language (unique orange,
-# currency gold). Command syntax verified against NeverSink's live filter.
-# Beams/minimap stars only on uniques — a beam on every cheap currency drop
-# would turn a juiced map into a light show.
-_STYLE_NAMED = ["SetFontSize 38", "SetBorderColor 255 207 92",
-                "MinimapIcon 2 Yellow Circle"]
-_STYLE_UNIQUE = ["SetFontSize 40", "SetTextColor 175 96 37",
-                 "SetBorderColor 175 96 37", "PlayEffect Brown",
-                 "MinimapIcon 1 Brown Star"]
-_STYLE_GEAR = ["SetFontSize 32"]
-_STYLE_GOLD = ["SetFontSize 35"]
+# Label styles come from the shared theme table (generators/filter_themes) so
+# an imported pickit's filter looks the same as a generated one. An imported
+# pickit carries no prices, so the jackpot tier never applies here.
 
 # Keep the untranslatable list small enough for the UI report.
 _MAX_LISTED = 30
@@ -123,11 +115,14 @@ def _parse_rule(cond_part: str):
 
 
 def convert_pickit_text(text: str, hide_rest: bool = False,
-                        source_name: str = "") -> dict:
+                        source_name: str = "",
+                        theme: str = gen.DEFAULT_FILTER_THEME) -> dict:
     """Parse pickit text and return ``{"ok", "filter_lines", "report"}``.
 
     Never raises on bad input — unreadable lines are counted and listed, and
     a file with no usable rules returns ``ok=False`` with the report intact.
+    ``theme`` picks the label style set; unknown values fall back to the
+    default theme inside the lookup.
     """
     named_groups: dict = {}   # (rarity, quality, sockets) -> [names], exact translation
     generic: list = []
@@ -145,6 +140,14 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
 
     if not isinstance(text, str):
         text = ""
+    # The #1 real-world misuse: an in-game .filter renamed to .ipd (players
+    # try to convert FilterBlade filters INTO pickits — this page goes the
+    # other way). Detect the filter language so the UI can explain direction
+    # instead of a generic "nothing converted".
+    looks_like_filter = bool(
+        re.search(r"^\s*(Show|Hide)\s*(#.*)?$", text, re.M)
+        and re.search(r"^\s*(BaseType|Class|SetTextColor|SetFontSize)\b",
+                      text, re.M))
     for no, raw in enumerate(text.splitlines(), 1):
         line = raw.strip().lstrip("﻿")   # a BOM is not part of a comment marker
         if not line:
@@ -244,17 +247,17 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
             extra.append(f"Quality >= {q}")
         if s is not None:
             extra.append(f"Sockets >= {s}")
-        style = _STYLE_UNIQUE if rar == "Unique" else _STYLE_NAMED
-        out += gen._lf_show_blocks(named_groups[key], extra + style)
+        style = gen.filter_theme_style(theme, "unique" if rar == "Unique" else "named")
+        out += gen._lf_show_blocks(named_groups[key], extra, style_lines=style)
+    gear_style = gen.filter_theme_style(theme, "gear")
     for conds in gen._dedupe_cond_lists(generic):
-        out += ["Show"] + [f"    {c}" for c in conds + _STYLE_GEAR] + [""]
+        out += gen._lf_styled_block(conds, gear_style)
 
     if hide_applied:
         # Safety: gold must never be hidden — bots grab it regardless of the
         # pickit, and no player wants it invisible. BaseType verified against
         # NeverSink's live SOFT filter.
-        out += (["# Always show gold", "Show", '    BaseType == "Gold"']
-                + [f"    {s}" for s in _STYLE_GOLD] + [""])
+        out += gen._lf_gold_guard(gen.filter_theme_style(theme, "gold"))
         if hide_risky:
             out += [f"# WARNING: {untranslatable_total} pickit rule(s) couldn't be "
                     "translated — items only those rules match",
@@ -266,6 +269,7 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
         "ok": ok,
         "filter_lines": out if ok else [],
         "report": {
+            "looks_like_filter": looks_like_filter and not ok,
             "rules": rules,
             "converted": converted,
             "widened": widened,

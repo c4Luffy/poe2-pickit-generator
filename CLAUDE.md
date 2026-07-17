@@ -110,8 +110,10 @@ After ANY edit:
 - Id audit: every `$("id")` must match exactly one `id="..."` — zero missing,
   zero duplicate.
 - Pages are ordered blocks in this file: p-gen, p-eco, p-chance, p-craft, p-exc,
-  p-hist, p-prev, p-set, p-dbg. When slicing by index, anchor on both the page's
-  opening div and the next page's comment.
+  p-fracture, p-rare, p-hist, p-dbg, p-prev, p-item, p-mypk, p-guide, p-set
+  (re-verify with a regex over `class="page` — this list has gone stale before).
+  When slicing by index, anchor on both the page's opening div and the next
+  page's comment.
 - Never build replacement JS via `re.sub` replacement strings (they eat `\n`);
   never pipe emoji through bash heredocs — write a Python script to scratchpad.
 - Body uses `zoom:1.1`, so viewport heights are written as `90.9vh`, not `100vh`.
@@ -125,8 +127,9 @@ Before adding ANY name to `game_data.json`, `data/corrections.py`,
 - Use poe2db.tw only for stats/icons.
 - Never write a rule without a `[Type]`/`[Category]` condition — Exiled Bot treats
   a type-less rule as matching *everything* on the ground.
-- Keep all 17 chance bases (6 verified + 11 "⚠ boss drop" chase targets, kept
-  visible on purpose).
+- The chance-base list is owner-curated (4 bases since 2026-07-17: Utility
+  Belt, Heavy Belt, Gold Ring, Stellar Amulet). Never add or remove entries
+  without an explicit owner decision.
 
 ### game_data.json ↔ code must not drift
 When any game-data list changes in code, re-sync `game_data.json` and confirm

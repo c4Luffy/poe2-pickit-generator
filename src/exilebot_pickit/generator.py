@@ -47,6 +47,11 @@ from exilebot_pickit.api.client import (  # noqa: F401
     fetch_live_leagues, load_payload_from_disk, prune_disk_cache,
     save_payload_to_disk, set_disk_cache_dir,
 )
+from exilebot_pickit.generators.filter_themes import (  # noqa: F401
+    DEFAULT_THEME as DEFAULT_FILTER_THEME, JACKPOT_EXALT,
+    THEME_CHOICES as FILTER_THEME_CHOICES, THEMES as FILTER_THEMES,
+    get_style as filter_theme_style,
+)
 
 
 
@@ -544,17 +549,15 @@ def build_exotic_base_rules(disabled=None) -> list:
 
 # Structured list of chance orb bases — used by the Chance Bases tab and
 # build_chance_base_rules(). Each entry: (category_label, base_type, target_unique).
-# Curated by the owner (2026-07-06); all bases confirmed droppable in the
-# current patch against NeverSink's live filter.
+# Curated by the owner (last trim 2026-07-17: Ornate Belt, Solar Amulet,
+# Emerald Ring and Gold Amulet removed — their target uniques aren't worth the
+# inventory slots); all bases confirmed droppable in the current patch against
+# NeverSink's live filter.
 CHANCE_BASES: list = [
     ("Belts",   "Utility Belt",   "Mageblood"),
     ("Belts",   "Heavy Belt",     "Headhunter"),
     ("Rings",   "Gold Ring",      "Ventor's Gamble / Andvarius / Perandus Seal"),
     ("Amulets", "Stellar Amulet", "Astramentis"),
-    ("Belts",   "Ornate Belt",    "Ryslatha's Coil"),
-    ("Amulets", "Solar Amulet",   "Fireflower"),
-    ("Rings",   "Emerald Ring",   "Thief's Torment / Death Rush"),
-    ("Amulets", "Gold Amulet",    "Eye of Chayula / Serpent's Egg"),
 ]
 
 
@@ -603,16 +606,28 @@ _LF_CATEGORY_RE = re.compile(r'\[Category\]\s*==\s*"(\w+)"')
 # wanted to salvage / stash-unid (reported by the community). The bot decides
 # what to do after pickup; the filter only needs to make the item visible.
 _LF_ACTION_RE   = re.compile(r'\[(StashItem|StashUnid|Salvage|Disenchant)\]')
+# Live value carried in the generated rule's trailing comment
+# ("// ExValue = 320.00") — lets the filter give truly expensive drops the
+# jackpot look. Imported pickits usually have no such comment: no match, no tier.
+_LF_EXVALUE_RE  = re.compile(r'//.*?ExValue\s*=\s*(\d+(?:\.\d+)?)')
+# Names that get the jackpot look even when their rule carries no ExValue
+# comment: always-pick rules are written bare when poe.ninja omits the item,
+# and these two are jackpot-worthy in any economy. Without this, a dropped
+# Mirror could show with the QUIET label — the one item nobody may miss.
+_LF_JACKPOT_ALWAYS = frozenset({"Mirror of Kalandra", "Divine Orb"})
 
 _LF_CHUNK = 30  # BaseTypes per Show block (matches reference IPD-derived filters)
 
 
-def _lf_show_blocks(names, extra_lines, chunk: int = _LF_CHUNK) -> list:
+def _lf_show_blocks(names, extra_lines, chunk: int = _LF_CHUNK,
+                    style_lines=()) -> list:
     """Build Show-block lines for a list of base names, de-duped and chunked.
 
     ``extra_lines`` are extra condition lines placed inside each block
-    (e.g. 'Rarity = Unique', 'Quality >= 28'). A '# Part i/n' comment is added
-    only when the names span more than one chunk.
+    (e.g. 'Rarity = Unique', 'Quality >= 28'); ``style_lines`` are appearance
+    lines placed after the conditions (conditions first, then actions — the
+    order NeverSink's filter uses). A '# Part i/n' comment is added only when
+    the names span more than one chunk.
     """
     names = list(dict.fromkeys(names))  # order-preserving de-dupe
     if not names:
@@ -628,16 +643,26 @@ def _lf_show_blocks(names, extra_lines, chunk: int = _LF_CHUNK) -> list:
             out.append(f"    {ex}")
         bt = " ".join(f'"{_quote_ipd(n)}"' for n in ch)
         out.append(f"    BaseType == {bt}")   # exact match — faithful to the .ipd [Type] == rules
+        for st in style_lines:
+            out.append(f"    {st}")
         out.append("")
     return out
 
 
-def build_loot_filter(ipd_lines, generated_iso: str | None = None) -> list:
-    """Parse generated .ipd rule lines and return PoE2 client loot-filter lines."""
+def build_loot_filter(ipd_lines, generated_iso: str | None = None,
+                      theme: str | None = None) -> list:
+    """Parse generated .ipd rule lines and return PoE2 client loot-filter lines.
+
+    ``theme`` picks the label style set (see generators/filter_themes); a
+    missing or unknown value falls back to the default theme, never to bare
+    unstyled blocks.
+    """
     if generated_iso is None:
         generated_iso = time.strftime("%Y-%m-%dT%H:%M:%S")
+    theme = theme or DEFAULT_FILTER_THEME
 
     plain: list = []          # [Type] only (currency, essences, runes, gems, …)
+    jackpot: list = []        # …the subset worth JACKPOT_EXALT+ right now
     unique: list = []         # [Rarity] == "Unique"
     by_rarity = {"Normal": [], "Magic": [], "Rare": []}
     by_quality: dict = {}     # quality int -> [names]
@@ -691,7 +716,15 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None) -> list:
         elif ms:
             by_sockets.setdefault(int(ms.group(1)), []).append(name)
         else:
-            plain.append(name)
+            mv = _LF_EXVALUE_RE.search(line)
+            if (mv and float(mv.group(1)) >= JACKPOT_EXALT) \
+                    or name in _LF_JACKPOT_ALWAYS:
+                jackpot.append(name)
+            else:
+                # No price comment (always-pick fallbacks, exotic bases,
+                # wombgifts, splinters) → value unknown → quiet label is the
+                # honest default.
+                plain.append(name)
 
     out: list = [
         "# Path of Exile 2 Filter - Generated from IPD",
@@ -702,21 +735,34 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None) -> list:
         f"# Generated on: {generated_iso}",
         "",
     ]
-    out += _lf_show_blocks(plain, [])
-    out += _lf_show_blocks(unique, ["Rarity = Unique"])
-    for rar in ("Normal", "Magic", "Rare"):
-        out += _lf_show_blocks(by_rarity[rar], [f"Rarity = {rar}"])
+    def _st(kind):
+        return filter_theme_style(theme, kind)
+    gear_style = _st("gear")
+    # Jackpot blocks come first: the game takes the FIRST matching block, so a
+    # duplicated name gets the screamer look, not the quiet one.
+    out += _lf_show_blocks(jackpot, [], style_lines=_st("jackpot"))
+    out += _lf_show_blocks(plain, [], style_lines=_st("named"))
+    out += _lf_show_blocks(unique, ["Rarity = Unique"], style_lines=_st("unique"))
+    # White (Normal) named bases share the "chance" look — chance bases, craft
+    # bases and normal tablets all read as "keep this white base" on the
+    # ground; the filter sees only conditions, not why the rule was written.
+    for rar, kind in (("Normal", "chance"), ("Magic", "gear"), ("Rare", "gear")):
+        out += _lf_show_blocks(by_rarity[rar], [f"Rarity = {rar}"],
+                               style_lines=_st(kind))
     for q in sorted(by_quality):
-        out += _lf_show_blocks(by_quality[q], [f"Quality >= {q}"])
+        out += _lf_show_blocks(by_quality[q], [f"Quality >= {q}"],
+                               style_lines=gear_style)
     for s in sorted(by_sockets):
-        out += _lf_show_blocks(by_sockets[s], [f"Sockets >= {s}"])
+        out += _lf_show_blocks(by_sockets[s], [f"Sockets >= {s}"],
+                               style_lines=gear_style)
     if has_waystone:
-        out += ["Show", '    Class "Waystone"', ""]
+        out += _lf_styled_block(['Class "Waystone"'], _st("waystone"))
     # Condition-only rules (salvage / stash-unid by rarity+sockets, no [Type]),
     # de-duped — each becomes its own Show so the bot can see those items.
     for conds in _dedupe_cond_lists(generic):
-        out += ["Show"] + [f"    {c}" for c in conds] + [""]
+        out += _lf_styled_block(conds, gear_style)
 
+    out += _lf_gold_guard(_st("gold"))
     out += [
         "# Hide everything else",
         "Hide",
@@ -737,6 +783,23 @@ def _dedupe_cond_lists(cond_lists):
             seen.add(key)
             out.append(conds)
     return out
+
+
+def _lf_styled_block(cond_lines, style_lines) -> list:
+    """One Show block without BaseType: conditions first, then appearance,
+    4-space indent, trailing blank — the one place that ordering/indent rule
+    lives for condition-only blocks (both filter writers use this)."""
+    return (["Show"] + [f"    {c}" for c in cond_lines]
+            + [f"    {st}" for st in style_lines] + [""])
+
+
+def _lf_gold_guard(style_lines) -> list:
+    """The always-show Gold block. Gold must survive any Hide — bots grab it
+    regardless of the pickit, and no player wants it invisible. Defined once
+    so a future Gold rename can't be fixed in one writer and missed in the
+    other (BaseType verified against NeverSink's live SOFT filter)."""
+    return (["# Always show gold"]
+            + _lf_styled_block(['BaseType == "Gold"'], style_lines))
 
 
 # (fetch_json, _request_with_retry, _cache_get/set, clear_cache, prune_disk_cache,
@@ -1042,6 +1105,8 @@ def main():
     parser.add_argument("--variant",         choices=("all","currency","exchange","uniques","maps"), default="all")
     parser.add_argument("--include-bases",   action="store_true",       help="Build endgame base type rules from game data and append to output")
     parser.add_argument("--base-quality",    type=int, default=25,      help="Min quality %% for base-type rules (default 25)")
+    parser.add_argument("--filter-theme",    choices=tuple(FILTER_THEMES), default=DEFAULT_FILTER_THEME,
+                        help="Label theme for the .filter written next to the pickit")
     parser.add_argument("--base-min-level",  type=int, default=CRAFT_BASE_MIN_ILVL, help=f"Min required level for base-type rules (default {CRAFT_BASE_MIN_ILVL})")
     args = parser.parse_args()
     min_exalt = args.min_exalt
@@ -1231,7 +1296,8 @@ def main():
 
     # ── Also write a matching PoE2 client loot filter ─────────────────────────
     filter_path = os.path.splitext(args.output)[0] + ".filter"
-    write_text_atomic(filter_path, "\n".join(build_loot_filter(output_lines)))
+    write_text_atomic(filter_path, "\n".join(
+        build_loot_filter(output_lines, theme=args.filter_theme)))
 
     active    = sum(1 for l in output_lines if l and not l.startswith("//") and "[StashItem]" in l)
     commented = sum(1 for l in output_lines if l.startswith("//") and "[StashItem]" in l)

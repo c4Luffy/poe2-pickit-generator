@@ -13,9 +13,11 @@ one JS syntax error kills the ENTIRE app (league dropdown stuck on
 2. **Id audit** (python): every `$("id")` reference must match exactly one
    `id="..."` — zero missing, zero duplicates.
 3. **Page blocks**: the pages live in ONE file in this order — p-gen, p-eco,
-   p-chance, p-craft, p-exc, p-hist, p-prev, p-set, p-dbg. When slicing a
-   block by index, anchor on that page's opening div AND the next page's
-   comment — a bad end anchor once deleted two whole pages.
+   p-chance, p-craft, p-exc, p-fracture, p-rare, p-hist, p-dbg, p-prev,
+   p-item, p-mypk, p-guide, p-set (14 pages; re-verify with a regex over
+   `class="page` before slicing — this list HAS gone stale before). When
+   slicing a block by index, anchor on that page's opening div AND the next
+   page's comment — a bad end anchor once deleted two whole pages.
 4. **Escapes**: never build replacement JS through `re.sub` replacement
    strings (they eat `\n`); use lambdas or plain string slicing. Never pipe
    emoji/✓/→ through bash heredocs — write a python script to the scratchpad

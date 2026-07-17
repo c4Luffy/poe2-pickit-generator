@@ -174,16 +174,55 @@ def test_hide_not_applied_when_nothing_converted():
 
 
 def test_show_blocks_are_styled():
+    # Default theme (classic = NeverSink's own PoE2 values): named items get
+    # his C-tier orange backdrop; uniques his white-on-brown plus beam + star.
     res = convert_pickit_text(SAMPLE, hide_rest=True)
     txt = _joined(res)
-    # named items: gold border + minimap dot; uniques: orange + beam + star
-    assert "SetBorderColor 255 207 92" in txt
-    assert "SetTextColor 175 96 37" in txt
+    assert "SetBackgroundColor 245 139 87" in txt      # his Exalted-tier orange
+    assert "SetBackgroundColor 188 96 37" in txt       # his unique brown
     assert "PlayEffect Brown" in txt
     assert "MinimapIcon 1 Brown Star" in txt
+    # imported pickits carry no prices — the jackpot screamer NEVER fires here
+    assert "PlayAlertSound" not in txt
     # gold block keeps its own size bump
     gold = txt.index('BaseType == "Gold"')
     assert "SetFontSize 35" in txt[gold:gold + 120]
+
+
+def test_minimal_theme_reproduces_pre_theme_styles():
+    # "minimal" must stay byte-identical to what v4.35.x shipped, so users who
+    # liked the old quiet look can keep it forever.
+    res = convert_pickit_text(SAMPLE, hide_rest=True, theme="minimal")
+    txt = _joined(res)
+    assert "SetBorderColor 255 207 92" in txt          # old named style
+    assert "SetTextColor 175 96 37" in txt             # old unique style
+    assert "SetBackgroundColor" not in txt             # minimal has no backdrops
+    gold = txt.index('BaseType == "Gold"')
+    assert "SetFontSize 35" in txt[gold:gold + 120]
+
+
+def test_unknown_theme_falls_back_to_default_not_unstyled():
+    res = convert_pickit_text(SAMPLE, theme="no-such-theme")
+    txt = _joined(res)
+    assert "SetBackgroundColor 245 139 87" in txt      # classic named style
+    assert "MinimapIcon" in txt
+
+
+def test_renamed_game_filter_is_detected():
+    # A FilterBlade .filter renamed to .ipd is the #1 real-world misuse —
+    # the report must say "wrong direction", not a generic failure.
+    filter_text = "\n".join([
+        "Show",
+        '    BaseType == "Divine Orb"',
+        "    SetFontSize 45",
+        "Hide",
+    ])
+    res = convert_pickit_text(filter_text)
+    assert res["ok"] is False
+    assert res["report"]["looks_like_filter"] is True
+    # …and a real pickit must never trip the detector
+    ok = convert_pickit_text(SAMPLE)
+    assert ok["report"]["looks_like_filter"] is False
 
 
 def test_garbage_input_never_crashes():

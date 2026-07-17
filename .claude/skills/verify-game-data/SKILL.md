@@ -24,6 +24,7 @@ PoE2 removes and renames items every patch. Before adding ANY item name to
    run `python -m pytest tests/test_remote_data.py -q` — it fails on drift.
 4. Never add rules without a `[Type]`/`[Category]` condition: Exiled Bot
    treats a type-less rule as matching EVERYTHING on the ground.
-5. Chance bases: keep all 17 (6 verified + 11 "⚠ boss drop" chase targets);
-   the owner wants the chase targets visible even though chancing them is
-   unconfirmed.
+5. Chance bases: the list is owner-curated (4 since 2026-07-17: Utility Belt,
+   Heavy Belt, Gold Ring, Stellar Amulet — the low-value chase targets were
+   removed on the owner's order). Never add or remove entries without an
+   explicit owner decision.
