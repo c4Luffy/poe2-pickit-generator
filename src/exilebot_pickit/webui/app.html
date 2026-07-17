@@ -399,6 +399,10 @@
     color:var(--tx);border:1px solid var(--bc);background:var(--bgc)}
   .lfprev-ico{font-size:.72em;line-height:1;font-family:ui-sans-serif,system-ui,sans-serif;
     font-variant:normal}
+  /* thin light pillar for tiers whose filter block has PlayEffect */
+  .lfprev-beam{display:block;width:4px;height:30px;margin:0 auto -3px;border-radius:2px;
+    background:linear-gradient(var(--bm) 20%,transparent);
+    box-shadow:0 0 10px 2px color-mix(in srgb,var(--bm) 35%,transparent)}
   .lfprev-cap{display:block;margin-top:5px;font-size:10px;color:var(--dim);
     white-space:nowrap;letter-spacing:.04em}
   /* Run log: no horizontal scrolling ever (paths wrap with a hanging indent
@@ -3387,10 +3391,11 @@ function renderThemePreview(theme){
     const s=lfParse(t[kind]);
     const px=Math.round(s.size*.38);   // game font 18-45 → ~7-17px preview
     const vars=`--tx:${s.text||"#c8c8c8"};--bgc:${s.bg||"rgba(0,0,0,.82)"};`+
-      `--bc:${s.border||"rgba(0,0,0,0)"}`;
+      `--bc:${s.border||"rgba(0,0,0,0)"};--bm:${LF_BEAMS[s.beam]||"#fff"}`;
+    const beam=s.beam?`<i class="lfprev-beam"></i>`:"";
     const ico=s.icoShape?`<span class="lfprev-ico" style="color:${LF_BEAMS[s.icoColor]||"#ddd"}">${LF_ICO[s.icoShape]||"◆"}</span>`:"";
     const labels=names.map(n=>`<span class="lfprev-label" style="font-size:${px}px;line-height:1.35">${ico}${n}</span>`).join("");
-    return `<span class="lfprev-item" style="${vars}">${labels}<small class="lfprev-cap">${what}</small></span>`;
+    return `<span class="lfprev-item" style="${vars}">${beam}${labels}<small class="lfprev-cap">${what}</small></span>`;
   }).join("");
 }
 async function mypkConvert(){
