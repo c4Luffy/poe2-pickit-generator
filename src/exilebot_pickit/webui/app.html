@@ -880,8 +880,9 @@
   </div>
 
   <div class="presets">
-    <div class="presets-head"><b>Quick start</b>
-      <span class="hint" style="margin:0">Pick a preset — it sets every floor and switch in one click. Fine-tune anything below afterwards.</span></div>
+    <div class="presets-head" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b>Quick start</b>
+      <span class="hint" style="margin:0;flex:1">Pick a preset — it sets every floor and switch in one click. Fine-tune anything below afterwards.</span>
+      <button class="ghost mini" id="allOnGo" title="Turn every category, item, chance base, craft/exceptional base, fracture target and rare slot ON — floors stay as they are — then generate the pickit + filter">🔓 All ON + Generate</button></div>
     <div class="preset-row" id="presetRow"></div>
     <div class="preset-detail" id="presetDetail"></div>
   </div>
@@ -2080,6 +2081,12 @@ function setSeal(state,title,sub){
   const t=$("statTitle"),s=$("statSub");
   if(t&&title)t.textContent=title; if(s&&sub!=null)s.textContent=sub;}
 $("go").onclick=doGenerate;
+$("allOnGo").onclick=async()=>{
+  if(running)return;
+  const r=await api().enable_all_rules();
+  toast(`🔓 Everything ON${r&&r.flipped?` — ${r.flipped} switches flipped`:""} — generating…`);
+  info=await api().app_info();applyInfo(info);   // switches on screen match the new state
+  doGenerate();};
 $("open").onclick=()=>api().open_output();
 $("openIpd").onclick=async()=>{const r=await api().open_file("ipd");if(r.error)toast(r.error);};
 $("openFlt").onclick=async()=>{const r=await api().open_file("filter");if(r.error)toast(r.error);};

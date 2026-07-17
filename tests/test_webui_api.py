@@ -854,3 +854,31 @@ def test_import_pickit_status_stale_detection(api, tmp_path):
     # source pickit deleted -> quiet, not a crash
     src.unlink()
     assert api.import_pickit_status() == {"stale": False}
+
+
+def test_enable_all_rules_flips_every_switch_but_keeps_numbers(api):
+    """The one-click "All ON + Generate" helper: every category/item/slot
+    toggle turns on, numeric tuning (floors, craft ilvl) is untouched."""
+    api.cfg["category_enabled"] = {"currency": False, "uniques": True}
+    api.cfg["item_states"] = {
+        "_chance": {"Ornate Belt": {"enabled": False}},
+        "_raregear": {"Helmet": {"enabled": False}},
+        "craft": {"Sacred Focus": {"enabled": False, "ilvl": 81}},
+    }
+    api.cfg["rare_gear_enabled"] = False
+    api.cfg["include_bases"] = False
+    api.cfg["magic_rare_flasks"] = False
+    api.cfg["active_preset"] = "balanced"
+    api.cfg["min_exalt_gear"] = 7.5
+
+    r = api.enable_all_rules()
+    assert r["ok"] and r["flipped"] == 3
+    assert api.cfg["category_enabled"] == {}          # empty = all on
+    assert api.cfg["item_states"]["_chance"]["Ornate Belt"]["enabled"] is True
+    assert api.cfg["item_states"]["_raregear"]["Helmet"]["enabled"] is True
+    craft = api.cfg["item_states"]["craft"]["Sacred Focus"]
+    assert craft["enabled"] is True and craft["ilvl"] == 81   # number kept
+    assert api.cfg["rare_gear_enabled"] and api.cfg["include_bases"]
+    assert api.cfg["magic_rare_flasks"]
+    assert api.cfg["active_preset"] == ""
+    assert api.cfg["min_exalt_gear"] == 7.5           # floors untouched

@@ -590,6 +590,28 @@ class AppApi:
         return {"enabled": bool(self.cfg.get("rare_gear_enabled", True)),
                 "slots": slots}
 
+    def enable_all_rules(self):
+        """One click before a full run: every category, item, chance base,
+        craft/exceptional base, fracture target, rare slot and flask rule ON.
+        Floors and quality/ilvl values are untouched — this flips switches,
+        it never changes numbers."""
+        self.cfg["category_enabled"] = {}          # empty = every category on
+        flipped = 0
+        for states in (self.cfg.get("item_states") or {}).values():
+            if not isinstance(states, dict):
+                continue
+            for st in states.values():
+                if isinstance(st, dict) and st.get("enabled") is not True:
+                    st["enabled"] = True
+                    flipped += 1
+        self.cfg["rare_gear_enabled"] = True
+        self.cfg["include_bases"] = True
+        self.cfg["magic_rare_flasks"] = True
+        # hand-flipping every switch means no preset's promise still holds
+        self.cfg["active_preset"] = ""
+        save_config(self.cfg)
+        return {"ok": True, "flipped": flipped}
+
     def set_rare_slot(self, slot, enabled):
         """Turn one rare-gear slot on/off. Off = its rules leave the pickit."""
         from exilebot_pickit.data.rare import rules as rare_rules
