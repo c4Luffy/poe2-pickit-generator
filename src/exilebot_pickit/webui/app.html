@@ -1312,7 +1312,7 @@
       <select id="mypkTheme" style="padding:9px 12px;min-width:190px"></select>
       <span class="hint" style="margin:0;flex:1;min-width:200px" id="mypkThemeDesc"></span>
     </div>
-    <div id="mypkThemePrev" style="margin-top:12px;border-radius:10px;padding:20px 10px 14px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;justify-content:center;background:radial-gradient(420px 150px at 50% 0%,#232720,#0b0d0a 78%);border:1px solid #2a2d26"></div>
+    <div id="mypkThemePrev" style="margin-top:12px;border-radius:12px;padding:24px 14px 16px;display:flex;gap:18px 22px;flex-wrap:wrap;align-items:flex-end;justify-content:center;background:radial-gradient(520px 190px at 50% -8%,#2c3026,#141610 55%,#080907 92%),linear-gradient(#0b0d0a,#080907);border:1px solid #3a3527;box-shadow:inset 0 0 60px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,230,160,.06)"></div>
     <div class="hint" style="margin-top:6px;text-align:center;opacity:.75">Preview — how these labels will look on the ground in game (minimap icons and sounds not shown)</div>
   </div>
 
@@ -3341,8 +3341,13 @@ function renderThemePreview(theme){
   $("mypkThemePrev").innerHTML=LF_SAMPLES.map(([kind,name,what])=>{
     const s=lfParse(t[kind]);
     const px=Math.round(s.size*.42);   // game font 18-45 → ~8-19px preview
-    const beam=s.beam?`<i style="display:block;width:3px;height:32px;margin:0 auto 2px;background:linear-gradient(${LF_BEAMS[s.beam]||"#fff"},transparent);border-radius:2px"></i>`:"";
-    return `<span style="text-align:center">${beam}<span style="display:inline-block;padding:3px 10px;font-family:Georgia,serif;font-size:${px}px;line-height:1.3;white-space:nowrap;color:${s.text||"#b8b8b8"};background:${s.bg||"rgba(0,0,0,.78)"};border:1px solid ${s.border||"rgba(255,255,255,.12)"}">${name}</span><small style="display:block;margin-top:4px;font-size:10px;color:var(--dim);white-space:nowrap">${what}</small></span>`;
+    const bc=LF_BEAMS[s.beam]||"#fff";
+    /* a real beam: light pillar + glow pooling where it meets the ground —
+       the LABEL stays a flat game-accurate rectangle (PoE2 draws no ornate
+       frames; this preview must never look better than the game will). */
+    const beam=s.beam?`<i style="display:block;width:5px;height:40px;margin:0 auto -3px;background:linear-gradient(${bc} 15%,transparent);border-radius:3px;box-shadow:0 0 16px 3px ${bc}66,0 -6px 22px 6px ${bc}44;position:relative;z-index:0"></i>`:"";
+    const glow=s.beam?`,0 0 18px ${bc}55`:"";
+    return `<span style="text-align:center;position:relative">${beam}<span style="display:inline-block;position:relative;z-index:1;padding:3px 11px;font-family:Georgia,serif;font-size:${px}px;line-height:1.3;letter-spacing:.02em;white-space:nowrap;color:${s.text||"#b8b8b8"};background:${s.bg||"rgba(0,0,0,.82)"};border:1px solid ${s.border||"rgba(255,255,255,.14)"};box-shadow:0 3px 9px rgba(0,0,0,.65)${glow}">${name}</span><small style="display:block;margin-top:5px;font-size:10px;color:var(--dim);white-space:nowrap;text-shadow:0 1px 2px #000">${what}</small></span>`;
   }).join("");
 }
 async function mypkConvert(){
