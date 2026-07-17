@@ -39,14 +39,11 @@ def test_theme_choices_match_the_table_and_lead_with_default():
 
 def test_no_sounds_anywhere():
     # Owner's call (2026-07-17): the filters never play sounds — the bot
-    # doesn't listen and pings annoy. Beams stay on jackpot + uniques only.
+    # doesn't listen and pings annoy. (Beams follow the owner's filter scheme.)
     for theme_id, table in THEMES.items():
         for kind in _KINDS:
             assert not any("PlayAlertSound" in ln for ln in table[kind]), \
                 f"{theme_id}.{kind} plays a sound"
-            if kind not in ("jackpot", "unique"):
-                assert not any("PlayEffect" in ln for ln in table[kind]), \
-                    f"{theme_id}.{kind} has a beam"
 
 
 def test_get_style_falls_back_and_copies():

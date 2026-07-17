@@ -28,9 +28,9 @@ filter emits — the same visual language FilterBlade produces, so the colors
 read instantly to anyone who has used a community filter.
 
 Restraint rules: NO sounds anywhere (owner's call 2026-07-17 — the bot doesn't
-listen and pings annoy); light beams (PlayEffect) are reserved for jackpot +
-uniques. A beam on every cheap drop turns a juiced map into a light show —
-that is why "named" stays quiet.
+listen and pings annoy). Beams follow the owner's filter scheme (Brown for
+uniques/chance, White for gear, Orange for waystones, Red for jackpots);
+"named" currency stays beam-free so cheap drops don't light up the map.
 
 Pure module: data + one lookup, no I/O, no imports from the engine (the engine
 imports us, never the other way around).
@@ -49,34 +49,32 @@ JACKPOT_EXALT = 50.0
 # "contrast", "colorblind") to classic.
 THEME_CHOICES = [
     ("classic", "Community classic",
-     "NeverSink's colors: red screamer for jackpots, gold currency, orange uniques."),
+     "The owner's filter colors: red screamer for jackpots, orange currency and uniques."),
 ]
 
-# Values below are NeverSink's OWN (owner's request 2026-07-17): extracted
-# verbatim from his live PoE2 SOFT filter (the gamedata_cache copy tools/
-# check_game_data.py maintains) — jackpot = his S-tier currency (Divine Orb
-# block), named = his Exalted-Orb C-tier, unique = his standard unique brown,
-# chance = his $tier->chancing green, gear = his salvage border, gold = his
-# gold-stack white. Deliberate deviations: no PlayAlertSound at all (owner's
-# call), and beams only on jackpot + uniques — his per-tier sounds/beams are
-# strictness-gated, ours would fire on every cheap pickup.
+# Values below are the OWNER'S OWN in-game filter codes (supplied 2026-07-17):
+# unique = his uniques style (dark-brown text on unique-orange, Brown Kite),
+# chance = his "Favourite Chance Bases" (Brown beam + Brown Kite), gear = his
+# "Good Exceptional" (White beam + White Kite), waystone = his rare-waystone
+# Orange Diamond, gold = his normal-stack dark backdrop. jackpot/named keep
+# the earlier NeverSink-derived currency look (red-on-white screamer / orange
+# Exalted tier) because the currency section of his filter wasn't provided —
+# swap these when he supplies those codes. No PlayAlertSound anywhere
+# (owner's standing order).
 _CLASSIC = {
     "jackpot": ["SetFontSize 45", "SetTextColor 255 0 0",
                 "SetBorderColor 255 0 0", "SetBackgroundColor 255 255 255",
-                "PlayEffect Red", "MinimapIcon 0 Red Star"],
+                "PlayEffect Red", "MinimapIcon 1 Red Kite"],
     "named": ["SetFontSize 42", "SetTextColor 0 0 0",
               "SetBorderColor 0 0 0", "SetBackgroundColor 245 139 87",
               "MinimapIcon 1 Yellow Circle"],
-    "unique": ["SetFontSize 42", "SetTextColor 255 255 255",
-               "SetBorderColor 255 255 255", "SetBackgroundColor 188 96 37",
-               "PlayEffect Brown", "MinimapIcon 1 Brown Star"],
-    "chance": ["SetFontSize 38", "SetTextColor 125 255 89",
-               "SetBorderColor 125 255 89", "SetBackgroundColor 0 50 0",
-               "MinimapIcon 1 Green Diamond"],
-    "gear": ["SetFontSize 35", "SetBorderColor 127 127 127"],
-    "waystone": ["SetFontSize 42", "SetTextColor 255 255 255",
-                 "SetBorderColor 200 200 200", "MinimapIcon 1 White Square"],
-    "gold": ["SetFontSize 35", "SetTextColor 255 255 255"],
+    "unique": ["SetFontSize 37", "SetTextColor 53 30 14 255",
+               "SetBorderColor 53 30 14 255", "SetBackgroundColor 175 96 37 240",
+               "PlayEffect Brown", "MinimapIcon 1 Brown Kite"],
+    "chance": ["PlayEffect Brown", "MinimapIcon 2 Brown Kite"],
+    "gear": ["PlayEffect White", "MinimapIcon 2 White Kite"],
+    "waystone": ["PlayEffect Orange", "MinimapIcon 2 Orange Diamond"],
+    "gold": ["SetBackgroundColor 0 0 0 170"],
 }
 
 THEMES = {

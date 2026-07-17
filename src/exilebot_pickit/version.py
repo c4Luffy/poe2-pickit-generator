@@ -7,7 +7,7 @@ VERSION = "4.36.0"
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
 • Label themes — pick once, both filters the app writes wear it (generated + converted), with a live on-the-ground preview.
-• Community classic is the default: colors, sizes and minimap icons taken verbatim from NeverSink's live PoE2 filter. Also: Minimal, High contrast, Colorblind safe.
+• One clean look: uniques in classic orange with brown kites, chance bases and craft gear marked on the minimap, waystones in orange — drops read like a proper community filter.
 • Jackpot tier: drops worth 50+ exalted (and always Mirror of Kalandra / Divine Orb) get the red screamer with a light beam. No filter sounds, ever.
 • Gold is never hidden, now in the generated filter too.
 • Chance Bases show the unique you're chancing for with real game art; the list is curated to four bases.

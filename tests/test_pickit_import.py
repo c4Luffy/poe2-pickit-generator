@@ -174,19 +174,19 @@ def test_hide_not_applied_when_nothing_converted():
 
 
 def test_show_blocks_are_styled():
-    # Default theme (classic = NeverSink's own PoE2 values): named items get
-    # his C-tier orange backdrop; uniques his white-on-brown plus beam + star.
+    # Classic = the owner's own in-game filter codes: named currency keeps the
+    # orange backdrop; uniques wear his dark-brown-on-orange with Brown Kite.
     res = convert_pickit_text(SAMPLE, hide_rest=True)
     txt = _joined(res)
-    assert "SetBackgroundColor 245 139 87" in txt      # his Exalted-tier orange
-    assert "SetBackgroundColor 188 96 37" in txt       # his unique brown
+    assert "SetBackgroundColor 245 139 87" in txt      # named currency orange
+    assert "SetBackgroundColor 175 96 37 240" in txt   # his unique style
     assert "PlayEffect Brown" in txt
-    assert "MinimapIcon 1 Brown Star" in txt
+    assert "MinimapIcon 1 Brown Kite" in txt
     # imported pickits carry no prices — the jackpot screamer NEVER fires here
     assert "PlayAlertSound" not in txt
-    # gold block keeps its own size bump
+    # gold block keeps his dark backdrop
     gold = txt.index('BaseType == "Gold"')
-    assert "SetFontSize 35" in txt[gold:gold + 120]
+    assert "SetBackgroundColor 0 0 0 170" in txt[gold:gold + 120]
 
 
 def test_unknown_theme_falls_back_to_default_not_unstyled():

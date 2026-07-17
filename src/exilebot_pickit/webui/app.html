@@ -1326,7 +1326,7 @@
 
   <div class="card" style="margin-top:14px">
     <h2>Ground labels</h2>
-    <div class="hint">Both filters the app writes — the one generated next to every pickit <i>and</i> the one converted on this page — use NeverSink's colors, so drops read exactly like a community filter.</div>
+    <div class="hint">Both filters the app writes — the one generated next to every pickit <i>and</i> the one converted on this page — use the same community color scheme, so drops read like your own filter.</div>
     <div id="mypkThemePrev" class="lfprev"></div>
     <div class="hint" style="margin-top:6px;text-align:center;opacity:.75">How these labels will look on the ground in game, minimap icon included</div>
   </div>
@@ -3521,7 +3521,7 @@ const WHATIS={
   prev:"<b>Preview</b> shows the exact file the bot reads, after every Generate. Green lines = the bot picks it up, grey = below your value floor (skipped). Use the section list and filters to check that what you expect is actually in the file.",
   hist:"<b>History</b> logs every Generate run so you can see how your pickit evolves over the league — how many rules were active, what the top item was, and the Divine rate at the time.",
   fracture:"<b>Fracture Bases</b> answers one question: is this Magic or Rare base worth a Fracturing Orb? Every target is a verified natural affix — never from an Essence, crafted, Abyss, corrupted, unique, vendor or event mod pool. A base with exactly 4 explicit modifiers has the cleanest fracture chance. This is a reference guide, not a pickit rule — it doesn't change what the bot picks up.",
-  mypk:"<b>Create your filter</b> turns any Exiled Bot pickit (<b>.ipd</b>) into a matching in-game loot filter (<b>.filter</b>) — what's highlighted on the ground is exactly what the pickit picks up. Direction matters: pickit → filter, never the reverse (a FilterBlade .filter can't become a pickit). Your source pickit is only read. Labels use NeverSink's colors (see the preview), keep <b>Hide everything else</b> OFF while botting, save, then select the filter in game under Options → Game → Filters.",
+  mypk:"<b>Create your filter</b> turns any Exiled Bot pickit (<b>.ipd</b>) into a matching in-game loot filter (<b>.filter</b>) — what's highlighted on the ground is exactly what the pickit picks up. Direction matters: pickit → filter, never the reverse (a FilterBlade .filter can't become a pickit). Your source pickit is only read. Labels use the app's community color scheme (see the preview), keep <b>Hide everything else</b> OFF while botting, save, then select the filter in game under Options → Game → Filters.",
   set:"<b>Settings</b> connects the generator to your bot (folder + auto-copy), keeps the pickit fresh (Auto-Regenerate + tray mode), and controls output, backups and updates. Everything saves instantly.",
   dbg:"<b>Debug</b> is for when something's wrong: test whether poe.ninja is reachable, inspect the cache, and open the log to see what happened. You'll rarely need it."};
 document.querySelectorAll(".page > h1").forEach(h=>{
