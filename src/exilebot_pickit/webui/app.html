@@ -397,10 +397,11 @@
     padding:2px 10px;font-family:"Fontin SmallCaps",Georgia,serif;font-weight:700;
     font-variant:small-caps;letter-spacing:.02em;white-space:nowrap;
     color:var(--tx);border:1px solid var(--bc);background:var(--bgc);
-    /* proximity-style glow in the label's own color (invisible when the
-       tier has no border color) */
-    box-shadow:0 0 12px color-mix(in srgb,var(--bc) 30%,transparent),
-      0 2px 5px rgba(0,0,0,.5)}
+    /* proximity label glow, like the game: a soft dark halo blooming around
+       the label so it lifts off the ground, plus a faint tint of the tier's
+       own color for the colored tiers */
+    box-shadow:0 0 16px 7px rgba(0,0,0,.62),
+      0 0 10px color-mix(in srgb,var(--bc) 22%,transparent)}
   .lfprev-ico{font-size:.72em;line-height:1;font-family:ui-sans-serif,system-ui,sans-serif;
     font-variant:normal}
   /* thin light pillar for tiers whose filter block has PlayEffect */
