@@ -8,7 +8,7 @@ VERSION = "4.36.0"
 HIGHLIGHTS = """\
 • Label themes — pick once, both filters the app writes wear it (generated + converted), with a live on-the-ground preview.
 • Community classic is the default: colors, sizes and minimap icons taken verbatim from NeverSink's live PoE2 filter. Also: Minimal, High contrast, Colorblind safe.
-• Jackpot tier: drops worth 50+ exalted (and always Mirror of Kalandra / Divine Orb) get the red screamer with sound and beam — only that tier makes noise.
+• Jackpot tier: drops worth 50+ exalted (and always Mirror of Kalandra / Divine Orb) get the red screamer with a light beam. No filter sounds, ever.
 • Gold is never hidden, now in the generated filter too.
 • Chance Bases show the unique you're chancing for with real game art; the list is curated to four bases.
 • Prices auto-refresh every 15 minutes — no more nudging a slider for today's divine rate.

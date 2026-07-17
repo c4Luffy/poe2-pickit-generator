@@ -27,9 +27,10 @@ PlayEffect/MinimapIcon/PlayAlertSound) matches what NeverSink's live PoE2
 filter emits — the same visual language FilterBlade produces, so the colors
 read instantly to anyone who has used a community filter.
 
-Restraint rules: only the jackpot tier plays a SOUND; light beams (PlayEffect)
-are reserved for jackpot + uniques. A beam or ping on every cheap drop turns a
-juiced map into a light show — that is why "named" stays quiet in every theme.
+Restraint rules: NO sounds anywhere (owner's call 2026-07-17 — the bot doesn't
+listen and pings annoy); light beams (PlayEffect) are reserved for jackpot +
+uniques. A beam on every cheap drop turns a juiced map into a light show —
+that is why "named" stays quiet.
 
 Pure module: data + one lookup, no I/O, no imports from the engine (the engine
 imports us, never the other way around).
@@ -56,14 +57,13 @@ THEME_CHOICES = [
 # check_game_data.py maintains) — jackpot = his S-tier currency (Divine Orb
 # block), named = his Exalted-Orb C-tier, unique = his standard unique brown,
 # chance = his $tier->chancing green, gear = his salvage border, gold = his
-# gold-stack white. ONE deliberate deviation: sounds/beams stay on jackpot
-# (+ the unique beam) only — his per-tier sounds are strictness-gated, ours
-# would ping on every cheap pickup.
+# gold-stack white. Deliberate deviations: no PlayAlertSound at all (owner's
+# call), and beams only on jackpot + uniques — his per-tier sounds/beams are
+# strictness-gated, ours would fire on every cheap pickup.
 _CLASSIC = {
     "jackpot": ["SetFontSize 45", "SetTextColor 255 0 0",
                 "SetBorderColor 255 0 0", "SetBackgroundColor 255 255 255",
-                "PlayAlertSound 6 300", "PlayEffect Red",
-                "MinimapIcon 0 Red Star"],
+                "PlayEffect Red", "MinimapIcon 0 Red Star"],
     "named": ["SetFontSize 42", "SetTextColor 0 0 0",
               "SetBorderColor 0 0 0", "SetBackgroundColor 245 139 87",
               "MinimapIcon 1 Yellow Circle"],
