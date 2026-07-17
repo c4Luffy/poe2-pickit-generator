@@ -390,7 +390,8 @@
   .lfprev{margin-top:12px;border:1px solid var(--border);border-radius:10px;
     padding:14px 12px 10px;background:#0c0d10;
     display:flex;gap:11px 18px;flex-wrap:wrap;align-items:flex-end;justify-content:center}
-  .lfprev-item{text-align:center}
+  /* one column per tier: labels stack like a real drop pile */
+  .lfprev-item{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center}
   .lfprev-label{display:inline-flex;align-items:center;gap:6px;
     padding:2px 10px;font-family:"Fontin SmallCaps",Georgia,serif;font-weight:700;
     font-variant:small-caps;letter-spacing:.02em;white-space:nowrap;
@@ -3348,22 +3349,26 @@ const LF_ICO={Circle:"●",Diamond:"◆",Star:"★",Moon:"☾",
 const LF_BEAMS={Red:"#ff5039",Brown:"#b06a37",Orange:"#ff9040",White:"#f5f5f5",
   Blue:"#4f8fff",Cyan:"#42e0d0",Purple:"#b060ff",Yellow:"#ffe14f",
   Green:"#7ee07e",Grey:"#9a9a9a",Pink:"#ff8fc8"};
-const LF_SAMPLES=[["jackpot","Divine Orb","jackpot · 50+ ex + beam"],
-  ["named","Chaos Orb","currency & valuables"],
-  ["unique","Heavy Belt","uniques"],
-  ["chance","Stellar Amulet","chance bases"],
-  ["waystone","Waystone (Tier 15)","waystones"],
-  ["gear","Sacred Focus","rare & craft gear"],
-  ["gold","137 Gold","gold — never hidden"]];
+/* Every sample name is a REAL droppable item already shipped in the app's
+   data — the preview must never show an item the game can't drop. */
+const LF_SAMPLES=[
+  ["jackpot",["Divine Orb","Mirror of Kalandra"],"jackpot · 50+ ex + beam"],
+  ["named",["Chaos Orb","Exalted Orb","Perfect Jeweller's Orb"],"currency & valuables"],
+  ["unique",["Heavy Belt","Utility Belt"],"uniques"],
+  ["chance",["Stellar Amulet","Gold Ring"],"chance bases"],
+  ["waystone",["Waystone (Tier 15)"],"waystones"],
+  ["gear",["Sacred Focus","Soldier Cuirass"],"rare & craft gear"],
+  ["gold",["88 Gold","1,250 Gold"],"gold — never hidden"]];
 function renderThemePreview(theme){
   const t=FILTER_THEMES[theme]||FILTER_THEMES.classic||{};
-  $("mypkThemePrev").innerHTML=LF_SAMPLES.map(([kind,name,what])=>{
+  $("mypkThemePrev").innerHTML=LF_SAMPLES.map(([kind,names,what])=>{
     const s=lfParse(t[kind]);
     const px=Math.round(s.size*.42);   // game font 18-45 → ~8-19px preview
     const vars=`--tx:${s.text||"#c8c8c8"};--bgc:${s.bg||"rgba(0,0,0,.82)"};`+
       `--bc:${s.border||"rgba(0,0,0,0)"}`;
     const ico=s.icoShape?`<span class="lfprev-ico" style="color:${LF_BEAMS[s.icoColor]||"#ddd"}">${LF_ICO[s.icoShape]||"◆"}</span>`:"";
-    return `<span class="lfprev-item" style="${vars}"><span class="lfprev-label" style="font-size:${px}px;line-height:1.35">${ico}${name}</span><small class="lfprev-cap">${what}</small></span>`;
+    const labels=names.map(n=>`<span class="lfprev-label" style="font-size:${px}px;line-height:1.35">${ico}${n}</span>`).join("");
+    return `<span class="lfprev-item" style="${vars}">${labels}<small class="lfprev-cap">${what}</small></span>`;
   }).join("");
 }
 async function mypkConvert(){
