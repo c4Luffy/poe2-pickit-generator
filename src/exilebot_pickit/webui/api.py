@@ -2483,6 +2483,34 @@ class AppApi:
     # ── Item Check ────────────────────────────────────────────────────────────
 
     @staticmethod
+    def _resolve_base(line):
+        """Displayed item line -> the base type the pickit keys on.
+
+        Quality Normal/Magic items copy with a "Superior " prefix, and a Magic
+        item wraps its base in affixes ("Sturdy Grand Regalia of the Bear"), so
+        the raw line frequently is NOT the base name. No real base starts with
+        "Superior", so stripping it is safe; the affix case is resolved by
+        finding the longest known base sitting inside the line.
+        """
+        txt = (line or "").strip()
+        if not txt:
+            return ""
+        known = gen.VALID_EQUIPMENT_BASES
+        if txt in known:
+            return txt
+        if txt.startswith("Superior "):
+            stripped = txt[len("Superior "):]
+            if stripped in known:
+                return stripped
+            txt = stripped
+        best = ""
+        for b in known:
+            if len(b) > len(best) and re.search(
+                    r"(?:^|\s)" + re.escape(b) + r"(?:\s|$)", txt):
+                best = b
+        return best or txt
+
+    @staticmethod
     def _parse_item_text(text):
         """Parse a PoE2 Ctrl+C item copy into the fields the pickit keys on.
 
@@ -2514,7 +2542,8 @@ class AppApi:
                 name_lines.append(ln)
         if not fields.get("class") and not name_lines:
             return None
-        fields["base"] = name_lines[-1] if name_lines else ""
+        # the displayed line can carry a "Superior " prefix or magic affixes
+        fields["base"] = AppApi._resolve_base(name_lines[-1] if name_lines else "")
         fields["name"] = name_lines[0] if name_lines else ""
         return fields
 

@@ -1161,3 +1161,47 @@ def test_chance_bases_returns_art_and_price_for_every_target(api, monkeypatch):
     assert ring["targets"][1]["icon"] == "https://web.poecdn.com/andvarius.png"
     # headline price is still the BEST outcome (the jackpot you're chancing for)
     assert ring["target_ex"] == 800.0 and ring["target_div"] == 2.0
+
+
+def test_item_check_resolves_superior_and_magic_names_to_the_real_base(api):
+    """The pasted line often isn't the base the pickit keys on:
+      * a Normal/Magic item WITH QUALITY copies as "Superior <Base>"
+      * a Magic item wraps the base in affixes
+    Both used to make Item Check answer "nothing matches" for items the bot
+    really takes — worst on the quality white bases the Exceptional tab exists
+    to collect, since those always carry the Superior prefix."""
+    p = api._parse_item_text
+
+    plain = p("Item Class: Body Armours\nRarity: Normal\nGrand Regalia\n"
+              "--------\nItem Level: 82")
+    superior = p("Item Class: Body Armours\nRarity: Normal\nSuperior Grand Regalia\n"
+                 "--------\nQuality: +20% (augmented)\n--------\nItem Level: 82")
+    assert superior["base"] == plain["base"] == "Grand Regalia"
+    assert superior["quality"] == 20
+
+    magic = p("Item Class: Body Armours\nRarity: Magic\n"
+              "Sturdy Grand Regalia of the Bear\n--------\nItem Level: 82")
+    assert magic["base"] == "Grand Regalia"
+
+    # rare/unique already carry a separate base line — must be untouched
+    rare = p("Item Class: Body Armours\nRarity: Rare\nDoom Shell\nGrand Regalia\n"
+             "--------\nItem Level: 82")
+    assert rare["name"] == "Doom Shell" and rare["base"] == "Grand Regalia"
+    uniq = p("Item Class: Belts\nRarity: Unique\nHeadhunter\nHeavy Belt\n--------")
+    assert uniq["name"] == "Headhunter" and uniq["base"] == "Heavy Belt"
+    # an unknown/currency name passes through rather than being mangled
+    cur = p("Item Class: Stackable Currency\nRarity: Currency\nDivine Orb\n--------")
+    assert cur["base"] == "Divine Orb"
+
+
+def test_item_check_quality_white_base_is_picked_like_the_plain_one(api):
+    """End-to-end: the verdict for a quality white base must match the plain
+    one. It said 'nothing matches' before, which is the opposite of the truth."""
+    api.cfg.update({"base_quality": 21, "base_min_level": 79,
+                    "include_bases": True, "min_exalt_gear": 0.0,
+                    "min_exalt_unique": 0.0})
+    body = ("Item Class: Body Armours\nRarity: Normal\nSuperior Grand Regalia\n"
+            "--------\nQuality: +20% (augmented)\n--------\nItem Level: 82")
+    r = api.check_item(body, "")          # no league -> no network
+    assert r["item"]["base"] == "Grand Regalia"
+    assert any(row["kind"] == "pick" for row in r["rows"]), r["rows"]
