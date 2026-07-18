@@ -1,0 +1,64 @@
+# Weekly game-data drift check. PoE2 renames/removes items every patch; when
+# that happens our rules can silently hunt items that no longer drop. The
+# checker diffs our stat ids, weights and base names against the live GGPK mod
+# dump and NeverSink's SOFT filter (exit 0 = in sync, 1 = critical drift,
+# 2 = couldn't check). On real drift it opens ONE issue with the full report —
+# it never edits data; a human decides (see .claude/skills/verify-game-data).
+name: Game-data drift check
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e .
+      - name: Run the drift checker
+        id: drift
+        run: |
+          set +e
+          python tools/check_game_data.py > drift.txt 2>&1
+          code=$?
+          cat drift.txt
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Open an issue on real drift (once)
+        if: steps.drift.outputs.code == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          open=$(gh issue list --label game-data-drift --state open --json number --jq 'length')
+          if [ "$open" = "0" ]; then
+            {
+              echo "The weekly checker found game-data drift against the live patch."
+              echo "Run \`python tools/check_game_data.py\` locally and follow the"
+              echo "verify-game-data skill before changing any data."
+              echo
+              echo '```'
+              cat drift.txt
+              echo '```'
+            } > body.md
+            gh issue create \
+              --title "Game-data drift detected ($(date -u +%Y-%m-%d))" \
+              --label game-data-drift \
+              --body-file body.md
+          else
+            echo "An open game-data-drift issue already exists — not filing another."
+          fi
+      - name: Fail the run when not in sync
+        if: steps.drift.outputs.code != '0'
+        run: |
+          echo "Checker exit code: ${{ steps.drift.outputs.code }} (1 = drift, 2 = could not check)"
+          exit 1
