@@ -507,10 +507,16 @@
   .pill.on{color:var(--ok);border-color:var(--ok)}
   /* bases grids */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
+  .attr-head{display:flex;align-items:center;gap:8px;margin:0 2px 7px}
+  .attr-head .n{color:var(--dim);font-size:11px}
+  .attr-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));
+    gap:14px;align-items:start;margin-bottom:6px}
+  .attr-col{display:flex;flex-direction:column;gap:8px;min-width:0}
+  .attr-col .bcard{margin:0}
   .craft-layout{display:flex;gap:16px;align-items:flex-start}
   .set-sec{display:none}.set-sec.on{display:block}
   .cside-btn .st{margin-left:auto;font-size:11px;font-weight:700}
-  .craft-layout .grid{flex:1;min-width:0}
+  .craft-layout .grid,.craft-layout>#excGrid{flex:1;min-width:0}
   .craft-side{flex:0 0 172px;position:sticky;top:12px;display:flex;flex-direction:column;gap:2px}
   .craft-side .csgrp{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--dim);
         margin:10px 8px 3px}.craft-side .csgrp:first-child{margin-top:0}
@@ -550,7 +556,7 @@
   /* settings */
   .set-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
   .set-row:last-child{border-bottom:0}
-  .set-row .lab b{display:block;font-size:13.5px}
+  .set-row .lab>b{display:block;font-size:13.5px}
   .set-row .lab span{font-size:12px;color:var(--dim)}
   .set-row .sp{flex:1}
   .switch{width:42px;height:23px;border-radius:99px;background:var(--bg3);border:1px solid var(--border);
@@ -1165,7 +1171,7 @@
     <div class="eco-head eco-toolbar" style="margin-top:10px"><input type="text" id="excSearch" placeholder="🔎 Search bases…"></div>
     <div class="craft-layout" style="margin-top:10px">
       <div class="craft-side" id="excSide"></div>
-      <div class="grid" id="excGrid"></div>
+      <div id="excGrid"></div>
     </div>
   </div>
 </div>
@@ -2740,21 +2746,38 @@ function renderExcGrid(){
       : `<span style="margin-left:auto;color:var(--dim);font-size:11px">no rune sockets</span>`;
     h.style.display="flex";h.style.alignItems="center";
     h.innerHTML=`<span>${esc(c.cat)}</span>${badge}`;g.appendChild(h);
-    for(const b of bases){
-      const d=document.createElement("div");
-      d.className="bcard"+(b.enabled?"":" dis");
-      d.style.cssText="display:flex;align-items:center;gap:11px;min-width:0";
-      const ico=b.icon?`<img class="icn" loading="lazy" src="${b.icon}" style="width:44px;height:44px;flex-shrink:0">`:"";
-      const meta=[b.lvl?`lvl ${b.lvl}`:"",b.stats||""].filter(x=>x).join(" · ");
-      // attribute rides ON the card — as its own full-width row it broke the
-      // grid into one card per line (same bug the Craft tab had)
-      const atc=(b.attr&&b.attr!=="—")?chip(b.attr)+" ":"";
-      d.innerHTML=`${ico}<div style="min-width:0;flex:1"><b>${esc(b.name)}</b><div class="t">${atc}${esc(meta)||"&nbsp;"}</div></div>`;
-      d.title="Click to include/exclude this base (white pickup + its uniques)";
-      d.onclick=async()=>{b.enabled=!b.enabled;
-        await api().set_item("_excbase",b.name,b.enabled);
-        d.className="bcard"+(b.enabled?"":" dis");d.style.display="flex";cnt();buildExcSide();};
-      g.appendChild(d);}}
+    // one COLUMN per attribute (Str | Dex | Int | hybrids). Stacking the groups
+    // vertically wasted the width and made a very long page; columns let you
+    // read straight down the attribute your build uses.
+    const ATTR_ORDER=["Str","Dex","Int","Str/Dex","Str/Int","Dex/Int","Str/Dex/Int","—"];
+    const groups={};
+    for(const b of bases)(groups[b.attr||"—"]=groups[b.attr||"—"]||[]).push(b);
+    const cols=document.createElement("div");
+    cols.className="attr-cols";
+    g.appendChild(cols);
+    for(const attr of ATTR_ORDER){
+      const list=groups[attr];
+      if(!list||!list.length)continue;
+      const sub=document.createElement("div");
+      sub.className="attr-col";
+      const ah=document.createElement("div");
+      ah.className="attr-head";
+      ah.innerHTML=(attr==="—"?'<span class="hint" style="margin:0">Other</span>':chip(attr));
+      sub.appendChild(ah);
+      for(const b of list){
+        const d=document.createElement("div");
+        d.className="bcard"+(b.enabled?"":" dis");
+        d.style.cssText="display:flex;align-items:center;gap:11px;min-width:0";
+        const ico=b.icon?`<img class="icn" loading="lazy" src="${b.icon}" style="width:44px;height:44px;flex-shrink:0">`:"";
+        const meta=[b.lvl?`lvl ${b.lvl}`:"",b.stats||""].filter(x=>x).join(" · ");
+        const atc=(b.attr&&b.attr!=="—")?chip(b.attr)+" ":"";
+        d.innerHTML=`${ico}<div style="min-width:0;flex:1"><b>${esc(b.name)}</b><div class="t">${atc}${esc(meta)||"&nbsp;"}</div></div>`;
+        d.title="Click to include/exclude this base (white pickup + its uniques)";
+        d.onclick=async()=>{b.enabled=!b.enabled;
+          await api().set_item("_excbase",b.name,b.enabled);
+          d.className="bcard"+(b.enabled?"":" dis");d.style.display="flex";cnt();buildExcSide();};
+        sub.appendChild(d);}
+      cols.appendChild(sub);}}
   cnt();}
 
 /* ── fracture bases (verified reference, not a pickit rule) ── */
