@@ -960,3 +960,30 @@ def test_undo_all_on_restores_the_exact_previous_switch_state(api):
     assert api.cfg["active_preset"] == "balanced"
 
     assert "error" in api.undo_all_on()               # one-shot: nothing left
+
+
+def test_backup_diff_reports_rule_changes_and_ignores_price_churn(api, tmp_path):
+    """Preview's 'Compare backup': prices move EVERY run, so a diff that showed
+    price churn would bury the real answer — which rules appeared/disappeared.
+    ExValue comments are stripped before comparing; disabled rules don't count."""
+    bdir = tmp_path / "backups"
+    bdir.mkdir()
+    (bdir / "t-20260718-120000.ipd").write_text("\n".join([
+        '[Type] == "Chaos Orb" # [StashItem] == "true" // ExValue = 2.10',
+        '[Type] == "Old Orb" # [StashItem] == "true" // ExValue = 9.00',
+        '// [Type] == "Disabled Orb" # [StashItem] == "true"',
+    ]), encoding="utf-8")
+    (tmp_path / "t.ipd").write_text("\n".join([
+        '[Type] == "Chaos Orb" # [StashItem] == "true" // ExValue = 3.40',   # price moved only
+        '[Type] == "New Orb" # [StashItem] == "true" // ExValue = 12.00',
+    ]), encoding="utf-8")
+
+    r = api.backup_diff("t-20260718-120000.ipd")
+    assert r["added_total"] == 1 and "New Orb" in r["added"][0]
+    assert r["removed_total"] == 1 and "Old Orb" in r["removed"][0]
+    assert not any("Chaos Orb" in l for l in r["added"] + r["removed"])   # price-only: silent
+    assert not any("Disabled Orb" in l for l in r["removed"])             # commented: not a rule
+    assert r["cur_total"] == 2 and r["old_total"] == 2
+
+    assert "error" in api.backup_diff("../../evil.ipd")     # traversal-safe
+    assert "error" in api.backup_diff("t-nope.ipd")

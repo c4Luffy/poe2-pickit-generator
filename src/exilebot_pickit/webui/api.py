@@ -1303,6 +1303,44 @@ class AppApi:
         out.sort(key=lambda b: b["name"], reverse=True)
         return out
 
+    def backup_diff(self, name):
+        """Rule-level diff: the current pickit vs one rotated backup.
+
+        Compares ACTIVE rules with their ExValue comment stripped — prices move
+        every run, and a wall of price-only churn would bury the answer people
+        actually want from a diff: which rules appeared, which disappeared.
+        Read-only on both files."""
+        base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
+        bdir = os.path.join(OUTPUT_DIR, "backups")
+        name = os.path.basename(str(name or ""))
+        bpath = os.path.join(bdir, name)
+        cpath = os.path.join(OUTPUT_DIR, base + ".ipd")
+        if not (name.startswith(base + "-") and name.endswith(".ipd")
+                and os.path.isfile(bpath)):
+            return {"error": "That backup doesn't exist any more."}
+        if not os.path.isfile(cpath):
+            return {"error": "No current pickit to compare — generate first."}
+
+        def _active_rules(path):
+            rules = set()
+            try:
+                with open(path, encoding="utf-8-sig", errors="replace") as f:
+                    for ln in f:
+                        ln = ln.strip()
+                        if not ln or ln.startswith("/") or "[StashItem]" not in ln:
+                            continue
+                        rules.add(re.sub(r"\s*//\s*ExValue.*$", "", ln).strip())
+            except OSError:
+                pass
+            return rules
+
+        cur, old = _active_rules(cpath), _active_rules(bpath)
+        added = sorted(cur - old)
+        removed = sorted(old - cur)
+        return {"backup": name, "added": added[:300], "removed": removed[:300],
+                "added_total": len(added), "removed_total": len(removed),
+                "cur_total": len(cur), "old_total": len(old)}
+
     def restore_backup(self, name):
         """Make a rotated backup the current pickit again. The pickit being
         replaced is itself backed up first, so a restore never loses anything."""

@@ -1303,7 +1303,19 @@
     <button class="ghost mini" id="prevOpenDir" title="Open the pickit output folder">📂 Open folder</button>
     <button class="ghost mini" id="prevBotDir" title="Open the configured Exiled Bot folder">🤖 Bot folder</button>
     <button class="ghost mini" id="prevCopyPath" title="Copy the .ipd file path">📋 Copy path</button>
+    <button class="ghost mini" id="pvCmpBtn" title="Rule-level diff against one of the rotating backups — which rules appeared or disappeared (price-only changes are ignored)">🕰 Compare backup</button>
   </div>
+  <div class="card" id="pvCmpPanel" style="display:none;margin-bottom:12px;padding:12px 16px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <b style="font-size:13px">Compare with:</b>
+      <select id="pvCmpSel" style="max-width:340px"></select>
+      <span class="hint" style="margin:0" id="pvCmpHead"></span>
+      <div style="flex:1"></div>
+      <button class="ghost mini" id="pvCmpClose">✖</button>
+    </div>
+    <div id="pvCmpOut" style="margin-top:8px"></div>
+  </div>
+  <div id="pvExplain" style="position:fixed;display:none;z-index:80;max-width:440px;background:var(--bg3);border:1px solid var(--gold-dim);border-radius:10px;padding:10px 14px;font-size:12.5px;box-shadow:0 10px 30px rgba(0,0,0,.5)"></div>
   <div style="display:flex;gap:12px;align-items:flex-start">
     <div id="pvNav" class="craft-side" style="width:215px;flex:0 0 215px;position:static;max-height:calc(90.9vh - 265px);overflow-y:auto"></div>
     <pre id="prevBox" style="user-select:text;cursor:text;flex:1;max-height:calc(90.9vh - 265px);white-space:pre-wrap;word-break:break-word;overflow-x:hidden;min-width:0">Generate first.</pre>
@@ -3385,14 +3397,92 @@ $("prevCopyPath").onclick=async()=>{
   const r=await api().output_path();
   const ok=r&&r.path&&await copyText(r.path);
   toast(ok?"📋 Path copied: "+r.path:"Clipboard blocked");};
-// #3 QoL: click any single rule line to copy just that rule (skips when the
-// user is selecting text, so normal select-to-copy still works).
+/* "Explain this rule": click a rule and the popover says why it exists —
+   section, recorded price (+div), the tier color the filter gives it, and
+   status. Copy lives inside it, so click-to-copy survives. Skips when the
+   user is selecting text, so normal select-to-copy still works. */
+function pvDivineRate(){
+  for(const l of prevLines){
+    const m=l.match(/1 Divine\s*=\s*([\d.,]+)\s*Exalted/i);
+    if(m)return parseFloat(m[1].replace(/,/g,""))||500;}
+  return 500;}
+function pvTier(ex,d){
+  const jp=Math.max(d*0.10,20),my=Math.max(d,jp*2);   // same clamp chain as the engine
+  return ex>=my?["mythic","Mythic (1+ Divine)"]:ex>=jp?["jackpot","Jackpot (10% of a Divine)"]
+    :ex>=10?["high","High (10+ ex)"]:ex>=1?["useful","Useful (1+ ex)"]:["quiet","Quiet (cheap but picked)"];}
 $("prevBox").addEventListener("click",e=>{
   if(!window.getSelection().isCollapsed)return;
-  const sp=e.target.closest(".l-a,.l-c,[id^='pvln-']");
-  if(!sp||!sp.textContent.includes("[StashItem]"))return;
-  const line=sp.textContent.replace(/^⚠\s*/,"");
-  copyText(line).then(ok=>toast(ok?"Rule copied":"Clipboard blocked"));});
+  const sp=e.target.closest("[id^='pvln-']");
+  if(!sp||!sp.textContent.includes("[StashItem]")){$("pvExplain").style.display="none";return;}
+  const n=parseInt(sp.id.slice(5)),line=sp.textContent.replace(/^⚠\s*/,"");
+  const raw=prevLines[n-1]||line;
+  const skipped=raw.startsWith("//");
+  let sec=null;for(const s of pvSections){if(s.start<n)sec=s;else break;}
+  const nm=raw.match(/\[Type\]\s*==\s*"((?:[^"\\]|\\.)*)"/);
+  const cat=raw.match(/\[Category\]\s*==\s*"(\w+)"/);
+  const title=nm?nm[1].replace(/\\"/g,'"'):cat?cat[1]+" (category)":"Condition rule";
+  const mv=raw.match(/ExValue\s*=\s*([\d.,]+)/i);
+  const d=pvDivineRate();
+  let priceHtml,chip="";
+  if(mv){
+    const ex=parseFloat(mv[1].replace(/,/g,""))||0;
+    const [kind,label]=pvTier(ex,d);
+    const st=lfParse((FILTER_THEMES.classic||{})[kind]||[]);
+    priceHtml=`Worth <b>${ex.toLocaleString()} ex</b>`+(d>1&&ex>=d?` (${(ex/d).toFixed(1)} div)`:"")
+      +` at generate time — poe.ninja priced it this run.`;
+    chip=`<span style="display:inline-flex;align-items:center;padding:1px 9px;font-family:Georgia,serif;font-variant:small-caps;font-weight:700;font-size:12.5px;color:${st.text||"#c8c8c8"};background:${st.bg||"rgba(0,0,0,.8)"};border:1px solid ${st.border||"rgba(255,255,255,.2)"}">${label}</span>`;
+  }else{
+    priceHtml="No recorded price — kept for its purpose, not its market value; the filter wears this section's color.";
+  }
+  const pop=$("pvExplain");
+  pop.innerHTML=
+    `<div style="display:flex;gap:8px;align-items:baseline"><b style="font-size:13.5px">${esc(title)}</b>`
+    +`<span class="pill ${skipped?"":"on"}" style="margin-left:auto">${skipped?"skipped (below floor / off)":"active — bot picks it up"}</span></div>`
+    +(sec?`<div class="hint" style="margin:6px 0 0">Section: <b>${esc(sec.title)}</b></div>`:"")
+    +`<div class="hint" style="margin:4px 0 0">${priceHtml}</div>`
+    +(chip?`<div style="margin:7px 0 0">${chip}</div>`:"")
+    +`<div style="display:flex;gap:8px;margin-top:9px"><button class="ghost mini" id="pvExCopy">📋 Copy rule</button>`
+    +`<button class="ghost mini" id="pvExClose">Close</button></div>`;
+  pop.style.display="block";
+  const pw=Math.min(440,window.innerWidth-24);
+  pop.style.left=Math.min(e.clientX+10,window.innerWidth-pw-12)+"px";
+  pop.style.top=Math.min(e.clientY+10,window.innerHeight-170)+"px";
+  $("pvExCopy").onclick=()=>copyText(line).then(ok=>toast(ok?"Rule copied":"Clipboard blocked"));
+  $("pvExClose").onclick=()=>pop.style.display="none";
+  e.stopPropagation();});
+document.addEventListener("click",e=>{
+  const pop=$("pvExplain");
+  if(pop.style.display!=="none"&&!pop.contains(e.target))pop.style.display="none";});
+
+/* Compare with a backup: which rules appeared/disappeared since then.
+   Price-only changes are deliberately invisible here (the engine strips
+   ExValue before comparing) — this view answers "what changed", not
+   "what repriced". */
+async function pvCmpRun(){
+  const name=$("pvCmpSel").value;
+  if(!name)return;
+  const r=await api().backup_diff(name);
+  const out=$("pvCmpOut"),head=$("pvCmpHead");
+  if(r.error){head.textContent="";out.innerHTML=`<div class="hint">${esc(r.error)}</div>`;return;}
+  head.textContent=`now ${r.cur_total.toLocaleString()} active rules · backup had ${r.old_total.toLocaleString()} · price-only changes ignored`;
+  const list=(rows,total,sign,color)=>{
+    if(!total)return "";
+    const more=total>rows.length?`<div class="hint" style="margin:2px 0 0">…and ${total-rows.length} more</div>`:"";
+    return `<div style="margin-top:8px"><b style="color:${color};font-size:12.5px">${sign} ${total.toLocaleString()} ${sign==="+"?"added since then":"removed since then"}</b>`
+      +rows.slice(0,40).map(l=>`<div class="hint" style="margin:2px 0 0;font-family:Consolas,ui-monospace,monospace;font-size:11.5px">${sign} ${esc(l.length>150?l.slice(0,150)+"…":l)}</div>`).join("")+more+"</div>";};
+  out.innerHTML=(r.added_total||r.removed_total)
+    ?list(r.added,r.added_total,"+","var(--ok)")+list(r.removed,r.removed_total,"−","var(--err)")
+    :'<div class="hint" style="margin-top:6px">Same rules in both — only prices moved.</div>';}
+$("pvCmpBtn").onclick=async()=>{
+  const panel=$("pvCmpPanel");
+  if(panel.style.display!=="none"){panel.style.display="none";return;}
+  const bks=await api().list_backups();
+  if(!bks.length){toast("No backups yet — they appear after your next generate");return;}
+  $("pvCmpSel").innerHTML=bks.map(b=>`<option value="${esc(b.name)}">${esc(b.ts)} · ${b.kb} KB</option>`).join("");
+  panel.style.display="";
+  pvCmpRun();};
+$("pvCmpSel").onchange=pvCmpRun;
+$("pvCmpClose").onclick=()=>{$("pvCmpPanel").style.display="none";};
 $("prevFilter").addEventListener("input",renderPreview);
 
 /* ── settings ── */
