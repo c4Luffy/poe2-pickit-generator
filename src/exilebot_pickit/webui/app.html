@@ -1600,6 +1600,22 @@
   </div>
 </div>
 
+<!-- Reusable ask dialog: replaces the browser's prompt()/confirm(), which
+     rendered as an OS box titled "127.0.0.1:6737 says". -->
+<div class="modal" id="askModal">
+  <div class="modal-box" style="max-width:430px">
+    <div class="modal-hd"><span style="font-size:19px" id="askIcon">✏️</span><b id="askTitle">Confirm</b></div>
+    <div class="modal-bd">
+      <div id="askMsg"></div>
+      <input type="text" id="askInput" style="display:none;width:100%;margin-top:12px" spellcheck="false">
+    </div>
+    <div class="modal-ft">
+      <button class="ghost mini" id="askCancel">Cancel</button>
+      <button class="primary" id="askOk" style="padding:8px 18px">OK</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="wnModal">
   <div class="modal-box">
     <div class="modal-hd"><span style="font-size:19px">🎉</span><b id="wnTitle">What's new</b></div>
@@ -2197,14 +2213,49 @@ async function loadProfiles(){
   for(const n of p.names){const o=document.createElement("option");o.value=o.textContent=n;sel.appendChild(o);}
   sel.value=p.active||"";
   $("profHint").textContent=p.active?`Active: ${p.active}`:"";}
+/* In-app replacements for prompt()/confirm(). The native ones render as an OS
+   box titled "127.0.0.1:6737 says" - jarring, and it leaks the local address.
+   Both return a Promise and share one modal. */
+let _askDone=null;
+function _askClose(v){const m=$("askModal");m.classList.remove("on");
+  const f=_askDone;_askDone=null;if(f)f(v);}
+function askDialog({title,msg,icon="✏️",value=null,ok="OK",danger=false}){
+  return new Promise(res=>{
+    _askDone=res;
+    $("askTitle").textContent=title;
+    $("askMsg").innerHTML=msg;
+    $("askIcon").textContent=icon;
+    const inp=$("askInput");
+    if(value===null){inp.style.display="none";}
+    else{inp.style.display="";inp.value=value;}
+    const b=$("askOk");b.textContent=ok;
+    b.classList.toggle("danger",!!danger);
+    $("askModal").classList.add("on");
+    setTimeout(()=>{value===null?b.focus():(inp.focus(),inp.select());},40);
+  });}
+const askText=(title,msg,value="",opts={})=>askDialog({title,msg,value,...opts});
+const askConfirm=(title,msg,opts={})=>askDialog({title,msg,icon:"⚠️",...opts});
+$("askCancel").onclick=()=>_askClose(null);
+$("askOk").onclick=()=>{const inp=$("askInput");
+  _askClose(inp.style.display==="none"?true:(inp.value||"").trim());};
+$("askInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();$("askOk").click();}});
+$("askModal").addEventListener("keydown",e=>{if(e.key==="Escape")_askClose(null);});
+$("askModal").addEventListener("click",e=>{if(e.target===$("askModal"))_askClose(null);});
+
 $("profSel").onchange=async()=>{const n=$("profSel").value;if(!n)return;
   const r=await api().profile_load(n);
   if(r.ok){info=r.info;applyInfo(info);eco=null;
     $("profHint").textContent="Active: "+n;toast("Profile loaded: "+n);}};
-$("profSave").onclick=async()=>{const n=prompt("Profile name (existing name = overwrite):",$("profSel").value||"");
+$("profSave").onclick=async()=>{
+  const n=await askText("Save profile",
+    "Name this profile. Using an existing name <b>overwrites</b> it.",
+    $("profSel").value||"",{icon:"💾",ok:"Save"});
   if(!n)return;await api().profile_save(n);await loadProfiles();toast("Profile saved: "+n);};
 $("profDel").onclick=async()=>{const n=$("profSel").value;if(!n)return toast("Pick a profile first");
-  if(!confirm(`Delete profile "${n}"? Your current settings stay.`))return;
+  if(!await askConfirm("Delete profile",
+    `Delete <b>${esc(n)}</b>? Your current settings stay exactly as they are.`,
+    {ok:"Delete",danger:true}))return;
   await api().profile_delete(n);await loadProfiles();toast("Deleted "+n);};
 
 /* ── economy ── */
@@ -2965,7 +3016,9 @@ async function loadHistory(){
     openPage("gen");
     toast("Floors restored from "+(b.dataset.ts||"that run")+" — generating…");
     doGenerate();});}
-$("histClear").onclick=async()=>{if(!confirm("Clear all run history?"))return;
+$("histClear").onclick=async()=>{
+  if(!await askConfirm("Clear history","Delete every logged run? This can't be undone.",
+    {ok:"Clear",danger:true}))return;
   await api().clear_history();loadHistory();toast("History cleared");};
 
 /* ── debug ── */
@@ -3246,7 +3299,9 @@ $("ickDemo").onclick=async()=>{
   $("ickRun").click();};
 $("cfgOpen").onclick=async()=>{const r=await api().open_file("config");if(r&&r.error)toast(r.error);};
 $("resetBtn").onclick=async()=>{
-  if(!confirm("Reset all settings to defaults?\nThis turns every item toggle back ON. History and saved profiles are kept."))return;
+  if(!await askConfirm("Reset settings",
+    "Reset all settings to defaults?<br>This turns every item toggle back <b>ON</b>. History and saved profiles are kept.",
+    {ok:"Reset",danger:true}))return;
   const r=await api().reset_defaults();
   if(r.ok){info=r.info;applyInfo(info);
     // drop cached tab data so the item tabs re-fetch with the reset (all-on)
@@ -3709,7 +3764,9 @@ async function loadBackups(){
        <div class="sp"></div>
        <button class="ghost mini bak-r" data-n="${esc(b.name)}">Restore</button></div>`).join("");
   el.querySelectorAll(".bak-r").forEach(btn=>btn.onclick=async()=>{
-    if(!confirm("Restore this backup as the current pickit?\nThe pickit being replaced is backed up first — nothing is lost."))return;
+    if(!await askConfirm("Restore backup",
+      "Make this backup your current pickit?<br>The pickit being replaced is backed up first — nothing is lost.",
+      {ok:"Restore"}))return;
     const r=await api().restore_backup(btn.dataset.n);
     if(r.error)return toast("✗ "+r.error);
     toast(`✓ Restored — ${(r.active||0).toLocaleString()} active rules${r.copied?" · copied to bot":""}`);
@@ -3721,7 +3778,9 @@ $("cfgExport").onclick=async()=>{
   if(r.cancelled)return;
   toast(r.ok?"✓ Settings exported to "+r.path:"✗ "+r.error);};
 $("cfgImport").onclick=async()=>{
-  if(!confirm("Import settings from a backup file?\nYour current settings will be overwritten (floors, toggles, profiles…)."))return;
+  if(!await askConfirm("Import settings",
+    "Import settings from a backup file?<br>Your current settings will be <b>overwritten</b> (floors, toggles, profiles…).",
+    {ok:"Import",danger:true}))return;
   const r=await api().import_settings();
   if(r.cancelled)return;
   if(r.error)return toast("✗ "+r.error);
