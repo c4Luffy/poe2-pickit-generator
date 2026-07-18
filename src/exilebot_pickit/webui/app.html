@@ -735,6 +735,10 @@
   .auto .a-tx span{font-size:11.5px;color:var(--dim)}
   .primary.generate{width:100%;justify-content:center;margin-top:14px;font-size:15px;font-weight:800;
     letter-spacing:.05em;text-transform:uppercase;padding:15px;border-radius:11px}
+  /* Secondary action under the hero button: quiet, one line, never competes. */
+  .allon{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+  .allon button{white-space:nowrap}
+  .allon .hint{margin:0;flex:1;min-width:150px}
   .output{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
   .output .sp{flex:1}.output .hint{margin:0}
   .kbd{font:11px/1 Consolas,monospace;color:var(--dim);border:1px solid var(--border);border-radius:5px;padding:2px 6px;background:var(--bg3)}
@@ -956,11 +960,11 @@
       </div>
       <span class="statuspill" id="autoPill" style="display:none">⚡ Auto floor is off</span>
 
-      <div style="display:flex;gap:10px;align-items:stretch">
-        <button class="primary generate" id="go" title="Shortcut: Ctrl+G" style="flex:1">⚡ Generate &amp; Validate Pickit</button>
-        <button class="ghost" id="allOnGo" style="white-space:nowrap;padding:0 16px" title="Turns every switch in the whole app ON — all Economy categories and items, Chance bases, Craft, Exceptional, Fracture and rare-gear slots — then generates. Your price floors and quality/ilvl numbers are NOT changed.">🔓 All ON + Generate</button>
+      <button class="primary generate" id="go" title="Shortcut: Ctrl+G">⚡ Generate &amp; Validate Pickit</button>
+      <div class="allon">
+        <button class="ghost mini" id="allOnGo" title="Turns every switch in the whole app ON — all Economy categories and items, Chance bases, Craft, Exceptional, Fracture and rare-gear slots — then generates. Your price floors and quality/ilvl numbers are NOT changed.">🔓 Turn everything on, then generate</button>
+        <span class="hint">Switches every section back on first. Your floors stay yours.</span>
       </div>
-      <div class="hint" style="margin-top:6px">🔓 <b>All ON</b> = if you switched things off in Economy, Chance, Craft, Exceptional, Fracture or Magic &amp; Rare, this turns everything back on first, then generates. Floors stay yours.</div>
       <div class="bar" id="bar"><i></i></div>
 
       <div class="output">
