@@ -32,9 +32,17 @@ from exilebot_pickit.generators.filter_classification import (
 # Pickup-side conditions the converter can express in a loot filter. Anything
 # else found before the `#` (ItemTier, GemLevel, TotalResistances, …) is a
 # bot-only check: it gets dropped and the rule is counted as "widened".
-_KNOWN_TOKENS = {"Type", "Rarity", "Quality", "Sockets", "Category"}
+_KNOWN_TOKENS = {"Type", "Rarity", "Quality", "Sockets", "Category",
+                 "ItemLevel", "WaystoneTier"}
 
 _TOKEN_RE = re.compile(r"\[(\w+)\]")
+
+# ItemLevel and WaystoneTier translate EXACTLY: both are real PoE2 filter
+# conditions (verified against NeverSink's live SOFT filter — 74 and 46 uses).
+# The filter's comparison operators match the bot's, so the value+op carry
+# straight over and these rules stop counting as "shown wider".
+_ILVL_RE = re.compile(r'\[ItemLevel\]\s*(>=|<=|==|>|<)\s*"(\d+)"')
+_WTIER_RE = re.compile(r'\[WaystoneTier\]\s*(>=|<=|==|>|<)\s*"(\d+)"')
 
 # Exiled Bot [Category] value → PoE2 filter Class name(s), keyed lowercase.
 # Every Class string is verified against NeverSink's live SOFT filter (the
@@ -108,12 +116,17 @@ def _parse_rule(cond_part: str):
         sockets = int(ms.group(1))
     elif msg:
         sockets = int(msg.group(1)) + 1
+    mi = _ILVL_RE.search(cond_part)
+    mw = _WTIER_RE.search(cond_part)
     return {
         "names": names,
         "rarity": mr.group(1) if mr else None,
         "quality": int(mq.group(1)) if mq else None,
         "sockets": sockets,
         "category": mc.group(1) if mc else None,
+        # ready-to-emit filter fragments (or None) — exact translations
+        "ilvl": f"ItemLevel {mi.group(1)} {mi.group(2)}" if mi else None,
+        "wtier": f"WaystoneTier {mw.group(1)} {mw.group(2)}" if mw else None,
         "unknown": sorted(set(_TOKEN_RE.findall(cond_part)) - _KNOWN_TOKENS),
     }
 
@@ -128,7 +141,7 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
     ``theme`` picks the label style set; unknown values fall back to the
     default theme inside the lookup.
     """
-    # (visual kind, rarity, quality, sockets) -> names, exact translation.
+    # (visual kind, rarity, quality, sockets, ilvl, wtier) -> names — exact.
     named_groups: dict = {}
     generic: list = []        # (visual kind, conditions)
 
@@ -199,14 +212,14 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
             # untranslatable (so a Hide gets the loud warning), but any
             # expressible sibling names on the same line still get shown.
             if names:
-                key = (kind, rarity, r["quality"], r["sockets"])
+                key = (kind, rarity, r["quality"], r["sockets"], r["ilvl"], r["wtier"])
                 named_groups.setdefault(key, []).extend(names)
                 _record_visual(kind, names)
             _flag(no, line, "an item name on this line contains '#' or '\"' — "
                             "a filter string can't carry that name")
             continue
         if names:
-            key = (kind, rarity, r["quality"], r["sockets"])
+            key = (kind, rarity, r["quality"], r["sockets"], r["ilvl"], r["wtier"])
             named_groups.setdefault(key, []).extend(names)
             _record_visual(kind, names)
             converted += 1
@@ -226,6 +239,10 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
             conds.append(f"Sockets >= {r['sockets']}")
         if r["quality"] is not None:
             conds.append(f"Quality >= {r['quality']}")
+        if r["ilvl"]:
+            conds.append(r["ilvl"])
+        if r["wtier"]:
+            conds.append(r["wtier"])
         if conds:
             generic.append((kind, conds))
             label = r["category"] or rarity or "Condition-only rule"
@@ -269,12 +286,13 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
     # (rarity + quality + sockets, in any combination) rides along with the
     # names — nothing silently dropped.
     def _grp_key(k):
-        kind, rar, q, s = k
+        kind, rar, q, s, il, wt = k
         return (visual_sort_key(kind), rar or "",
-                -1 if q is None else q, -1 if s is None else s)
+                -1 if q is None else q, -1 if s is None else s,
+                il or "", wt or "")
 
     for key in sorted(named_groups, key=_grp_key):
-        kind, rar, q, s = key
+        kind, rar, q, s, il, wt = key
         extra = []
         if rar:
             extra.append(f"Rarity = {rar}")
@@ -282,6 +300,10 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
             extra.append(f"Quality >= {q}")
         if s is not None:
             extra.append(f"Sockets >= {s}")
+        if il:
+            extra.append(il)
+        if wt:
+            extra.append(wt)
         style = gen.filter_theme_style(theme, kind)
         out += gen._lf_show_blocks(named_groups[key], extra, style_lines=style)
     seen_generic = set()

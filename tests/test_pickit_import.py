@@ -252,3 +252,39 @@ def test_report_carries_the_tier_breakdown():
     assert mythic["count"] == 1 and "Divine Orb" in mythic["examples"]
     th = res["report"]["visual_thresholds"]
     assert th["divine_exalt"] == 464.0 and th["jackpot"] == 46.4
+
+
+def test_itemlevel_translates_exactly_and_no_longer_widens():
+    """ItemLevel is a real PoE2 filter condition (NeverSink's live filter uses
+    it 74 times), so a pickit's pre-pickup ilvl gate carries over EXACTLY —
+    the label only shows where the bot would actually stop. Backlog #2."""
+    res = convert_pickit_text(
+        '[Type] == "Stellar Amulet" && [Rarity] == "Normal" && '
+        '[ItemLevel] >= "82" # [StashItem] == "true"')
+    txt = _joined(res)
+    assert "ItemLevel >= 82" in txt
+    assert res["report"]["widened"] == 0          # nothing was dropped
+    # the condition rides in the SAME block as the name, before style lines
+    block = txt[txt.index('"Stellar Amulet"') - 400:txt.index('"Stellar Amulet"') + 400]
+    assert "ItemLevel >= 82" in block
+
+
+def test_waystonetier_translates_on_category_rules():
+    res = convert_pickit_text(
+        '[Category] == "Waystone" && [WaystoneTier] >= "10" # [StashItem] == "true"')
+    txt = _joined(res)
+    assert "WaystoneTier >= 10" in txt
+    assert res["report"]["widened"] == 0
+
+
+def test_different_itemlevels_do_not_share_a_block():
+    """Two rules for the same kind but different ilvl gates must emit separate
+    blocks — merging them would show one name at the other's item level."""
+    res = convert_pickit_text("\n".join([
+        '[Type] == "Stellar Amulet" && [Rarity] == "Normal" && [ItemLevel] >= "82" # [StashItem] == "true"',
+        '[Type] == "Sapphire Ring" && [Rarity] == "Normal" && [ItemLevel] >= "75" # [StashItem] == "true"',
+    ]))
+    txt = _joined(res)
+    assert "ItemLevel >= 82" in txt and "ItemLevel >= 75" in txt
+    a82 = txt[txt.index("ItemLevel >= 82"):]
+    assert '"Sapphire Ring"' not in a82[:a82.index("Show") if "Show" in a82 else len(a82)]
