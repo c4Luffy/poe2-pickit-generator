@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.36.0/ExileBot2PickitGenerator.exe"><img alt="Download v4.36.0 for Windows" src="https://img.shields.io/badge/Download-v4.36.0-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.37.0/ExileBot2PickitGenerator.exe"><img alt="Download v4.37.0 for Windows" src="https://img.shields.io/badge/Download-v4.37.0-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&label=Downloads&labelColor=171411&color=829d78"></a>
 </p>
 
@@ -20,18 +20,18 @@
 
 <p align="center">
   <a href="https://c4luffy.github.io/poe2-pickit-generator/">Website</a> ·
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.36.0">Release notes</a> ·
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.37.0">Release notes</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://discord.gg/T7DU3Afve6">Discord</a> ·
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
 </p>
 
-![Real ExileBot 2 Pickit Generator v4.36.0 Generate screen](docs/shots/01-generate.png)
+![Real ExileBot 2 Pickit Generator v4.37.0 Generate screen](docs/shots/01-generate.png)
 
-<p align="center"><sub>Real running-app capture · Generate · current v4.36.0 release</sub></p>
+<p align="center"><sub>Real running-app capture · Generate · current v4.37.0 release</sub></p>
 
 > [!IMPORTANT]
-> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.36.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.36.0/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
+> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.37.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.37.0/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
 
 ## Start here
 
@@ -116,7 +116,7 @@ Rare gear stays honest. If no recipe covers the base or its slot is disabled, th
 - Unusual item-name characters are excluded and reported instead of disappearing silently.
 - The app never asks for your Path of Exile account.
 
-Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.36.0/SHA256SUMS.txt).
+Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.37.0/SHA256SUMS.txt).
 
 ### Three important usage notes
 
@@ -124,19 +124,19 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.36.0
+## Current release: v4.37.0
 
-### Label themes — NeverSink's colors on every filter the app writes
+### Filters color by real value — the five-tier ladder
 
-Pick a **label theme** once and both filters the app writes wear it: the one generated next to every pickit and the one converted from any pickit. A live preview shows how the labels will look on the ground before you commit.
+Every filter the app writes now colors each label by what the item is **actually worth**, read from the generated rule's own recorded price and the file's own Divine rate:
 
-- **Community classic** (default): colors, sizes and minimap icons taken verbatim from NeverSink's live PoE2 filter — plus Minimal, High contrast, and a Colorblind-safe blue/orange theme.
-- **Jackpot tier:** drops worth 50+ exalted at generate time (and always Mirror of Kalandra / Divine Orb) get the red screamer, sound and beam. Only that tier makes noise — cheap drops stay quiet.
-- **Chance Bases** now show the unique you're chancing for with real game art, and the list is curated down to four bases.
-- **Prices auto-refresh** every 15 minutes; Economy names wrap instead of truncating; the run log is resizable and wraps paths cleanly.
-- **v4.35.x:** Create your filter (any `.ipd` → in-game filter with an honest report), drag & drop, same-day hardening audit.
+- **The ladder:** mythic (1+ Divine, purple) · jackpot (10% of a Divine, red screamer) · high (10+ ex, orange) · useful (1+ ex) · quiet. Unpriced rules wear their purpose colors — chance, craft, fracture (pink), exceptional (cyan), uniques.
+- **Honest at league start:** when Divine is cheap the tiers keep their own bands instead of collapsing — a 12-ex drop labels orange, never a false red jackpot.
+- **One look, no sounds:** the single community-classic theme on every filter; converting a generated pickit keeps every tier, and the report shows what got which look in the exact colors.
+- **🔓 All ON + Generate:** one click flips every switch in the app back on, keeps your floors, and generates.
+- **v4.36.0:** label colors verbatim from the community standard, chance bases with real game art (curated to four), prices auto-refresh every 15 minutes.
 
-[Read the complete v4.36.0 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.36.0)
+[Read the complete v4.37.0 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.37.0) · [full changelog](CHANGELOG.md)
 
 <details>
 <summary><strong>Everything included</strong></summary>

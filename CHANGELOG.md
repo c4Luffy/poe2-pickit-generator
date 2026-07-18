@@ -6,6 +6,35 @@ download lives.
 
 ---
 
+## [v4.37.0] — 2026-07-18 — Filters color by real value: the five-tier ladder
+
+Every filter the app writes — generated next to the pickit or converted from
+one — now colors each label by what the item is **actually worth**, read from
+the rule's own recorded price and the file's own Divine rate:
+
+- **The value ladder:** mythic (1+ Divine, purple), jackpot (10% of a Divine,
+  red screamer), high (10+ ex, orange), useful (1+ ex, gold), quiet. Unpriced
+  rules wear their purpose colors instead — chance, craft, fracture (pink),
+  exceptional (cyan), curated, uniques.
+- **Honest at league start:** when Divine is cheap the tiers keep their own
+  bands instead of collapsing into each other — a 12-ex drop labels orange,
+  never a false red jackpot; the ladder stays strictly ordered at any Divine
+  rate. And if the price feed ever lacks a Divine rate, the generated pickit
+  says so instead of writing a bogus 1.0 rate that would paint everything
+  purple.
+- **Converted pickits keep their tiers:** importing a generated `.ipd` on
+  Create your filter reads the same prices, and the report shows exactly what
+  got which look — count chips styled in the filter's real colors.
+- **One theme, no sounds — owner's call.** The theme picker is gone; every
+  filter wears the one community-classic look (the owner's own filter color
+  codes). No `PlayAlertSound` anywhere, ever — the bot doesn't listen and
+  pings annoy. Beams and minimap icons only where they earn their place.
+- **The ground preview is the real thing:** the Create your filter page shows
+  the owner's own in-game capture instead of synthetic labels.
+- **🔓 All ON + Generate:** one click under the hero button flips every switch
+  in the app back on — categories, items, chance/craft/exceptional/fracture,
+  rare slots — keeps your floors untouched, and generates.
+
 ## [v4.36.0] — 2026-07-17 — Label themes: NeverSink's colors on every filter the app writes
 
 Both filters the app writes — the one generated next to every pickit and the one
@@ -1460,6 +1489,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.37.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.37.0
 [v4.36.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.36.0
 [v4.35.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.2
 [v4.35.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.1
