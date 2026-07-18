@@ -2391,9 +2391,23 @@ function buildChanceSide(){
   for(const c of present)mk(c,c);
 }
 async function loadChance(){
-  // pass the league so each card can show the target unique's live price
-  chanceList=await api().chance_bases($("league").value||null);
-  buildChanceSide();renderChanceGrid();}
+  // Render the cards FIRST with no prices — this call does no network, so the
+  // tab opens instantly and still works offline. Then fetch live prices in the
+  // background and patch the chips in; a slow/offline poe.ninja can no longer
+  // freeze the whole tab (it used to hang on two retrying fetches).
+  chanceList=await api().chance_bases(null);
+  buildChanceSide();renderChanceGrid();
+  const lg=$("league").value;
+  if(!lg)return;
+  try{
+    const priced=await api().chance_bases(lg);
+    const pm={};for(const p of priced)pm[p.base]=p;
+    // patch ONLY prices onto the existing rows, so a toggle made while prices
+    // were loading is preserved (enabled state stays what the user just set)
+    for(const b of chanceList){const p=pm[b.base];
+      if(p){b.target_ex=p.target_ex;b.target_div=p.target_div;}}
+    renderChanceGrid();
+  }catch(_){/* no prices is fine — the cards already work */}}
 function renderChanceGrid(){
   const g=$("chanceGrid");g.innerHTML="";
   const cq=($("chanceSearch").value||"").trim().toLowerCase();
@@ -2424,7 +2438,9 @@ function renderChanceGrid(){
 async function chanceBulk(en){
   for(const b of chanceList)b.enabled=en;
   await api().set_items_bulk("_chance",chanceList.map(b=>b.base),en);
-  loadChance();toast((en?"Enabled":"Disabled")+" all chance bases");}
+  // re-render locally — prices are already loaded, no need to re-fetch them
+  buildChanceSide();renderChanceGrid();
+  toast((en?"Enabled":"Disabled")+" all chance bases");}
 $("chanceSearch").addEventListener("input",()=>chanceList.length&&renderChanceGrid());
 $("chanceAll").onclick=()=>chanceBulk(true);
 $("chanceNone").onclick=()=>chanceBulk(false);
