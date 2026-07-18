@@ -593,14 +593,25 @@ class AppApi:
         """One click before a full run: every category, item, chance base,
         craft/exceptional base, fracture target, rare slot and flask rule ON.
         Floors and quality/ilvl values are untouched — this flips switches,
-        it never changes numbers."""
+        it never changes numbers.
+
+        Before flipping, the previous switch state is snapshotted (in memory,
+        this session only) so undo_all_on can put carefully-tuned switches
+        back — one click must not be able to destroy an hour of curation."""
+        _ABSENT = "__absent__"
+        undo = {"categories": dict(self.cfg.get("category_enabled") or {}),
+                "items": [],
+                "flags": {k: self.cfg.get(k) for k in
+                          ("rare_gear_enabled", "include_bases",
+                           "magic_rare_flasks", "active_preset")}}
         self.cfg["category_enabled"] = {}          # empty = every category on
         flipped = 0
-        for states in (self.cfg.get("item_states") or {}).values():
+        for cat, states in (self.cfg.get("item_states") or {}).items():
             if not isinstance(states, dict):
                 continue
-            for st in states.values():
+            for name, st in states.items():
                 if isinstance(st, dict) and st.get("enabled") is not True:
+                    undo["items"].append([cat, name, st.get("enabled", _ABSENT)])
                     st["enabled"] = True
                     flipped += 1
         self.cfg["rare_gear_enabled"] = True
@@ -609,7 +620,39 @@ class AppApi:
         # hand-flipping every switch means no preset's promise still holds
         self.cfg["active_preset"] = ""
         save_config(self.cfg)
+        self._all_on_undo = undo
         return {"ok": True, "flipped": flipped}
+
+    def undo_all_on(self):
+        """Put every switch back exactly as it was before the last All ON.
+
+        One-shot and session-only by design: it restores the snapshot taken by
+        enable_all_rules and then discards it. Floors/numbers were never
+        touched, so only switch state comes back."""
+        _ABSENT = "__absent__"
+        undo = getattr(self, "_all_on_undo", None)
+        if not undo:
+            return {"error": "nothing to undo"}
+        self._all_on_undo = None
+        self.cfg["category_enabled"] = dict(undo["categories"])
+        restored = 0
+        item_states = self.cfg.get("item_states") or {}
+        for cat, name, prev in undo["items"]:
+            st = (item_states.get(cat) or {}).get(name)
+            if not isinstance(st, dict):
+                continue
+            if prev == _ABSENT:
+                st.pop("enabled", None)
+            else:
+                st["enabled"] = prev
+            restored += 1
+        for k, v in undo["flags"].items():
+            if v is None:
+                self.cfg.pop(k, None)
+            else:
+                self.cfg[k] = v
+        save_config(self.cfg)
+        return {"ok": True, "restored": restored}
 
     def set_rare_slot(self, slot, enabled):
         """Turn one rare-gear slot on/off. Off = its rules leave the pickit."""

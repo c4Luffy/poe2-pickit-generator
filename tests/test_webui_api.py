@@ -909,3 +909,31 @@ def test_enable_all_rules_flips_every_switch_but_keeps_numbers(api):
     assert api.cfg["magic_rare_flasks"]
     assert api.cfg["active_preset"] == ""
     assert api.cfg["min_exalt_gear"] == 7.5           # floors untouched
+
+
+def test_undo_all_on_restores_the_exact_previous_switch_state(api):
+    """All ON is one click; it must not be able to destroy an hour of switch
+    curation. undo_all_on puts back exactly what enable_all_rules changed —
+    including an item whose 'enabled' key did not exist before — and is
+    one-shot: a second undo reports there is nothing left to undo."""
+    api.cfg["category_enabled"] = {"currency": False}
+    api.cfg["item_states"] = {
+        "_chance": {"Ornate Belt": {"enabled": False}},
+        "craft": {"Sacred Focus": {"ilvl": 81}},      # no 'enabled' key at all
+    }
+    api.cfg["rare_gear_enabled"] = False
+    api.cfg["active_preset"] = "balanced"
+
+    api.enable_all_rules()
+    assert api.cfg["item_states"]["craft"]["Sacred Focus"]["enabled"] is True
+
+    r = api.undo_all_on()
+    assert r["ok"] and r["restored"] == 2
+    assert api.cfg["category_enabled"] == {"currency": False}
+    assert api.cfg["item_states"]["_chance"]["Ornate Belt"]["enabled"] is False
+    sacred = api.cfg["item_states"]["craft"]["Sacred Focus"]
+    assert "enabled" not in sacred and sacred["ilvl"] == 81   # key absence restored
+    assert api.cfg["rare_gear_enabled"] is False
+    assert api.cfg["active_preset"] == "balanced"
+
+    assert "error" in api.undo_all_on()               # one-shot: nothing left

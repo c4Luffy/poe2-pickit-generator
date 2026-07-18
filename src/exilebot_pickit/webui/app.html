@@ -964,6 +964,7 @@
       <div class="allon">
         <button class="ghost mini" id="allOnGo" title="Turns every switch in the whole app ON — all Economy categories and items, Chance bases, Craft, Exceptional, Fracture and rare-gear slots — then generates. Your price floors and quality/ilvl numbers are NOT changed.">🔓 Turn everything on, then generate</button>
         <span class="hint">Switches every section back on first. Your floors stay yours.</span>
+        <button class="ghost mini" id="allOnUndo" style="display:none" title="Restores every switch exactly as it was before the last 'Turn everything on' — your tuned OFF switches come back. Floors were never touched.">↩ Put my switches back</button>
       </div>
       <div class="bar" id="bar"><i></i></div>
 
@@ -2099,8 +2100,18 @@ $("allOnGo").onclick=async()=>{
   if(running)return;
   const r=await api().enable_all_rules();
   toast(`🔓 Everything ON${r&&r.flipped?` — ${r.flipped} switches flipped`:""} — generating…`);
+  // one click must not destroy an hour of switch curation: offer the way back
+  // (only when something actually changed — 0 flips = nothing worth undoing)
+  $("allOnUndo").style.display = (r&&r.flipped) ? "" : "none";
   info=await api().app_info();applyInfo(info);   // switches on screen match the new state
   doGenerate();};
+$("allOnUndo").onclick=async()=>{
+  if(running)return;
+  const r=await api().undo_all_on();
+  if(r&&r.error){toast(r.error);$("allOnUndo").style.display="none";return;}
+  $("allOnUndo").style.display="none";
+  info=await api().app_info();applyInfo(info);
+  toast(`↩ Switches restored (${r.restored} back off) — press Generate to rebuild with them`);};
 $("open").onclick=()=>api().open_output();
 $("openIpd").onclick=async()=>{const r=await api().open_file("ipd");if(r.error)toast(r.error);};
 $("openFlt").onclick=async()=>{const r=await api().open_file("filter");if(r.error)toast(r.error);};
