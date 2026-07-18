@@ -1295,12 +1295,22 @@ class AppApi:
         from exilebot_pickit.ui.config import LOG_PATH, CONFIG_PATH
         ci = gen.cache_info()
 
-        tail, errors, by_type = [], [], []
+        tail, errors, by_type, recent_total = [], [], [], 0
         try:
             with open(LOG_PATH, encoding="utf-8", errors="replace") as f:
                 lines = f.read().splitlines()
             tail = lines[-80:]
-            counts, last_seen = collections.Counter(), {}
+            # The log is append-only (rotated by size, not age), so an old,
+            # long-fixed incident stays in it for weeks. Counting it forever
+            # made a healthy app open Debug on a scary "53 errors" (the July
+            # save-race scar). The headline number is therefore the LAST 24
+            # HOURS — "is the app healthy NOW" — and the all-time total rides
+            # along as a footnote. (Live errors additionally bump the nav
+            # badge the moment they happen, so nothing hides.)
+            day_ago = time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.localtime(time.time() - 86400))
+            counts, recent_counts, last_seen = (
+                collections.Counter(), collections.Counter(), {})
             for ln in lines:
                 m = re.search(r"(ERROR|CRITICAL)\s+EXC\s+(\S+)", ln)
                 if m:
@@ -1314,8 +1324,12 @@ class AppApi:
                     continue
                 counts[kind] += 1
                 last_seen[kind] = ln[:19]           # timestamp prefix
-            by_type = [{"kind": k, "count": n, "last": last_seen.get(k, "")}
+                if ln[:19] >= day_ago:             # ISO prefix sorts by time
+                    recent_counts[kind] += 1
+            by_type = [{"kind": k, "count": n, "last": last_seen.get(k, ""),
+                        "recent": recent_counts.get(k, 0)}
                        for k, n in counts.most_common()]
+            recent_total = sum(recent_counts.values())
             errors = [ln for ln in lines if " ERROR " in ln or " CRITICAL " in ln][-25:]
         except OSError:
             pass
@@ -1326,6 +1340,7 @@ class AppApi:
                 "all_cats": len(gen.ALL_CATEGORIES),
                 "log_path": LOG_PATH,
                 "errors": {"total": sum(e["count"] for e in by_type),
+                           "recent_total": recent_total,
                            "by_type": by_type, "recent": errors}}
 
     def api_test(self, league):
@@ -1342,8 +1357,8 @@ class AppApi:
         gen.clear_cache()
         return {"ok": True}
 
-    def prune_cache(self):
-        return {"removed": gen.prune_disk_cache(max_age_days=60)}
+    # (prune_cache bridge removed — pruning happens automatically at every
+    #  launch, see __init__; the Debug button for it only confused people.)
 
     def reset_defaults(self):
         """Reset to defaults: turn every item/category toggle back ON and clear

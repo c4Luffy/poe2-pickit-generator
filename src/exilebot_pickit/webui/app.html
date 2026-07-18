@@ -1224,57 +1224,50 @@
     <div class="stat"><b id="dbDataN">–</b><span id="dbDataL">game data</span></div>
   </div>
 
-  <!-- error digest: counted and grouped, not a wall of text -->
+  <!-- error digest: only errors from the LAST 24 HOURS raise it — old incidents
+       are a footnote, not an alarm (the log rotates by size, so scars linger) -->
   <div class="card" id="dbErrCard" style="display:none">
     <div style="display:flex;align-items:center;gap:8px">
-      <h2 style="margin:0" id="dbErrHead">Errors in the log</h2><div style="flex:1"></div>
+      <h2 style="margin:0" id="dbErrHead">Recent errors</h2><div style="flex:1"></div>
       <button class="ghost mini" id="dbErrShow">Show the raw lines</button>
     </div>
     <div class="hint" id="dbErrHint" style="margin-top:6px"></div>
     <div id="dbErrList" style="margin-top:10px"></div>
   </div>
 
+  <!-- three plain-language actions — what would I click if X? -->
   <div class="card">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-      <h2 style="margin:0">🧰 Tools</h2><div style="flex:1"></div>
-      <button class="ghost mini" id="dbgRefresh">↻ Refresh health</button>
-    </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
       <div>
-        <div style="color:var(--gold);font-size:11.5px;font-weight:600;letter-spacing:.8px;margin-bottom:8px">🩺 CONNECTION</div>
-        <button class="ghost mini" id="dbgApi" style="width:100%">Test all API endpoints</button>
-        <div class="hint" style="margin-top:5px">Is poe.ninja answering? All ✓ = connection is fine.</div>
+        <button class="ghost" id="dbgApi" style="width:100%;padding:10px 0">🩺 Run health check</button>
+        <div class="hint" style="margin-top:6px">Asks poe.ninja for every price list and tells you, in one line, if the connection is fine.</div>
       </div>
       <div>
-        <div style="color:var(--gold);font-size:11.5px;font-weight:600;letter-spacing:.8px;margin-bottom:8px">📦 PRICE CACHE</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <button class="ghost mini" id="dbgInfo">Cache &amp; app info</button>
-          <button class="ghost mini" id="dbgClear">Clear price cache</button>
-          <button class="ghost mini" id="dbgPrune">Prune files older than 60 days</button>
-        </div>
-        <div class="hint" style="margin-top:5px">Clearing is safe — the next Generate just re-downloads prices.</div>
+        <button class="ghost" id="dbgClear" style="width:100%;padding:10px 0">🔄 Fix price problems</button>
+        <div class="hint" style="margin-top:6px">Prices look wrong or stale? This clears the saved prices — the next Generate downloads fresh ones. Always safe.</div>
       </div>
       <div>
-        <div style="color:var(--gold);font-size:11.5px;font-weight:600;letter-spacing:.8px;margin-bottom:8px">📄 FILES</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <button class="ghost mini" id="dbgDiag">📋 Copy diagnostics</button>
-          <button class="ghost mini" id="dbgReport">🐛 Report a problem</button>
-          <button class="ghost mini" id="dbgLog">Open debug log</button>
-          <button class="ghost mini" id="dbgCfg">Open config file</button>
-        </div>
-        <div class="hint" style="margin-top:5px">Report a problem opens a GitHub issue with your diagnostics already filled in. Edit the config only with the app closed.</div>
+        <button class="ghost" id="dbgReport" style="width:100%;padding:10px 0">🐛 Report a problem</button>
+        <div class="hint" style="margin-top:6px">Opens a GitHub issue with your diagnostics already filled in — you review it before sending. Or <a href="#" id="dbgDiag" style="color:var(--gold)">copy the diagnostics</a> to paste on Discord.</div>
       </div>
     </div>
+    <div id="dbgVerdict" style="display:none;margin-top:14px;padding:10px 14px;border:1px solid var(--border);border-radius:9px;background:var(--bg3);font-size:13.5px"></div>
   </div>
 
-  <div class="card">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <h2 style="margin:0">🖥 Output</h2><div class="sp" style="flex:1"></div>
-      <button class="ghost mini" id="dbgCopy">Copy</button>
+  <!-- everything a normal user never needs lives behind one fold -->
+  <details class="card" id="dbgAdv" style="padding:14px 18px">
+    <summary style="cursor:pointer;color:var(--dim);font-size:13px">Advanced — log, config file, raw output</summary>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="ghost mini" id="dbgLog">Open debug log</button>
+      <button class="ghost mini" id="dbgCfg">Open config file</button>
+      <button class="ghost mini" id="dbgRefresh">↻ Refresh health</button>
+      <div style="flex:1"></div>
+      <button class="ghost mini" id="dbgCopy">Copy output</button>
       <button class="ghost mini" id="dbgWipe">Clear</button>
     </div>
-    <pre id="dbgOut" style="max-height:calc(90.9vh - 430px);min-height:150px">Ready. Run a tool above — results appear here.</pre>
-  </div>
+    <div class="hint" style="margin-top:6px">Edit the config only with the app closed.</div>
+    <pre id="dbgOut" style="margin-top:10px;max-height:calc(90.9vh - 480px);min-height:120px">Ready. Detailed results from the health check appear here.</pre>
+  </details>
 
 </div>
 
@@ -2953,14 +2946,20 @@ function _tile(id, val, label, tone){
 let _dbgErrRaw = [];
 async function loadDebug(){
   let d; try{ d = await api().debug_info(); }catch(_){ return; }
-  const e = d.errors || {total:0, by_type:[], recent:[]};
+  const e = d.errors || {total:0, recent_total:0, by_type:[], recent:[]};
   _dbgErrRaw = e.recent || [];
 
-  // errors — the tile that would have caught the config corruption on day one
-  const last = (e.by_type[0]||{}).last || "";
+  // errors — the LAST 24 HOURS are the headline ("is the app healthy now");
+  // an old fixed incident stays a footnote (the log rotates by size, so "53
+  // errors" from a July scar used to alarm people on a perfectly healthy app)
+  const rt = e.recent_total || 0;
+  const older = e.total - rt;
+  const lasts = (e.by_type||[]).filter(t=>t.recent).map(t=>t.last||"").sort();
+  const last = lasts[lasts.length-1] || "";
   const fresh = last && (Date.now() - Date.parse(last.replace(" ","T"))) < 36e5;  // <1h
-  _tile("dbErrN", e.total, e.total ? (fresh ? "errors — some in the last hour" : "errors logged (none recent)")
-                                   : "errors — clean", e.total ? (fresh?"err":"warn") : "ok");
+  _tile("dbErrN", rt, rt ? (fresh ? "errors in 24 h — some in the last hour" : "errors in the last 24 h")
+                         : (older ? `errors in 24 h (${older} older in the log)` : "errors — clean"),
+        rt ? (fresh?"err":"warn") : "ok");
 
   const c = d.cache || {};
   _tile("dbCacheN", c.count||0, "cached payloads", "gold");
@@ -2978,33 +2977,50 @@ async function loadDebug(){
   else if(g.critical)          _tile("dbDataN", g.critical, "rules may match nothing", "err");
   else                         _tile("dbDataN","✓","game data — in sync","ok");
 
-  // error digest
+  // error digest — raised only by errors from the last 7 days
   const card = $("dbErrCard");
-  if(!e.total){ card.style.display="none"; return; }
+  if(!rt){ card.style.display="none"; return; }
   card.style.display = "";
   card.style.borderColor = fresh ? "var(--err)" : "var(--warn)";
-  $("dbErrHead").textContent = (fresh?"⚠ ":"") + e.total + " error" + (e.total>1?"s":"") + " in the log";
-  $("dbErrHint").textContent = fresh
-    ? "Some happened in the last hour — these are live. Copy the diagnostics and send them over."
-    : "None recent. These are almost certainly historical (an older version, or a session that has since been fixed) — worth a glance, not an alarm.";
-  $("dbErrList").innerHTML = e.by_type.map(t=>`
+  $("dbErrHead").textContent = (fresh?"⚠ ":"") + rt + " error" + (rt>1?"s":"") + " in the last 24 hours";
+  $("dbErrHint").textContent = (fresh
+    ? "Some happened in the last hour — these are live. Press Report a problem below and send them over."
+    : "None in the last hour — worth a glance, not an alarm. If the app misbehaves, press Report a problem below.")
+    + (older ? ` (${older} older entr${older>1?"ies":"y"} in the log are not counted here.)` : "");
+  $("dbErrList").innerHTML = e.by_type.filter(t=>t.recent).map(t=>`
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
-      <span class="pill" style="min-width:52px;text-align:center;font-family:Consolas,ui-monospace,monospace">${t.count}</span>
+      <span class="pill" style="min-width:52px;text-align:center;font-family:Consolas,ui-monospace,monospace">${t.recent}</span>
       <b style="flex:1;font-size:13px">${esc(t.kind)}</b>
       <span class="hint" style="margin:0">last: ${esc(t.last||"—")}</span>
     </div>`).join("");
 }
 $("dbgRefresh").onclick=()=>{loadDebug();toast("Health refreshed");};
-$("dbErrShow").onclick=()=>{dbg(_dbgErrRaw.length?_dbgErrRaw.join("\n"):"No error lines in the log.");};
+$("dbErrShow").onclick=()=>{
+  $("dbgAdv").open=true;          // the raw pane lives behind the Advanced fold
+  dbg(_dbgErrRaw.length?_dbgErrRaw.join("\n"):"No error lines in the log.");
+  $("dbgAdv").scrollIntoView({block:"nearest"});};
 
-function dbg(t){const o=$("dbgOut");o.textContent=t;o.scrollTop=0;
-  o.closest(".page").scrollTop=0;}
-$("dbgApi").onclick=async()=>{dbg("Testing all endpoints…");
+function dbg(t){const o=$("dbgOut");o.textContent=t;o.scrollTop=0;}
+/* the one-line answer a normal user reads — details land in Advanced's pane */
+function dbgSay(msg, tone){
+  const v=$("dbgVerdict");
+  v.style.display="";
+  v.style.borderColor = tone==="err"?"var(--err)":tone==="ok"?"var(--ok)":"var(--border)";
+  v.textContent = msg;
+}
+$("dbgApi").onclick=async()=>{
+  dbgSay("Checking poe.ninja…");
+  dbg("Testing all endpoints…");
   const r=await api().api_test($("league").value);
   const ok=r.filter(x=>x.ok).length;
   window._dbgApi={ok:ok,n:r.length};   // feeds the poe.ninja health tile
   _tile("dbApiN", ok+"/"+r.length, ok===r.length?"poe.ninja — all answering":"poe.ninja — some failed",
         ok===r.length?"ok":"err");
+  dbgSay(ok===r.length
+    ? `✓ Everything is fine — poe.ninja answered all ${r.length} price lists.`
+    : `✗ ${r.length-ok} of ${r.length} price lists didn't answer — poe.ninja may be down or busy. Your last prices still work; try again in a few minutes.`,
+    ok===r.length?"ok":"err");
+  loadDebug();
   const o=$("dbgOut");
   o.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <span class="pill ${ok===r.length?"on":""}" style="font-size:13px;padding:4px 14px">${ok===r.length?"✓ All good":"⚠ "+(r.length-ok)+" failed"}</span>
@@ -3017,16 +3033,14 @@ $("dbgApi").onclick=async()=>{dbg("Testing all endpoints…");
       +(x.ok?"":`<div style="grid-column:1/-1;color:var(--err);font-size:12px;padding:0 4px 4px">${esc(x.label)}: ${esc(x.error||"")}</div>`)).join("")+
     `</div>`;
   o.closest(".page").scrollTop=0;};
-$("dbgInfo").onclick=async()=>{const d=await api().debug_info();
-  dbg(`Cached payloads : ${d.cache.count} (TTL ${d.cache.ttl_secs}s)\n`+
-      `Categories      : ${d.all_cats} total, ${d.unique_cats} unique\n`+
-      `Config          : ${d.config_path}\nPrice cache dir : ${d.cache_dir}\n\n— debug.log (last lines) —\n`+
-      d.log.join("\n"));};
-$("dbgClear").onclick=async()=>{await api().clear_cache();toast("Price cache cleared");};
-$("dbgPrune").onclick=async()=>{const r=await api().prune_cache();toast(r.removed?`Pruned ${r.removed} old cache file(s)`:"Cache is already clean — nothing older than 60 days");};
+$("dbgClear").onclick=async()=>{await api().clear_cache();
+  loadDebug();
+  dbgSay("✓ Saved prices cleared. The next Generate downloads today's prices fresh from poe.ninja.","ok");
+  toast("Price cache cleared");};
 $("dbgCopy").onclick=async()=>{const r=await copyText($("dbgOut").textContent);toast(r?"Copied":"Clipboard blocked");};
 $("dbgLog").onclick=async()=>{const r=await api().open_file("log");if(r&&r.error)toast(r.error);};
-$("dbgDiag").onclick=async()=>{
+$("dbgDiag").onclick=async(ev)=>{
+  ev.preventDefault();            // it's a link inside a hint, not a button
   const d=await api().debug_info();
   const i=info||{};
   const txt=[

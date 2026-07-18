@@ -774,6 +774,33 @@ def test_debug_digest_counts_js_errors_not_just_python(api, tmp_path, monkeypatc
     assert e["total"] == 3                            # not 1
 
 
+def test_debug_digest_headline_counts_only_the_last_24h(api, tmp_path, monkeypatch):
+    """The log rotates by size, not age, so a long-fixed incident lingers for
+    weeks. Counting it forever made a healthy app open Debug on '53 errors'
+    (the July save-race scar). The headline is now recent_total (24 hours —
+    'is the app healthy NOW'); the all-time total stays available as the
+    footnote number, and live errors still bump the nav badge instantly."""
+    import time as _time
+    from exilebot_pickit.ui import config as cfgmod
+    old = _time.strftime("%Y-%m-%d %H:%M:%S",
+                         _time.localtime(_time.time() - 3 * 86400))
+    now = _time.strftime("%Y-%m-%d %H:%M:%S", _time.localtime())
+    log = tmp_path / "debug.log"
+    log.write_text(
+        f"{old},000 ERROR EXC load_config\n"
+        f"{old},000 ERROR EXC load_config\n"
+        f"{now},000 ERROR JSERR JS error: fresh crash @7\n",
+        encoding="utf-8")
+    monkeypatch.setattr(cfgmod, "LOG_PATH", str(log))
+
+    e = api.debug_info()["errors"]
+    assert e["total"] == 3                 # all-time, for the footnote
+    assert e["recent_total"] == 1          # only the fresh crash makes noise
+    per = {t["kind"]: t for t in e["by_type"]}
+    assert per["load_config"]["recent"] == 0
+    assert per["JS error (UI)"]["recent"] == 1
+
+
 # ── Full-scan regression tests (2026-07-15): the highest-damage untested paths ──
 
 def test_auto_copy_success_lands_full_file_in_bot_folder(api, tmp_path):
