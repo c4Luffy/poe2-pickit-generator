@@ -27,13 +27,20 @@
     transition:background .13s,border-color .13s,transform .13s}
   .bc2:hover{border-color:var(--gold-dim);transform:translateY(-1px)}
   .bc2.dis{opacity:.45}
-  .bc2 img{width:38px;height:38px;object-fit:contain;flex-shrink:0}
+  .bc2 img{width:42px;height:42px;object-fit:contain;flex-shrink:0}
+  .bc2 .switch{flex-shrink:0}
+  /* two-row card: art + controls on top, names full-width underneath, so a
+     base with three targets stops squeezing its own text into an ellipsis */
+  .bc2{flex-direction:column;align-items:stretch;gap:8px}
+  .bc2-top{display:flex;align-items:center;gap:10px}
+  .bc2-top .sp{flex:1}
+  .bc2-bot{min-width:0}
+  .bc2-bot b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bc2-bot .t{font-size:12px;color:var(--dim);margin-top:2px;line-height:1.45}
   /* the unique you're chancing FOR — wider box (belt art is 2:1) + soft glow */
-  .bc2 img.uq{width:52px;height:34px;filter:drop-shadow(0 0 7px rgba(255,150,60,.35))}
+  .bc2 img.uq{width:56px;height:38px;filter:drop-shadow(0 0 7px rgba(255,150,60,.35))}
+  .bc2.many img.uq{width:46px;height:33px}
   .bc2 .arr{color:var(--gold-dim);font-size:15px;flex-shrink:0;margin:0 -2px}
-  .bc2 .m{flex:1;min-width:0}
-  .bc2 .m b{font-size:13.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .bc2 .m .t{font-size:11.5px;color:var(--dim);margin-top:2px;line-height:1.45}
   .bc2 .cprice{flex-shrink:0;font-family:Consolas,ui-monospace,monospace;font-size:12.5px;font-weight:700;
     color:var(--gold-br);background:color-mix(in srgb,var(--gold) 12%,transparent);
     border:1px solid var(--gold-dim);border-radius:7px;padding:2px 8px;white-space:nowrap}
@@ -1092,6 +1099,10 @@
 <!-- ══ CHANCE ══ -->
 <div class="page" id="p-chance">
   <h1>Chance Bases</h1><div class="sub">White bases worth keeping for Orb of Chance — click a card to toggle. <span id="chanceCount"></span></div>
+  <div class="banner" style="display:flex;gap:8px;align-items:flex-start;margin-bottom:12px;padding:9px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+    <span style="font-size:14px;line-height:1.3">🎲</span>
+    <span class="hint" style="margin:0">The unique shown after the arrow is the <b>jackpot you're aiming for</b> — the most valuable outcome, and what the price chip tracks. Chancing a base can also roll <b>any other unique that shares it</b> (a Utility Belt is far more often an Ingenuity than a Mageblood), so treat these as lottery tickets, not guarantees.</span>
+  </div>
   <div class="eco-head eco-toolbar"><input type="text" id="chanceSearch" placeholder="🔎 Search bases…">
     <button class="ghost mini" id="chanceAll">Enable all</button>
     <button class="ghost mini" id="chanceNone">Disable all</button></div>
@@ -2542,7 +2553,8 @@ async function loadChance(){
     // patch ONLY prices onto the existing rows, so a toggle made while prices
     // were loading is preserved (enabled state stays what the user just set)
     for(const b of chanceList){const p=pm[b.base];
-      if(p){b.target_ex=p.target_ex;b.target_div=p.target_div;}}
+      if(p){b.target_ex=p.target_ex;b.target_div=p.target_div;
+            b.targets=p.targets;b.target_icon=p.target_icon;}}
     renderChanceGrid();
   }catch(_){/* no prices is fine — the cards already work */}}
 function renderChanceGrid(){
@@ -2561,11 +2573,21 @@ function renderChanceGrid(){
     const price=b.target_ex==null?"":
       (b.target_div?`${b.target_div.toLocaleString()} div`:`${b.target_ex.toLocaleString()} ex`);
     const priceHtml=price?`<span class="cprice" title="Live poe.ninja price of ${esc(b.target.split(' / ')[0])}">${price}</span>`:"";
-    d.innerHTML=(b.icon?`<img loading="lazy" src="${b.icon}">`:"")+
-      (b.target_icon?`<span class="arr">→</span><img class="uq" loading="lazy" src="${b.target_icon}" title="${esc(b.target)}">`:"")+
-      `<div class="m"><b>${esc(b.base)}</b><div class="t">→ ${esc(b.target)}</div></div>
-       ${priceHtml}
-       <div class="switch${b.enabled?" on":""}"><i></i></div>`;
+    const px=t=>t.div?`${t.div.toLocaleString()} div`:(t.ex!=null?`${t.ex.toLocaleString()} ex`:"no price");
+    // one icon per CURATED target — a base with several (Gold Ring) shows each
+    const tgs=(b.targets&&b.targets.length?b.targets
+              :[{name:b.target,icon:b.target_icon}]).filter(t=>t.icon);
+    const tgHtml=tgs.length?`<span class="arr">→</span>`+tgs.map(t=>
+      `<img class="uq" loading="lazy" src="${t.icon}" title="${esc(t.name)} — ${px(t)}">`).join(""):"";
+    // name the ones beyond the curated target, so "what else can come out" is
+    // readable and not just a row of pictures
+    if(tgs.length>2)d.classList.add("many");
+    d.innerHTML=`<div class="bc2-top">`
+      +(b.icon?`<img loading="lazy" src="${b.icon}">`:"")+tgHtml
+      +`<span class="sp"></span>${priceHtml}`
+      +`<div class="switch${b.enabled?" on":""}"><i></i></div></div>`
+      +`<div class="bc2-bot"><b>${esc(b.base)}</b>`
+      +`<div class="t">→ ${esc(b.target)}</div></div>`;
     d.onclick=async()=>{b.enabled=!b.enabled;
       await api().set_item("_chance",b.base,b.enabled);
       d.className="bc2"+(b.enabled?"":" dis");
@@ -3558,7 +3580,14 @@ function renderPreview(){
       if(isNewRule(l)){cls="l-a l-new";attr=' title="Added by the latest generate"';}}
     return`<span id="pvln-${n}"${cls?` class="${cls}"`:""}${attr}>${mark}${e}</span>`;
   }).join("\n");
-  $("prevBox").innerHTML=html||"Nothing matches this filter.";
+  // The view caps at 6000 lines for render speed — say so instead of quietly
+  // showing a partial file (a floors-at-0 "everything on" pickit can exceed it,
+  // and Copy all / the saved .ipd are always complete).
+  const capped=shown.length>6000;
+  $("prevBox").innerHTML=(html||"Nothing matches this filter.")
+    +(capped?`
+<span class="l-c">// … ${(shown.length-6000).toLocaleString()} more lines not shown here — `
+             +`use the search box to narrow it, or Copy all / open the .ipd for the complete file.</span>`:"");
   const tot=prevLines.filter(l=>l.includes("[StashItem]")).length;
   const act=prevLines.filter(l=>l.includes("[StashItem]")&&!l.startsWith("//")).length;
   $("pvTotal").textContent=tot?tot.toLocaleString():"–";

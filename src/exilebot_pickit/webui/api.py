@@ -1722,25 +1722,38 @@ class AppApi:
             except Exception:
                 acc = None
 
-        def _price(tgt):
-            if not isinstance(acc, dict):
-                return None
-            best = None
-            for name in tgt.split(" / "):
-                ex = self._payload_price(acc, {name.strip()}, True)
-                if ex is not None and (best is None or ex > best):
-                    best = ex
-            return best
+        # name -> live poe.ninja art, used when we don't ship a local icon for
+        # a target (only some uniques have bundled art). Local wins: it works
+        # offline; the remote URL is the fallback so every target still shows.
+        live_icon = {}
+        if isinstance(acc, dict):
+            for ln in acc.get("lines", []):
+                if ln.get("name") and ln.get("icon"):
+                    live_icon.setdefault(ln["name"], ln["icon"])
+
+        def _one(name):
+            """Price + art for a single target unique."""
+            ex = self._payload_price(acc, {name}, True) if isinstance(acc, dict) else None
+            return {"name": name,
+                    "icon": UNIQUE_ICONS.get(name) or live_icon.get(name, ""),
+                    "ex": round(ex, 1) if ex is not None else None,
+                    "div": round(ex / div_rate, 1)
+                    if ex is not None and div_rate > 1 else None}
 
         out = []
         for cat, base, tgt in gen.CHANCE_BASES:
-            ex = _price(tgt)
+            # a base can chance into several uniques ("A / B / C") — show them all
+            targets = [_one(n.strip()) for n in tgt.split(" / ") if n.strip()]
+            priced = [t["ex"] for t in targets if t["ex"] is not None]
+            best = max(priced) if priced else None
             out.append({"cat": cat, "base": base, "target": tgt,
                         "icon": STATIC_ICONS.get(base, ""),
-                        "target_icon": UNIQUE_ICONS.get(tgt.split(" / ")[0], ""),
-                        "target_ex": round(ex, 1) if ex is not None else None,
-                        "target_div": round(ex / div_rate, 1)
-                        if ex is not None and div_rate > 1 else None,
+                        # first target's art kept for older callers/tests
+                        "target_icon": targets[0]["icon"] if targets else "",
+                        "targets": targets,
+                        "target_ex": best,
+                        "target_div": round(best / div_rate, 1)
+                        if best is not None and div_rate > 1 else None,
                         "enabled": st.get(base, {}).get("enabled", True)})
         return out
 
@@ -1996,7 +2009,7 @@ class AppApi:
                    # paint every 1-ex item mythic purple.
                    (f"// Divine  : 1 Divine = {div_rate:.2f} Exalted"
                     if div_found else "// Divine  : rate unavailable"),
-                   "// Source  : poe.ninja PoE2 economy API  ·  Modern UI",
+                   f"// Source  : poe.ninja PoE2 economy API  ·  Pickit Generator v{VERSION}",
                    "/" * W, "",
                    gen.header_major("Economy Items"), ""]
             top_pool = []

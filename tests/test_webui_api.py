@@ -1133,3 +1133,31 @@ def test_all_on_offers_undo_even_when_no_switch_flipped(api):
                     "min_exalt_unique": 0.0})
     r2 = api.enable_all_rules()
     assert r2["flipped"] == 0 and r2["changed"] is False   # nothing to undo
+
+
+def test_chance_bases_returns_art_and_price_for_every_target(api, monkeypatch):
+    """A base can chance into several uniques (Gold Ring → Ventor's / Andvarius
+    / Perandus Seal). Every one gets its own art and price — and when we ship no
+    local icon for a target, poe.ninja's own art is used so none render blank."""
+    def fake_fetch(league, key, ninja_type, is_unique):
+        if key == "currency":
+            return {"core": {"rates": {"exalted": 1.0}},
+                    "items": [{"id": "d", "name": "Divine Orb"}],
+                    "lines": [{"id": "d", "primaryValue": 400.0}]}
+        return {"core": {"rates": {"exalted": 1.0}},
+                "lines": [{"name": "Ventor's Gamble", "primaryValue": 20.0,
+                           "icon": "https://web.poecdn.com/ventor.png"},
+                          {"name": "Andvarius", "primaryValue": 5.0,
+                           "icon": "https://web.poecdn.com/andvarius.png"},
+                          {"name": "Perandus Seal", "primaryValue": 800.0,
+                           "icon": "https://web.poecdn.com/perandus.png"}]}
+    monkeypatch.setattr(webapi.gen, "fetch_category", fake_fetch)
+
+    ring = next(r for r in api.chance_bases("L") if r["base"] == "Gold Ring")
+    names = [t["name"] for t in ring["targets"]]
+    assert names == ["Ventor's Gamble", "Andvarius", "Perandus Seal"]
+    assert all(t["icon"] for t in ring["targets"])       # none blank
+    # the two without bundled art fall back to poe.ninja's
+    assert ring["targets"][1]["icon"] == "https://web.poecdn.com/andvarius.png"
+    # headline price is still the BEST outcome (the jackpot you're chancing for)
+    assert ring["target_ex"] == 800.0 and ring["target_div"] == 2.0
