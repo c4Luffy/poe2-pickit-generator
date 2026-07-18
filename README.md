@@ -26,9 +26,9 @@
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
 </p>
 
-![Real ExileBot 2 Pickit Generator v4.37.0 Generate screen](docs/shots/01-generate.png)
+![Real ExileBot 2 Pickit Generator v4.35.2 Generate screen](docs/shots/01-generate.png)
 
-<p align="center"><sub>Real running-app capture · Generate · current v4.37.0 release</sub></p>
+<p align="center"><sub>Real running-app capture · Generate · captured on v4.35.2</sub></p>
 
 > [!IMPORTANT]
 > **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.37.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.37.0/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
@@ -130,11 +130,11 @@ Windows SmartScreen may ask for confirmation because this free community executa
 
 Every filter the app writes now colors each label by what the item is **actually worth**, read from the generated rule's own recorded price and the file's own Divine rate:
 
-- **The ladder:** mythic (1+ Divine, purple) · jackpot (10% of a Divine, red screamer) · high (10+ ex, orange) · useful (1+ ex) · quiet. Unpriced rules wear their purpose colors — chance, craft, fracture (pink), exceptional (cyan), uniques.
-- **Honest at league start:** when Divine is cheap the tiers keep their own bands instead of collapsing — a 12-ex drop labels orange, never a false red jackpot.
-- **One look, no sounds:** the single community-classic theme on every filter; converting a generated pickit keeps every tier, and the report shows what got which look in the exact colors.
-- **🔓 All ON + Generate:** one click flips every switch in the app back on, keeps your floors, and generates.
-- **v4.36.0:** label colors verbatim from the community standard, chance bases with real game art (curated to four), prices auto-refresh every 15 minutes.
+- **The ladder:** mythic (1+ Divine, purple) · jackpot (10% of a Divine, red screamer look) · high (10+ ex, orange) · useful (1+ ex, gold) · quiet. Unpriced rules wear purpose colors instead: chance, craft, fracture (pink), exceptional (cyan), curated, and uniques.
+- **Honest at league start:** when Divine is cheap, the tiers keep strictly ordered bands—a 12-ex drop labels orange, never a false red jackpot. If the price feed has no Divine rate, the generated pickit says so instead of writing a bogus rate.
+- **Converted pickits keep their tiers:** importing a generated `.ipd` on Create your filter reads the same prices, and the report shows color-matched count chips for each result.
+- **One look, no sounds:** every filter uses the single community-classic label theme and never plays alert sounds; beams and minimap icons appear only where they earn their place. The ground preview is a real in-game capture.
+- **All ON + Generate:** one click below Generate turns categories, items, chance/craft/exceptional/fracture bases, and rare slots back on, keeps your price floors untouched, and generates.
 
 [Read the complete v4.37.0 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.37.0) · [full changelog](CHANGELOG.md)
 
