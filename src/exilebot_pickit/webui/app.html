@@ -982,8 +982,8 @@
 
       <button class="primary generate" id="go" title="Shortcut: Ctrl+G">⚡ Generate &amp; Validate Pickit</button>
       <div class="allon">
-        <button class="ghost mini" id="allOnGo" title="Turns every switch in the whole app ON — all Economy categories and items, Chance bases, Craft, Exceptional, Fracture and rare-gear slots — then generates. Your price floors and quality/ilvl numbers are NOT changed.">🔓 Turn everything on, then generate</button>
-        <span class="hint">Switches every section back on first. Your floors stay yours.</span>
+        <button class="ghost mini" id="allOnGo" title="Turns every switch in the whole app ON — all Economy categories and items, Chance bases, Craft, Exceptional, Fracture and rare-gear slots — and opens every gate — both value floors to 0, Adaptive floors off, exceptional bases down to quality 21 / ilvl 79 — then generates. “Put my switches back” restores all of it.">🔓 Turn everything on, then generate</button>
+        <span class="hint">Every section on, floors 0, exceptional bases q21/ilvl79 — a true “pick up everything” run. Undo restores it all.</span>
         <button class="ghost mini" id="allOnUndo" style="display:none" title="Restores every switch exactly as it was before the last 'Turn everything on' — your tuned OFF switches come back. Floors were never touched.">↩ Put my switches back</button>
       </div>
       <div class="bar" id="bar"><i></i></div>
@@ -2166,10 +2166,11 @@ $("go").onclick=doGenerate;
 $("allOnGo").onclick=async()=>{
   if(running)return;
   const r=await api().enable_all_rules();
-  toast(`🔓 Everything ON${r&&r.flipped?` — ${r.flipped} switches flipped`:""} — generating…`);
-  // one click must not destroy an hour of switch curation: offer the way back
-  // (only when something actually changed — 0 flips = nothing worth undoing)
-  $("allOnUndo").style.display = (r&&r.flipped) ? "" : "none";
+  toast(`🔓 Everything ON${r&&r.flipped?` — ${r.flipped} switches flipped`:""} · floors 0 — generating…`);
+  // one click must not destroy an hour of curation: offer the way back
+  // whenever ANYTHING changed — floors and auto-floor move even when no
+  // switch flipped, and those need undoing just as much
+  $("allOnUndo").style.display = (r&&r.changed) ? "" : "none";
   info=await api().app_info();applyInfo(info);   // switches on screen match the new state
   doGenerate();};
 $("allOnUndo").onclick=async()=>{

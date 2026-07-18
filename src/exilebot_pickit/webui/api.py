@@ -757,8 +757,13 @@ class AppApi:
     def enable_all_rules(self):
         """One click before a full run: every category, item, chance base,
         craft/exceptional base, fracture target, rare slot and flask rule ON.
-        Floors and quality/ilvl values are untouched — this flips switches,
-        it never changes numbers.
+
+        Both value floors drop to 0, Auto-floor is switched OFF, and the
+        exceptional-base gates open to their loosest legal values (quality 21,
+        item level 79), because that is what "everything" means: a 200 ex floor
+        (or auto-floor recomputing one next generate, or a quality-30 gate)
+        would silently re-filter almost everything this just enabled and make
+        the button a lie. undo_all_on puts every one of those back.
 
         Before flipping, the previous switch state is snapshotted (in memory,
         this session only) so undo_all_on can put carefully-tuned switches
@@ -768,7 +773,9 @@ class AppApi:
                 "items": [],
                 "flags": {k: self.cfg.get(k) for k in
                           ("rare_gear_enabled", "include_bases",
-                           "magic_rare_flasks", "active_preset")}}
+                           "magic_rare_flasks", "active_preset", "auto_floor",
+                           "min_exalt_gear", "min_exalt_unique", "min_exalt",
+                           "base_quality", "base_min_level")}}
         self.cfg["category_enabled"] = {}          # empty = every category on
         flipped = 0
         for cat, states in (self.cfg.get("item_states") or {}).items():
@@ -782,11 +789,31 @@ class AppApi:
         self.cfg["rare_gear_enabled"] = True
         self.cfg["include_bases"] = True
         self.cfg["magic_rare_flasks"] = True
+        # these would otherwise re-gate every switch we just turned on
+        self.cfg["auto_floor"] = False
+        self.cfg["min_exalt_gear"] = 0.0
+        self.cfg["min_exalt_unique"] = 0.0
+        self.cfg["min_exalt"] = 0.0          # legacy mirror of the gear floor
+        # loosest ends of the valid exceptional-base ranges (21-30 / 79-82)
+        self.cfg["base_quality"] = 21
+        self.cfg["base_min_level"] = 79
         # hand-flipping every switch means no preset's promise still holds
         self.cfg["active_preset"] = ""
         save_config(self.cfg)
         self._all_on_undo = undo
-        return {"ok": True, "flipped": flipped}
+        # "changed" drives the undo button: floors/auto-floor can change even
+        # when no switch flipped, and that still needs a way back.
+        f = undo["flags"]
+        changed = bool(flipped or undo["categories"]
+                       or f.get("auto_floor")
+                       or float(f.get("min_exalt_gear") or 0)
+                       or float(f.get("min_exalt_unique") or 0)
+                       or f.get("rare_gear_enabled") is False
+                       or f.get("include_bases") is False
+                       or f.get("magic_rare_flasks") is False
+                       or int(f.get("base_quality") or 21) != 21
+                       or int(f.get("base_min_level") or 79) != 79)
+        return {"ok": True, "flipped": flipped, "changed": changed}
 
     def undo_all_on(self):
         """Put every switch back exactly as it was before the last All ON.

@@ -921,8 +921,12 @@ def test_enable_all_rules_flips_every_switch_but_keeps_numbers(api):
     api.cfg["active_preset"] = "balanced"
     api.cfg["min_exalt_gear"] = 7.5
 
+    api.cfg["auto_floor"] = True
     r = api.enable_all_rules()
     assert r["ok"] and r["flipped"] == 3
+    # auto-floor recomputes both floors on every generate, so leaving it on
+    # would silently re-filter everything we just switched on
+    assert api.cfg["auto_floor"] is False
     assert api.cfg["category_enabled"] == {}          # empty = all on
     assert api.cfg["item_states"]["_chance"]["Ornate Belt"]["enabled"] is True
     assert api.cfg["item_states"]["_raregear"]["Helmet"]["enabled"] is True
@@ -931,7 +935,12 @@ def test_enable_all_rules_flips_every_switch_but_keeps_numbers(api):
     assert api.cfg["rare_gear_enabled"] and api.cfg["include_bases"]
     assert api.cfg["magic_rare_flasks"]
     assert api.cfg["active_preset"] == ""
-    assert api.cfg["min_exalt_gear"] == 7.5           # floors untouched
+    # "everything on" means everything: a 7.5 ex floor would still filter most
+    # of what we just enabled, so both floors drop to 0
+    assert api.cfg["min_exalt_gear"] == 0.0
+    assert api.cfg["min_exalt_unique"] == 0.0
+    # exceptional-base gates open to the loosest legal values too
+    assert api.cfg["base_quality"] == 21 and api.cfg["base_min_level"] == 79
 
 
 def test_undo_all_on_restores_the_exact_previous_switch_state(api):
@@ -1087,3 +1096,40 @@ def test_profile_summary_flags_disabled_loot_and_reassures_when_clean(api):
     clean = {r["k"]: r for r in api.profile_summary("clean")["rows"]}
     assert "Nothing disabled" in clean["Loot rules"]["v"]
     assert clean["Loot rules"]["warn"] is False
+
+
+def test_undo_all_on_restores_auto_floor_too(api):
+    """All ON switches Adaptive floors off; undo has to put that back or the
+    user silently loses the setting they had."""
+    api.cfg["auto_floor"] = True
+    api.cfg["min_exalt_gear"] = 200.0
+    api.cfg["min_exalt_unique"] = 90.0
+    api.cfg["base_quality"] = 28
+    api.cfg["base_min_level"] = 82
+    api.cfg["item_states"] = {"_chance": {"Gold Ring": {"enabled": False}}}
+    api.enable_all_rules()
+    assert api.cfg["auto_floor"] is False
+    assert api.cfg["min_exalt_gear"] == 0.0 and api.cfg["min_exalt_unique"] == 0.0
+    api.undo_all_on()
+    assert api.cfg["auto_floor"] is True
+    assert api.cfg["min_exalt_gear"] == 200.0 and api.cfg["min_exalt_unique"] == 90.0
+    assert api.cfg["base_quality"] == 28 and api.cfg["base_min_level"] == 82
+    assert api.cfg["item_states"]["_chance"]["Gold Ring"]["enabled"] is False
+
+
+def test_all_on_offers_undo_even_when_no_switch_flipped(api):
+    """Everything was already on, but All ON still zeroes the floors and kills
+    auto-floor — so the undo button has to appear. It only stays hidden when
+    the call genuinely changed nothing."""
+    api.cfg.update({"item_states": {}, "category_enabled": {},
+                    "auto_floor": True, "min_exalt_gear": 200.0,
+                    "min_exalt_unique": 90.0, "rare_gear_enabled": True,
+                    "include_bases": True, "magic_rare_flasks": True})
+    r = api.enable_all_rules()
+    assert r["flipped"] == 0 and r["changed"] is True
+
+    api.undo_all_on()
+    api.cfg.update({"auto_floor": False, "min_exalt_gear": 0.0,
+                    "min_exalt_unique": 0.0})
+    r2 = api.enable_all_rules()
+    assert r2["flipped"] == 0 and r2["changed"] is False   # nothing to undo
