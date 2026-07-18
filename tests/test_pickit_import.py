@@ -231,3 +231,24 @@ def test_untranslatable_list_is_capped():
     r = res["report"]
     assert r["untranslatable_total"] == 50
     assert len(r["untranslatable"]) == 30
+
+
+def test_report_carries_the_tier_breakdown():
+    """The report's visual_tiers rows power the color-true chips in the UI —
+    counts per look, up to three example names, ordered strongest first."""
+    text = "\n".join([
+        '[Type] == "Divine Orb" # [StashItem] == "true" // ExValue = 464.00',
+        '[Type] == "Chaos Orb" # [StashItem] == "true" // ExValue = 2.50',
+        '[Type] == "Heavy Belt" && [Rarity] == "Unique" # [StashItem] == "true"',
+    ])
+    res = convert_pickit_text(text)
+    rows = res["report"]["visual_tiers"]
+    ids = [r["id"] for r in rows]
+    assert "mythic" in ids and "useful" in ids and "unique" in ids
+    # ordered strongest-first, exactly as VISUAL_ORDER defines it
+    from exilebot_pickit.generators.filter_classification import VISUAL_ORDER
+    assert ids == [k for k in VISUAL_ORDER if k in ids]
+    mythic = next(r for r in rows if r["id"] == "mythic")
+    assert mythic["count"] == 1 and "Divine Orb" in mythic["examples"]
+    th = res["report"]["visual_thresholds"]
+    assert th["divine_exalt"] == 464.0 and th["jackpot"] == 46.4
