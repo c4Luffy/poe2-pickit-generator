@@ -2307,13 +2307,20 @@ function renderEco(){
   const q=($("ecoSearch").value||"").toLowerCase();
   const body=$("ecoBody");body.innerHTML="";
   let rows=ecoRows();
+  const movers=ecoCat==="_movers_"&&!q;
   const isStatic=!q&&(ecoCat||"").startsWith("_ap_");
-  if(!isStatic)rows.sort((a,b)=>{
+  if(movers){
+    // Top movers is a fixed leaderboard: biggest swings first, high → low,
+    // capped so it's a glance not a scroll. Rank by the LARGEST move in either
+    // direction (a −80% crash matters as much as a +80% spike).
+    rows.sort((a,b)=>Math.abs(b[1].chg||0)-Math.abs(a[1].chg||0));
+    rows=rows.slice(0,20);
+  }else if(!isStatic)rows.sort((a,b)=>{
     const cmp=ecoSort==="name"?a[1].name.localeCompare(b[1].name):
       ecoSort==="chg"?(a[1].chg||0)-(b[1].chg||0):a[1].ex-b[1].ex;
     return ecoDir*cmp;});
   document.querySelectorAll("th[data-s] .s-ind").forEach(s=>s.textContent="");
-  const activeTh=document.querySelector(`th[data-s="${ecoSort}"] .s-ind`);
+  const activeTh=movers?null:document.querySelector(`th[data-s="${ecoSort}"] .s-ind`);
   if(activeTh)activeTh.textContent=ecoDir===1?" ▲":" ▼";
   for(const [cat,it] of rows.slice(0,400)){
     const tr=document.createElement("tr");tr.className="item"+(it.enabled?"":" dis");
