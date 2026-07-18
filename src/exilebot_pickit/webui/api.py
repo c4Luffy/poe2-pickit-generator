@@ -1871,7 +1871,10 @@ class AppApi:
         e = states.setdefault(name, {})
         e["enabled"] = bool(enabled)
         try:
-            e["ilvl"] = max(1, min(82, int(ilvl)))
+            # The card enforces the real floor — its own base's drop level.
+            # This is only a garbage guard, so it must stay BELOW the lowest
+            # drop level (65) or it would store a value the card never showed.
+            e["ilvl"] = max(60, min(82, int(ilvl)))
         except (TypeError, ValueError):
             pass
         save_config(self.cfg)
