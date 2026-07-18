@@ -2243,6 +2243,14 @@ function renderChips(){
   // eco null -> "Cannot read properties of null (reading 'cats')". Bail instead.
   if(!eco)return;
   const c=$("ecoChips");c.innerHTML="";
+  // "Top movers": a synthetic view across EVERY category — the biggest 7-day
+  // price swings the whole economy over, which no single category chip shows.
+  const mv=document.createElement("button");
+  mv.className="cside-btn"+(ecoCat==="_movers_"?" on":"");
+  mv.innerHTML='<span>📈 Top movers</span><span class="n">7d</span>';
+  mv.title="Biggest 7-day price swings across the whole economy (poe.ninja)";
+  mv.onclick=()=>{ecoCat="_movers_";ecoSort="chg";ecoDir=-1;renderChips();renderEco();};
+  c.appendChild(mv);
   const group=k=>k.startsWith("_ap_")?"Always pick":(k.startsWith("unique_")?"Uniques":"Market");
   let lastG=null;
   for(const cat of eco.cats){
@@ -2273,6 +2281,9 @@ function ecoRows(){
   let rows=[];
   if(q){for(const cat of eco.cats)for(const it of cat.items)
       if(ecoMatch(it,q))rows.push([cat,it]);}
+  else if(ecoCat==="_movers_"){   // every category, only items that actually moved
+    for(const cat of eco.cats)for(const it of cat.items)
+      if(it.chg!=null&&it.chg!==0)rows.push([cat,it]);}
   else{const cat=eco.cats.find(c=>c.key===ecoCat);if(cat)rows=cat.items.map(i=>[cat,i]);}
   return rows;}
 /* Sparkline from the 7-day curve poe.ninja already sends us (we only ever read
@@ -2308,7 +2319,8 @@ function renderEco(){
     const tr=document.createElement("tr");tr.className="item"+(it.enabled?"":" dis");
     const ico=it.icon?`<img class="icn" loading="lazy" src="${esc(it.icon)}" onerror="this.style.display='none'">`
       :(it.emj?`<span class="icn" style="display:inline-flex;align-items:center;justify-content:center;font-size:15px">${it.emj}</span>`:"");
-    const nm=ico+esc(it.name)+(q?` <span class="pill" title="${esc(cat.label)}">${esc(cat.label)}</span>`:"")+
+    const showCat=q||ecoCat==="_movers_";   // multi-category views tag the source
+    const nm=ico+esc(it.name)+(showCat?` <span class="pill" title="${esc(cat.label)}">${esc(cat.label)}</span>`:"")+
       (it.base?` <span class="pill" title="${esc(it.base)}">${esc(it.base)}</span>`:"");
     // 0 (or no data) → neutral dash, not a misleading green ▲ 0%
     const chg=it.chg==null?`<span class="chg flat">–</span>`:
@@ -2325,6 +2337,9 @@ function renderEco(){
       toast(ok?"Rule copied":"Clipboard blocked");};
     tr.onclick=async()=>{it.enabled=!it.enabled;
       await api().set_item(cat.key,it.name,it.enabled);renderEco();};
+    body.appendChild(tr);}
+  if(!rows.length&&ecoCat==="_movers_"){const tr=document.createElement("tr");
+    tr.innerHTML='<td colspan="5" style="text-align:center;color:var(--dim);padding:14px 0">No 7-day price moves to show yet — poe.ninja hasn\'t reported trend data for this league.</td>';
     body.appendChild(tr);}
   if(rows.length>400){const tr=document.createElement("tr");
     tr.innerHTML=`<td colspan="5" style="text-align:center;color:var(--dim);padding:9px 0">Showing the top 400 of ${rows.length} — use search to narrow the list.</td>`;
