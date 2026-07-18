@@ -1201,6 +1201,9 @@
            border-radius:8px;padding:6px 10px;font-size:12px;pointer-events:none;white-space:nowrap;z-index:5"></div>
     </div>
     <div id="sparkWrap" style="border-top:1px solid var(--border);margin-top:10px;padding-top:8px;display:none">
+      <div class="hint" style="display:flex;gap:10px;align-items:baseline;margin:0 0 2px">
+        <span>💱 1 Divine in Exalted</span><span id="histSparkSum" style="margin-left:auto"></span>
+      </div>
       <svg id="histSpark" width="100%" height="54" style="display:block"></svg>
     </div>
   </div>
@@ -2810,8 +2813,15 @@ function drawSpark(runs){
   const pts=vals.map((v,i)=>[X(i),Y(v)]);
   const line=pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
   const ex2=pts[pts.length-1][0],ey2=pts[pts.length-1][1];
+  // window summary: the economy's move across the visible runs, stated plainly
+  const v0=vals[0],v1=vals[vals.length-1];
+  const pct=v0>0?Math.round((v1-v0)*100/v0):0;
+  $("histSparkSum").textContent=
+    `${Math.round(v0).toLocaleString()} → ${Math.round(v1).toLocaleString()} ex`
+    +(pct?` · ${pct>0?"▲":"▼"} ${Math.abs(pct)}% over these runs`:" · flat over these runs");
   svg.innerHTML=
-    `<text x="${PL-8}" y="${H/2+3}" fill="var(--dim)" font-size="9.5" text-anchor="end" letter-spacing=".5">1 DIV</text>
+    `<text x="${PL-8}" y="${PT+4}" fill="var(--dim)" font-size="9.5" text-anchor="end">${Math.round(mx).toLocaleString()}</text>
+     <text x="${PL-8}" y="${H-PB+3}" fill="var(--dim)" font-size="9.5" text-anchor="end">${Math.round(mn).toLocaleString()}</text>
      <polyline points="${line}" fill="none" stroke="var(--steel)" stroke-width="1.6" stroke-linejoin="round" opacity=".9"/>
      <circle cx="${ex2.toFixed(1)}" cy="${ey2.toFixed(1)}" r="3" fill="var(--steel)"/>
      <text x="${(ex2+8).toFixed(1)}" y="${(ey2+3.5).toFixed(1)}" fill="var(--steel)" font-size="11" font-weight="700" font-family="Consolas,ui-monospace,monospace">${Math.round(vals[vals.length-1]).toLocaleString()} ex</text>`;}
