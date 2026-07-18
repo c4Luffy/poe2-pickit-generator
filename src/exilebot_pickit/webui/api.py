@@ -1898,6 +1898,9 @@ class AppApi:
                              "last_gen_version": VERSION})
             # Run history (same shape the Tk app writes)
             hist = self.cfg.setdefault("history", [])
+            # Divine rate of the previous run — the summary shows the economy
+            # moving ("Divine 412 → 433") instead of a bare number.
+            prev_divine = float((hist[-1] if hist else {}).get("divine_rate") or 0)
             hist.append({"ts": time.strftime("%Y-%m-%d %H:%M"),
                          "active": active, "commented": commented,
                          "uf": float(min_unique), "gf": float(min_gear),
@@ -1957,6 +1960,7 @@ class AppApi:
                     "ok": True, "path": ipd, "active": active, "commented": commented,
                     "cats_ok": ok, "cats_fail": fail, "stale": len(stale),
                     "divine_rate": round(div_rate, 1),
+                    "prev_divine": round(prev_divine, 1),
                     "secs": round(time.time() - t0, 1),
                     "top": [{"name": t[0], "ex": round(t[1], 1),
                              "cat": (t[2] if len(t) > 2 else ""),

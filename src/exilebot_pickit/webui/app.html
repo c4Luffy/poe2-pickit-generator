@@ -2046,7 +2046,11 @@ async function poll(){
     _freshAt=Date.now();updFresh();
     $("sActive").textContent=d.active.toLocaleString();
     $("sCats").textContent=d.cats_ok+(d.cats_fail?` (+${d.cats_fail}✗)`:"");
-    $("sDiv").textContent=d.divine_rate;$("sSecs").textContent=d.secs;
+    /* show the economy MOVING, not a bare number: "433 (↑ from 412)" */
+    const dd=(d.prev_divine&&d.divine_rate&&Math.abs(d.divine_rate-d.prev_divine)>=1)
+      ? ` (${d.divine_rate>d.prev_divine?"↑":"↓"} from ${Math.round(d.prev_divine)})` : "";
+    $("sDiv").textContent=d.divine_rate+dd;
+    $("sSecs").textContent=d.secs;
     const fmtTop=ex=>{const dr=d.divine_rate||divRate;
       return dr>1&&ex>=dr?(ex/dr>=100?Math.round(ex/dr).toLocaleString():(ex/dr).toFixed(1))+" div":ex.toLocaleString()+" ex";};
     $("sTop").innerHTML=d.top&&d.top.length?
