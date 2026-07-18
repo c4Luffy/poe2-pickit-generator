@@ -2740,19 +2740,16 @@ function renderExcGrid(){
       : `<span style="margin-left:auto;color:var(--dim);font-size:11px">no rune sockets</span>`;
     h.style.display="flex";h.style.alignItems="center";
     h.innerHTML=`<span>${esc(c.cat)}</span>${badge}`;g.appendChild(h);
-    let lastAttr=null;
     for(const b of bases){
-      // attribute sub-header when the group changes (Str → Dex → Int → hybrids)
-      if(b.attr&&b.attr!=="—"&&b.attr!==lastAttr){lastAttr=b.attr;
-        const sh=document.createElement("div");
-        sh.style.cssText="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:8px 2px 2px;font-size:11px;color:var(--dim);letter-spacing:.5px";
-        sh.innerHTML=chip(b.attr);g.appendChild(sh);}
       const d=document.createElement("div");
       d.className="bcard"+(b.enabled?"":" dis");
-      d.style.cssText="display:flex;align-items:center;gap:11px";
+      d.style.cssText="display:flex;align-items:center;gap:11px;min-width:0";
       const ico=b.icon?`<img class="icn" loading="lazy" src="${b.icon}" style="width:44px;height:44px;flex-shrink:0">`:"";
       const meta=[b.lvl?`lvl ${b.lvl}`:"",b.stats||""].filter(x=>x).join(" · ");
-      d.innerHTML=`${ico}<div style="min-width:0;flex:1"><b>${esc(b.name)}</b><div class="t">${esc(meta)||"&nbsp;"}</div></div>`;
+      // attribute rides ON the card — as its own full-width row it broke the
+      // grid into one card per line (same bug the Craft tab had)
+      const atc=(b.attr&&b.attr!=="—")?chip(b.attr)+" ":"";
+      d.innerHTML=`${ico}<div style="min-width:0;flex:1"><b>${esc(b.name)}</b><div class="t">${atc}${esc(meta)||"&nbsp;"}</div></div>`;
       d.title="Click to include/exclude this base (white pickup + its uniques)";
       d.onclick=async()=>{b.enabled=!b.enabled;
         await api().set_item("_excbase",b.name,b.enabled);
