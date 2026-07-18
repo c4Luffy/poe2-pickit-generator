@@ -2,12 +2,35 @@
 
 import json
 import os
+import pytest
 
 from exilebot_pickit import generator as gen
 from exilebot_pickit.data import corrections as corr
 from exilebot_pickit.data import remote_data as rd
 
 _ROOT = os.path.join(os.path.dirname(__file__), "..")
+
+
+@pytest.fixture(autouse=True)
+def _restore_game_data():
+    """Applying remote data mutates the game-data modules IN PLACE.
+
+    Without putting them back, every test that runs after this file sees the
+    fake lists — e.g. the base types collapse to whatever a cache fixture
+    wrote, and unrelated tests that look up a real base start failing purely
+    because of test order.
+    """
+    import copy
+    from exilebot_pickit import generator as _g
+    from exilebot_pickit.data import base_types as _b
+    bases = copy.deepcopy(_b._BASE_TYPES_BY_CATEGORY)
+    valid = _g.VALID_EQUIPMENT_BASES
+    try:
+        yield
+    finally:
+        _b._BASE_TYPES_BY_CATEGORY.clear()
+        _b._BASE_TYPES_BY_CATEGORY.update(bases)
+        _g.VALID_EQUIPMENT_BASES = valid
 
 
 def _load_bundled():
