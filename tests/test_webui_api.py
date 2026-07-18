@@ -987,3 +987,31 @@ def test_backup_diff_reports_rule_changes_and_ignores_price_churn(api, tmp_path)
 
     assert "error" in api.backup_diff("../../evil.ipd")     # traversal-safe
     assert "error" in api.backup_diff("t-nope.ipd")
+
+
+def test_chance_bases_prices_the_target_unique(api, monkeypatch):
+    """Each Chance card shows the live price of the unique you're chancing FOR
+    (Mageblood, Headhunter, …) — all accessories, priced from one fetch. The
+    BEST price among multi-target entries wins (the jackpot you're hoping for).
+    No league = no fetch = cards still render, just without a price."""
+    def fake_fetch(league, key, ninja_type, is_unique):
+        if key == "currency":
+            return {"core": {"rates": {"exalted": 1.0}},
+                    "items": [{"id": "d", "name": "Divine Orb"}],
+                    "lines": [{"id": "d", "primaryValue": 400.0}]}
+        return {"core": {"rates": {"exalted": 1.0}},
+                "lines": [{"name": "Mageblood", "primaryValue": 1200.0},
+                          {"name": "Andvarius", "primaryValue": 5.0},
+                          {"name": "Perandus Seal", "primaryValue": 90.0}]}
+    monkeypatch.setattr(webapi.gen, "fetch_category", fake_fetch)
+
+    rows = {r["base"]: r for r in api.chance_bases("L")}
+    mb = rows["Utility Belt"]                       # → Mageblood
+    assert mb["target_ex"] == 1200.0 and mb["target_div"] == 3.0   # 1200 / 400
+    ring = rows["Gold Ring"]                        # Ventor's / Andvarius / Perandus Seal
+    assert ring["target_ex"] == 90.0               # best of the three present (Perandus)
+    hh = rows["Heavy Belt"]                         # → Headhunter, not in the feed
+    assert hh["target_ex"] is None                 # unpriced target: no price, still a card
+
+    no_league = api.chance_bases(None)              # never fetches
+    assert all(r["target_ex"] is None for r in no_league)

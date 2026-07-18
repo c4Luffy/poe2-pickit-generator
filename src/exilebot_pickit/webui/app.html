@@ -34,6 +34,9 @@
   .bc2 .m{flex:1;min-width:0}
   .bc2 .m b{font-size:13.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bc2 .m .t{font-size:11.5px;color:var(--dim);margin-top:2px;line-height:1.45}
+  .bc2 .cprice{flex-shrink:0;font-family:Consolas,ui-monospace,monospace;font-size:12.5px;font-weight:700;
+    color:var(--gold-br);background:color-mix(in srgb,var(--gold) 12%,transparent);
+    border:1px solid var(--gold-dim);border-radius:7px;padding:2px 8px;white-space:nowrap}
   .stepper{display:flex;align-items:center;gap:2px;background:var(--bg3);border:1px solid var(--border);
     border-radius:9px;padding:2px}
   .stepper button{width:24px;height:24px;border:0;background:transparent;color:var(--dim);
@@ -2388,7 +2391,8 @@ function buildChanceSide(){
   for(const c of present)mk(c,c);
 }
 async function loadChance(){
-  chanceList=await api().chance_bases();
+  // pass the league so each card can show the target unique's live price
+  chanceList=await api().chance_bases($("league").value||null);
   buildChanceSide();renderChanceGrid();}
 function renderChanceGrid(){
   const g=$("chanceGrid");g.innerHTML="";
@@ -2402,9 +2406,14 @@ function renderChanceGrid(){
       const h=document.createElement("div");h.className="gsec";h.textContent=b.cat;g.appendChild(h);}
     const d=document.createElement("div");
     d.className="bc2"+(b.enabled?"":" dis");
+    // live price of the target unique ("what you're chancing FOR"), div when it's big
+    const price=b.target_ex==null?"":
+      (b.target_div?`${b.target_div.toLocaleString()} div`:`${b.target_ex.toLocaleString()} ex`);
+    const priceHtml=price?`<span class="cprice" title="Live poe.ninja price of ${esc(b.target.split(' / ')[0])}">${price}</span>`:"";
     d.innerHTML=(b.icon?`<img loading="lazy" src="${b.icon}">`:"")+
       (b.target_icon?`<span class="arr">→</span><img class="uq" loading="lazy" src="${b.target_icon}" title="${esc(b.target)}">`:"")+
       `<div class="m"><b>${esc(b.base)}</b><div class="t">→ ${esc(b.target)}</div></div>
+       ${priceHtml}
        <div class="switch${b.enabled?" on":""}"><i></i></div>`;
     d.onclick=async()=>{b.enabled=!b.enabled;
       await api().set_item("_chance",b.base,b.enabled);

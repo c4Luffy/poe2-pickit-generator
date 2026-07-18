@@ -1506,16 +1506,51 @@ class AppApi:
 
     # ── Chance / Craft bases ──────────────────────────────────────────────────
 
-    def chance_bases(self):
+    def chance_bases(self, league=None):
         st = self.cfg.get("item_states", {}).get("_chance", {})
         from exilebot_pickit.data.icons import STATIC_ICONS, UNIQUE_ICONS
-        # target_icon: art of the FIRST target unique ("what you get") — keyed
-        # by the first name on multi-target entries ("Ventor's Gamble / …").
-        return [{"cat": cat, "base": base, "target": tgt,
-                 "icon": STATIC_ICONS.get(base, ""),
-                 "target_icon": UNIQUE_ICONS.get(tgt.split(" / ")[0], ""),
-                 "enabled": st.get(base, {}).get("enabled", True)}
-                for cat, base, tgt in gen.CHANCE_BASES]
+
+        # Live price of the target unique ("what you're chancing FOR") — every
+        # target is an accessory (belt/ring/amulet), so one cached fetch prices
+        # them all. Best-effort: no league or a failed fetch just omits prices,
+        # never blocks the tab. The BEST price among multi-target entries wins
+        # (that's the jackpot you're hoping for).
+        acc, div_rate = None, 0.0
+        if league:
+            # Derive the ninja type/flags from the category table so a rename
+            # there can't silently break pricing (it did: "UniqueAccessory" vs
+            # "UniqueAccessories" returned nothing).
+            spec = next((c for c in gen.ALL_CATEGORIES
+                         if c[0] == "unique_accessories"), None)
+            try:
+                if spec:
+                    acc = gen.fetch_category(league, spec[0], spec[1], spec[3])
+                cur = gen.fetch_category(league, "currency", "Currency", False)
+                div_rate = asm.compute_divine_rate(cur)[0] if isinstance(cur, dict) else 0.0
+            except Exception:
+                acc = None
+
+        def _price(tgt):
+            if not isinstance(acc, dict):
+                return None
+            best = None
+            for name in tgt.split(" / "):
+                ex = self._payload_price(acc, {name.strip()}, True)
+                if ex is not None and (best is None or ex > best):
+                    best = ex
+            return best
+
+        out = []
+        for cat, base, tgt in gen.CHANCE_BASES:
+            ex = _price(tgt)
+            out.append({"cat": cat, "base": base, "target": tgt,
+                        "icon": STATIC_ICONS.get(base, ""),
+                        "target_icon": UNIQUE_ICONS.get(tgt.split(" / ")[0], ""),
+                        "target_ex": round(ex, 1) if ex is not None else None,
+                        "target_div": round(ex / div_rate, 1)
+                        if ex is not None and div_rate > 1 else None,
+                        "enabled": st.get(base, {}).get("enabled", True)})
+        return out
 
     def exceptional_bases(self):
         """Exceptional bases grouped by slot, with per-base toggle state,
