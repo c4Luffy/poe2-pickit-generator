@@ -114,12 +114,24 @@ def section_from_comment(line: str) -> str | None:
     return None if section == "ECONOMY ITEMS" else section
 
 
+def jackpot_threshold(divine_rate: float) -> float:
+    """Exalt value at which a drop earns the jackpot look.
+
+    Normally 10% of a Divine, so it rises and falls with the Divine rate. But
+    when Divine is cheap (< ~100 ex, e.g. league start), 10% of it would dip
+    below the fixed High floor and a modest 9-ex orb would wrongly wear the red
+    jackpot label. Clamping to at least the High floor keeps the ladder
+    strictly ordered: useful < high < jackpot < mythic, always."""
+    divine = divine_rate if divine_rate > 0 else DEFAULT_DIVINE_EXALT
+    return max(divine * JACKPOT_DIVINE_FRACTION, HIGH_VALUE_EXALT)
+
+
 def value_kind(ex_value: float, divine_rate: float) -> str:
     """Map a live exalt value to the filter's five-level value ladder."""
     divine = divine_rate if divine_rate > 0 else DEFAULT_DIVINE_EXALT
     if ex_value >= divine:
         return "mythic"
-    if ex_value >= divine * JACKPOT_DIVINE_FRACTION:
+    if ex_value >= jackpot_threshold(divine):
         return "jackpot"
     if ex_value >= HIGH_VALUE_EXALT:
         return "high"
@@ -193,7 +205,7 @@ def threshold_summary(divine_rate: float) -> dict:
     return {
         "divine_exalt": round(divine, 2),
         "mythic": round(divine, 2),
-        "jackpot": round(divine * JACKPOT_DIVINE_FRACTION, 2),
+        "jackpot": round(jackpot_threshold(divine), 2),
         "high": HIGH_VALUE_EXALT,
         "useful": USEFUL_VALUE_EXALT,
     }

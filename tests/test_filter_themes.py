@@ -145,3 +145,31 @@ def test_conditions_come_before_style_lines_inside_a_block():
     block = txt[txt.index("Rarity = Unique"):]
     assert block.index("Rarity = Unique") < block.index("BaseType ==") < \
         block.index("SetFontSize")
+
+
+# ── value ladder adapts to the live Divine rate ──────────────────────────────
+
+def test_value_tiers_track_the_divine_rate():
+    from exilebot_pickit.generators.filter_classification import value_kind
+    # Same 60-ex orb, three economies: its tier moves as Divine moves.
+    assert value_kind(60, 450) == "jackpot"   # 60 >= 45 (10% of 450), < 450
+    assert value_kind(60, 800) == "high"       # jackpot floor now 80; 60 is High
+    assert value_kind(60, 55) == "mythic"      # Divine crashed to 55; 60 >= 55
+    # Divine itself is always mythic, whatever the rate.
+    for rate in (80, 450, 2000):
+        assert value_kind(rate, rate) == "mythic"
+
+
+def test_cheap_divine_never_makes_a_modest_orb_jackpot():
+    # The clamp: when Divine is cheap, 10% of it dips under the 10-ex High
+    # floor. A 9-ex orb must stay High/Useful, never wear the red jackpot look.
+    from exilebot_pickit.generators.filter_classification import (
+        jackpot_threshold, value_kind,
+    )
+    assert jackpot_threshold(80) == 10.0        # not 8 — clamped to the High floor
+    assert value_kind(9, 80) == "useful"        # 9 < 10 High floor
+    assert value_kind(12, 80) == "jackpot"      # 12 >= 10 clamped floor, < 80
+    # ladder stays strictly ordered at any rate
+    for rate in (40, 80, 150, 450, 3000):
+        t = jackpot_threshold(rate)
+        assert 10.0 <= t <= rate, rate
