@@ -197,6 +197,12 @@
   .sigil{width:46px;height:46px;flex:none;object-fit:contain;display:block}
   .brand b{font-size:14.5px;font-weight:700;letter-spacing:-.01em;display:block;color:var(--text)}
   .verline{display:block;font:10.5px/1.4 Consolas,ui-monospace,monospace;color:var(--dim);margin-top:1px}
+  #profHint{display:inline-block;max-width:190px;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;vertical-align:bottom}
+  .prof-rows{display:flex;flex-direction:column;gap:5px;margin-top:4px}
+  .prof-rows .r{display:flex;gap:10px;font-size:12.5px}
+  .prof-rows .r b{color:var(--gold);font-weight:600;flex:0 0 130px}
+  .prof-rows .r span{opacity:.9;min-width:0;word-break:break-word}
   .byline{display:block;font-size:10.5px;color:var(--gold-dim);margin-top:2px;letter-spacing:.02em}
   .dsc-pill{display:flex;align-items:center;justify-content:center;gap:6px;
     margin-top:8px;padding:6px 10px;
@@ -907,7 +913,7 @@
     <div class="field"><span class="lbl">Trade league</span>
       <div class="ctl"><select id="league" style="flex:1;padding:11px 12px"><option value="">Loading…</option></select> <button class="ghost mini" id="leagueRefresh" title="Re-fetch the league list (Ctrl+R)">⟳</button></div></div>
     <div class="field"><span class="lbl">Profile <span id="profHint" style="color:var(--dim);letter-spacing:0;text-transform:none;font-weight:400"></span></span>
-      <div class="ctl"><select id="profSel" style="flex:1;min-width:170px;padding:11px 12px"><option value="">— no profile —</option></select> <button class="ghost mini" id="profSave">Save as…</button> <button class="ghost mini danger" id="profDel">Delete</button></div></div>
+      <div class="ctl" style="flex-wrap:wrap"><select id="profSel" title="" style="flex:1;min-width:150px;max-width:230px;padding:11px 30px 11px 12px;text-overflow:ellipsis"><option value="">— no profile —</option></select> <button class="ghost mini" id="profSave" title="Save the current settings as a profile">Save as…</button><button class="ghost mini" id="profWhatBtn" title="See exactly what this profile turns on and off">What's in it?</button><button class="ghost mini" id="profExport" title="Save this profile to a file you can share or back up">Export</button><button class="ghost mini" id="profImport" title="Load a profile from a file — you see what it contains before adding it">Import</button><button class="ghost mini danger" id="profDel" title="Delete this profile">Delete</button></div></div>
   </div>
 
   <div class="presets">
@@ -2212,14 +2218,16 @@ async function loadProfiles(){
   sel.innerHTML='<option value="">— no profile —</option>';
   for(const n of p.names){const o=document.createElement("option");o.value=o.textContent=n;sel.appendChild(o);}
   sel.value=p.active||"";
-  $("profHint").textContent=p.active?`Active: ${p.active}`:"";}
+  $("profHint").textContent=p.active?`Active: ${p.active}`:"";
+  $("profHint").title=p.active||"";
+  sel.title=sel.value||"";}
 /* In-app replacements for prompt()/confirm(). The native ones render as an OS
    box titled "127.0.0.1:6737 says" - jarring, and it leaks the local address.
    Both return a Promise and share one modal. */
 let _askDone=null;
 function _askClose(v){const m=$("askModal");m.classList.remove("on");
   const f=_askDone;_askDone=null;if(f)f(v);}
-function askDialog({title,msg,icon="✏️",value=null,ok="OK",danger=false}){
+function askDialog({title,msg,icon="✏️",value=null,ok="OK",danger=false,hideCancel=false}){
   return new Promise(res=>{
     _askDone=res;
     $("askTitle").textContent=title;
@@ -2230,6 +2238,7 @@ function askDialog({title,msg,icon="✏️",value=null,ok="OK",danger=false}){
     else{inp.style.display="";inp.value=value;}
     const b=$("askOk");b.textContent=ok;
     b.classList.toggle("danger",!!danger);
+    $("askCancel").style.display=hideCancel?"none":"";
     $("askModal").classList.add("on");
     setTimeout(()=>{value===null?b.focus():(inp.focus(),inp.select());},40);
   });}
@@ -2243,15 +2252,52 @@ $("askInput").addEventListener("keydown",e=>{
 $("askModal").addEventListener("keydown",e=>{if(e.key==="Escape")_askClose(null);});
 $("askModal").addEventListener("click",e=>{if(e.target===$("askModal"))_askClose(null);});
 
-$("profSel").onchange=async()=>{const n=$("profSel").value;if(!n)return;
+/* Profile details are shown ON DEMAND (the ⓘ button) — an always-open summary
+   box just pushed the whole Generate page down for information you rarely
+   need. Same rows are shown inside the import dialog, where they matter most. */
+function profRowsHtml(rows){
+  return '<div class="prof-rows">'+rows.map(r=>
+    `<div class="r"><b${r.warn?' style="color:var(--warn)"':""}>${r.warn?"\u26a0 ":""}${esc(r.k)}</b>`
+    +`<span${r.warn?' style="color:var(--warn);opacity:1"':""}>${esc(r.v)}</span></div>`).join("")+"</div>";}
+$("profWhatBtn").onclick=async()=>{
+  const n=$("profSel").value;
+  if(!n)return toast("Pick a profile first");
+  const r=await api().profile_summary(n);
+  if(!r||r.error)return toast((r&&r.error)||"Couldn't read that profile");
+  await askDialog({title:n,icon:"\u2139\ufe0f",msg:"<div>This profile sets up:</div>"+profRowsHtml(r.rows),
+    ok:"Close",hideCancel:true});};
+$("profSel").onchange=async()=>{const n=$("profSel").value;
+  $("profSel").title=n||"";
+  if(!n)return;
   const r=await api().profile_load(n);
   if(r.ok){info=r.info;applyInfo(info);eco=null;
-    $("profHint").textContent="Active: "+n;toast("Profile loaded: "+n);}};
+    $("profHint").textContent="Active: "+n;$("profHint").title=n;
+    toast("Profile loaded: "+n);}};
+$("profExport").onclick=async()=>{
+  const n=$("profSel").value;
+  if(!n)return toast("Pick a profile to export first");
+  const r=await api().profile_export(n);
+  if(r.cancelled)return;
+  toast(r.error?r.error:"⬆ Exported: "+r.path);};
+$("profImport").onclick=async()=>{
+  const r=await api().profile_import_preview();
+  if(!r||r.cancelled)return;
+  if(r.error)return toast(r.error);
+  const name=await askText("Import profile",
+    "<div>This file contains:</div>"+profRowsHtml(r.rows)
+    +(r.exists?`<div style="margin-top:10px;color:var(--warn)">A profile named <b>${esc(r.name)}</b> already exists — keeping this name overwrites it.</div>`:""),
+    r.name,{icon:"\u2b07\ufe0f",ok:"Add profile"});
+  if(!name)return;
+  const c=await api().profile_import_commit(name);
+  if(c.error)return toast(c.error);
+  await loadProfiles();
+  toast("⬇ Profile added: "+c.name+" — pick it in the list to use it");};
 $("profSave").onclick=async()=>{
   const n=await askText("Save profile",
     "Name this profile. Using an existing name <b>overwrites</b> it.",
     $("profSel").value||"",{icon:"💾",ok:"Save"});
-  if(!n)return;await api().profile_save(n);await loadProfiles();toast("Profile saved: "+n);};
+  if(!n)return;await api().profile_save(n);await loadProfiles();
+  toast("Profile saved: "+n);};
 $("profDel").onclick=async()=>{const n=$("profSel").value;if(!n)return toast("Pick a profile first");
   if(!await askConfirm("Delete profile",
     `Delete <b>${esc(n)}</b>? Your current settings stay exactly as they are.`,

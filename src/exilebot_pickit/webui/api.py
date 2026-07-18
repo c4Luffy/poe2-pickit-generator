@@ -509,6 +509,171 @@ class AppApi:
                 "base_quality": int(c.get("base_quality", 25)),
                 "base_min_level": int(c.get("base_min_level", 82))}
 
+    # item_states buckets that aren't economy categories — used to describe a
+    # profile in plain language ("what did this profile actually change?").
+    _PROFILE_SECTIONS = {
+        "_chance": "Chance bases",
+        "_craftbase": "Craft bases",
+        "_excbase": "Exceptional bases",
+        "_fracture": "Fracture targets",
+        "_raregear": "Rare gear slots",
+    }
+
+    def _describe_profile(self, prof):
+        """Plain-language rows describing what a profile changes.
+
+        A profile stores absolute state, not a diff, so "what's in it" means:
+        the floors it pins, and — the part that actually matters when someone
+        shares a profile — everything it switches OFF. A silently disabled
+        Divine Orb or a whole category turned off would otherwise cost the
+        importer real loot with no warning, so those rows are NAMED (not just
+        counted) and flagged so the UI can shout about them.
+        """
+        prof = prof or {}
+        rows = []
+
+        def add(k, v, warn=False):
+            rows.append({"k": k, "v": v, "warn": bool(warn)})
+
+        gear = float(prof.get("min_exalt_gear", 0) or 0)
+        uniq = float(prof.get("min_exalt_unique", 0) or 0)
+        if prof.get("auto_floor"):
+            add("Floors", "Auto-floor ON — keeps the top "
+                          f"{int(prof.get('auto_floor_pct', 40) or 40)}%")
+        else:
+            add("Floors", f"currency & items >= {gear:g} ex  ·  uniques >= {uniq:g} ex")
+        add("Output file", (prof.get("output_base") or "poe2_pickit") + ".ipd")
+
+        def names_off(bucket):
+            return sorted(n for n, v in (bucket or {}).items()
+                          if isinstance(v, dict) and v.get("enabled") is False)
+
+        def listing(names, cap=6):
+            shown = ", ".join(names[:cap])
+            return shown + (f"  +{len(names) - cap} more" if len(names) > cap else "")
+
+        states = prof.get("item_states") or {}
+        total_off = 0
+
+        # whole categories switched off — the biggest silent loot-killer
+        cats_off = sorted(k for k, v in (prof.get("category_enabled") or {}).items()
+                          if v is False)
+        if cats_off:
+            total_off += len(cats_off)
+            add("Whole categories OFF", listing(cats_off, 8), warn=True)
+
+        # named sections (chance / craft / exceptional / fracture / rare slots)
+        for key, label in self._PROFILE_SECTIONS.items():
+            off = names_off(states.get(key))
+            if off:
+                total_off += len(off)
+                add(f"{label} off", f"{len(off)} — {listing(off)}", warn=True)
+
+        # economy items, BY NAME per category (a bare count would hide a
+        # disabled Divine Orb, which is exactly what people need to see)
+        eco = {}
+        for key, bucket in states.items():
+            if key in self._PROFILE_SECTIONS or not isinstance(bucket, dict):
+                continue
+            off = names_off(bucket)
+            if off:
+                eco[key] = off
+        if eco:
+            eco_total = sum(len(v) for v in eco.values())
+            total_off += eco_total
+            for key in sorted(eco)[:4]:
+                add(f"Economy · {key} off", f"{len(eco[key])} — {listing(eco[key])}",
+                    warn=True)
+            if len(eco) > 4:
+                rest = sum(len(v) for k, v in eco.items() if k not in sorted(eco)[:4])
+                add("Economy · other categories off",
+                    f"{rest} more items across {len(eco) - 4} categories", warn=True)
+            add("Items disabled in total", str(eco_total), warn=True)
+
+        if not prof.get("include_bases", True):
+            total_off += 1
+            add("Base rules", "EXCLUDED — no craft/exceptional base rules at all",
+                warn=True)
+
+        if not total_off:
+            add("Loot rules", "Nothing disabled — every category and item stays ON")
+
+        add("Exceptional bases",
+            f"quality >= {prof.get('base_quality', 25)}%  ·  ilvl >= {prof.get('base_min_level', 82)}")
+        return rows
+
+    def profile_summary(self, name):
+        """What does this saved profile actually change? (for the UI preview)"""
+        prof = (self.cfg.get("profiles") or {}).get(name)
+        if not prof:
+            return {"error": "profile not found"}
+        return {"name": name, "rows": self._describe_profile(prof)}
+
+    def profile_export(self, name):
+        """Write one profile to a shareable .json file."""
+        import json
+        import webview
+        prof = (self.cfg.get("profiles") or {}).get(name)
+        if not prof:
+            return {"error": "Pick a profile to export first."}
+        safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", name).strip("_") or "profile"
+        w = webview.windows[0]
+        path = w.create_file_dialog(webview.SAVE_DIALOG,
+                                    save_filename=f"{safe}.pickitprofile.json")
+        if not path:
+            return {"cancelled": True}
+        if isinstance(path, (list, tuple)):
+            path = path[0]
+        path = str(path)
+        payload = {"kind": "exilebot-pickit-profile", "v": 1,
+                   "name": name, "app": VERSION, "profile": prof}
+        try:
+            gen.write_text_atomic(path, json.dumps(payload, indent=1))
+        except OSError as e:
+            return {"error": f"Couldn't write that file: {e}"}
+        return {"ok": True, "path": path}
+
+    def profile_import_preview(self):
+        """Pick a .json profile and describe it — nothing is saved yet."""
+        import json
+        import webview
+        w = webview.windows[0]
+        res = w.create_file_dialog(
+            webview.OPEN_DIALOG,
+            file_types=("Pickit profile (*.json)", "All files (*.*)"))
+        if not res:
+            return {"cancelled": True}
+        path = str(res[0] if isinstance(res, (list, tuple)) else res)
+        try:
+            if os.path.getsize(path) > 4 * 1024 * 1024:
+                return {"error": "That file is far too big to be a profile."}
+            with open(path, encoding="utf-8-sig") as f:
+                data = json.load(f)
+        except (OSError, ValueError) as e:
+            return {"error": f"That isn't a readable profile file ({e})."}
+        prof = data.get("profile") if isinstance(data, dict) else None
+        if not isinstance(prof, dict) or data.get("kind") != "exilebot-pickit-profile":
+            return {"error": "That JSON isn't an ExileBot pickit profile."}
+        name = str(data.get("name") or "imported")
+        self._pending_profile = (name, prof)
+        return {"ok": True, "name": name, "path": path,
+                "exists": name in (self.cfg.get("profiles") or {}),
+                "rows": self._describe_profile(prof)}
+
+    def profile_import_commit(self, name):
+        """Save the previewed profile under `name`. Does NOT switch to it —
+        importing shouldn't silently replace the settings you're using."""
+        pending = getattr(self, "_pending_profile", None)
+        if not pending:
+            return {"error": "Nothing to import — pick a file again."}
+        name = (name or pending[0] or "").strip()
+        if not name:
+            return {"error": "empty name"}
+        self.cfg.setdefault("profiles", {})[name] = pending[1]
+        self._pending_profile = None
+        save_config(self.cfg)
+        return {"ok": True, "name": name}
+
     def profiles(self):
         return {"names": sorted(self.cfg.get("profiles", {}).keys()),
                 "active": self.cfg.get("active_profile", "")}

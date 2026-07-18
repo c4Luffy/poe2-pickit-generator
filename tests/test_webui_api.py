@@ -1015,3 +1015,75 @@ def test_chance_bases_prices_the_target_unique(api, monkeypatch):
 
     no_league = api.chance_bases(None)              # never fetches
     assert all(r["target_ex"] is None for r in no_league)
+
+
+def test_profile_summary_describes_what_the_profile_changes(api):
+    """The profile panel answers "what does this profile actually do?".
+    A profile stores absolute state, so the summary lists the floors it pins
+    and everything it switches OFF — named sections by name, economy by count."""
+    api.cfg["profiles"] = {"farm": {
+        "min_exalt_gear": 5.0, "min_exalt_unique": 25.0, "auto_floor": False,
+        "output_base": "farm_pickit", "include_bases": True,
+        "base_quality": 25, "base_min_level": 82,
+        "category_enabled": {"unique_jewels": False},
+        "item_states": {
+            "_chance": {"Gold Ring": {"enabled": False},
+                        "Heavy Belt": {"enabled": True}},
+            "_raregear": {"Helmet": {"enabled": False}},
+            "currency": {"Orb of Alchemy": {"enabled": False},
+                         "Chaos Orb": {"enabled": False}},
+        }}}
+    rows = {r["k"]: r["v"] for r in api.profile_summary("farm")["rows"]}
+    assert "5 ex" in rows["Floors"] and "25 ex" in rows["Floors"]
+    assert rows["Output file"] == "farm_pickit.ipd"
+    assert "Gold Ring" in rows["Chance bases off"] and "Heavy Belt" not in rows["Chance bases off"]
+    assert rows["Rare gear slots off"].startswith("1 — Helmet")
+    # economy items are NAMED, not just counted — a shared profile that quietly
+    # disables Divine Orb has to be visible to whoever imports it
+    assert "Chaos Orb" in rows["Economy · currency off"]
+    assert rows["Items disabled in total"] == "2"
+    assert rows["Whole categories OFF"] == "unique_jewels"
+    assert "error" in api.profile_summary("nope")
+
+
+def test_profile_summary_reports_auto_floor_instead_of_numbers(api):
+    """With auto-floor on, the pinned numbers are meaningless — say so."""
+    api.cfg["profiles"] = {"a": {"auto_floor": True, "auto_floor_pct": 30,
+                                 "min_exalt_gear": 1, "min_exalt_unique": 2}}
+    rows = {r["k"]: r["v"] for r in api.profile_summary("a")["rows"]}
+    assert "Auto-floor ON" in rows["Floors"] and "30%" in rows["Floors"]
+
+
+def test_profile_import_commit_requires_a_preview_and_never_auto_switches(api):
+    """Import adds a profile but must NOT silently replace the settings you're
+    using — no active_profile change, and commit without a preview is refused."""
+    assert "error" in api.profile_import_commit("x")        # nothing previewed
+    api.cfg["active_profile"] = "current"
+    api._pending_profile = ("shared", {"min_exalt_gear": 9.0})
+    r = api.profile_import_commit("shared")
+    assert r["ok"] and api.cfg["profiles"]["shared"]["min_exalt_gear"] == 9.0
+    assert api.cfg["active_profile"] == "current"           # not switched
+    assert "error" in api.profile_import_commit("shared")   # one-shot
+
+
+def test_profile_summary_flags_disabled_loot_and_reassures_when_clean(api):
+    """Sharing profiles is the risk: one that quietly disables Divine Orb (or a
+    whole category) must say so, flagged, by name. And a profile that disables
+    nothing must say THAT too — silence is not the same as "nothing is off"."""
+    api.cfg["profiles"] = {
+        "sneaky": {"item_states": {"currency": {"Divine Orb": {"enabled": False}}},
+                   "category_enabled": {"unique_armours": False},
+                   "include_bases": False},
+        "clean": {"item_states": {}, "category_enabled": {}},
+    }
+    rows = api.profile_summary("sneaky")["rows"]
+    by = {r["k"]: r for r in rows}
+    assert "Divine Orb" in by["Economy · currency off"]["v"]
+    assert by["Economy · currency off"]["warn"] is True
+    assert by["Whole categories OFF"]["warn"] is True
+    assert by["Base rules"]["warn"] is True
+    assert "Loot rules" not in by                      # something IS off
+
+    clean = {r["k"]: r for r in api.profile_summary("clean")["rows"]}
+    assert "Nothing disabled" in clean["Loot rules"]["v"]
+    assert clean["Loot rules"]["warn"] is False
