@@ -1139,6 +1139,35 @@ class AppApi:
             return {"cancelled": True}
         return {"path": str(res[0] if isinstance(res, (list, tuple)) else res)}
 
+    def import_pickit_bot(self):
+        """The pickit the bot is ACTUALLY running, resolved from its own config.
+
+        Create-your-filter's most common real input is "whatever my bot uses" —
+        which is bot_folder/<active_profile>.ipd, the exact file bot_connection
+        verifies. Resolving it here means one click instead of a file-picker
+        hunt, and it can never pick the wrong profile. Read-only, like every
+        import path."""
+        folder = (self.cfg.get("bot_folder") or "").strip()
+        if not folder or not os.path.isdir(folder):
+            return {"error": "No bot folder is set — connect the bot in Settings "
+                             "first, then this button knows where its pickit lives."}
+        ini = self._bot_ini_path()
+        profile = ""
+        try:
+            with open(ini, encoding="utf-8", errors="replace") as f:
+                m = re.search(r"(?mi)^\s*active_profile\s*=\s*(.+?)\s*$", f.read())
+            profile = m.group(1).strip() if m else ""
+        except OSError:
+            pass
+        if not profile:
+            return {"error": "Couldn't read active_profile from the bot's "
+                             "pickit.ini — pick the file by hand instead."}
+        path = os.path.join(folder, profile + ".ipd")
+        if not os.path.isfile(path):
+            return {"error": f"The bot's config points at \"{profile}.ipd\", but that "
+                             "file isn't in its Pickit folder."}
+        return {"path": path, "profile": profile}
+
     def import_pickit_convert(self, path, hide_rest=False):
         """Read a pickit file and convert it to loot-filter lines + a report."""
         from exilebot_pickit.generators.pickit_import import convert_pickit_text

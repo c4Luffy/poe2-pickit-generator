@@ -1339,6 +1339,7 @@
     <div class="hint">Any <b>.ipd</b> file works — it doesn't have to come from this app. If your bot is connected, the picker opens right in its pickit folder. You can also just <b>drag the file onto this window</b>.</div>
     <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
       <button class="primary" id="mypkChoose">📂 Choose pickit…</button>
+      <button class="ghost" id="mypkBot" title="Loads the exact file your bot runs: the .ipd its own pickit.ini names as active_profile, straight from its Pickit folder. Read-only — the bot's file is never touched.">🤖 Use the bot's pickit</button>
       <span class="hint" style="margin:0;user-select:text" id="mypkFile">No file loaded.</span>
     </div>
   </div>
@@ -3467,6 +3468,15 @@ $("mypkChoose").onclick=async()=>{
   const c=await api().import_pickit_choose();
   if(!c||!c.path)return;
   mypkPath=c.path;$("mypkFile").textContent=c.path;$("mypkSaved").textContent="";
+  await mypkConvert();
+};
+$("mypkBot").onclick=async()=>{
+  if(mypkBusy)return;
+  const c=await api().import_pickit_bot();
+  if(c&&c.error){toast(c.error);return;}
+  if(!c||!c.path)return;
+  mypkPath=c.path;$("mypkFile").textContent=c.path;$("mypkSaved").textContent="";
+  toast(`🤖 Loaded the bot's active pickit: ${c.profile}.ipd`);
   await mypkConvert();
 };
 $("mypkHide").onclick=async()=>{

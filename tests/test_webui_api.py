@@ -694,6 +694,29 @@ def test_bot_connection_distinguishes_found_from_actually_connected(api, tmp_pat
     assert good["state"] == "ok", good              # only now is it true
 
 
+def test_import_pickit_bot_resolves_the_file_the_bot_actually_runs(api, tmp_path):
+    """Create-your-filter's 'Use the bot's pickit' button: it must load exactly
+    bot_folder/<active_profile>.ipd — the file bot_connection verifies — and
+    fail with a plain-language reason at every gap (no folder, unreadable ini,
+    profile file missing) instead of guessing."""
+    assert "error" in api.import_pickit_bot()       # no bot folder set
+
+    pickit = tmp_path / "Configuration" / "default" / "Pickit"
+    pickit.mkdir(parents=True)
+    api.cfg["bot_folder"] = str(pickit)
+    assert "error" in api.import_pickit_bot()       # no pickit.ini yet
+
+    (pickit.parent / "pickit.ini").write_text("active_profile=my_tuned_rules\n")
+    r = api.import_pickit_bot()
+    assert "error" in r and "my_tuned_rules.ipd" in r["error"]   # ini names a missing file
+
+    (pickit / "my_tuned_rules.ipd").write_text(
+        '[Type] == "Divine Orb" # [StashItem] == "true"\n')
+    r = api.import_pickit_bot()
+    assert r["profile"] == "my_tuned_rules"
+    assert r["path"] == str(pickit / "my_tuned_rules.ipd")
+
+
 def test_fix_bot_profile_repairs_the_mismatch(api, tmp_path):
     """The wizard offers "Fix it for me" on a mismatch — it has to actually work."""
     pickit = tmp_path / "Configuration" / "default" / "Pickit"
