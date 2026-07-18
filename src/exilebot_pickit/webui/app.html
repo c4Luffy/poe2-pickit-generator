@@ -1464,7 +1464,7 @@
     <div class="set-row"><div class="lab"><b>Unique floor</b>
       <span>Gates unique weapons, armours, accessories, flasks, charms, jewels and relics.</span></div></div>
     <div class="hint" style="margin-top:6px"><b>Rare gear is not affected by either.</b> Rare items are <i>scored</i> on their stats (see the 🎯 Magic &amp; Rare tab), not priced — no floor touches them.<br>
-    <b>Auto-floor</b> recomputes both floors from live prices on every run ("keep the top N%"). While it's on, moving a floor by hand won't stick.</div>
+    <b>Auto-floor</b> recomputes both floors from live prices on every run ("keep the top N%") — handy at league start when nobody knows what a good floor is. Set a floor by hand and Auto-floor switches itself off, so your number sticks.</div>
   </div>
 
   <div class="card"><h2>What the other tabs are for</h2>
@@ -1776,8 +1776,19 @@ let _floorT=null;
 function _saveFloors(){clearTimeout(_floorT);
   _floorT=setTimeout(()=>{api().set_setting("min_exalt_unique",uEx());
     api().set_setting("min_exalt_gear",gEx());},400);}
-["uAmt"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();_presetOff();updTracks();}));
-["gAmt"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();_presetOff();updTracks();}));
+/* Setting a floor by hand turns Auto floor OFF. It used to stay on and simply
+   recompute both floors on the next generate, so the number you just typed
+   silently vanished — the single most confusing thing about this feature.
+   Only genuine user input reaches here: applyAutoFloor/restoreFloors assign
+   .value directly (no "input" event), so this can't loop. */
+async function _autoFloorOff(){
+  if(!$("swAuto").classList.contains("on"))return;
+  $("swAuto").classList.remove("on");
+  setAutoPill(false);
+  await api().set_setting("auto_floor",false);
+  toast("Auto floor off — you set the floors by hand now");}
+["uAmt"].forEach(i=>$(i).addEventListener("input",()=>{uEx();_saveFloors();_presetOff();updTracks();_autoFloorOff();}));
+["gAmt"].forEach(i=>$(i).addEventListener("input",()=>{gEx();_saveFloors();_presetOff();updTracks();_autoFloorOff();}));
 let _floorsRestored=false;
 function restoreFloors(){
   if(!info)return;
@@ -1879,7 +1890,7 @@ async function applyAutoFloor(){
 function setAutoPill(on){
   $("autoPill").textContent=on?"⚡ Auto floor is enabled":"⚡ Auto floor is off";
   $("autoPill").style.opacity=on?"1":".55";
-  $("autoHint").textContent=on?"Floors adapt as the economy moves — recomputed on every generate. You can still override manually."
+  $("autoHint").textContent=on?"Floors adapt as the economy moves — recomputed on every generate. Set a floor by hand and this switches off."
                               :"Off. Change “Keep top” to preview what the floors would be — nothing is applied until you flip the switch.";}
 $("swAuto").onclick=async()=>{
   const on=!$("swAuto").classList.contains("on");
