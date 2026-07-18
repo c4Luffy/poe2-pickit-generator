@@ -34,6 +34,16 @@ src/exilebot_pickit/
                          fetched payloads + a settings *snapshot* dict → the lines
                          written to the .ipd. This is the unit-testable half of a
                          generate run (see tests/test_assembly.py).
+    filter_classification.py
+                         Pure: maps one IPD rule → a visual kind for the loot
+                         filter (value ladder from the rule's ExValue + the
+                         file's Divine rate; section purpose for unpriced
+                         rules). Never touches pickup decisions.
+    filter_themes.py     Pure: the style table (kind → filter style lines).
+                         ONE theme by owner decision; NO PlayAlertSound ever.
+    pickit_import.py     Pure: any .ipd → in-game .filter + honest report
+                         (Create your filter). Shares classification/themes
+                         with generator.build_loot_filter.
   api/
     client.py            poe.ninja API client: in-memory + disk cache, retry/backoff
                          (429 / Retry-After), league detection, category fetching.

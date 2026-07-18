@@ -111,10 +111,9 @@ class AppApi:
             "known_leagues": list(c.get("known_leagues") or []),
             "active_preset": c.get("active_preset", "") or "",
             "filter_theme": _theme_or_default(c.get("filter_theme")),
-            # (key, label, description) rows + the style table itself: the
-            # dropdown and its ground-label preview render from these, so the
-            # UI can never drift from generators/filter_themes.THEMES.
-            "filter_theme_choices": [list(t) for t in gen.FILTER_THEME_CHOICES],
+            # The style table itself: the ground-label preview and the tier
+            # chips render from it, so the UI can never drift from
+            # generators/filter_themes.THEMES.
             "filter_themes": gen.FILTER_THEMES,
         }
 

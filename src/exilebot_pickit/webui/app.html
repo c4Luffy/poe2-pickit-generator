@@ -1364,6 +1364,7 @@
     <div class="hint" id="mypkWideHint" style="display:none">“Shown wider” rules check things only the bot can see (mods, tiers, values). The filter still shows those items — just without that check — so nothing the pickit wants is ever missing a label.</div>
     <div class="banner warn" id="mypkWarn" style="display:none;cursor:default"></div>
     <div id="mypkSkipList" style="display:none"></div>
+    <div id="mypkTiers" style="display:none"></div>
     <div class="set-row" style="margin-top:10px"><div class="lab"><b>Hide everything else in game</b>
       <span>ON = clean screen, only your pickit's items show. ⚠ Turn OFF while botting — hidden labels can stall the bot's pickup.</span></div><div class="sp"></div>
       <div class="switch on" id="mypkHide"><i></i></div></div>
@@ -3442,6 +3443,20 @@ async function _mypkConvert(){
     sk.innerHTML="<div class='hint' style='margin-top:8px'>Rules the filter can't express (your bot still uses them — they're only missing from the filter):</div>"+
       rep.untranslatable.map(u=>`<div class="hint" style="margin:2px 0 0">· line ${u.line}: <span style="opacity:.8">${esc(u.text)}</span> — ${esc(u.reason)}</div>`).join("");
   }else sk.style.display="none";
+  /* tier breakdown: which rules got which look, chips styled with the SAME
+     colors the filter writes, so the report can't lie about the output */
+  const vt=$("mypkTiers");
+  if(r.ok&&rep.visual_tiers&&rep.visual_tiers.length){
+    vt.style.display="";
+    const th=rep.visual_thresholds||{};
+    vt.innerHTML="<div class='hint' style='margin-top:10px'>What gets which look"
+      +(th.divine_exalt?` (1 Divine = ${th.divine_exalt} ex in this pickit)`:"")+":</div>"
+      +"<div style='display:flex;flex-wrap:wrap;gap:6px;margin-top:6px'>"
+      +rep.visual_tiers.map(t=>{
+        const s=lfParse((FILTER_THEMES.classic||{})[t.id]);
+        return `<span title="${esc((t.examples||[]).join(", "))}" style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px;font-family:Georgia,serif;font-variant:small-caps;font-weight:700;font-size:13px;color:${s.text||"#c8c8c8"};background:${s.bg||"rgba(0,0,0,.8)"};border:1px solid ${s.border||"rgba(255,255,255,.15)"}">${esc(t.label)}<b>${t.count}</b></span>`;
+      }).join("")+"</div>";
+  }else vt.style.display="none";
   $("mypkSave").disabled=!r.ok;
   if(r.ok){$("mypkPrevCard").style.display="";
     $("mypkPreview").textContent=r.preview+(r.lines>120?`\n… (${r.lines-120} more lines)`:"");}

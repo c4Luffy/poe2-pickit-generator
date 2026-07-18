@@ -6,10 +6,10 @@ VERSION = "4.36.0"
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
-• Label themes — pick once, both filters the app writes wear it (generated + converted), with a live on-the-ground preview.
-• One clean look: uniques in classic orange with brown kites, chance bases and craft gear marked on the minimap, waystones in orange — drops read like a proper community filter.
-• Jackpot tier: drops worth 50+ exalted (and always Mirror of Kalandra / Divine Orb) get the red screamer with a light beam. No filter sounds, ever.
-• Gold is never hidden, now in the generated filter too.
+• Filters now color by REAL value: mythic (1+ Divine, purple), jackpot (10% of a Divine, red), high (10+ ex, orange), useful (1+ ex), quiet — read from each rule's own recorded price. Chance, craft, fracture (pink) and exceptional (cyan) bases wear their purpose colors.
+• Converting a generated pickit keeps every tier — and the report now shows what got which look, in the exact colors.
+• One clean community look, a live on-the-ground preview (with your own capture as the ground), minimap icons and beams included. No filter sounds, ever.
+• One-click 🔓 All ON + Generate next to the Generate button: flips every switch back on, keeps your floors, runs the full generate.
 • Chance Bases show the unique you're chancing for with real game art; the list is curated to four bases.
-• Prices auto-refresh every 15 minutes — no more nudging a slider for today's divine rate.
+• Gold is never hidden, in both filters. Prices auto-refresh every 15 minutes.
 • Economy names wrap instead of truncating; the run log wraps paths cleanly and is resizable; the CLI gained --filter-theme."""
