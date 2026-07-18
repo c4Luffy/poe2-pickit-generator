@@ -161,15 +161,42 @@ def test_value_tiers_track_the_divine_rate():
 
 
 def test_cheap_divine_never_makes_a_modest_orb_jackpot():
-    # The clamp: when Divine is cheap, 10% of it dips under the 10-ex High
-    # floor. A 9-ex orb must stay High/Useful, never wear the red jackpot look.
+    # The clamp chain: when Divine is cheap, 10% of it dips under the 10-ex
+    # High floor. A 9-ex orb must stay Useful and a 12-ex orb High — neither
+    # may wear the red jackpot look just because Divine crashed.
     from exilebot_pickit.generators.filter_classification import (
         jackpot_threshold, value_kind,
     )
-    assert jackpot_threshold(80) == 10.0        # not 8 — clamped to the High floor
+    assert jackpot_threshold(80) == 20.0        # not 8 — clamped above the High floor
     assert value_kind(9, 80) == "useful"        # 9 < 10 High floor
-    assert value_kind(12, 80) == "jackpot"      # 12 >= 10 clamped floor, < 80
-    # ladder stays strictly ordered at any rate
-    for rate in (40, 80, 150, 450, 3000):
-        t = jackpot_threshold(rate)
-        assert 10.0 <= t <= rate, rate
+    assert value_kind(12, 80) == "high"         # the High band survives a cheap Divine
+    assert value_kind(20, 80) == "jackpot"      # 20 >= clamped floor, < 80
+
+
+def test_ladder_floors_stay_strictly_ordered_at_any_divine_rate():
+    # Every tier must stay reachable: useful < high < jackpot < mythic even
+    # when Divine crashes below the fixed floors (extreme league-start rates).
+    from exilebot_pickit.generators.filter_classification import (
+        HIGH_VALUE_EXALT, USEFUL_VALUE_EXALT,
+        jackpot_threshold, mythic_threshold, value_kind,
+    )
+    for rate in (5, 9, 40, 80, 150, 450, 3000):
+        jp, my = jackpot_threshold(rate), mythic_threshold(rate)
+        assert USEFUL_VALUE_EXALT < HIGH_VALUE_EXALT < jp < my, rate
+        # each floor lands in its own tier — nothing collapsed or leapfrogged
+        assert value_kind(HIGH_VALUE_EXALT, rate) == "high", rate
+        assert value_kind(jp, rate) == "jackpot", rate
+        assert value_kind(my, rate) == "mythic", rate
+
+
+def test_missing_divine_header_falls_back_to_the_default_rate():
+    # When poe.ninja has no Divine Orb, the writers emit "rate unavailable"
+    # instead of the 1.0 placeholder — which classification would read as a
+    # real rate and paint every 1-ex item mythic purple.
+    from exilebot_pickit.generators.filter_classification import (
+        DEFAULT_DIVINE_EXALT, extract_divine_rate,
+    )
+    lines = ["// Divine  : rate unavailable",
+             "// Conversion: Divine rate unavailable",
+             '[Type] == "Chaos Orb" # [StashItem] == "true" // ExValue = 2.50']
+    assert extract_divine_rate(lines) == DEFAULT_DIVINE_EXALT

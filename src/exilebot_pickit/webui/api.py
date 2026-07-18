@@ -1631,7 +1631,7 @@ class AppApi:
             cur = payloads.get("currency")
             if not isinstance(cur, dict):
                 raise RuntimeError("poe.ninja unreachable and no cached prices for this league")
-            div_rate, _found, _rate = asm.compute_divine_rate(cur)
+            div_rate, div_found, _rate = asm.compute_divine_rate(cur)
 
             W = gen._W
             out = ["/" * W,
@@ -1639,7 +1639,11 @@ class AppApi:
                    "/" * W,
                    f"// League  : {league}",
                    f"// Floors  : uniques >= {min_unique:g} ex · everything else >= {min_gear:g} ex",
-                   f"// Divine  : 1 Divine = {div_rate:.2f} Exalted",
+                   # A missing Divine rate must not write the 1.0 placeholder —
+                   # the filter's value ladder would read it as a real rate and
+                   # paint every 1-ex item mythic purple.
+                   (f"// Divine  : 1 Divine = {div_rate:.2f} Exalted"
+                    if div_found else "// Divine  : rate unavailable"),
                    "// Source  : poe.ninja PoE2 economy API  ·  Modern UI",
                    "/" * W, "",
                    gen.header_major("Economy Items"), ""]

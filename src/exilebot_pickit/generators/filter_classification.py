@@ -17,6 +17,11 @@ DEFAULT_DIVINE_EXALT = 500.0
 JACKPOT_DIVINE_FRACTION = 0.10
 HIGH_VALUE_EXALT = 10.0
 USEFUL_VALUE_EXALT = 1.0
+# Minimum spread between adjacent Divine-relative tier floors.  When Divine
+# crashes (league start) the relative floors sink toward the fixed ones; the
+# spread keeps every band at least this wide instead of letting a tier
+# collapse into (or leapfrog under) its neighbour.
+TIER_SPREAD = 2.0
 
 _EXVALUE_RE = re.compile(r"\bExValue\s*=\s*([\d,.]+)", re.I)
 _DIVINE_HEADER_RE = re.compile(
@@ -118,18 +123,33 @@ def jackpot_threshold(divine_rate: float) -> float:
     """Exalt value at which a drop earns the jackpot look.
 
     Normally 10% of a Divine, so it rises and falls with the Divine rate. But
-    when Divine is cheap (< ~100 ex, e.g. league start), 10% of it would dip
-    below the fixed High floor and a modest 9-ex orb would wrongly wear the red
-    jackpot label. Clamping to at least the High floor keeps the ladder
-    strictly ordered: useful < high < jackpot < mythic, always."""
+    when Divine is cheap (league start), 10% of it would land on or under the
+    fixed High floor and the High band would vanish — every 10-ex item wearing
+    the red jackpot label. Clamping to TIER_SPREAD x the High floor keeps a
+    real High band at any Divine rate."""
     divine = divine_rate if divine_rate > 0 else DEFAULT_DIVINE_EXALT
-    return max(divine * JACKPOT_DIVINE_FRACTION, HIGH_VALUE_EXALT)
+    return max(divine * JACKPOT_DIVINE_FRACTION, HIGH_VALUE_EXALT * TIER_SPREAD)
+
+
+def mythic_threshold(divine_rate: float) -> float:
+    """Exalt value at which a drop earns the mythic look.
+
+    One Divine — but clamped to TIER_SPREAD x the jackpot floor so an extreme
+    Divine crash can't invert the ladder (an unclamped mythic floor could sink
+    below the clamped jackpot floor, purple-labelling a 9-ex item while the
+    jackpot and high tiers become unreachable)."""
+    divine = divine_rate if divine_rate > 0 else DEFAULT_DIVINE_EXALT
+    return max(divine, jackpot_threshold(divine) * TIER_SPREAD)
 
 
 def value_kind(ex_value: float, divine_rate: float) -> str:
-    """Map a live exalt value to the filter's five-level value ladder."""
+    """Map a live exalt value to the filter's five-level value ladder.
+
+    The floors are strictly ordered at any Divine rate
+    (useful < high < jackpot < mythic), so every tier is always reachable.
+    """
     divine = divine_rate if divine_rate > 0 else DEFAULT_DIVINE_EXALT
-    if ex_value >= divine:
+    if ex_value >= mythic_threshold(divine):
         return "mythic"
     if ex_value >= jackpot_threshold(divine):
         return "jackpot"
@@ -204,7 +224,7 @@ def threshold_summary(divine_rate: float) -> dict:
     divine = divine_rate if divine_rate > 0 else DEFAULT_DIVINE_EXALT
     return {
         "divine_exalt": round(divine, 2),
-        "mythic": round(divine, 2),
+        "mythic": round(mythic_threshold(divine), 2),
         "jackpot": round(jackpot_threshold(divine), 2),
         "high": HIGH_VALUE_EXALT,
         "useful": USEFUL_VALUE_EXALT,

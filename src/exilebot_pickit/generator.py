@@ -1178,7 +1178,13 @@ def main():
     if rate == 0:
         print("Warning: exalted rate is 0 in currency payload — item values may be inaccurate", file=sys.stderr)
 
-    output_lines.append(f"// Conversion: 1 Divine = {divine_rate_exalts:.6f} Exalted")
+    if _divine_found:
+        output_lines.append(f"// Conversion: 1 Divine = {divine_rate_exalts:.6f} Exalted")
+    else:
+        # No rate line: writing the 1.0 placeholder would make the loot-filter
+        # value ladder read "1 Divine = 1 Exalted" and paint everything mythic.
+        # Without the header, classification falls back to its stable default.
+        output_lines.append("// Conversion: Divine rate unavailable")
     output_lines.append("")
 
     # ── Economy sections ─────────────────────────────────────────────────────

@@ -3375,33 +3375,10 @@ function lfParse(lines){
   }
   return o;
 }
-const LF_ICO={Circle:"●",Diamond:"◆",Star:"★",Moon:"☾",
-  Square:"■",Triangle:"▲",Cross:"✚",Hexagon:"⬣",
-  Pentagon:"⬟",Kite:"◈",Raindrop:"▼",UpsideDownHouse:"⌂"};
-const LF_BEAMS={Red:"#ff5039",Brown:"#b06a37",Orange:"#ff9040",White:"#f5f5f5",
-  Blue:"#4f8fff",Cyan:"#42e0d0",Purple:"#b060ff",Yellow:"#ffe14f",
-  Green:"#7ee07e",Grey:"#9a9a9a",Pink:"#ff8fc8"};
-/* Every sample name is a REAL droppable item already shipped in the app's
-   data — the preview must never show an item the game can't drop. The rows
-   mirror the value ladder the filters actually write: price decides the
-   color, and unpriced rules take their section's purpose color. */
-const LF_SAMPLES=[
-  ["mythic",["Divine Orb","Mirror of Kalandra"],"mythic · 1+ Divine"],
-  ["jackpot",["Orb of Annulment"],"jackpot · 10% of a Divine"],
-  ["high",["Perfect Orb of Augmentation"],"high · 10+ ex"],
-  ["useful",["Gemcutter's Prism"],"useful · 1+ ex"],
-  ["quiet",["Orb of Alchemy"],"cheap but picked"],
-  ["unique",["Heavy Belt","Utility Belt"],"uniques"],
-  ["chance",["Stellar Amulet","Gold Ring"],"chance bases"],
-  ["fracture",["Warlord Cuirass"],"fracture targets"],
-  ["exceptional",["Apostle Leggings"],"exceptional bases"],
-  ["craft",["Soldier Cuirass"],"craft bases"],
-  ["waystone",["Waystone (Tier 15)"],"waystones"],
-  ["gold",["1,250 Gold"],"gold — never hidden"]];
-/* The Ground labels box now shows the owner's own in-game capture (a CSS
+/* The Ground labels box shows the owner's own in-game capture (a CSS
    background on #mypkThemePrev). The photo already shows every tier on the
-   real ground, so no HTML labels are drawn on top of it. */
-function renderThemePreview(){}
+   real ground, so no HTML labels are drawn on top of it. lfParse stays: the
+   tier-breakdown chips style themselves from the engine's THEMES table. */
 async function mypkConvert(){
   if(!mypkPath||mypkBusy)return;
   mypkBusy=true;
@@ -3603,10 +3580,9 @@ function applyInfo(i){
   sw("swFilter","copy_filter_to_game",i.copy_filter_to_game);
   $("fltDirLbl").textContent=i.poe2_filter_dir||"not set";
   $("bakCount").value=i.backup_count;
-  // Ground-label preview renders from the engine's THEMES table, so it can
-  // never drift from what the filter writers actually emit.
+  // Tier-breakdown chips style themselves from the engine's THEMES table, so
+  // the report can never drift from what the filter writers actually emit.
   FILTER_THEMES=i.filter_themes||FILTER_THEMES;
-  renderThemePreview(i.filter_theme||"classic");
   // clamp legacy configs into the real exceptional-base ranges (21-30 / 79-82)
   const _bq=Math.max(21,Math.min(30,parseInt(i.base_quality)||25));
   // 79, not 80: an ilvl-79 base can still roll the extra rune socket, and those sell
