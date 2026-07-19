@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.3/ExileBot2PickitGenerator.exe"><img alt="Download v4.39.3 for Windows" src="https://img.shields.io/badge/Download-v4.39.3-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.4/ExileBot2PickitGenerator.exe"><img alt="Download v4.39.4 for Windows" src="https://img.shields.io/badge/Download-v4.39.4-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&label=Downloads&labelColor=171411&color=829d78"></a>
 </p>
 
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://c4luffy.github.io/poe2-pickit-generator/">Website</a> ·
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.3">Release notes</a> ·
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.4">Release notes</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://discord.gg/T7DU3Afve6">Discord</a> ·
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
@@ -31,7 +31,7 @@
 <p align="center"><sub>Real running-app capture · Generate · captured on v4.38.2</sub></p>
 
 > [!IMPORTANT]
-> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.39.3](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.3/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
+> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.39.4](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.4/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
 
 ## Start here
 
@@ -116,7 +116,7 @@ Rare gear stays honest. If no recipe covers the base or its slot is disabled, th
 - Unusual item-name characters are excluded and reported instead of disappearing silently.
 - The app never asks for your Path of Exile account.
 
-Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.3/SHA256SUMS.txt).
+Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.4/SHA256SUMS.txt).
 
 ### Three important usage notes
 
@@ -124,9 +124,14 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.39.3
+## Current release: v4.39.4
 
-### Implicits finished, and five that showed the wrong number
+### Create your filter stops calling a dropped condition "converted"
+
+- **A condition the converter recognised but couldn't read used to vanish silently** — an `[ItemLevel]` written without quotes, a `[Quality]` using `>` instead of `>=`, an ItemLevel floor *and* ceiling where only the floor was taken. Those rules were reported as cleanly converted while the gate was missing from the filter. They now count as **shown wider**, which is what actually happened.
+- **Pickits this app generates are unaffected** — verified against real files, the numbers don't move by a single rule.
+
+### v4.39.3 — Implicits finished, and five that showed the wrong number
 
 - **27 bases showed a blank line** where the game gives them a real implicit — 52 entries became 79. Several change how you use the item: **Corona Amulet** grants a *helmet* socket, **Grasping Ring** a *glove* socket, **Stalking Belt** a *boot* socket, and **Grasping Mail** can also roll ring modifiers.
 - **Five implicits displayed the wrong number.** Grand Spear read "+25 Weapon range" when the game stat is a percentage — +25%, not a flat 25. Same for Striking Quarterstaff, Flexed Crossbow, Utility Belt and Warlord Cuirass. Thane Mail showed a reduction as if it were a bonus.
@@ -181,7 +186,7 @@ Every tab was audited that cycle. The headline items are behaviour fixes — thi
 - **Create your filter translates `ItemLevel` and `WaystoneTier` exactly** instead of dropping them, so far fewer rules count as "shown wider" and Hide mode is safer.
 - **Useful detail across every tab:** bases display their game-data implicits when they have one; Chance cards show live target prices and art; profile imports preview everything they turn OFF; Preview explains and compares rules; Economy shows Top movers.
 
-[Read the complete v4.39.3 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.3) · [full changelog](CHANGELOG.md)
+[Read the complete v4.39.4 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.4) · [full changelog](CHANGELOG.md)
 
 <details>
 <summary><strong>Everything included</strong></summary>

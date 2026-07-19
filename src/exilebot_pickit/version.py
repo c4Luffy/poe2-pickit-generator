@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.39.3"
+VERSION = "4.39.4"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Create your filter stops calling a dropped condition "converted". That report's honesty is the whole point of the tab, and a condition it RECOGNISED but could not read simply vanished — an [ItemLevel] written without quotes, a [Quality] using > instead of >=, or an ItemLevel floor AND ceiling where only the floor was taken. Those rules were counted as cleanly converted while the gate was gone from the filter. They now count as "shown wider", which is what actually happened. Pickits this app generates are unaffected — their numbers don't move by a single rule.
+
+Also in 4.39.3:
 • Implicits are finished. 27 bases showed a blank line where the game gives them a real implicit — including ones that change how you use the item: Corona Amulet grants a HELMET socket, Grasping Ring a GLOVE socket, Stalking Belt a BOOT socket, Forking/Invoking/Sinew Belt an extra charm slot, and Grasping Mail can also roll ring modifiers. 52 entries became 79.
 • Five implicits were showing the wrong number. Grand Spear read "+25 Weapon range" when the game stat is a PERCENTAGE — +25%, not a flat 25. Same for Striking Quarterstaff, Flexed Crossbow, Utility Belt (20% of flask recovery is instant) and Warlord Cuirass. Thane Mail showed "+15-25% ... -" with the stat id's trailing minus rendered as text; it is a REDUCTION, so it now reads -15-25%.
 • Two-Stone Ring is three different bases — fire+cold, fire+lightning and cold+lightning — and we displayed the cold+lightning roll for all three. It now says which pairs exist.

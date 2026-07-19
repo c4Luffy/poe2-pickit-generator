@@ -118,6 +118,28 @@ def _parse_rule(cond_part: str):
         sockets = int(msg.group(1)) + 1
     mi = _ILVL_RE.search(cond_part)
     mw = _WTIER_RE.search(cond_part)
+
+    # A KNOWN token our regexes couldn't read is still a dropped condition, and
+    # it used to vanish silently: "unknown" only collects tokens we don't
+    # recognise, so a rule whose [ItemLevel] was written unquoted, or with an
+    # operator we don't parse, was reported as "converted, 0 shown wider" while
+    # the gate was gone from the filter. Every one of these widens the rule, so
+    # the report has to say so — that honesty IS the feature.
+    #
+    # Two shapes count: the token is present but nothing parsed, and the token
+    # appears more times than we took (e.g. an ItemLevel floor AND a ceiling —
+    # .search only ever returns the first).
+    present = _TOKEN_RE.findall(cond_part)
+    seen: dict = {}
+    for t in present:
+        seen[t] = seen.get(t, 0) + 1
+    parsed = {"ItemLevel": 1 if mi else 0,
+              "WaystoneTier": 1 if mw else 0,
+              "Quality": 1 if mq else 0,
+              "Sockets": 1 if (ms or msg) else 0,
+              "Rarity": 1 if mr else 0}
+    unparsed = sorted(t for t, n in parsed.items() if seen.get(t, 0) > n)
+
     return {
         "names": names,
         "rarity": mr.group(1) if mr else None,
@@ -127,7 +149,8 @@ def _parse_rule(cond_part: str):
         # ready-to-emit filter fragments (or None) — exact translations
         "ilvl": f"ItemLevel {mi.group(1)} {mi.group(2)}" if mi else None,
         "wtier": f"WaystoneTier {mw.group(1)} {mw.group(2)}" if mw else None,
-        "unknown": sorted(set(_TOKEN_RE.findall(cond_part)) - _KNOWN_TOKENS),
+        "unknown": sorted(set(present) - _KNOWN_TOKENS),
+        "unparsed": unparsed,
     }
 
 
@@ -198,7 +221,9 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
         kind = classify_rule(line, section, divine_rate)
         # "wide": a check was dropped, so the filter shows MORE than the rule.
         # Counted only for rules that actually make it into the filter.
-        wide = bool(r["unknown"])
+        # "unparsed" matters as much as "unknown": a condition we recognise but
+        # could not read is just as gone from the output as one we never knew.
+        wide = bool(r["unknown"] or r["unparsed"])
         rarity = r["rarity"]
         if rarity and rarity not in _VALID_RARITIES:
             rarity = None

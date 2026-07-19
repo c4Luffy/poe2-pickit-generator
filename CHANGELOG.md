@@ -6,6 +6,34 @@ download lives.
 
 ---
 
+## [v4.39.4] — 2026-07-19 — Create your filter stops calling a dropped condition "converted"
+
+- **A condition the converter recognised but couldn't read used to vanish
+  silently.** The "shown wider" counter only tracked tokens it didn't recognise,
+  so a *known* one that failed to parse was reported as a clean conversion while
+  the gate was simply missing from the filter. Every one of these shapes is legal
+  in a hand-written `.ipd` and every one was silently dropped:
+
+  | Rule | What went missing |
+  | --- | --- |
+  | `[ItemLevel] >= 82` (unquoted) | the whole item-level gate |
+  | `[WaystoneTier] >= 14` (unquoted) | the tier gate |
+  | `[Quality] > "18"` (`>` not `>=`) | the quality gate |
+  | `[Sockets] == "3"` (`==` not `>=`) | the socket gate |
+  | `[Rarity] != "Normal"` | the rarity gate |
+  | `[ItemLevel] >= "70" && [ItemLevel] <= "80"` | the ceiling |
+
+  They now count as **shown wider**, which is what actually happened. The report
+  promising "converted / shown wider / untranslatable" is the entire point of
+  that tab, so it has to be true.
+- **Pickits this app generates are unaffected.** Verified against real generated
+  files: the widened count doesn't move by a single rule, because the generator
+  writes quoted values with the operators the converter parses. The 528 already
+  counted there come from `ItemTier`, a genuine bot-only condition the game's
+  filter language cannot express.
+
+---
+
 ## [v4.39.3] — 2026-07-19 — Implicits finished, and five that showed the wrong number
 
 - **27 bases showed a blank line** where the game gives them a real implicit —
@@ -1768,6 +1796,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.39.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.4
 [v4.39.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.3
 [v4.39.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.2
 [v4.39.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.1

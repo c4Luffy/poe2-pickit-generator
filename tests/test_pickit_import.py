@@ -288,3 +288,51 @@ def test_different_itemlevels_do_not_share_a_block():
     assert "ItemLevel >= 82" in txt and "ItemLevel >= 75" in txt
     a82 = txt[txt.index("ItemLevel >= 82"):]
     assert '"Sapphire Ring"' not in a82[:a82.index("Show") if "Show" in a82 else len(a82)]
+
+
+def test_a_condition_we_cannot_read_is_reported_as_shown_wider():
+    """The conversion report's honesty IS the feature. A KNOWN token our regexes
+    couldn't parse used to vanish: "unknown" only collects tokens we don't
+    recognise, so a hand-written rule with an unquoted [ItemLevel], or an
+    operator we don't handle, was reported as "converted, 0 shown wider" while
+    the gate was simply gone from the filter.
+
+    Every shape below is legal in a hand-made .ipd.
+    """
+    cases = [
+        '[Type] == "Gold Ring" && [ItemLevel] >= 82 # [StashItem] == "true"',
+        '[Category] == "Waystone" && [WaystoneTier] >= 14 # [StashItem] == "true"',
+        '[Type] == "Gold Ring" && [Quality] > "18" # [StashItem] == "true"',
+        '[Type] == "Gold Ring" && [Sockets] == "3" # [StashItem] == "true"',
+        '[Type] == "Gold Ring" && [Rarity] != "Normal" # [StashItem] == "true"',
+        # a floor AND a ceiling — .search only ever returns the first
+        '[Type] == "Gold Ring" && [ItemLevel] >= "70" && [ItemLevel] <= "80"'
+        ' # [StashItem] == "true"',
+    ]
+    for rule in cases:
+        rep = convert_pickit_text(rule + "\n")["report"]
+        assert rep["widened"] >= 1, f"silently dropped a condition: {rule}"
+
+
+def test_a_well_formed_rule_is_not_falsely_reported_as_widened():
+    """The counter must not cry wolf — a rule whose conditions we translate
+    exactly has to come back clean, or the report is useless in the other
+    direction."""
+    rule = ('[Type] == "Soldier Cuirass" && [Rarity] == "Normal" '
+            '&& [ItemLevel] >= "82" && [Quality] >= "20" # [StashItem] == "true"')
+    r = convert_pickit_text(rule + "\n")
+    body = "\n".join(r["filter_lines"])
+    assert r["report"]["widened"] == 0, r["report"]
+    for expected in ("ItemLevel >= 82", "Quality >= 20", "Rarity = Normal"):
+        assert expected in body, expected
+
+
+def test_our_own_generated_pickit_gains_no_new_widened_rules():
+    """Regression guard on the fix above: the generator writes quoted values with
+    the operators we parse, so tightening the check must not reclassify a single
+    rule in a file we produced ourselves. The widened count for a generated
+    pickit comes from ItemTier — a real bot-only condition — and nothing else."""
+    from exilebot_pickit import generator as gen
+    ipd = gen.build_craft_base_rules() + gen.build_exotic_base_rules()
+    r = convert_pickit_text("\n".join(ipd) + "\n")
+    assert r["report"]["widened"] == 0, r["report"]
