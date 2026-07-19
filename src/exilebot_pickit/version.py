@@ -1,16 +1,19 @@
 """Single source of truth for the app version."""
-VERSION = "4.37.0"
+VERSION = "4.38.0"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
-• Filters now color by REAL value: mythic (1+ Divine, purple), jackpot (10% of a Divine, red), high (10+ ex, orange), useful (1+ ex), quiet — read from each rule's own recorded price. Chance, craft, fracture (pink) and exceptional (cyan) bases wear their purpose colors.
-• The value tiers stay honest at league start: when Divine is cheap the tiers keep their own bands instead of collapsing — a 12-ex drop is orange, never a false red jackpot.
-• Converting a generated pickit keeps every tier — and the report now shows what got which look, in the exact colors.
-• One clean community look, a live on-the-ground preview (your own capture as the ground), minimap icons and beams included. No filter sounds, ever.
-• One-click 🔓 All ON + Generate under the Generate button: flips every switch back on, keeps your floors, runs the full generate.
-• Chance Bases show the unique you're chancing for with real game art; the list is curated to four bases.
-• Gold is never hidden, in both filters. Prices auto-refresh every 15 minutes.
-• Economy names wrap instead of truncating; the run log wraps paths cleanly and is resizable; the CLI gained --filter-theme."""
+• 🔓 Turn everything on now really does: both floors drop to 0, Adaptive floors switch off and exceptional gates open to quality 21 / ilvl 79 — before, Adaptive floors quietly re-filtered everything you just enabled. "Put my switches back" restores it all.
+• Setting a floor by hand now turns Adaptive floors OFF instead of ignoring you — your number sticks.
+• Item Check no longer answers "no rule matches" for a QUALITY white base. Items copy as "Superior <Base>" when they have quality, and that prefix was never stripped — so the exact bases the Exceptional tab collects were answering wrong. Magic items resolve now too.
+• Every base shows its implicit (Gold Ring +6-15% Item Rarity, Visceral Quiver +20-30% Attack Crit Chance), read from the game's own data files.
+• Chance cards show the live price of the unique you're chancing FOR, with art for every possible target.
+• Profiles export/import to a file — and importing previews what a profile contains, naming in amber anything it turns OFF, so a shared profile can't quietly disable Divine Orb.
+• Preview: click any rule to see why it's there and what it's worth; compare against a backup to see exactly which rules changed.
+• Economy: "Top movers" — the 20 biggest 7-day price swings across every category.
+• Create your filter: one click loads the pickit your bot is actually running; ItemLevel and WaystoneTier now translate exactly.
+• Debug rebuilt around three plain-language actions, and it no longer alarms you with old, long-fixed errors.
+• Craft and Exceptional lay out properly instead of one long column; Exceptional groups Str / Dex / Int with hybrids separate."""

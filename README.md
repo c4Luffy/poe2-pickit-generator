@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.37.0/ExileBot2PickitGenerator.exe"><img alt="Download v4.37.0 for Windows" src="https://img.shields.io/badge/Download-v4.37.0-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.38.0/ExileBot2PickitGenerator.exe"><img alt="Download v4.38.0 for Windows" src="https://img.shields.io/badge/Download-v4.38.0-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&label=Downloads&labelColor=171411&color=829d78"></a>
 </p>
 
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://c4luffy.github.io/poe2-pickit-generator/">Website</a> ·
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.37.0">Release notes</a> ·
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.0">Release notes</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://discord.gg/T7DU3Afve6">Discord</a> ·
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
@@ -31,7 +31,7 @@
 <p align="center"><sub>Real running-app capture · Generate · captured on v4.35.2</sub></p>
 
 > [!IMPORTANT]
-> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.37.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.37.0/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
+> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.38.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.38.0/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
 
 ## Start here
 
@@ -116,7 +116,7 @@ Rare gear stays honest. If no recipe covers the base or its slot is disabled, th
 - Unusual item-name characters are excluded and reported instead of disappearing silently.
 - The app never asks for your Path of Exile account.
 
-Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.37.0/SHA256SUMS.txt).
+Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.38.0/SHA256SUMS.txt).
 
 ### Three important usage notes
 
@@ -124,19 +124,19 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.37.0
+## Current release: v4.38.0
 
-### Filters color by real value — the five-tier ladder
+### "Everything on" means everything — plus a tab-by-tab cleanup
 
-Every filter the app writes now colors each label by what the item is **actually worth**, read from the generated rule's own recorded price and the file's own Divine rate:
+Every tab was audited this cycle. The headline items are behaviour fixes — things that were quietly answering wrong:
 
-- **The ladder:** mythic (1+ Divine, purple) · jackpot (10% of a Divine, red screamer look) · high (10+ ex, orange) · useful (1+ ex, gold) · quiet. Unpriced rules wear purpose colors instead: chance, craft, fracture (pink), exceptional (cyan), curated, and uniques.
-- **Honest at league start:** when Divine is cheap, the tiers keep strictly ordered bands—a 12-ex drop labels orange, never a false red jackpot. If the price feed has no Divine rate, the generated pickit says so instead of writing a bogus rate.
-- **Converted pickits keep their tiers:** importing a generated `.ipd` on Create your filter reads the same prices, and the report shows color-matched count chips for each result.
-- **One look, no sounds:** every filter uses the single community-classic label theme and never plays alert sounds; beams and minimap icons appear only where they earn their place. The ground preview is a real in-game capture.
-- **All ON + Generate:** one click below Generate turns categories, items, chance/craft/exceptional/fracture bases, and rare slots back on, keeps your price floors untouched, and generates.
+- **🔓 Turn everything on now really does.** It flipped every switch, but Adaptive market floors then recomputed a high floor on the next run and threw most of it away. It now also drops both floors to 0, switches Adaptive floors off, and opens exceptional gates to quality 21 / ilvl 79. **Put my switches back** restores all of it.
+- **A floor you set by hand sticks** — typing one now switches Adaptive floors off instead of silently recomputing over your number.
+- **Item Check stopped rejecting quality white bases.** Items copy as `Superior <Base>` when they have quality, and that prefix was never stripped — so the exact bases the Exceptional tab collects were reported as "no rule matches".
+- **Implicits on every base** (Gold Ring `+6-15% Item Rarity`), read from the game's own data files. **Chance cards** show the live price of the unique you're chancing for. **Profiles** export/import, and an import previews what a profile turns OFF before you add it.
+- **v4.37.x:** filters color by real value — the five-tier ladder from live prices.
 
-[Read the complete v4.37.0 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.37.0) · [full changelog](CHANGELOG.md)
+[Read the complete v4.38.0 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.0) · [full changelog](CHANGELOG.md)
 
 <details>
 <summary><strong>Everything included</strong></summary>

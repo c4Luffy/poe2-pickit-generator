@@ -6,6 +6,64 @@ download lives.
 
 ---
 
+## [v4.38.0] — 2026-07-19 — "Everything on" means everything, plus a tab-by-tab cleanup
+
+Every tab in the app was audited this cycle. The headline items are behaviour
+fixes — things that were quietly answering wrong:
+
+- **🔓 Turn everything on now really does.** It flipped every switch, but
+  Adaptive market floors then recomputed a high floor on the next generate and
+  threw away most of what had just been enabled. It now also drops both value
+  floors to 0, switches Adaptive floors off, and opens the exceptional gates to
+  their loosest legal values (quality 21 / item level 79). **Put my switches
+  back** restores all of it, floors included.
+- **A floor you set by hand sticks.** Typing or dragging a floor now switches
+  Adaptive floors off instead of silently recomputing over your number.
+- **Item Check stopped rejecting quality white bases.** Items copy from the game
+  as `Superior <Base>` when they have quality, and that prefix was never
+  stripped — so the exact bases the Exceptional tab exists to collect were
+  reported as "no rule matches". Magic items (whose base is wrapped in affixes)
+  now resolve too.
+- **Create your filter** translates `ItemLevel` and `WaystoneTier` exactly
+  instead of dropping them, so far fewer rules count as "shown wider" and Hide
+  mode is safer.
+
+New:
+
+- **Implicits on every base** — Gold Ring `+6-15% Item Rarity`, Visceral Quiver
+  `+20-30% Attack Crit Chance` — read from the game's own data files. 52 of the
+  bases shipped have one; the rest genuinely have none.
+- **Chance cards show what you're chancing for**: the live price of the target
+  unique, with art for each possible outcome.
+- **Profiles export and import.** Importing previews the profile first and names,
+  in amber, everything it turns OFF — a shared profile can't quietly disable
+  Divine Orb and cost you loot.
+- **Preview**: click a rule to see why it's there and what it's worth, and diff
+  the current pickit against any backup.
+- **Economy → Top movers**: the 20 biggest 7-day swings across every category.
+- **Create your filter**: one click loads the pickit the bot is actually running.
+- **Settings**: Clear all saved backups.
+- A **weekly automated game-data check** watches for PoE2 patches renaming or
+  removing items, so data breaks get caught before they reach anyone's pickit.
+
+Polish:
+
+- **Debug** rebuilt around three plain-language actions instead of eight
+  technical buttons, and it no longer alarms you with old, long-fixed errors.
+- **Craft** and **Exceptional** lay out properly instead of one long column;
+  Exceptional groups bases as Str / Dex / Int columns with hybrids separate.
+- Browser popups (`127.0.0.1 says…`) replaced with proper in-app dialogs.
+- The **Setup guide** now describes every tab — Create your filter and Item
+  Check were never mentioned before.
+
+Data:
+
+- **Revelatory Wombgift removed** — it comes from combining Breach Splinters and
+  is spent on the tree, so it never drops on the ground and a pickup rule for it
+  could never fire.
+- **White Grand Regalia removed** from exceptional bases (owner decision). The
+  unique that uses that base is unaffected.
+
 ## [v4.37.0] — 2026-07-18 — Filters color by real value: the five-tier ladder
 
 Every filter the app writes — generated next to the pickit or converted from
@@ -1489,6 +1547,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.38.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.0
 [v4.37.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.37.0
 [v4.36.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.36.0
 [v4.35.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.35.2
