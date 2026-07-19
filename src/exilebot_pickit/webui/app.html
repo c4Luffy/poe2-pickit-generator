@@ -941,7 +941,7 @@
     <div class="field"><span class="lbl">Trade league</span>
       <div class="ctl"><select id="league" style="flex:1;padding:11px 12px"><option value="">Loading…</option></select> <button class="ghost mini" id="leagueRefresh" title="Re-fetch the league list (Ctrl+R)">⟳</button></div></div>
     <div class="field"><span class="lbl">Profile <span id="profHint" style="color:var(--dim);letter-spacing:0;text-transform:none;font-weight:400"></span></span>
-      <div class="ctl" style="flex-wrap:wrap"><select id="profSel" title="" style="flex:1;min-width:150px;max-width:230px;padding:11px 30px 11px 12px;text-overflow:ellipsis"><option value="">— no profile —</option></select> <button class="ghost mini" id="profSave" title="Save the current settings as a profile">Save as…</button><button class="ghost mini" id="profWhatBtn" title="See exactly what this profile turns on and off">What's in it?</button><button class="ghost mini" id="profExport" title="Save this profile to a file you can share or back up">Export</button><button class="ghost mini" id="profImport" title="Load a profile from a file — you see what it contains before adding it">Import</button><button class="ghost mini danger" id="profDel" title="Delete this profile">Delete</button></div></div>
+      <div class="ctl" style="flex-wrap:wrap"><select id="profSel" title="" style="flex:1;min-width:150px;max-width:230px;padding:11px 30px 11px 12px;text-overflow:ellipsis"><option value="" disabled>— no profile —</option></select> <button class="ghost mini" id="profSave" title="Save the current settings as a profile">Save as…</button><button class="ghost mini" id="profWhatBtn" title="See exactly what this profile turns on and off">What's in it?</button><button class="ghost mini" id="profExport" title="Save this profile to a file you can share or back up">Export</button><button class="ghost mini" id="profImport" title="Load a profile from a file — you see what it contains before adding it">Import</button><button class="ghost mini danger" id="profDel" title="Delete this profile">Delete</button></div></div>
   </div>
 
   <div class="presets">
@@ -1783,10 +1783,14 @@ $("lnkDiscord").onclick=()=>api().open_url("https://discord.gg/T7DU3Afve6");
 $("lnkSite").onclick=()=>api().open_url("https://exiled-bot.net/");
 
 /* keyboard: Ctrl+G generate · Ctrl+1..9 + Ctrl+0 switch tabs · Ctrl+F focus search.
-   TAB_ORDER mirrors the sidebar, so the number you press is the position you see.
-   Ctrl+0 is the 10th — without it, adding a tab would silently cost the last one
-   its shortcut. */
-const TAB_ORDER=["gen","prev","item","hist","eco","chance","craft","exc","fracture","rare"];
+   TAB_ORDER is READ OFF THE SIDEBAR, so the number you press is always the
+   position you see. It used to be a hand-written copy of the nav and it drifted:
+   "mypk" (Create your filter) was missing, so Ctrl+4 opened History — every
+   shortcut from 4 up was one tab off, and Create your filter had none at all.
+   Derive, don't duplicate. Ctrl+0 is the 10th; tabs past the tenth have no
+   shortcut (there are only ten digits). */
+const TAB_ORDER=Array.from(document.querySelectorAll(".nav-btn"))
+  .map(b=>b.dataset.p).filter(Boolean).slice(0,10);
 const PAGE_SEARCH={eco:"ecoSearch",prev:"prevFilter",craft:"craftSearch",
   chance:"chanceSearch",exc:"excSearch",fracture:"fracSearch"};   // per-tab search boxes
 document.addEventListener("keydown",e=>{
@@ -1934,7 +1938,12 @@ async function applyAutoFloor(){
   // Respect each section's chosen unit — convert the exalt floor into it. Only
   // fall back to Exalt if that unit's live rate isn't available yet.
   $("uAmt").value=Math.round(r.unique);$("gAmt").value=Math.round(r.gear);
+  // Assigning .value fires no "input" event, so the drag-track fills do NOT
+  // redraw on their own — updTracks() is why restoreFloors() and applyInfo()
+  // both call it after assigning. Without it the sliders sat frozen at empty
+  // next to a non-zero floor number every time Auto floor was switched on.
   api().set_setting("min_exalt_unique",uEx());api().set_setting("min_exalt_gear",gEx());
+  updTracks();
   $("autoHint").textContent=`Keeps top ${r.keep_pct}%: uniques ≥ ${r.unique} ex (${r.kept_unique}/${r.total_unique}), rest ≥ ${r.gear} ex (${r.kept_gear}/${r.total_gear}).`;}
 function setAutoPill(on){
   $("autoPill").textContent=on?"⚡ Auto floor is enabled":"⚡ Auto floor is off";
@@ -2276,7 +2285,15 @@ function _presetOff(){if(presetActive)renderPresets("");}
 /* ── profiles ── */
 async function loadProfiles(){
   const p=await api().profiles();const sel=$("profSel");
-  sel.innerHTML='<option value="">— no profile —</option>';
+  /* "— no profile —" is a PLACEHOLDER for "nothing loaded yet", not an action.
+     The bridge has no way to clear active_profile (profile_delete is the only
+     thing that ever blanks it), so picking it did literally nothing: the box
+     went blank while the hint still read "Active: <name>", and the next
+     loadProfiles() snapped it back. Disabled = it still labels the empty state
+     honestly but can no longer be chosen. Loading a profile changes settings;
+     "unloading" one has no defined meaning — your settings would stay put
+     anyway, which is exactly what Delete already tells you. */
+  sel.innerHTML='<option value="" disabled>— no profile —</option>';
   for(const n of p.names){const o=document.createElement("option");o.value=o.textContent=n;sel.appendChild(o);}
   sel.value=p.active||"";
   $("profHint").textContent=p.active?`Active: ${p.active}`:"";
@@ -2329,7 +2346,10 @@ $("profWhatBtn").onclick=async()=>{
     ok:"Close",hideCancel:true});};
 $("profSel").onchange=async()=>{const n=$("profSel").value;
   $("profSel").title=n||"";
-  if(!n)return;
+  // The blank entry is disabled, so this shouldn't fire — if some browser lets
+  // it through, resync the box to what the backend actually has active instead
+  // of leaving it showing a blank that contradicts the "Active:" hint.
+  if(!n)return loadProfiles();
   const r=await api().profile_load(n);
   if(r.ok){info=r.info;applyInfo(info);eco=null;
     $("profHint").textContent="Active: "+n;$("profHint").title=n;
@@ -2367,7 +2387,16 @@ $("profDel").onclick=async()=>{const n=$("profSel").value;if(!n)return toast("Pi
 
 /* ── economy ── */
 let ecoUnit="ex",chaosEx=0;
+/* One price load at a time. Without this a second entry could start a second
+   poll loop against the same worker; combined with the leak below that was how
+   the bridge ended up being hit several times per 250ms. The flag is cleared in
+   a finally, so a thrown load can always be retried (Refresh prices / re-open). */
+let _ecoLoading=false;
 async function loadEco(){
+  if(_ecoLoading)return;
+  _ecoLoading=true;
+  try{await _loadEco();}finally{_ecoLoading=false;}}
+async function _loadEco(){
   if(!$("league").value){$("ecoInfo").textContent="Pick a league on the Generate tab first.";
     $("ecoChips").innerHTML="";$("ecoBody").innerHTML='<tr><td colspan="5" class="hint" style="padding:16px">No league selected yet — choose one on the Generate tab and prices will load here.</td></tr>';
     return;}
@@ -2375,12 +2404,26 @@ async function loadEco(){
   const started=await api().economy_start($("league").value);
   if(started&&started.error&&started.error!=="already running"){
     $("ecoInfo").textContent="✗ "+started.error;return;}
+  /* The interval MUST die on EVERY exit path. This used to await the bridge
+     BEFORE clearInterval, so a single rejected or undefined poll aborted the
+     callback mid-way: the timer was never cleared and the promise never
+     resolved. The tab hung on "Loading prices…" forever, and because `eco`
+     stays null, every return to the Economy tab started ANOTHER immortal timer
+     hammering the bridge every 250ms — only restarting the app recovered.
+     Now the timer is cleared first and every failure resolves to an error
+     object, which the caller below turns into a retryable message. */
   eco=await new Promise(res=>{
+    const done=v=>{clearInterval(iv);res(v);};
     const iv=setInterval(async()=>{
-      const p=await api().economy_poll();
-      if(!p.running){clearInterval(iv);res(p.result);}
+      let p;
+      try{p=await api().economy_poll();}
+      catch(err){done({error:"lost contact with the price loader ("+((err&&err.message)||err)+")"});return;}
+      if(!p||typeof p!=="object"){done({error:"the price loader stopped responding"});return;}
+      if(!p.running)done(p.result||{error:"the price load finished without returning any prices"});
     },250);});
-  if(eco.error){$("ecoInfo").textContent="✗ "+eco.error+" — check your connection and Refresh prices.";eco=null;return;}
+  if(!eco||eco.error){
+    $("ecoInfo").textContent="✗ "+((eco&&eco.error)||"couldn't load prices")+" — check your connection and Refresh prices.";
+    eco=null;return;}
   if(eco.divine_rate)setDivRate(eco.divine_rate);
   api().chaos_ex($("league").value).then(r=>{chaosEx=r.ex||0;if(ecoUnit==="chaos")renderEco();});
   const st=$("ecoStale");

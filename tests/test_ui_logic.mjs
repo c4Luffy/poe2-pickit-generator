@@ -56,6 +56,30 @@ function pull(name) {
   return script.slice(from, j);
 }
 
+// `pull` can't see `async function f(){...}` (its regex expects `function` right after the
+// newline). These fixes live in async functions, so brace-match them directly.
+function pullFn(name) {
+  const m = script.match(new RegExp(`(^|\\n)\\s*(?:async\\s+)?function\\s+${name}\\s*\\(`));
+  assert.ok(m, `function ${name} not found in app.html`);
+  const kw = script.indexOf("function", m.index);
+  const from = script.startsWith("async", kw - 6) ? kw - 6 : kw;   // keep the `async `
+  let j = script.indexOf("{", script.indexOf("(", kw)), depth = 0, q = null, prev = "";
+  for (; j < script.length; j++) {
+    const c = script[j];
+    if (q) { if (c === q && prev !== "\\") q = null; }
+    else if (c === "'" || c === '"' || c === "`") q = c;
+    else if (c === "/" && script[j + 1] === "/") j = script.indexOf("\n", j);
+    else if (c === "{") depth++;
+    else if (c === "}" && --depth === 0) { j++; break; }
+    prev = c;
+  }
+  return script.slice(from, j);
+}
+
+// A DOM element stub good enough for the code under test to write into.
+const mkEl = () => ({ value: "", textContent: "", innerHTML: "", title: "", style: {},
+  classList: { add() {}, remove() {}, toggle() {}, contains: () => false } });
+
 // Build a sandbox with the given globals, define the named functions in it, return it.
 function load(names, globals = {}) {
   const ctx = vm.createContext({ Math, ...globals });
@@ -155,6 +179,101 @@ function test(label, fn) {
   test("floorMax is one divine when the rate is loaded, else the 100 ex fallback", () => {
     assert.equal(load(["floorMax"], { divRate: 424 }).floorMax(), 424);
     assert.equal(load(["floorMax"], { divRate: 0 }).floorMax(), 100);
+  });
+}
+
+// ── TAB_ORDER: Ctrl+1..0 must select the tab at that position in the sidebar ─────────────
+{
+  const navOrder = [...html.matchAll(/class="nav-btn[^"]*"\s+data-p="([a-z]+)"/g)].map(m => m[1]);
+  const expr = script.match(/const TAB_ORDER=([\s\S]*?);\r?\n/)[1];
+  const ctx = vm.createContext({
+    document: { querySelectorAll: () => navOrder.map(p => ({ dataset: { p } })) } });
+  const TAB_ORDER = vm.runInContext(expr, ctx);
+
+  test("TAB_ORDER is read off the sidebar, never a hand-copied list", () => {
+    assert.ok(/querySelectorAll/.test(expr),
+      "TAB_ORDER must be derived from the nav markup — a hardcoded copy drifts");
+    assert.ok(navOrder.length >= 10);
+  });
+  test("Ctrl+N opens the Nth sidebar tab (the omitted-'mypk' off-by-one)", () => {
+    assert.equal(navOrder[3], "mypk");        // 4th thing you see = Create your filter
+    assert.equal(TAB_ORDER[3], "mypk");       // …so Ctrl+4 must open it, not History
+    for (let i = 0; i < TAB_ORDER.length; i++) assert.equal(TAB_ORDER[i], navOrder[i]);
+    assert.equal(TAB_ORDER.length, 10);       // Ctrl+1..9 + Ctrl+0
+  });
+}
+
+// ── applyAutoFloor: the slider FILLS must follow the numbers it writes ───────────────────
+{
+  const els = {};
+  const $ = (id) => (els[id] ||= mkEl());
+  let tracks = 0;
+  const ctx = vm.createContext({ Math, $, updTracks: () => tracks++,
+    uEx: () => 12, gEx: () => 34,
+    api: () => ({ set_setting: async () => ({ ok: true }),
+      suggest_floors: async () => ({ unique: 12, gear: 34, keep_pct: 40,
+        kept_unique: 1, total_unique: 2, kept_gear: 3, total_gear: 4 }) }) });
+  vm.runInContext(pullFn("applyAutoFloor"), ctx);
+  await ctx.applyAutoFloor();
+
+  test("applyAutoFloor redraws the drag-track fills, not just the numbers", () => {
+    assert.equal(els.uAmt.value, 12);
+    assert.equal(els.gAmt.value, 34);
+    assert.ok(tracks >= 1, "updTracks() never ran — sliders freeze beside a live number");
+  });
+}
+
+// ── _loadEco: the 250ms poll interval must die on every exit path ────────────────────────
+// The old loop awaited the bridge BEFORE clearInterval, so one bad poll orphaned the timer
+// AND hung the promise: "Loading prices…" forever, plus a new immortal timer per visit.
+{
+  const run = async (poll) => {
+    const els = {}, liveTimers = new Set();
+    els.league = mkEl(); els.league.value = "Fate of the Vaal";
+    const ctx = vm.createContext({
+      Math, $: (id) => (els[id] ||= mkEl()), eco: null, ecoCat: null, ecoUnit: "ex", chaosEx: 0,
+      setDivRate() {}, renderChips() {}, renderEco() {},
+      api: () => ({ economy_start: async () => ({ ok: true }), economy_poll: poll,
+        chaos_ex: async () => ({ ex: 0 }) }),
+      setInterval: (fn, ms) => { const h = setInterval(fn, ms); liveTimers.add(h); return h; },
+      clearInterval: (h) => { liveTimers.delete(h); clearInterval(h); } });
+    vm.runInContext(pullFn("_loadEco"), ctx);
+    await ctx._loadEco();                      // must RESOLVE — hanging here is the bug
+    return { els, liveTimers, eco: ctx.eco };
+  };
+
+  const thrown = await run(async () => { throw new Error("bridge died"); });
+  test("a rejected economy_poll clears its interval and reports a retryable error", () => {
+    assert.equal(thrown.liveTimers.size, 0, "the 250ms poll interval leaked");
+    assert.equal(thrown.eco, null, "eco must stay null so re-opening the tab retries");
+    assert.ok(/bridge died/.test(thrown.els.ecoInfo.textContent));
+    assert.ok(/Refresh prices/.test(thrown.els.ecoInfo.textContent));
+  });
+
+  const empty = await run(async () => undefined);
+  test("an undefined economy_poll clears its interval instead of hanging forever", () => {
+    assert.equal(empty.liveTimers.size, 0, "the 250ms poll interval leaked");
+    assert.equal(empty.eco, null);
+    assert.ok(empty.els.ecoInfo.textContent.startsWith("✗"));
+  });
+
+  const noResult = await run(async () => ({ running: false, result: null }));
+  test("a finished-but-empty price load still ends the loop with an error", () => {
+    assert.equal(noResult.liveTimers.size, 0);
+    assert.equal(noResult.eco, null);
+    assert.ok(/without returning any prices/.test(noResult.els.ecoInfo.textContent));
+  });
+}
+
+// ── the profile dropdown's blank entry must not pretend to be an action ──────────────────
+{
+  test("'— no profile —' is disabled (the bridge has no way to clear active_profile)", () => {
+    // Two copies exist: the initial markup and the one loadProfiles() rebuilds.
+    const opts = [...html.matchAll(/<option value=""([^>]*)>— no profile —<\/option>/g)];
+    assert.equal(opts.length, 2, "expected the markup + the loadProfiles() rebuild");
+    for (const o of opts)
+      assert.ok(/\bdisabled\b/.test(o[1]),
+        "the placeholder must be disabled — selecting it did nothing and snapped back");
   });
 }
 
