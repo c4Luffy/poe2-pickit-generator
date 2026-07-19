@@ -6,6 +6,20 @@ download lives.
 
 ---
 
+## [v4.38.2] — 2026-07-19 — An update announcement that actually says something
+
+- **"What's new" no longer shows a bare link and nothing else.** When a release
+  is published before its notes are attached, GitHub fills the body with a lone
+  `Full Changelog: <compare url>`. The updater stashes that body at download
+  time and the dialog prefers the stash over the highlights bundled in the exe,
+  so the announcement was a version heading and one URL. A stashed body now has
+  to contain actual prose to be used — strip the changelog line, bare URLs,
+  headings and bullets, and if nothing survives, fall back to the bundled
+  highlights. Genuinely short notes still win; the test is "is there anything
+  at all", not "is there enough".
+
+---
+
 ## [v4.38.1] — 2026-07-19 — Exceptional tab uses its full width
 
 - **Shields and Foci no longer render into a third of the page.** Every
@@ -1559,6 +1573,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.38.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.2
 [v4.38.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.1
 [v4.38.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.0
 [v4.37.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.37.0
