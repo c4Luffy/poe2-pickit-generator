@@ -610,3 +610,68 @@ def test_disabled_currency_not_resurrected_by_always_names():
     active = [l for l in out.splitlines()
               if "Exalted Orb" in l and l.lstrip().startswith("[")]
     assert not active, "always_names resurrected an explicitly disabled item"
+
+
+def test_special_items_keep_ignore_ritual_when_ninja_prices_them():
+    """The three Special Items exist to be grabbed during a Ritual WITHOUT
+    spending tribute. When poe.ninja also prices one, the economy force-branch
+    emits it instead of build_special_item_rules — and used to write a bare
+    [StashItem], so the bot paid tribute for An Audience with the King."""
+    name = gen.SPECIAL_ITEMS[0]
+    payload = {"core": {"rates": {"exalted": 1.0}},
+               "items": [{"id": "x", "name": name}],
+               "lines": [{"id": "x", "primaryValue": 50.0}]}
+    out = gen.build_exchange_lines(payload, 1.0, min_exalt=10.0,
+                                   force_names=set(gen.always_pick_force_names()))
+    rule = next(ln for ln in out if name in ln)
+    assert '[IgnoreRitual] == "true"' in rule, rule
+    # and it must match what the static builder would have written
+    static = next(ln for ln in gen.build_special_item_rules(set()) if name in ln)
+    assert rule.split("//")[0].strip() == static.strip()
+
+
+def test_unique_report_never_claims_a_rule_the_pickit_lacks():
+    """The CSV report and the .ipd must agree. The anvil guard was added to
+    build_unique_lines but not to the report, so the report claimed hundreds of
+    uniques were included that are nowhere in the pickit."""
+    payload = {"core": {"rates": {"exalted": 1.0}},
+               "lines": [
+                   {"name": "Some Unique", "baseType": "Runemastered Silk Robe",
+                    "primaryValue": 100.0},
+                   {"name": "Some Unique", "baseType": "Silk Robe",
+                    "primaryValue": 100.0},
+               ]}
+    rules = gen.build_unique_lines(payload, 1.0, min_exalt=0.0)
+    rows = gen.collect_unique_report_rows("unique_armours", payload, 1.0, 0.0)
+    included = [r for r in rows if str(r["included"]).lower() in ("yes", "true", "1")]
+    assert len(included) == len(rules) == 1
+    assert included[0]["base_type"] == "Silk Robe"
+    anvil_row = next(r for r in rows if r["base_type"].startswith("Runemastered"))
+    assert str(anvil_row["included"]).lower() in ("no", "false", "0")
+
+
+def test_loot_filter_keeps_the_item_level_gate():
+    """The .filter written beside a pickit dropped every [ItemLevel], so it showed
+    low-level bases the pickit ignores — and disagreed with the .filter produced by
+    importing that same pickit through Create your filter."""
+    rule = ('[Type] == "Soldier Cuirass" && [Rarity] == "Normal" '
+            '&& [ItemLevel] >= "82" # [StashItem] == "true"')
+    out = "\n".join(gen.build_loot_filter([rule]))
+    assert "ItemLevel >= 82" in out
+    assert 'BaseType == "Soldier Cuirass"' in out
+
+
+def test_loot_filter_does_not_merge_different_item_levels():
+    """Two bases gated at different ilvls must not land in one block — that would
+    hand one of them the other's gate."""
+    rules = [
+        '[Type] == "A Base" && [Rarity] == "Normal" && [ItemLevel] >= "82" # [StashItem] == "true"',
+        '[Type] == "B Base" && [Rarity] == "Normal" && [ItemLevel] >= "79" # [StashItem] == "true"',
+    ]
+    body = "\n".join(gen.build_loot_filter(rules))
+    blocks = [b for b in body.split("Show") if "BaseType" in b]
+    for b in blocks:
+        if '"A Base"' in b:
+            assert "ItemLevel >= 82" in b and '"B Base"' not in b
+        if '"B Base"' in b:
+            assert "ItemLevel >= 79" in b

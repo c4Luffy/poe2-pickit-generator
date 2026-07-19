@@ -829,7 +829,12 @@ class AppApi:
         # hand-flipping every switch means no preset's promise still holds
         self.cfg["active_preset"] = ""
         save_config(self.cfg)
-        self._all_on_undo = undo
+        # Keep the FIRST snapshot. A second click snapshots the all-on state, so
+        # overwriting here made "Put my switches back" restore all-on — the very
+        # curation this undo exists to protect was gone after two clicks. The
+        # snapshot is cleared by undo_all_on(), so the next All ON captures afresh.
+        if getattr(self, "_all_on_undo", None) is None:
+            self._all_on_undo = undo
         # "changed" drives the undo button: floors/auto-floor can change even
         # when no switch flipped, and that still needs a way back.
         f = undo["flags"]
@@ -1592,7 +1597,9 @@ class AppApi:
                 stamp = time.strftime("%Y%m%d-%H%M%S")
                 shutil.copy2(ipd, os.path.join(bdir, f"{base}-{stamp}.ipd"))
             shutil.copy2(src, ipd)
-            with open(ipd, encoding="utf-8") as f:
+            # Read AFTER the copy already happened, so a decode error here would
+            # report failure on a restore that actually succeeded.
+            with open(ipd, encoding="utf-8", errors="replace") as f:
                 content = f.read()
             self._last_lines = content.splitlines()   # Preview shows the restored file
             copied = False
@@ -2138,7 +2145,12 @@ class AppApi:
             added, removed = [], []
             try:
                 if os.path.isfile(ipd):
-                    with open(ipd, encoding="utf-8") as f:
+                    # errors="replace": a hand-edited or ANSI .ipd sitting in the
+                    # output folder used to raise UnicodeDecodeError here, which
+                    # is a ValueError — NOT caught by the OSError guard below. It
+                    # aborted the whole generate BEFORE the write, so the bad file
+                    # was never replaced and every later run failed identically.
+                    with open(ipd, encoding="utf-8", errors="replace") as f:
                         prev_ids = asm.active_rule_ids(f.read().splitlines())
                     new_ids = asm.active_rule_ids(out)
                     added   = sorted(new_ids - prev_ids)[:8]
@@ -2342,7 +2354,8 @@ class AppApi:
         # fall back to the last file on disk so Preview works right after launch
         base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
         try:
-            with open(os.path.join(OUTPUT_DIR, base + ".ipd"), encoding="utf-8") as f:
+            with open(os.path.join(OUTPUT_DIR, base + ".ipd"),
+                      encoding="utf-8", errors="replace") as f:
                 return f.read().splitlines()
         except OSError:
             return []

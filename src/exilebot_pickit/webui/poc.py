@@ -109,8 +109,25 @@ def main():
     _start_freeze_watchdog()
     api = AppApi()
     geo = api.cfg.get("window_geometry_web") or {}
-    w = int(geo.get("w", 1120)) if isinstance(geo, dict) else 1120
-    h = int(geo.get("h", 860)) if isinstance(geo, dict) else 860
+
+    def _dim(key, default):
+        """A saved size that isn't a number must not stop the app from opening.
+
+        _coerce_types only checks that window_geometry_web is a dict, so a bad
+        INNER value (a string, None) survived a config load and raised here —
+        before the window existed, so there was no error dialog and no window,
+        on every launch, with no way for the user to see why.
+        """
+        if not isinstance(geo, dict):
+            return default
+        try:
+            v = int(geo.get(key, default))
+        except (TypeError, ValueError):
+            return default
+        return v if v > 0 else default
+
+    w = _dim("w", 1120)
+    h = _dim("h", 860)
     pos = _saved_position(geo)
     # Clamp to the primary screen so the window never opens taller/wider than
     # the desktop (default 860px is too tall for a 1366x768 laptop).

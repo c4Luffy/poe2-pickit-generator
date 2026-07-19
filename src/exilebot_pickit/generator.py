@@ -608,6 +608,10 @@ _LF_QUALITY_RE  = re.compile(r'\[Quality\]\s*>=\s*"(\d+)"')
 _LF_SOCKETS_RE  = re.compile(r'\[Sockets\]\s*>=\s*"(\d+)"')
 _LF_SOCKETS_GT_RE = re.compile(r'\[Sockets\]\s*>\s*"(\d+)"')
 _LF_CATEGORY_RE = re.compile(r'\[Category\]\s*==\s*"(\w+)"')
+# [ItemLevel] is a pre-pickup gate the game filter CAN express. Dropping it made
+# the .filter written beside a pickit show every low-level base the pickit
+# ignores — and disagree with the .filter you get by importing that same pickit.
+_LF_ILVL_RE     = re.compile(r'\[ItemLevel\]\s*>=\s*"(\d+)"')
 # Any bot pickup action — an item the filter MUST show so the bot can path to
 # it. Previously only [StashItem] rules were shown, which HID items the bot
 # wanted to salvage / stash-unid (reported by the community). The bot decides
@@ -700,6 +704,9 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None,
             mq = _LF_QUALITY_RE.search(line)
             if mq:
                 conds.append(f"Quality >= {mq.group(1)}")
+            mi = _LF_ILVL_RE.search(line)
+            if mi:
+                conds.append(f"ItemLevel >= {mi.group(1)}")
             if conds:
                 generic.append((kind, conds))
             continue
@@ -709,10 +716,12 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None,
         mq = _LF_QUALITY_RE.search(line)
         ms = _LF_SOCKETS_RE.search(line)
         msg = _LF_SOCKETS_GT_RE.search(line)
+        mi = _LF_ILVL_RE.search(line)
         rarity = mr.group(1) if mr else None
         quality = int(mq.group(1)) if mq else None
         sockets = int(ms.group(1)) if ms else (int(msg.group(1)) + 1 if msg else None)
-        named_groups.setdefault((kind, rarity, quality, sockets), []).append(name)
+        ilvl = int(mi.group(1)) if mi else None
+        named_groups.setdefault((kind, rarity, quality, sockets, ilvl), []).append(name)
 
     out: list = [
         "# Path of Exile 2 Filter - Generated from IPD",
@@ -736,15 +745,16 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None,
         return filter_theme_style(theme, kind)
 
     def _group_key(key):
-        kind, rarity, quality, sockets = key
+        kind, rarity, quality, sockets, ilvl = key
         return (filter_visual_sort_key(kind), rarity or "",
                 -1 if quality is None else quality,
-                -1 if sockets is None else sockets)
+                -1 if sockets is None else sockets,
+                -1 if ilvl is None else ilvl)
 
     # Strongest block first: duplicate bases shared by multiple rules keep the
     # highest available visual importance because the game takes first match.
     for key in sorted(named_groups, key=_group_key):
-        kind, rarity, quality, sockets = key
+        kind, rarity, quality, sockets, ilvl = key
         extra = []
         if rarity:
             extra.append(f"Rarity = {rarity}")
@@ -752,6 +762,8 @@ def build_loot_filter(ipd_lines, generated_iso: str | None = None,
             extra.append(f"Quality >= {quality}")
         if sockets is not None:
             extra.append(f"Sockets >= {sockets}")
+        if ilvl is not None:
+            extra.append(f"ItemLevel >= {ilvl}")
         out += _lf_show_blocks(named_groups[key], extra, style_lines=_st(kind))
 
     # Condition-only rules keep their section style and are de-duplicated by
@@ -883,8 +895,20 @@ def build_exchange_lines(
             for name, ev, _ in rows
         ]
     else:
+        # A forced name that poe.ninja also prices is emitted HERE instead of by
+        # its static builder, so it has to carry that builder's action too. The
+        # Special Items exist to be picked up during a Ritual without spending
+        # tribute — dropping [IgnoreRitual] here made the bot buy them back.
+        _RITUAL = ' && [IgnoreRitual] == "true"'
+        _special = set(SPECIAL_ITEMS)
+
+        def _forced_rule(name, ev):
+            ritual = _RITUAL if name in _special else ""
+            return (f'[Type] == "{_quote_ipd(name)}" # [StashItem] == "true"{ritual}'
+                    f' // ExValue = {ev:.2f} (always pick)')
+
         result = [
-            (f'[Type] == "{_quote_ipd(name)}" # [StashItem] == "true" // ExValue = {ev:.2f} (always pick)'
+            (_forced_rule(name, ev)
              if name in force else
              format_rule(name, ev, dv, min_exalt=min_exalt, ritual_threshold=ritual_threshold))
             for name, ev, dv in rows
@@ -1104,6 +1128,13 @@ def collect_unique_report_rows(label: str, payload: dict, divine_rate_exalts: fl
             continue
         pv = float(line.get("primaryValue") or 0.0)
         ev = pv * rate if rate else pv
+        # Mirror build_unique_lines: an anvil-only base never drops, so no rule
+        # is emitted for it. Without this the report claimed hundreds of uniques
+        # were "included" that are nowhere in the .ipd.
+        if is_anvil_only_base(base_type):
+            rows.append(make_report_row(label, name, base_type, pv, ev, threshold,
+                                        False, "anvil-only base (Runeforged/Runemastered) never drops"))
+            continue
         key = (name, base_type)
         if key in seen:
             rows.append(make_report_row(label, name, base_type, pv, ev, threshold,

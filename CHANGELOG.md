@@ -6,6 +6,39 @@ download lives.
 
 ---
 
+## [v4.38.4] — 2026-07-19 — Six bugs found by a full audit of the app
+
+Five parallel audits covered the rule engine, the Python↔JS bridge and config,
+the UI, the game-data layer and the filter writers. Every fix below was
+reproduced before and verified after, against live poe.ninja data.
+
+- **The bot no longer spends Ritual tribute on Special Items.** When poe.ninja
+  prices one of the three (An Audience with the King, Expedition Logbook,
+  Kulemak's Invitation), the economy section emits it instead of the Special
+  Items builder — and it wrote the rule *without* `[IgnoreRitual]`, the one flag
+  those three exist to carry. Forced rules now carry their builder's action.
+- **The `.filter` written beside your pickit keeps its item-level gates.** All
+  262 `[ItemLevel]` conditions were dropped, so 68 base types showed from act 1
+  onward, and that filter disagreed with the one **Create your filter** produces
+  from the same pickit. Verified: 0 disagreements across 1,123 base names.
+- **Clicking "Turn everything on" twice no longer destroys the undo.** The
+  second click overwrote the snapshot with the already-on state, so "Put my
+  switches back" restored all-on and your floors were gone. The first snapshot
+  is now kept until it is used.
+- **The item report no longer lists uniques the pickit doesn't contain.** The
+  anvil guard added in 4.38.3 reached the rule builder but not the report, which
+  claimed 440 uniques "included" where the file held 227. Excluded rows now say
+  why.
+- **A hand-edited or ANSI `.ipd` no longer breaks generating forever.** The
+  added/removed diff read it as UTF-8; `UnicodeDecodeError` is a `ValueError`,
+  not an `OSError`, so it escaped the guard and aborted the run *before* the
+  write — leaving the bad file in place so every later run failed identically.
+- **A bad saved window size no longer stops the app from opening.** Only the
+  outer type was validated, so a non-numeric width raised before the window
+  existed: no window, no message, on every launch.
+
+---
+
 ## [v4.38.3] — 2026-07-19 — A unique on an anvil-only base no longer makes a dead rule
 
 - **Uniques priced on a Runeforged/Runemastered base are skipped instead of
@@ -1596,6 +1629,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.38.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.4
 [v4.38.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.3
 [v4.38.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.2
 [v4.38.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.1

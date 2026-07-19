@@ -1257,3 +1257,55 @@ def test_clear_backups_only_removes_this_pickits_rotated_copies(api, tmp_path):
     assert (tmp_path / "t.ipd").read_text(encoding="utf-8") == "live pickit"
 
     assert api.clear_backups()["removed"] == 0      # idempotent
+
+
+def test_all_on_twice_still_restores_the_original_switches(api):
+    """A second "Turn everything on" used to overwrite the undo snapshot with the
+    already-all-on state, so "Put my switches back" restored all-on — destroying
+    exactly the curation the undo exists to protect."""
+    api.cfg.update({"min_exalt_gear": 12.0, "min_exalt_unique": 90.0,
+                    "auto_floor": True, "base_quality": 24, "base_min_level": 82,
+                    "item_states": {"currency": {"Chaos Orb": False}}})
+    before = {k: api.cfg[k] for k in
+              ("min_exalt_gear", "min_exalt_unique", "auto_floor",
+               "base_quality", "base_min_level")}
+
+    api.enable_all_rules()
+    api.enable_all_rules()                      # the second click
+    assert api.cfg["min_exalt_gear"] == 0.0     # all-on really applied
+
+    api.undo_all_on()
+    after = {k: api.cfg[k] for k in before}
+    assert after == before, f"undo lost the original settings: {after} != {before}"
+    assert api.cfg["item_states"]["currency"]["Chaos Orb"] is False
+
+
+def test_all_on_snapshot_is_recaptured_after_an_undo(api):
+    """Holding the first snapshot must not freeze it forever — once undone, the
+    next All ON has to capture the CURRENT state."""
+    api.cfg.update({"min_exalt_gear": 5.0, "item_states": {}, "category_enabled": {}})
+    api.enable_all_rules()
+    api.undo_all_on()
+    assert api.cfg["min_exalt_gear"] == 5.0
+
+    api.cfg["min_exalt_gear"] = 33.0            # user picks a new floor
+    api.enable_all_rules()
+    api.undo_all_on()
+    assert api.cfg["min_exalt_gear"] == 33.0, "second All ON reused a stale snapshot"
+
+
+def test_a_non_utf8_pickit_does_not_break_generating(api, tmp_path):
+    """A hand-edited/ANSI .ipd in the output folder raised UnicodeDecodeError in
+    the added/removed diff. That is a ValueError, not an OSError, so it escaped
+    the guard and aborted the run BEFORE the write — leaving the bad file in
+    place so every later run failed the same way."""
+    (tmp_path / "t.ipd").write_bytes(
+        '[Type] == "Caf\xe8 Orb" # [StashItem] == "true"\r\n'.encode("cp1252"))
+
+    api._generate("L", 5, 20)
+
+    d = api._status["done"]
+    assert d and d["ok"], f"generate aborted on a non-UTF-8 pickit: {d}"
+    written = (tmp_path / "t.ipd").read_text(encoding="utf-8")
+    assert "[StashItem]" in written                     # really replaced
+    assert api.preview()                                # preview survives it too
