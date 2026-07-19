@@ -1533,6 +1533,27 @@ class AppApi:
                 "added_total": len(added), "removed_total": len(removed),
                 "cur_total": len(cur), "old_total": len(old)}
 
+    def clear_backups(self):
+        """Delete every rotated .ipd backup for the current output name.
+
+        Only touches files this app wrote (``<output_base>-<stamp>.ipd`` inside
+        the backups folder) — never the live pickit, and never anything else in
+        there. The next Generate starts the rotation again."""
+        base = (self.cfg.get("output_base") or "poe2_pickit").strip() or "poe2_pickit"
+        bdir = os.path.join(OUTPUT_DIR, "backups")
+        removed = 0
+        try:
+            for f in os.listdir(bdir):
+                if f.startswith(base + "-") and f.endswith(".ipd"):
+                    try:
+                        os.remove(os.path.join(bdir, f))
+                        removed += 1
+                    except OSError:
+                        pass
+        except OSError:
+            return {"removed": 0}
+        return {"removed": removed}
+
     def restore_backup(self, name):
         """Make a rotated backup the current pickit again. The pickit being
         replaced is itself backed up first, so a restore never loses anything."""

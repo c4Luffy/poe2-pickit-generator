@@ -1205,3 +1205,23 @@ def test_item_check_quality_white_base_is_picked_like_the_plain_one(api):
     r = api.check_item(body, "")          # no league -> no network
     assert r["item"]["base"] == "Soldier Cuirass"
     assert any(row["kind"] == "pick" for row in r["rows"]), r["rows"]
+
+
+def test_clear_backups_only_removes_this_pickits_rotated_copies(api, tmp_path):
+    """The Clear-all button must never touch the live pickit, another profile's
+    backups, or unrelated files that happen to live in the backups folder."""
+    bdir = tmp_path / "backups"
+    bdir.mkdir()
+    (bdir / "t-20260719-010000.ipd").write_text("a", encoding="utf-8")
+    (bdir / "t-20260719-020000.ipd").write_text("b", encoding="utf-8")
+    (bdir / "other-20260719-030000.ipd").write_text("c", encoding="utf-8")  # different output name
+    (bdir / "notes.txt").write_text("keep me", encoding="utf-8")
+    (tmp_path / "t.ipd").write_text("live pickit", encoding="utf-8")
+
+    r = api.clear_backups()
+    assert r["removed"] == 2
+    left = sorted(p.name for p in bdir.iterdir())
+    assert left == ["notes.txt", "other-20260719-030000.ipd"]
+    assert (tmp_path / "t.ipd").read_text(encoding="utf-8") == "live pickit"
+
+    assert api.clear_backups()["removed"] == 0      # idempotent

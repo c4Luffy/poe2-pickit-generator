@@ -517,7 +517,8 @@
   .attr-col{display:flex;flex-direction:column;gap:8px;min-width:0}
   .attr-col .bcard{margin:0}
   .craft-layout{display:flex;gap:16px;align-items:flex-start}
-  .set-sec{display:none}.set-sec.on{display:block}
+  .set-sec{display:none}.set-sec.on{display:block;max-width:820px}
+  .set-sec .card{max-width:820px}
   .cside-btn .st{margin-left:auto;font-size:11px;font-weight:700}
   .craft-layout .grid,.craft-layout>#excGrid{flex:1;min-width:0}
   .craft-side{flex:0 0 172px;position:sticky;top:12px;display:flex;flex-direction:column;gap:2px}
@@ -1585,7 +1586,7 @@
       <div class="set-row"><div class="lab"><b>Restore a backup</b>
         <span>Replaces the current .ipd — the one being replaced is backed up first.</span></div>
         <div class="sp"></div>
-        <button class="ghost mini" id="bakRefresh">↻ Refresh list</button></div>
+        <button class="ghost mini" id="bakRefresh">↻ Refresh list</button><button class="ghost mini danger" id="bakClear" title="Delete every saved backup of this pickit">🗑 Clear all</button></div>
       <div id="bakList" class="hint" style="margin:2px 0 4px"></div>
       <div class="set-row"><div class="lab"><b>Backup your settings</b>
         <span>Floors, toggles, profiles, exclusions — one file, movable to another PC.</span></div>
@@ -3932,6 +3933,17 @@ async function loadBackups(){
     toast(`✓ Restored — ${(r.active||0).toLocaleString()} active rules${r.copied?" · copied to bot":""}`);
     loadBackups();});}
 $("bakRefresh").onclick=loadBackups;
+$("bakClear").onclick=async()=>{
+  const n=(await api().list_backups()).length;
+  if(!n)return toast("No backups to clear");
+  if(!await askConfirm("Clear backups",
+    `Delete all <b>${n}</b> saved backup${n>1?"s":""} of this pickit?<br>`
+    +"Your current pickit is not touched — only the rotated copies. "
+    +"The next Generate starts the rotation again.",
+    {ok:"Delete",danger:true}))return;
+  const r=await api().clear_backups();
+  await loadBackups();
+  toast(`🗑 Cleared ${r.removed} backup${r.removed===1?"":"s"}`);};
 /* settings export / import */
 $("cfgExport").onclick=async()=>{
   const r=await api().export_settings();
