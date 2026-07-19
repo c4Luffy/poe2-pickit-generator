@@ -1251,8 +1251,17 @@ def main():
     # Fetch all non-currency categories in parallel (currency already cached above)
     non_currency_cats = [(k, t, l, u) for k, t, l, u in categories if k != "currency"]
     print(f"Fetching {len(non_currency_cats)} categories in parallel…")
-    all_payloads = fetch_all_payloads(league, non_currency_cats)
+    # stale_out: when poe.ninja can't be reached, fetch_all_payloads silently
+    # falls back to the disk copy — which prune_disk_cache keeps for up to 60
+    # days. Without collecting the stale set, two months of drift shipped as
+    # "today's prices" with nothing printed at all. The GUI already passes this.
+    stale: set = set()
+    all_payloads = fetch_all_payloads(league, non_currency_cats, stale_out=stale)
     all_payloads["currency"] = currency_payload
+    if stale:
+        print(f"Warning: poe.ninja unreachable for {len(stale)} categor"
+              f"{'y' if len(stale) == 1 else 'ies'} — used the cached copy on disk, "
+              f"which may be days old: {', '.join(sorted(stale))}", file=sys.stderr)
 
     for key, _ninja_type, label, is_unique in categories:
         payload = all_payloads.get(key)

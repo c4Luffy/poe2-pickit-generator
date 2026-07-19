@@ -136,3 +136,46 @@ def test_build_category_lines_currency_pick_all():
 def test_build_category_lines_waystones_ignores_payload():
     lines = asm.build_category_lines("waystones", False, {}, 1.0, 0.0, 5.0, None)
     assert lines == gen.build_waystone_lines()
+
+
+def test_price_alerts_record_uniques_not_just_items_table_categories():
+    """Unique payloads ship items: [] and carry the name on the LINE — the same
+    reason build_unique_lines reads the line directly. compute_price_alerts
+    required an items-table entry, so all 7 unique categories recorded ZERO
+    prices: Mageblood could double and Top movers stayed empty, permanently,
+    because the persisted baseline was empty too."""
+    cats = [("unique_armours", None, "Unique Armours", True)]
+    payloads = {"unique_armours": {
+        "core": {"rates": {"exalted": 100.0}},
+        "items": [],                                  # uniques have no items table
+        "lines": [{"name": "Some Unique", "baseType": "Silk Robe", "primaryValue": 2.0}],
+    }}
+    prices, _alerts = asm.compute_price_alerts(cats, payloads, {}, 1.0, 0.2)
+    assert prices["unique_armours"] == {"Some Unique": 200.0}
+
+
+def test_price_alerts_fire_for_a_unique_that_moved():
+    """With a baseline recorded, a real move must now produce an alert."""
+    cats = [("unique_armours", None, "Unique Armours", True)]
+    payloads = {"unique_armours": {
+        "core": {"rates": {"exalted": 100.0}},
+        "items": [],
+        "lines": [{"name": "Some Unique", "baseType": "Silk Robe", "primaryValue": 4.0}],
+    }}
+    prev = {"unique_armours": {"Some Unique": 200.0}}      # doubled to 400
+    _prices, alerts = asm.compute_price_alerts(cats, payloads, prev, 1.0, 0.2)
+    assert any("Some Unique" in text for _sort, text in alerts), alerts
+
+
+def test_a_unique_priced_on_several_bases_keeps_its_highest_price():
+    """poe.ninja prices a unique once per base it rolls on, so the same name
+    repeats. Iteration order must not decide which price represents it."""
+    cats = [("unique_armours", None, "Unique Armours", True)]
+    payloads = {"unique_armours": {
+        "core": {"rates": {"exalted": 1.0}},
+        "items": [],
+        "lines": [{"name": "Two Base Unique", "baseType": "A", "primaryValue": 5.0},
+                  {"name": "Two Base Unique", "baseType": "B", "primaryValue": 50.0}],
+    }}
+    prices, _ = asm.compute_price_alerts(cats, payloads, {}, 1.0, 0.2)
+    assert prices["unique_armours"]["Two Base Unique"] == 50.0

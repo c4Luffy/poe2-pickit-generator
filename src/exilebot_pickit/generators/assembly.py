@@ -333,16 +333,23 @@ def compute_price_alerts(categories, all_payloads: dict,
         items_by_id = {i["id"]: i for i in payload.get("items", [])}
         cur_prices: dict = {}
         for line in payload.get("lines", []):
+            # Unique payloads ship items: [] and carry the name on the LINE — the
+            # same reason build_unique_lines reads the line directly. Requiring an
+            # items-table entry silently skipped every unique, so all 7 unique
+            # categories recorded zero prices and Top movers could never show one.
             item = items_by_id.get(line.get("id"))
-            if not item or not item.get("name"):
+            raw_name = (item or {}).get("name") or line.get("name")
+            if not raw_name:
                 continue
-            raw_name = item["name"]
             if raw_name in gen.ITEM_NAME_SKIP:
                 continue
             name = gen.ITEM_NAME_CORRECTIONS.get(raw_name, raw_name)
             pv = float(line.get("primaryValue") or 0.0)
             ex = pv * rate if rate else pv  # same convention as build_exchange_lines
-            cur_prices[name] = ex
+            # A unique is priced once per base type it rolls on, so the same name
+            # can appear several times. Keep the highest rather than letting
+            # iteration order decide which price represents it.
+            cur_prices[name] = max(ex, cur_prices.get(name, 0.0))
         new_gen_prices[key] = cur_prices
 
         prev_cat = prev_league_prices.get(key, {})
