@@ -81,6 +81,55 @@ def _theme_or_default(value) -> str:
     return value if value in gen.FILTER_THEMES else gen.DEFAULT_FILTER_THEME
 
 
+def _sanitize_output_base(value) -> str:
+    """THE output_base sanitizer — every write path must go through it.
+
+    output_base becomes a filename (and a backup-name prefix). Unsanitized it
+    broke three ways: an absolute path made os.path.join ignore OUTPUT_DIR
+    entirely (the .ipd landed outside the output folder, e.g. C:\\Windows);
+    Windows-reserved chars (: ? * < > | " / \\) made the atomic write raise
+    AFTER backup rotation already ran; and a backslash broke the backup-name
+    matching. set_setting sanitized, but profile load and settings import wrote
+    the raw value straight into cfg — so a shared profile could permanently
+    redirect where the pickit is written.
+    """
+    cleaned = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", str(value)).strip(". ")
+    return cleaned or "poe2_pickit"
+
+
+# A rotated backup is "<output_base>-YYYYMMDD-HHMMSS.ipd" and NOTHING else.
+def _is_backup_name(base: str, name: str) -> bool:
+    """Does `name` belong to `base`'s backup set?
+
+    Every backup path (rotation, list, clear, restore, diff) MUST use this one
+    matcher. They used to test ``name.startswith(base + "-")``, but "-" is a
+    legal output_base character: with output_base "pickit", the files written
+    for the profile "pickit-strict" also matched. That made rotation delete
+    another profile's backups (while keeping files it didn't own, so its own
+    count drifted), "Delete all backups" wipe a profile the user never touched,
+    and Restore hand back a *different* profile's pickit — auto-copied straight
+    to the bot. Anchoring the timestamp shape makes the sets disjoint.
+    """
+    return bool(re.match(r"^" + re.escape(str(base)) + r"-\d{8}-\d{6}\.ipd$",
+                         str(name)))
+
+
+def _save(cfg, **extra):
+    """save_config + an HONEST result for the UI.
+
+    save_config swallows every failure (by design — a save must never crash the
+    app), so ~25 bridge methods returned a hard-coded {"ok": True} even when
+    nothing reached disk: the toast said "Saved" and the setting was gone at the
+    next launch. Callers that tell the user something was saved return this
+    instead."""
+    if save_config(cfg):
+        return {"ok": True, **extra}
+    return {"ok": False,
+            "error": "Couldn't write the settings file — your change is active "
+                     "now but will be lost when the app restarts. See the Debug "
+                     "tab for the reason."}
+
+
 class AppApi:
     def __init__(self):
         self._lock = threading.Lock()
@@ -150,13 +199,7 @@ class AppApi:
         if key not in _SETTABLE:
             return {"error": f"setting '{key}' not allowed"}
         if key == "output_base":
-            # This becomes a filename (and a backup-name prefix). Unsanitized it
-            # broke three ways: an absolute path made os.path.join ignore
-            # OUTPUT_DIR entirely; Windows-reserved chars (: ? * < > | " / \)
-            # made the atomic write raise AFTER backup rotation already ran; and
-            # a backslash broke every startswith(base + "-") backup-prefix check.
-            value = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", str(value)).strip(". ") \
-                or "poe2_pickit"
+            value = _sanitize_output_base(value)
         if key == "filter_theme":
             # Never store a theme the engine doesn't know — the lookup would
             # fall back anyway, but the UI dropdown must reflect a real choice.
@@ -168,8 +211,7 @@ class AppApi:
             # Hand-editing a floor means the numbers no longer match the preset
             # they came from — stop claiming that preset is active.
             self.cfg["active_preset"] = ""
-        save_config(self.cfg)
-        return {"ok": True}
+        return _save(self.cfg)
 
     def presets(self):
         """The ready-made setting bundles, plus which one is currently active.
@@ -193,9 +235,9 @@ class AppApi:
                 ce[c[0]] = want_uniques
         self.cfg["category_enabled"] = ce
         self.cfg["active_preset"] = key
-        save_config(self.cfg)
+        res = _save(self.cfg, name=p["name"], floors=p["floors"])
         log_info(f"preset applied: {key}")
-        return {"ok": True, "name": p["name"], "floors": p["floors"]}
+        return res
 
     def leagues(self):
         try:
@@ -409,8 +451,7 @@ class AppApi:
         states = self.cfg.setdefault("item_states", {}).setdefault(cat_key, {})
         for n in names:
             states.setdefault(n, {})["enabled"] = bool(enabled)
-        save_config(self.cfg)
-        return {"ok": True}
+        return _save(self.cfg)
 
     def copy_text(self, text):
         """Copy to the Windows clipboard natively — navigator.clipboard is
@@ -538,6 +579,67 @@ class AppApi:
                 "base_quality": int(c.get("base_quality", 25)),
                 "base_min_level": int(c.get("base_min_level", 82))}
 
+    # Profile fields, with the coercion each one needs. A profile file is
+    # USER-SUPPLIED (exported, edited, shared in Discord), so every value has to
+    # survive contact with garbage BEFORE it can reach cfg — see _clean_profile.
+    _PROFILE_NUM = {"min_exalt_gear": 0.0, "min_exalt_unique": 0.0}
+    _PROFILE_INT = {"auto_floor_pct": 40, "base_quality": 25, "base_min_level": 82}
+    _PROFILE_BOOL = {"include_bases": True, "auto_floor": False}
+    _PROFILE_DICT = ("item_states", "category_enabled")
+
+    @classmethod
+    def _clean_profile(cls, prof):
+        """Validate a profile into applyable values, or explain what's wrong.
+
+        Returns ``(values, "")`` or ``({}, "message")``. NOTHING is written to
+        cfg or to disk until this returns clean.
+
+        profile_load and the settings import used to copy fields straight into
+        self.cfg and call save_config, so a profile carrying
+        ``{"min_exalt_gear": "abc", "item_states": "nope",
+        "output_base": "C:\\\\Windows\\\\x"}`` was already ON DISK by the time
+        the first type error raised: app_info() then raised for the rest of the
+        session (the UI went blank), _snapshot() broke Generate, and output_base
+        — which _coerce_types never heals, because a string IS the expected
+        type — permanently redirected the .ipd outside the output folder.
+        """
+        if not isinstance(prof, dict):
+            return {}, "That profile isn't a settings object."
+        vals, bad = {}, []
+        for key, default in cls._PROFILE_NUM.items():
+            v = prof.get(key, default)
+            if isinstance(v, bool) or v is None:
+                bad.append(key)
+                continue
+            try:
+                vals[key] = float(v)
+            except (TypeError, ValueError):
+                bad.append(key)
+        for key, default in cls._PROFILE_INT.items():
+            v = prof.get(key, default)
+            if isinstance(v, bool) or v is None:
+                bad.append(key)
+                continue
+            try:
+                vals[key] = int(float(v))
+            except (TypeError, ValueError):
+                bad.append(key)
+        for key in cls._PROFILE_DICT:
+            v = prof.get(key, {})
+            if not isinstance(v, dict):
+                bad.append(key)
+                continue
+            vals[key] = v
+        for key, default in cls._PROFILE_BOOL.items():
+            vals[key] = bool(prof.get(key, default))
+        # output_base is a filename, never a path — same sanitizer as set_setting.
+        vals["output_base"] = _sanitize_output_base(
+            prof.get("output_base", "poe2_pickit") or "poe2_pickit")
+        if bad:
+            return {}, ("That profile has unusable values and was NOT applied: "
+                        + ", ".join(sorted(bad)))
+        return vals, ""
+
     # item_states buckets that aren't economy categories — used to describe a
     # profile in plain language ("what did this profile actually change?").
     _PROFILE_SECTIONS = {
@@ -558,35 +660,52 @@ class AppApi:
         importer real loot with no warning, so those rows are NAMED (not just
         counted) and flagged so the UI can shout about them.
         """
-        prof = prof or {}
+        prof = prof if isinstance(prof, dict) else {}
         rows = []
 
         def add(k, v, warn=False):
             rows.append({"k": k, "v": v, "warn": bool(warn)})
 
-        gear = float(prof.get("min_exalt_gear", 0) or 0)
-        uniq = float(prof.get("min_exalt_unique", 0) or 0)
+        def num(key, default=0):
+            """None when the profile's value isn't a number — see the docstring:
+            this function must describe a broken profile, never raise on it."""
+            try:
+                return float(prof.get(key, default) or default)
+            except (TypeError, ValueError):
+                return None
+
+        gear, uniq = num("min_exalt_gear"), num("min_exalt_unique")
         if prof.get("auto_floor"):
-            add("Floors", "Auto-floor ON — keeps the top "
-                          f"{int(prof.get('auto_floor_pct', 40) or 40)}%")
+            pct = num("auto_floor_pct", 40)
+            add("Floors", ("Auto-floor ON — keeps the top "
+                           f"{int(pct)}%") if pct is not None
+                else "Auto-floor ON — unreadable percentage", warn=pct is None)
+        elif gear is None or uniq is None:
+            add("Floors", "unreadable — this profile's value floors aren't numbers",
+                warn=True)
         else:
             add("Floors", f"currency & items >= {gear:g} ex  ·  uniques >= {uniq:g} ex")
-        add("Output file", (prof.get("output_base") or "poe2_pickit") + ".ipd")
+        add("Output file",
+            _sanitize_output_base(prof.get("output_base") or "poe2_pickit") + ".ipd")
 
         def names_off(bucket):
-            return sorted(n for n, v in (bucket or {}).items()
+            if not isinstance(bucket, dict):
+                return []
+            return sorted(n for n, v in bucket.items()
                           if isinstance(v, dict) and v.get("enabled") is False)
 
         def listing(names, cap=6):
             shown = ", ".join(names[:cap])
             return shown + (f"  +{len(names) - cap} more" if len(names) > cap else "")
 
-        states = prof.get("item_states") or {}
+        states = prof.get("item_states")
+        states = states if isinstance(states, dict) else {}
         total_off = 0
 
         # whole categories switched off — the biggest silent loot-killer
-        cats_off = sorted(k for k, v in (prof.get("category_enabled") or {}).items()
-                          if v is False)
+        cat_en = prof.get("category_enabled")
+        cats_off = sorted(str(k) for k, v in (cat_en if isinstance(cat_en, dict)
+                                              else {}).items() if v is False)
         if cats_off:
             total_off += len(cats_off)
             add("Whole categories OFF", listing(cats_off, 8), warn=True)
@@ -683,6 +802,11 @@ class AppApi:
         prof = data.get("profile") if isinstance(data, dict) else None
         if not isinstance(prof, dict) or data.get("kind") != "exilebot-pickit-profile":
             return {"error": "That JSON isn't an ExileBot pickit profile."}
+        # Reject unusable values HERE, before anything is remembered as pending —
+        # otherwise the commit step wrote them into the config file verbatim.
+        _vals, err = self._clean_profile(prof)
+        if err:
+            return {"error": err}
         name = str(data.get("name") or "imported")
         self._pending_profile = (name, prof)
         return {"ok": True, "name": name, "path": path,
@@ -698,10 +822,17 @@ class AppApi:
         name = (name or pending[0] or "").strip()
         if not name:
             return {"error": "empty name"}
-        self.cfg.setdefault("profiles", {})[name] = pending[1]
+        vals, err = self._clean_profile(pending[1])
+        if err:                       # belt to the preview's braces
+            return {"error": err}
+        # Store the CLEANED values, not the raw file: a stored profile is
+        # replayed into cfg by profile_load, so garbage must not survive here.
+        stored = dict(pending[1])
+        stored.update(vals)
+        stored["min_exalt"] = vals["min_exalt_gear"]
+        self.cfg.setdefault("profiles", {})[name] = stored
         self._pending_profile = None
-        save_config(self.cfg)
-        return {"ok": True, "name": name}
+        return _save(self.cfg, name=name)
 
     def profiles(self):
         return {"names": sorted(self.cfg.get("profiles", {}).keys()),
@@ -713,37 +844,40 @@ class AppApi:
             return {"error": "empty name"}
         self.cfg.setdefault("profiles", {})[name] = self._profile_snapshot()
         self.cfg["active_profile"] = name
-        save_config(self.cfg)
-        return {"ok": True}
+        return _save(self.cfg)
 
     def profile_load(self, name):
         prof = self.cfg.get("profiles", {}).get(name)
         if not prof:
             return {"error": "profile not found"}
+        # Validate FIRST — a half-applied profile used to be saved to disk before
+        # the first bad value raised, leaving the app broken until the config was
+        # hand-edited. Nothing below can fail after this check.
+        vals, err = self._clean_profile(prof)
+        if err:
+            return {"error": err}
         import copy as _copy
-        self.cfg["item_states"]      = _copy.deepcopy(prof.get("item_states", {}))
+        self.cfg["item_states"]      = _copy.deepcopy(vals["item_states"])
         # category-wide toggles drive generation, so restore them too (older
         # profiles saved before this existed simply carry an empty dict = all on)
-        self.cfg["category_enabled"] = _copy.deepcopy(prof.get("category_enabled", {}))
-        self.cfg["min_exalt_gear"]   = prof.get("min_exalt_gear", 0.0)
+        self.cfg["category_enabled"] = _copy.deepcopy(vals["category_enabled"])
+        self.cfg["min_exalt_gear"]   = vals["min_exalt_gear"]
         self.cfg["min_exalt"]        = self.cfg["min_exalt_gear"]
-        self.cfg["min_exalt_unique"] = prof.get("min_exalt_unique", 0.0)
-        self.cfg["output_base"]      = prof.get("output_base", "poe2_pickit")
-        self.cfg["include_bases"]    = prof.get("include_bases", True)
-        self.cfg["auto_floor"]       = prof.get("auto_floor", False)
-        self.cfg["auto_floor_pct"]   = prof.get("auto_floor_pct", 40)
-        self.cfg["base_quality"]     = prof.get("base_quality", 25)
-        self.cfg["base_min_level"]   = prof.get("base_min_level", 82)
+        self.cfg["min_exalt_unique"] = vals["min_exalt_unique"]
+        self.cfg["output_base"]      = vals["output_base"]
+        self.cfg["include_bases"]    = vals["include_bases"]
+        self.cfg["auto_floor"]       = vals["auto_floor"]
+        self.cfg["auto_floor_pct"]   = vals["auto_floor_pct"]
+        self.cfg["base_quality"]     = vals["base_quality"]
+        self.cfg["base_min_level"]   = vals["base_min_level"]
         self.cfg["active_profile"]   = name
-        save_config(self.cfg)
-        return {"ok": True, "info": self.app_info()}
+        return _save(self.cfg, info=self.app_info())
 
     def profile_delete(self, name):
         self.cfg.get("profiles", {}).pop(name, None)
         if self.cfg.get("active_profile") == name:
             self.cfg["active_profile"] = ""
-        save_config(self.cfg)
-        return {"ok": True}
+        return _save(self.cfg)
 
     # ── History / update check / debug ────────────────────────────────────────
 
@@ -877,8 +1011,7 @@ class AppApi:
                 self.cfg.pop(k, None)
             else:
                 self.cfg[k] = v
-        save_config(self.cfg)
-        return {"ok": True, "restored": restored}
+        return _save(self.cfg, restored=restored)
 
     def set_rare_slot(self, slot, enabled):
         """Turn one rare-gear slot on/off. Off = its rules leave the pickit."""
@@ -887,8 +1020,7 @@ class AppApi:
             return {"error": "unknown slot"}
         states = self.cfg.setdefault("item_states", {}).setdefault("_raregear", {})
         states.setdefault(slot, {})["enabled"] = bool(enabled)
-        save_config(self.cfg)
-        return {"ok": True, "slot": slot, "enabled": bool(enabled)}
+        return _save(self.cfg, slot=slot, enabled=bool(enabled))
 
     def download_update(self):
         """Start downloading the newest release exe on a worker thread and return
@@ -1328,17 +1460,40 @@ class AppApi:
             return {"error": f"couldn't read that file: {e}"}
         if not isinstance(data, dict):
             return {"error": "that file isn't a settings backup"}
+        # Build and validate a CANDIDATE first. This used to write straight into
+        # self.cfg and save — so a backup carrying e.g. an absolute output_base
+        # ("C:\\Windows\\x", a str, therefore invisible to _coerce_types) was
+        # already on disk, permanently writing the .ipd outside the output
+        # folder, and any value that broke app_info() left the UI dead for the
+        # rest of the session with the bad config persisted.
+        import copy as _copy
+        cand = _copy.deepcopy(self.cfg)
         applied = 0
         for k, v in data.items():
             if k in DEFAULT_CONFIG and k != "window_geometry_web":
-                self.cfg[k] = v
+                cand[k] = v
                 applied += 1
-        _coerce_types(self.cfg)
+        _coerce_types(cand)
         # _coerce_types only checks TYPES; a backup can carry a str theme the
         # engine doesn't know — normalize so cfg and the dropdown agree.
-        self.cfg["filter_theme"] = _theme_or_default(self.cfg.get("filter_theme"))
-        save_config(self.cfg)
-        return {"ok": True, "applied": applied, "info": self.app_info()}
+        cand["filter_theme"] = _theme_or_default(cand.get("filter_theme"))
+        # output_base is a filename, not a path — _coerce_types can't see this.
+        cand["output_base"] = _sanitize_output_base(cand.get("output_base")
+                                                    or "poe2_pickit")
+        cand["min_exalt"] = cand.get("min_exalt_gear", 0.0)
+        saved_cfg, self.cfg = self.cfg, cand
+        try:
+            info = self.app_info()          # proves the candidate is usable
+        except Exception as e:
+            self.cfg = saved_cfg
+            log_exc("import_settings")
+            return {"error": f"That backup has values this version can't use ({e}). "
+                             "Nothing was changed."}
+        # Same dict object as before, so anything holding a reference stays live.
+        self.cfg = saved_cfg
+        self.cfg.clear()
+        self.cfg.update(cand)
+        return _save(self.cfg, applied=applied, info=info)
 
     # ── From my pickit: any .ipd → matching in-game loot filter ──────────────
 
@@ -1510,7 +1665,7 @@ class AppApi:
         out = []
         try:
             for f in os.listdir(bdir):
-                if not (f.startswith(base + "-") and f.endswith(".ipd")):
+                if not _is_backup_name(base, f):
                     continue
                 st = os.stat(os.path.join(bdir, f))
                 out.append({"name": f, "kb": round(st.st_size / 1024),
@@ -1533,8 +1688,7 @@ class AppApi:
         name = os.path.basename(str(name or ""))
         bpath = os.path.join(bdir, name)
         cpath = os.path.join(OUTPUT_DIR, base + ".ipd")
-        if not (name.startswith(base + "-") and name.endswith(".ipd")
-                and os.path.isfile(bpath)):
+        if not (_is_backup_name(base, name) and os.path.isfile(bpath)):
             return {"error": "That backup doesn't exist any more."}
         if not os.path.isfile(cpath):
             return {"error": "No current pickit to compare — generate first."}
@@ -1570,7 +1724,7 @@ class AppApi:
         removed = 0
         try:
             for f in os.listdir(bdir):
-                if f.startswith(base + "-") and f.endswith(".ipd"):
+                if _is_backup_name(base, f):
                     try:
                         os.remove(os.path.join(bdir, f))
                         removed += 1
@@ -1587,8 +1741,7 @@ class AppApi:
         bdir = os.path.join(OUTPUT_DIR, "backups")
         name = os.path.basename(str(name))            # no path traversal
         src = os.path.join(bdir, name)
-        if not (name.startswith(base + "-") and name.endswith(".ipd")
-                and os.path.isfile(src)):
+        if not (_is_backup_name(base, name) and os.path.isfile(src)):
             return {"error": "backup not found"}
         ipd = os.path.join(OUTPUT_DIR, base + ".ipd")
         try:
@@ -1730,20 +1883,17 @@ class AppApi:
         # "restores" those stale toggles (the reported reset-didn't-reset bug).
         self.cfg.update(copy.deepcopy(DEFAULT_CONFIG))
         self.cfg.update({k: v for k, v in keep.items() if v is not None})
-        save_config(self.cfg)
-        return {"ok": True, "info": self.app_info()}
+        return _save(self.cfg, info=self.app_info())
 
     def set_item(self, cat_key, name, enabled):
         """Toggle one item (also used for '_chance' pseudo-category)."""
         states = self.cfg.setdefault("item_states", {})
         states.setdefault(cat_key, {}).setdefault(name, {})["enabled"] = bool(enabled)
-        save_config(self.cfg)
-        return {"ok": True}
+        return _save(self.cfg)
 
     def set_category(self, cat_key, enabled):
         self.cfg.setdefault("category_enabled", {})[cat_key] = bool(enabled)
-        save_config(self.cfg)
-        return {"ok": True}
+        return _save(self.cfg)
 
     # ── Chance / Craft bases ──────────────────────────────────────────────────
 
@@ -1883,8 +2033,7 @@ class AppApi:
             return {"error": "unknown class"}
         states = self.cfg.setdefault("item_states", {}).setdefault("_fracture", {})
         states.setdefault(name, {})["enabled"] = bool(enabled)
-        save_config(self.cfg)
-        return {"ok": True}
+        return _save(self.cfg)
 
     # ── Magic & Rare tab ──────────────────────────────────────────────────────
 
@@ -1901,8 +2050,7 @@ class AppApi:
 
     def set_magic_rare_flasks(self, enabled):
         self.cfg["magic_rare_flasks"] = bool(enabled)
-        save_config(self.cfg)
-        return {"ok": True}
+        return _save(self.cfg)
 
     def craft_bases(self):
         from exilebot_pickit.data.icons import STATIC_ICONS as _ci, BASE_STATS as _bs
@@ -1932,8 +2080,7 @@ class AppApi:
             e["ilvl"] = max(60, min(82, int(ilvl)))
         except (TypeError, ValueError):
             pass
-        save_config(self.cfg)
-        return {"ok": True}
+        return _save(self.cfg)
 
     # ── Auto value floor ──────────────────────────────────────────────────────
 
@@ -2186,7 +2333,7 @@ class AppApi:
                     stamp = time.strftime("%Y%m%d-%H%M%S")
                     shutil.copy2(ipd, os.path.join(bdir, f"{base}-{stamp}.ipd"))
                     old = sorted(f for f in os.listdir(bdir)
-                                 if f.startswith(base + "-") and f.endswith(".ipd"))
+                                 if _is_backup_name(base, f))
                     for f in old[:-nkeep]:
                         os.remove(os.path.join(bdir, f))
                 except OSError:
@@ -3060,8 +3207,7 @@ class AppApi:
 
     def clear_history(self):
         self.cfg["history"] = []
-        save_config(self.cfg)
-        return {"ok": True}
+        return _save(self.cfg)
 
     def chaos_ex(self, league):
         """Exalt value of 1 Chaos Orb AND 1 Divine Orb, from the one currency payload.

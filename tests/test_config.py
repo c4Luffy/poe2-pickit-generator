@@ -203,3 +203,35 @@ def test_explicit_null_in_config_is_reset_to_default(tmp_config):
     assert cfg["category_enabled"] == {}                      # reset, not None
     assert cfg["history"] == []
     assert cfg["league"] == "L"                               # good keys kept
+
+
+def test_save_config_reports_failure_instead_of_pretending(tmp_path, monkeypatch):
+    """save_config must SAY whether the config reached disk.
+
+    It swallows every exception by design (a failed save must not crash the
+    app) but it also returned None, so ~25 bridge methods answered the UI with
+    a hard-coded {"ok": True}. With the config directory gone or unwritable,
+    set_setting() and profile_save() both reported success having written
+    nothing at all: the toast said "Saved" and the setting was simply absent at
+    the next launch. It now returns True/False — and still never raises, and
+    still leaves any existing file untouched on failure."""
+    missing = tmp_path / "not-there" / "pickit_gui_config.json"
+    monkeypatch.setattr(cfgmod, "CONFIG_PATH", str(missing))
+    assert cfgmod.save_config(dict(cfgmod.DEFAULT_CONFIG)) is False
+    assert not missing.exists()
+
+    good = tmp_path / "pickit_gui_config.json"
+    monkeypatch.setattr(cfgmod, "CONFIG_PATH", str(good))
+    cfg = dict(cfgmod.DEFAULT_CONFIG, league="Standard")
+    assert cfgmod.save_config(cfg) is True
+    assert cfgmod.load_config()["league"] == "Standard"
+
+    # A failing save reports False AND leaves the good file exactly as it was —
+    # the guarantee tests above depend on (never wipe a user's settings).
+    def boom(*a, **k):
+        raise OSError("disk full")
+    monkeypatch.setattr(cfgmod.os, "replace", boom)
+    assert cfgmod.save_config(dict(cfg, league="Wiped")) is False
+    assert cfgmod.load_config()["league"] == "Standard"
+    leftovers = [f for f in os.listdir(str(tmp_path)) if f.startswith(".pickit_cfg-")]
+    assert not leftovers, "failed save left a temp file behind"

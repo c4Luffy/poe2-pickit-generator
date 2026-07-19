@@ -296,9 +296,16 @@ def _config_load_failed():
     return copy.deepcopy(DEFAULT_CONFIG)
 
 
-def save_config(cfg):
+def save_config(cfg) -> bool:
     """Atomic write — a crash or a concurrent save can no longer truncate the
     config and wipe profiles/history/item selections.
+
+    Returns True when the new config is on disk, False when the save failed
+    (the previous file is then untouched — see below). It still NEVER raises:
+    a failed save must not crash the app. But returning nothing was its own
+    bug: ~25 bridge methods answered the UI with a hard-coded {"ok": True},
+    so with an unwritable config directory the toast said "Saved" while
+    nothing had been written and the setting vanished at the next launch.
 
     Every save gets its OWN temp file. A shared ``config.json.tmp`` used to be
     the cause of a steady drip of corruption (318 load_config JSONDecodeErrors
@@ -349,8 +356,10 @@ def save_config(cfg):
                         raise
                     _time.sleep(0.1 * (attempt + 1))
             log_info("config saved")
+            return True
         except Exception:
             log_exc("save_config")
+            return False
         finally:
             if fd is not None:
                 try:

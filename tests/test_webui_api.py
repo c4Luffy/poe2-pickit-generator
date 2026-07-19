@@ -1,5 +1,6 @@
 """Tests for the modern-UI bridge (webui/api.py) with mocked poe.ninja data."""
 
+import copy
 import os
 import re
 import threading
@@ -42,7 +43,9 @@ def api(tmp_path, monkeypatch):
     a._last_lines = []
     a.cfg = {"output_base": "t", "history": [], "item_states": {},
              "category_enabled": {}, "backup_count": 0}
-    monkeypatch.setattr(webapi, "save_config", lambda cfg: None)
+    # save_config now REPORTS success (bool). A stub returning None reads as a
+    # failed save, which is exactly what the bridge must now surface.
+    monkeypatch.setattr(webapi, "save_config", lambda cfg: True)
     return a
 
 
@@ -91,7 +94,9 @@ def test_no_active_rule_is_typeless(tmp_path, monkeypatch):
     monkeypatch.setattr(gen, "fetch_all_payloads", fake_fetch)
     monkeypatch.setattr(webapi.gen, "fetch_all_payloads", fake_fetch)
     monkeypatch.setattr(webapi, "OUTPUT_DIR", str(tmp_path))
-    monkeypatch.setattr(webapi, "save_config", lambda cfg: None)
+    # save_config now REPORTS success (bool). A stub returning None reads as a
+    # failed save, which is exactly what the bridge must now surface.
+    monkeypatch.setattr(webapi, "save_config", lambda cfg: True)
 
     a = webapi.AppApi.__new__(webapi.AppApi)
     a._lock = threading.Lock()
@@ -1309,3 +1314,73 @@ def test_a_non_utf8_pickit_does_not_break_generating(api, tmp_path):
     written = (tmp_path / "t.ipd").read_text(encoding="utf-8")
     assert "[StashItem]" in written                     # really replaced
     assert api.preview()                                # preview survives it too
+
+
+def test_backups_never_match_another_profiles_files(api, tmp_path):
+    """A hyphen is a legal output_base character, so the old
+    ``f.startswith(base + "-")`` test made output_base "pickit" own every
+    "pickit-strict-*.ipd" backup too. That is not cosmetic: rotation deleted
+    the OTHER profile's backups (and counted files it didn't own, so its own
+    keep-count drifted), "Delete all backups" wiped a profile the user never
+    touched, and Restore handed back a different profile's pickit — which
+    auto_copy then shipped straight to the bot. The stamp shape is now
+    anchored, so the two sets are disjoint."""
+    api.cfg["output_base"] = "pickit"
+    bdir = tmp_path / "backups"
+    bdir.mkdir()
+    mine = ["pickit-20260719-010101.ipd", "pickit-20260719-020202.ipd"]
+    theirs = ["pickit-strict-20260719-030303.ipd", "pickit-strict-20260719-040404.ipd"]
+    for f in mine:
+        (bdir / f).write_text('[Type] == "Mine" # [StashItem] == "true"', encoding="utf-8")
+    for f in theirs:
+        (bdir / f).write_text('[Type] == "Theirs" # [StashItem] == "true"', encoding="utf-8")
+    # not a backup at all: no timestamp, or a malformed one
+    (bdir / "pickit-notes.ipd").write_text("x", encoding="utf-8")
+    (bdir / "pickit-2026719-010101.ipd").write_text("x", encoding="utf-8")
+
+    assert sorted(b["name"] for b in api.list_backups()) == sorted(mine)
+
+    # restore must refuse the neighbouring profile's file outright
+    assert "error" in api.restore_backup("pickit-strict-20260719-030303.ipd")
+    assert not (tmp_path / "pickit.ipd").exists()
+    assert "error" in api.backup_diff("pickit-strict-20260719-030303.ipd")
+
+    assert api.clear_backups()["removed"] == 2
+    survivors = sorted(os.listdir(str(bdir)))
+    assert survivors == sorted(theirs + ["pickit-2026719-010101.ipd", "pickit-notes.ipd"])
+
+
+def test_a_malformed_profile_is_rejected_before_anything_is_saved(api):
+    """A profile file is user-supplied (exported, hand-edited, shared). Fields
+    used to be copied into cfg and saved, and only THEN could a type error
+    raise — so a profile carrying a non-numeric floor, a string where
+    item_states must be a dict, and an ABSOLUTE output_base was already on
+    disk by then: app_info() raised
+    for the rest of the session, _snapshot() broke Generate, and output_base
+    (a str, so _coerce_types never healed it) permanently wrote the .ipd
+    outside the output folder."""
+    api.cfg["profiles"] = {"bad": {"min_exalt_gear": "abc", "item_states": "nope",
+                                   "output_base": "C:\\Windows\\x"}}
+    before = copy.deepcopy(api.cfg)
+
+    r = api.profile_load("bad")
+    assert "error" in r and "not applied" in r["error"].lower()
+    assert api.cfg == before, "a rejected profile still changed the config"
+    assert api.app_info()["output_base"] == before["output_base"]
+
+    # the preview must not raise either — the UI awaits it bare, so a rejected
+    # promise made the Import button do nothing at all, silently
+    rows = api._describe_profile(api.cfg["profiles"]["bad"])
+    assert any("unreadable" in str(r["v"]) for r in rows)
+    api._pending_profile = ("shared", api.cfg["profiles"]["bad"])
+    assert "error" in api.profile_import_commit("shared")
+    assert "shared" not in api.cfg["profiles"], "a rejected import was stored anyway"
+
+    # a usable profile still loads — and its output_base is sanitized to a
+    # plain filename, never a path
+    api.cfg["profiles"]["good"] = {"min_exalt_gear": 5, "min_exalt_unique": 7,
+                                   "output_base": "..\\..\\evil",
+                                   "item_states": {}, "category_enabled": {}}
+    assert api.profile_load("good")["ok"]
+    ob = api.cfg["output_base"]
+    assert os.sep not in ob and ".." != ob and os.path.basename(ob) == ob
