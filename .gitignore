@@ -47,6 +47,15 @@ test_icon.png
 venv/
 env/
 
+# Secrets — API keys, tokens, tenant URLs. NOTE: "env/" above is a DIRECTORY
+# pattern and does NOT cover a ".env" file, so a .env dropped in here would
+# have been committed to a public repo.
+.env
+.env.*
+!.env.example
+*.key
+secrets.json
+
 # User presets (personal, not shared)
 presets/
 
