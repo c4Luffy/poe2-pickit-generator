@@ -101,6 +101,20 @@ SPECIAL_ITEMS = [
     "Kulemak's Invitation",
 ]
 
+# Special Items the bot MAY buy back from a Ritual altar — i.e. the ones whose
+# rule must NOT carry [IgnoreRitual].
+#
+# An Audience with the King is the Ritual pinnacle fragment
+# (MapFragments/CurrencyRitualBossFragment), so a Ritual reward window is a
+# place you would actually want it. The flag is one-sided there: if the item
+# appears in the window the bot walks past ~50ex, and if it only ever drops on
+# the ground the flag does nothing at all — so it can only cost, never help.
+# The other two keep the flag: Expedition Logbook is a genuine ground drop
+# (drop_level 78), so declining to re-buy a copy with tribute is a real saving,
+# and Kulemak's Invitation is Abyss content, where the flag never applies.
+# Owner decision 2026-07-19.
+RITUAL_BUYABLE = {"An Audience with the King"}
+
 
 # Exotic bases — drop-only special bases that sell as bases at any rarity
 # (breach rings, dusk/gloam jewellery, Runic Fork...). Extracted verbatim

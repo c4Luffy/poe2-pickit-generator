@@ -613,11 +613,17 @@ def test_disabled_currency_not_resurrected_by_always_names():
 
 
 def test_special_items_keep_ignore_ritual_when_ninja_prices_them():
-    """The three Special Items exist to be grabbed during a Ritual WITHOUT
-    spending tribute. When poe.ninja also prices one, the economy force-branch
-    emits it instead of build_special_item_rules — and used to write a bare
-    [StashItem], so the bot paid tribute for An Audience with the King."""
-    name = gen.SPECIAL_ITEMS[0]
+    """When poe.ninja also prices a Special Item, the economy force-branch emits
+    it instead of build_special_item_rules — and used to write a bare
+    [StashItem], so the two writers disagreed about [IgnoreRitual] depending on
+    whether the item happened to be priced that day.
+
+    Uses Expedition Logbook, which KEEPS the flag: it is a genuine ground drop
+    (drop_level 78), so declining to re-buy a copy with tribute is a real
+    saving. An Audience with the King is the deliberate exception — see
+    test_the_ritual_pinnacle_fragment_can_be_bought_from_a_ritual.
+    """
+    name = "Expedition Logbook"
     payload = {"core": {"rates": {"exalted": 1.0}},
                "items": [{"id": "x", "name": name}],
                "lines": [{"id": "x", "primaryValue": 50.0}]}

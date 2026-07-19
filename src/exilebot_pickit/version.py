@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.39.1"
+VERSION = "4.39.2"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• The bot can now buy An Audience with the King back from a Ritual altar. Its rule carried [IgnoreRitual], which tells the bot not to spend tribute on it — but that item IS the Ritual pinnacle fragment, so a Ritual reward window is exactly where you want it. The flag could only cost you: if the item shows up in the window the bot walked past ~50 ex, and if it only ever drops on the ground the flag did nothing at all. Expedition Logbook and Kulemak's Invitation keep the flag — the Logbook is a real ground drop, so not re-buying a copy with tribute is a genuine saving, and the Invitation is Abyss content where the flag never applies.
+
+Also in 4.39.1:
 • First run now picks up EVERYTHING. Both value floors were already 0, but the two exceptional gates defaulted to quality 25 / item level 82 — so a brand-new user's first pickit quietly skipped exceptional bases while the screen said "Picking up everything". They now open to 21 / 79, the loosest legal values. Anyone already running keeps their own settings.
 • Three staves and a sceptre corrected. Permafrost Staff and Reflecting Staff exist ONLY as The Whispering Ice and Atziri's Rule — a white or rare one never drops, so every non-unique rule naming them was dead. Removed. Shrine Sceptre was caught by the same sweep, wrongly: it has three ordinary variants as well as a unique host, so it drops fine and stays. Sanctified Staff and Paralysing Staff fill the staff slot back to three.
 • Crafting on staves never actually worked — the only staff in the craft list was one of the two that cannot drop. Ravenous Staff replaces it.

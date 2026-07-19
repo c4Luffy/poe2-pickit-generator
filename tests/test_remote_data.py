@@ -359,3 +359,42 @@ def test_bundled_json_base_types_match_the_code():
     assert json_bt == code_bt, (
         "game_data.json and data/base_types.py disagree — re-sync them "
         f"(JSON-only: {set(json_bt) - set(code_bt)}, code-only: {set(code_bt) - set(json_bt)})")
+
+
+def test_the_ritual_pinnacle_fragment_can_be_bought_from_a_ritual():
+    """An Audience with the King is the Ritual pinnacle fragment, so a Ritual
+    reward window is exactly where you would want it. Carrying [IgnoreRitual]
+    was one-sided: if the item appears in the window the bot walks past ~50 ex,
+    and if it only ever drops on the ground the flag does nothing — it could
+    only cost, never help.
+
+    The other two keep the flag: Expedition Logbook is a real ground drop
+    (drop_level 78) so declining to re-buy it with tribute is a genuine saving,
+    and Kulemak's Invitation is Abyss content where the flag never applies.
+    """
+    rules = {ln.split('"')[1]: ln for ln in gen.build_special_item_rules(set())
+             if ln.startswith("[Type]")}
+
+    assert "IgnoreRitual" not in rules["An Audience with the King"]
+    assert 'IgnoreRitual] == "true"' in rules["Expedition Logbook"]
+    assert 'IgnoreRitual] == "true"' in rules["Kulemak's Invitation"]
+    # every one is still an actual pickup rule
+    for name, ln in rules.items():
+        assert '[StashItem] == "true"' in ln, name
+
+
+def test_both_special_item_writers_agree_on_the_action():
+    """Two builders emit these rules — the static one, and the economy
+    force-branch when poe.ninja happens to price the item. They disagreed once
+    already (v4.38.4), so the same item got contradictory rules depending on
+    whether it was priced that day. One helper decides for both now.
+    """
+    for name in corr.SPECIAL_ITEMS:
+        payload = {"core": {"rates": {"exalted": 1.0}},
+                   "items": [{"id": "x", "name": name}],
+                   "lines": [{"id": "x", "primaryValue": 50.0}]}
+        forced = next(ln for ln in gen.build_exchange_lines(
+            payload, 1.0, min_exalt=10.0,
+            force_names=set(gen.always_pick_force_names())) if name in ln)
+        static = next(ln for ln in gen.build_special_item_rules(set()) if name in ln)
+        assert forced.split("//")[0].strip() == static.strip(), name

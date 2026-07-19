@@ -6,6 +6,26 @@ download lives.
 
 ---
 
+## [v4.39.2] — 2026-07-19 — The bot can buy the Ritual fragment from a Ritual
+
+- **An Audience with the King no longer carries `[IgnoreRitual]`.** That flag
+  tells the bot not to spend tribute buying an item back from a Ritual altar —
+  but this item *is* the Ritual pinnacle fragment, so a Ritual reward window is
+  exactly where you would want it. The flag could only cost: if the item appears
+  in the window the bot walked past ~50 ex, and if it only ever drops on the
+  ground the flag did nothing at all. Better-or-neutral either way, so it goes.
+- **The other two keep the flag.** Expedition Logbook is a genuine ground drop
+  (drop level 78), so declining to re-buy a copy with tribute is a real saving.
+  Kulemak's Invitation is Abyss content, where the flag never applies.
+- **One helper now decides the action for both writers.** These rules are
+  emitted by two different builders — the static Special Items section, and the
+  economy section when poe.ninja happens to price the item — and in v4.38.4 they
+  disagreed, so the same item got contradictory rules depending on whether it
+  was priced that day. `special_item_action()` is the single source of truth,
+  guarded by a test that runs every Special Item through both paths.
+
+---
+
 ## [v4.39.1] — 2026-07-19 — First run picks up everything, and four bases corrected
 
 - **First run now picks up everything.** Both value floors were already 0 on a
@@ -1725,6 +1745,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.39.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.2
 [v4.39.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.1
 [v4.39.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.0
 [v4.38.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.4

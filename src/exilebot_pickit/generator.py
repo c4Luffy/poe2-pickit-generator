@@ -31,7 +31,7 @@ import requests
 from exilebot_pickit.data.corrections import (  # noqa: F401
     ALWAYS_PICK_CURRENCY, ALWAYS_PICK_RUNES,
     ITEM_NAME_CORRECTIONS, ITEM_NAME_SKIP, WAYSTONE_FALLBACK_RULES,
-    EXOTIC_BASES, SPECIAL_ITEMS, SPLINTERS, TABLET_TYPES,
+    EXOTIC_BASES, RITUAL_BUYABLE, SPECIAL_ITEMS, SPLINTERS, TABLET_TYPES,
     TABLET_UNIQUES, WOMBGIFTS,
 )
 from exilebot_pickit.data.base_types import (  # noqa: F401
@@ -522,6 +522,20 @@ def build_wombgift_rules(disabled=None) -> list:
 
 
 
+def special_item_action(name: str) -> str:
+    """The pickup action for a Special Item — THE one place that decides it.
+
+    Two builders emit these rules (this one, and the economy force-branch when
+    poe.ninja happens to price the item), and they used to disagree about
+    [IgnoreRitual], so the same item got contradictory rules from day to day.
+    Both call this now, so they cannot drift apart again.
+    """
+    action = '[StashItem] == "true"'
+    if name not in RITUAL_BUYABLE:
+        action += ' && [IgnoreRitual] == "true"'
+    return action
+
+
 def build_special_item_rules(disabled=None) -> list:
     dis = set(disabled or ())
     keep = [s for s in SPECIAL_ITEMS if s not in dis]
@@ -529,7 +543,7 @@ def build_special_item_rules(disabled=None) -> list:
         return []
     out = header_major("Special Items").splitlines() + [""]
     for s in keep:
-        out.append(f'[Type] == "{s}" # [StashItem] == "true" && [IgnoreRitual] == "true"')
+        out.append(f'[Type] == "{s}" # {special_item_action(s)}')
     return out
 
 
@@ -902,12 +916,14 @@ def build_exchange_lines(
         # its static builder, so it has to carry that builder's action too. The
         # Special Items exist to be picked up during a Ritual without spending
         # tribute — dropping [IgnoreRitual] here made the bot buy them back.
-        _RITUAL = ' && [IgnoreRitual] == "true"'
         _special = set(SPECIAL_ITEMS)
 
         def _forced_rule(name, ev):
-            ritual = _RITUAL if name in _special else ""
-            return (f'[Type] == "{_quote_ipd(name)}" # [StashItem] == "true"{ritual}'
+            # A forced name that poe.ninja also prices is emitted HERE instead of
+            # by its static builder, so it must carry that builder's action too.
+            action = (special_item_action(name) if name in _special
+                      else '[StashItem] == "true"')
+            return (f'[Type] == "{_quote_ipd(name)}" # {action}'
                     f' // ExValue = {ev:.2f} (always pick)')
 
         result = [
