@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.38.2"
+VERSION = "4.38.3"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Uniques priced on an anvil-only base no longer produce a dead rule. Runeforged/Runemastered bases are crafted at the anvil and never drop, so the generator used to strip the prefix and target the plain base instead — but the plain base doesn't always exist. The Prisoner's Manacles was targeted on "Verisium Cuffs", which the game has never had, so the rule could never fire and Exiled Bot's validator rejected the file. Those rows are dropped now: Rathpith Globe, Voll's Protector and The Prisoner's Manacles each keep a rule on the base that really drops.
+
+Also in 4.38.2:
 • This dialog no longer announces an update with nothing but a link. When a release is published before its notes are written, GitHub fills the body with a lone "Full Changelog" URL — the updater stashed that and showed it instead of these highlights, which ship inside the exe. A stashed body with no actual prose in it now loses to this list.
 
 Also in 4.38.1:

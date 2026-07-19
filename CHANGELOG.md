@@ -6,6 +6,29 @@ download lives.
 
 ---
 
+## [v4.38.3] — 2026-07-19 — A unique on an anvil-only base no longer makes a dead rule
+
+- **Uniques priced on a Runeforged/Runemastered base are skipped instead of
+  rewritten.** Those bases are made at the anvil from dropped items, so they
+  never appear as ground loot and Exiled Bot's validator rejects the name. The
+  generator handled that by stripping the prefix and targeting the plain base —
+  which assumes the plain base exists. It does not always: poe.ninja lists **The
+  Prisoner's Manacles** on both `Runemastered Verisium Cuffs` and `Kalguuran
+  Cuffs`, and the game has no plain `Verisium Cuffs` at all, so the rewrite
+  invented a base type that exists nowhere. The rule could never fire, and it
+  failed validation.
+
+  Across current price data this removes exactly three rules, and every affected
+  unique keeps a rule on a base that really drops:
+
+  | Unique | Removed | Kept |
+  | --- | --- | --- |
+  | Rathpith Globe | Plumed Focus | **Sacred Focus** |
+  | Voll's Protector | Ironclad Vestments | **Plated Vestments** |
+  | The Prisoner's Manacles | Verisium Cuffs | **Kalguuran Cuffs** |
+
+---
+
 ## [v4.38.2] — 2026-07-19 — An update announcement that actually says something
 
 - **"What's new" no longer shows a bare link and nothing else.** When a release
@@ -1573,6 +1596,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.38.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.3
 [v4.38.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.2
 [v4.38.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.1
 [v4.38.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.0
