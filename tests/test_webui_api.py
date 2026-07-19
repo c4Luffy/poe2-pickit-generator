@@ -1172,21 +1172,21 @@ def test_item_check_resolves_superior_and_magic_names_to_the_real_base(api):
     to collect, since those always carry the Superior prefix."""
     p = api._parse_item_text
 
-    plain = p("Item Class: Body Armours\nRarity: Normal\nGrand Regalia\n"
+    plain = p("Item Class: Body Armours\nRarity: Normal\nSoldier Cuirass\n"
               "--------\nItem Level: 82")
-    superior = p("Item Class: Body Armours\nRarity: Normal\nSuperior Grand Regalia\n"
+    superior = p("Item Class: Body Armours\nRarity: Normal\nSuperior Soldier Cuirass\n"
                  "--------\nQuality: +20% (augmented)\n--------\nItem Level: 82")
-    assert superior["base"] == plain["base"] == "Grand Regalia"
+    assert superior["base"] == plain["base"] == "Soldier Cuirass"
     assert superior["quality"] == 20
 
     magic = p("Item Class: Body Armours\nRarity: Magic\n"
-              "Sturdy Grand Regalia of the Bear\n--------\nItem Level: 82")
-    assert magic["base"] == "Grand Regalia"
+              "Sturdy Soldier Cuirass of the Bear\n--------\nItem Level: 82")
+    assert magic["base"] == "Soldier Cuirass"
 
     # rare/unique already carry a separate base line — must be untouched
-    rare = p("Item Class: Body Armours\nRarity: Rare\nDoom Shell\nGrand Regalia\n"
+    rare = p("Item Class: Body Armours\nRarity: Rare\nDoom Shell\nSoldier Cuirass\n"
              "--------\nItem Level: 82")
-    assert rare["name"] == "Doom Shell" and rare["base"] == "Grand Regalia"
+    assert rare["name"] == "Doom Shell" and rare["base"] == "Soldier Cuirass"
     uniq = p("Item Class: Belts\nRarity: Unique\nHeadhunter\nHeavy Belt\n--------")
     assert uniq["name"] == "Headhunter" and uniq["base"] == "Heavy Belt"
     # an unknown/currency name passes through rather than being mangled
@@ -1200,8 +1200,8 @@ def test_item_check_quality_white_base_is_picked_like_the_plain_one(api):
     api.cfg.update({"base_quality": 21, "base_min_level": 79,
                     "include_bases": True, "min_exalt_gear": 0.0,
                     "min_exalt_unique": 0.0})
-    body = ("Item Class: Body Armours\nRarity: Normal\nSuperior Grand Regalia\n"
+    body = ("Item Class: Body Armours\nRarity: Normal\nSuperior Soldier Cuirass\n"
             "--------\nQuality: +20% (augmented)\n--------\nItem Level: 82")
     r = api.check_item(body, "")          # no league -> no network
-    assert r["item"]["base"] == "Grand Regalia"
+    assert r["item"]["base"] == "Soldier Cuirass"
     assert any(row["kind"] == "pick" for row in r["rows"]), r["rows"]

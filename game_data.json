@@ -1,740 +1,736 @@
 {
-  "_comment": "Self-updating game data. The app fetches this file from the main branch on startup (6h interval). When a PoE2 patch adds/renames droppable bases, unique categories, tablets, splinters, wombgifts, runes or chance bases, edit THIS file - no new exe needed. Bad edits are rejected by the app's validator (it keeps built-in data), but keep JSON valid.",
-  "version": 2,
-  "base_types": {
-    "Body Armours": [
-      [
-        "Soldier Cuirass",
-        3
-      ],
-      [
-        "Warlord Cuirass",
-        3
-      ],
-      [
-        "Utzaal Cuirass",
-        3
-      ],
-      [
-        "Slipstrike Vest",
-        3
-      ],
-      [
-        "Corsair Coat",
-        3
-      ],
-      [
-        "Wyrmscale Coat",
-        3
-      ],
-      [
-        "Vile Robe",
-        3
-      ],
-      [
-        "Feathered Raiment",
-        3
-      ],
-      [
-        "Sacramental Robe",
-        3
-      ],
-      [
-        "Death Mail",
-        3
-      ],
-      [
-        "Dastard Armour",
-        3
-      ],
-      [
-        "Thane Mail",
-        3
-      ],
-      [
-        "Wolfskin Mantle",
-        3
-      ],
-      [
-        "Seastorm Mantle",
-        3
-      ],
-      [
-        "Death Mantle",
-        3
-      ],
-      [
-        "Sleek Jacket",
-        3
-      ],
-      [
-        "Austere Garb",
-        3
-      ],
-      [
-        "Falconer's Jacket",
-        3
-      ],
-      [
-        "Grand Regalia",
-        3
-      ]
-    ],
-    "Helmets": [
-      [
-        "Imperial Greathelm",
-        2
-      ],
-      [
-        "Paragon Greathelm",
-        2
-      ],
-      [
-        "Masked Greathelm",
-        2
-      ],
-      [
-        "Freebooter Cap",
-        2
-      ],
-      [
-        "Trapper Hood",
-        2
-      ],
-      [
-        "Desert Cap",
-        2
-      ],
-      [
-        "Ancestral Tiara",
-        2
-      ],
-      [
-        "Kamasan Tiara",
-        2
-      ],
-      [
-        "Sorcerous Tiara",
-        2
-      ],
-      [
-        "Gladiatorial Helm",
-        2
-      ],
-      [
-        "Champion Helm",
-        2
-      ],
-      [
-        "Cryptic Helm",
-        2
-      ],
-      [
-        "Cryptic Crown",
-        2
-      ],
-      [
-        "Divine Crown",
-        2
-      ],
-      [
-        "Saintly Crown",
-        2
-      ],
-      [
-        "Grinning Mask",
-        2
-      ],
-      [
-        "Soaring Mask",
-        2
-      ],
-      [
-        "Faridun Mask",
-        2
-      ],
-      [
-        "Grand Visage",
-        2
-      ]
-    ],
-    "Gloves": [
-      [
-        "Massive Mitts",
-        2
-      ],
-      [
-        "Vaal Mitts",
-        2
-      ],
-      [
-        "Ornate Mitts",
-        2
-      ],
-      [
-        "Polished Bracers",
-        2
-      ],
-      [
-        "Barbed Bracers",
-        2
-      ],
-      [
-        "Grand Bracers",
-        2
-      ],
-      [
-        "Sirenscale Gloves",
-        2
-      ],
-      [
-        "Vaal Gloves",
-        2
-      ],
-      [
-        "Opulent Gloves",
-        2
-      ],
-      [
-        "Blacksteel Gauntlets",
-        2
-      ],
-      [
-        "Cultist Gauntlets",
-        2
-      ],
-      [
-        "Commander Gauntlets",
-        2
-      ],
-      [
-        "Adherent Cuffs",
-        2
-      ],
-      [
-        "Gleaming Cuffs",
-        2
-      ],
-      [
-        "Ancient Cuffs",
-        2
-      ],
-      [
-        "Secured Wraps",
-        2
-      ],
-      [
-        "War Wraps",
-        2
-      ],
-      [
-        "Vaal Wraps",
-        2
-      ],
-      [
-        "Grand Manchettes",
-        2
-      ]
-    ],
-    "Boots": [
-      [
-        "Tasalian Greaves",
-        2
-      ],
-      [
-        "Vaal Greaves",
-        2
-      ],
-      [
-        "Ornate Greaves",
-        2
-      ],
-      [
-        "Drakeskin Boots",
-        2
-      ],
-      [
-        "Dragonscale Boots",
-        2
-      ],
-      [
-        "Cavalry Boots",
-        2
-      ],
-      [
-        "Sekhema Sandals",
-        2
-      ],
-      [
-        "Sandsworn Sandals",
-        2
-      ],
-      [
-        "Luxurious Slippers",
-        2
-      ],
-      [
-        "Blacksteel Sabatons",
-        2
-      ],
-      [
-        "Fortress Sabatons",
-        2
-      ],
-      [
-        "Noble Sabatons",
-        2
-      ],
-      [
-        "Cryptic Leggings",
-        2
-      ],
-      [
-        "Warlock Leggings",
-        2
-      ],
-      [
-        "Apostle Leggings",
-        2
-      ],
-      [
-        "Daggerfoot Shoes",
-        2
-      ],
-      [
-        "Quickslip Shoes",
-        2
-      ],
-      [
-        "Charmed Shoes",
-        2
-      ],
-      [
-        "Grand Cuisses",
-        2
-      ]
-    ],
-    "Shields": [
-      [
-        "Tawhoan Tower Shield",
-        2
-      ],
-      [
-        "Vaal Tower Shield",
-        2
-      ],
-      [
-        "Fortress Tower Shield",
-        2
-      ],
-      [
-        "Golden Targe",
-        2
-      ],
-      [
-        "Soaring Targe",
-        2
-      ],
-      [
-        "Baroque Targe",
-        2
-      ],
-      [
-        "Blacksteel Crest Shield",
-        2
-      ],
-      [
-        "Vaal Crest Shield",
-        2
-      ],
-      [
-        "Sekheman Crest Shield",
-        2
-      ]
-    ],
-    "Foci": [
-      [
-        "Tasalian Focus",
-        2
-      ],
-      [
-        "Sacred Focus",
-        2
-      ],
-      [
-        "Leyline Focus",
-        2
-      ]
-    ],
-    "Quivers": [
-      [
-        "Visceral Quiver",
-        0
-      ],
-      [
-        "Volant Quiver",
-        0
-      ],
-      [
-        "Penetrating Quiver",
-        0
-      ]
-    ],
-    "One Hand Maces": [
-      [
-        "Molten Hammer",
-        2
-      ],
-      [
-        "Marauding Mace",
-        2
-      ],
-      [
-        "Fortified Hammer",
-        2
-      ]
-    ],
-    "Sceptres": [
-      [
-        "Wrath Sceptre",
-        2
-      ],
-      [
-        "Shrine Sceptre",
-        2
-      ],
-      [
-        "Omen Sceptre",
-        2
-      ]
-    ],
-    "Spears": [
-      [
-        "Flying Spear",
-        2
-      ],
-      [
-        "Grand Spear",
-        2
-      ],
-      [
-        "Stalking Spear",
-        2
-      ]
-    ],
-    "Wands": [
-      [
-        "Dueling Wand",
-        2
-      ],
-      [
-        "Acrid Wand",
-        2
-      ],
-      [
-        "Galvanic Wand",
-        2
-      ]
-    ],
-    "Two Hand Maces": [
-      [
-        "Massive Greathammer",
-        3
-      ],
-      [
-        "Ironwood Greathammer",
-        3
-      ],
-      [
-        "Tawhoan Greatclub",
-        3
-      ]
-    ],
-    "Quarterstaves": [
-      [
-        "Dreaming Quarterstaff",
-        3
-      ],
-      [
-        "Razor Quarterstaff",
-        3
-      ],
-      [
-        "Striking Quarterstaff",
-        3
-      ]
-    ],
-    "Staves": [
-      [
-        "Permafrost Staff",
-        3
-      ],
-      [
-        "Reflecting Staff",
-        3
-      ],
-      [
-        "Ravenous Staff",
-        3
-      ]
-    ],
-    "Bows": [
-      [
-        "Obliterator Bow",
-        3
-      ],
-      [
-        "Warmonger Bow",
-        3
-      ],
-      [
-        "Guardian Bow",
-        3
-      ]
-    ],
-    "Crossbows": [
-      [
-        "Desolate Crossbow",
-        3
-      ],
-      [
-        "Flexed Crossbow",
-        3
-      ],
-      [
-        "Elegant Crossbow",
-        3
-      ]
-    ],
-    "Belts": [
-      [
-        "Fine Belt",
-        0
-      ],
-      [
-        "Heavy Belt",
-        0
-      ],
-      [
-        "Utility Belt",
-        0
-      ],
-      [
-        "Ornate Belt",
-        0
-      ]
-    ]
-  },
-  "unique_categories": [
-    [
-      "unique_weapons",
-      "UniqueWeapons",
-      "Unique Weapons"
-    ],
-    [
-      "unique_armours",
-      "UniqueArmours",
-      "Unique Armours"
-    ],
-    [
-      "unique_accessories",
-      "UniqueAccessories",
-      "Unique Accessories"
-    ],
-    [
-      "unique_flasks",
-      "UniqueFlasks",
-      "Unique Flasks"
-    ],
-    [
-      "unique_charms",
-      "UniqueCharms",
-      "Unique Charms"
-    ],
-    [
-      "unique_jewels",
-      "UniqueJewels",
-      "Unique Jewels"
-    ],
-    [
-      "unique_relics",
-      "UniqueSanctumRelics",
-      "Unique Relics"
-    ]
+ "_comment": "Self-updating game data. The app fetches this file from the main branch on startup (6h interval). When a PoE2 patch adds/renames droppable bases, unique categories, tablets, splinters, wombgifts, runes or chance bases, edit THIS file - no new exe needed. Bad edits are rejected by the app's validator (it keeps built-in data), but keep JSON valid.",
+ "version": 2,
+ "base_types": {
+  "Body Armours": [
+   [
+    "Soldier Cuirass",
+    3
+   ],
+   [
+    "Warlord Cuirass",
+    3
+   ],
+   [
+    "Utzaal Cuirass",
+    3
+   ],
+   [
+    "Slipstrike Vest",
+    3
+   ],
+   [
+    "Corsair Coat",
+    3
+   ],
+   [
+    "Wyrmscale Coat",
+    3
+   ],
+   [
+    "Vile Robe",
+    3
+   ],
+   [
+    "Feathered Raiment",
+    3
+   ],
+   [
+    "Sacramental Robe",
+    3
+   ],
+   [
+    "Death Mail",
+    3
+   ],
+   [
+    "Dastard Armour",
+    3
+   ],
+   [
+    "Thane Mail",
+    3
+   ],
+   [
+    "Wolfskin Mantle",
+    3
+   ],
+   [
+    "Seastorm Mantle",
+    3
+   ],
+   [
+    "Death Mantle",
+    3
+   ],
+   [
+    "Sleek Jacket",
+    3
+   ],
+   [
+    "Austere Garb",
+    3
+   ],
+   [
+    "Falconer's Jacket",
+    3
+   ]
   ],
-  "always_pick": {
-    "currency": [
-      "Exalted Orb",
-      "Divine Orb",
-      "Mirror of Kalandra"
-    ],
-    "runes": [
-      "Emergent Vigour",
-      "Emergent Possibility",
-      "Emergent Protection",
-      "Emergent Instinct",
-      "Iron Rune",
-      "Glacial Rune",
-      "Desert Rune",
-      "Storm Rune",
-      "Body Rune",
-      "Mind Rune",
-      "Rebirth Rune",
-      "Inspiration Rune",
-      "Stone Rune",
-      "Vision Rune",
-      "Robust Rune",
-      "Adept Rune",
-      "Resolve Rune",
-      "Ward Rune",
-      "Charging Rune"
-    ]
-  },
-  "tablets": {
-    "types": [
-      "Overseer Tablet",
-      "Abyss Tablet",
-      "Breach Tablet",
-      "Ritual Tablet",
-      "Irradiated Tablet",
-      "Temple Tablet",
-      "Delirium Tablet"
-    ],
-    "uniques": [
-      [
-        "Irradiated Tablet",
-        "Visions of Paradise"
-      ],
-      [
-        "Irradiated Tablet",
-        "The Grand Project"
-      ],
-      [
-        "Irradiated Tablet",
-        "Mastered Domain"
-      ],
-      [
-        "Abyss Tablet",
-        "Unforeseen Consequences"
-      ],
-      [
-        "Ritual Tablet",
-        "Freedom of Faith"
-      ],
-      [
-        "Breach Tablet",
-        "Wraeclast Besieged"
-      ],
-      [
-        "Overseer Tablet",
-        "Cruel Hegemony"
-      ],
-      [
-        "Overseer Tablet",
-        "Season of the Hunt"
-      ],
-      [
-        "Delirium Tablet",
-        "Clear Skies"
-      ]
-    ]
-  },
-  "splinters": [
-    "Breach Splinter",
-    "Simulacrum Splinter"
+  "Helmets": [
+   [
+    "Imperial Greathelm",
+    2
+   ],
+   [
+    "Paragon Greathelm",
+    2
+   ],
+   [
+    "Masked Greathelm",
+    2
+   ],
+   [
+    "Freebooter Cap",
+    2
+   ],
+   [
+    "Trapper Hood",
+    2
+   ],
+   [
+    "Desert Cap",
+    2
+   ],
+   [
+    "Ancestral Tiara",
+    2
+   ],
+   [
+    "Kamasan Tiara",
+    2
+   ],
+   [
+    "Sorcerous Tiara",
+    2
+   ],
+   [
+    "Gladiatorial Helm",
+    2
+   ],
+   [
+    "Champion Helm",
+    2
+   ],
+   [
+    "Cryptic Helm",
+    2
+   ],
+   [
+    "Cryptic Crown",
+    2
+   ],
+   [
+    "Divine Crown",
+    2
+   ],
+   [
+    "Saintly Crown",
+    2
+   ],
+   [
+    "Grinning Mask",
+    2
+   ],
+   [
+    "Soaring Mask",
+    2
+   ],
+   [
+    "Faridun Mask",
+    2
+   ],
+   [
+    "Grand Visage",
+    2
+   ]
   ],
-  "wombgifts": [
-    "Banded Wombgift",
-    "Lavish Wombgift",
-    "Ornate Wombgift",
-    "Revelatory Wombgift",
-    "Signet Wombgift"
+  "Gloves": [
+   [
+    "Massive Mitts",
+    2
+   ],
+   [
+    "Vaal Mitts",
+    2
+   ],
+   [
+    "Ornate Mitts",
+    2
+   ],
+   [
+    "Polished Bracers",
+    2
+   ],
+   [
+    "Barbed Bracers",
+    2
+   ],
+   [
+    "Grand Bracers",
+    2
+   ],
+   [
+    "Sirenscale Gloves",
+    2
+   ],
+   [
+    "Vaal Gloves",
+    2
+   ],
+   [
+    "Opulent Gloves",
+    2
+   ],
+   [
+    "Blacksteel Gauntlets",
+    2
+   ],
+   [
+    "Cultist Gauntlets",
+    2
+   ],
+   [
+    "Commander Gauntlets",
+    2
+   ],
+   [
+    "Adherent Cuffs",
+    2
+   ],
+   [
+    "Gleaming Cuffs",
+    2
+   ],
+   [
+    "Ancient Cuffs",
+    2
+   ],
+   [
+    "Secured Wraps",
+    2
+   ],
+   [
+    "War Wraps",
+    2
+   ],
+   [
+    "Vaal Wraps",
+    2
+   ],
+   [
+    "Grand Manchettes",
+    2
+   ]
   ],
-  "special_items": [
-    "An Audience with the King",
-    "Expedition Logbook",
-    "Kulemak's Invitation"
+  "Boots": [
+   [
+    "Tasalian Greaves",
+    2
+   ],
+   [
+    "Vaal Greaves",
+    2
+   ],
+   [
+    "Ornate Greaves",
+    2
+   ],
+   [
+    "Drakeskin Boots",
+    2
+   ],
+   [
+    "Dragonscale Boots",
+    2
+   ],
+   [
+    "Cavalry Boots",
+    2
+   ],
+   [
+    "Sekhema Sandals",
+    2
+   ],
+   [
+    "Sandsworn Sandals",
+    2
+   ],
+   [
+    "Luxurious Slippers",
+    2
+   ],
+   [
+    "Blacksteel Sabatons",
+    2
+   ],
+   [
+    "Fortress Sabatons",
+    2
+   ],
+   [
+    "Noble Sabatons",
+    2
+   ],
+   [
+    "Cryptic Leggings",
+    2
+   ],
+   [
+    "Warlock Leggings",
+    2
+   ],
+   [
+    "Apostle Leggings",
+    2
+   ],
+   [
+    "Daggerfoot Shoes",
+    2
+   ],
+   [
+    "Quickslip Shoes",
+    2
+   ],
+   [
+    "Charmed Shoes",
+    2
+   ],
+   [
+    "Grand Cuisses",
+    2
+   ]
   ],
-  "name_fixes": {
-    "corrections": {
-      "Stamped Wombgift": "Signet Wombgift",
-      "Pressurised Wombgift": "Ornate Wombgift"
-    },
-    "skip": [
-      "Necrotic Catalyst",
-      "Refined Necrotic Catalyst"
-    ]
-  },
-  "chance_bases": [
-    [
-      "Belts",
-      "Utility Belt",
-      "Mageblood"
-    ],
-    [
-      "Belts",
-      "Heavy Belt",
-      "Headhunter"
-    ],
-    [
-      "Rings",
-      "Gold Ring",
-      "Ventor's Gamble / Andvarius / Perandus Seal"
-    ],
-    [
-      "Amulets",
-      "Stellar Amulet",
-      "Astramentis"
-    ]
+  "Shields": [
+   [
+    "Tawhoan Tower Shield",
+    2
+   ],
+   [
+    "Vaal Tower Shield",
+    2
+   ],
+   [
+    "Fortress Tower Shield",
+    2
+   ],
+   [
+    "Golden Targe",
+    2
+   ],
+   [
+    "Soaring Targe",
+    2
+   ],
+   [
+    "Baroque Targe",
+    2
+   ],
+   [
+    "Blacksteel Crest Shield",
+    2
+   ],
+   [
+    "Vaal Crest Shield",
+    2
+   ],
+   [
+    "Sekheman Crest Shield",
+    2
+   ]
   ],
-  "exotic_bases": [
-    "Aberrant Sledge",
-    "Absent Amulet",
-    "Abyssal Signet",
-    "Ancient Gauntlets",
-    "Ancient Leggings",
-    "Ancient Mail",
-    "Ancient Visor",
-    "Biostatic Ring",
-    "Breach Ring",
-    "Corona Amulet",
-    "Distorted Amulet",
-    "Dusk Amulet",
-    "Dusk Ring",
-    "Forking Belt",
-    "Glacial Fortress",
-    "Gloam Amulet",
-    "Gloam Ring",
-    "Grasping Mail",
-    "Grasping Ring",
-    "Heartwood Shortbow",
-    "Invoking Belt",
-    "Kinetic Ring",
-    "Lament Amulet",
-    "Mnemonic Ring",
-    "Oneiric Ring",
-    "Ornate Ringmail",
-    "Pearlescent Amulet",
-    "Penumbra Amulet",
-    "Penumbra Ring",
-    "Perching Staff",
-    "Portent Amulet",
-    "Primal Markings",
-    "Refined Breach Ring",
+  "Foci": [
+   [
+    "Tasalian Focus",
+    2
+   ],
+   [
+    "Sacred Focus",
+    2
+   ],
+   [
+    "Leyline Focus",
+    2
+   ]
+  ],
+  "Quivers": [
+   [
+    "Visceral Quiver",
+    0
+   ],
+   [
+    "Volant Quiver",
+    0
+   ],
+   [
+    "Penetrating Quiver",
+    0
+   ]
+  ],
+  "One Hand Maces": [
+   [
+    "Molten Hammer",
+    2
+   ],
+   [
+    "Marauding Mace",
+    2
+   ],
+   [
+    "Fortified Hammer",
+    2
+   ]
+  ],
+  "Sceptres": [
+   [
+    "Wrath Sceptre",
+    2
+   ],
+   [
+    "Shrine Sceptre",
+    2
+   ],
+   [
+    "Omen Sceptre",
+    2
+   ]
+  ],
+  "Spears": [
+   [
+    "Flying Spear",
+    2
+   ],
+   [
+    "Grand Spear",
+    2
+   ],
+   [
+    "Stalking Spear",
+    2
+   ]
+  ],
+  "Wands": [
+   [
+    "Dueling Wand",
+    2
+   ],
+   [
+    "Acrid Wand",
+    2
+   ],
+   [
+    "Galvanic Wand",
+    2
+   ]
+  ],
+  "Two Hand Maces": [
+   [
+    "Massive Greathammer",
+    3
+   ],
+   [
+    "Ironwood Greathammer",
+    3
+   ],
+   [
+    "Tawhoan Greatclub",
+    3
+   ]
+  ],
+  "Quarterstaves": [
+   [
+    "Dreaming Quarterstaff",
+    3
+   ],
+   [
+    "Razor Quarterstaff",
+    3
+   ],
+   [
+    "Striking Quarterstaff",
+    3
+   ]
+  ],
+  "Staves": [
+   [
+    "Permafrost Staff",
+    3
+   ],
+   [
     "Reflecting Staff",
-    "Runic Fork",
-    "Sacrificial Regalia",
-    "Sinew Belt",
-    "Stalking Belt",
-    "Tenebrous Amulet",
-    "Tenebrous Crown",
-    "Tenebrous Ring",
-    "Twisted Amulet",
-    "Twisted Wand",
-    "Two-Stone Ring",
-    "Venerable Defender",
-    "Veridical Chain",
-    "Vitalic Ring",
-    "Warding Quarterstaff"
+    3
+   ],
+   [
+    "Ravenous Staff",
+    3
+   ]
+  ],
+  "Bows": [
+   [
+    "Obliterator Bow",
+    3
+   ],
+   [
+    "Warmonger Bow",
+    3
+   ],
+   [
+    "Guardian Bow",
+    3
+   ]
+  ],
+  "Crossbows": [
+   [
+    "Desolate Crossbow",
+    3
+   ],
+   [
+    "Flexed Crossbow",
+    3
+   ],
+   [
+    "Elegant Crossbow",
+    3
+   ]
+  ],
+  "Belts": [
+   [
+    "Fine Belt",
+    0
+   ],
+   [
+    "Heavy Belt",
+    0
+   ],
+   [
+    "Utility Belt",
+    0
+   ],
+   [
+    "Ornate Belt",
+    0
+   ]
   ]
+ },
+ "unique_categories": [
+  [
+   "unique_weapons",
+   "UniqueWeapons",
+   "Unique Weapons"
+  ],
+  [
+   "unique_armours",
+   "UniqueArmours",
+   "Unique Armours"
+  ],
+  [
+   "unique_accessories",
+   "UniqueAccessories",
+   "Unique Accessories"
+  ],
+  [
+   "unique_flasks",
+   "UniqueFlasks",
+   "Unique Flasks"
+  ],
+  [
+   "unique_charms",
+   "UniqueCharms",
+   "Unique Charms"
+  ],
+  [
+   "unique_jewels",
+   "UniqueJewels",
+   "Unique Jewels"
+  ],
+  [
+   "unique_relics",
+   "UniqueSanctumRelics",
+   "Unique Relics"
+  ]
+ ],
+ "always_pick": {
+  "currency": [
+   "Exalted Orb",
+   "Divine Orb",
+   "Mirror of Kalandra"
+  ],
+  "runes": [
+   "Emergent Vigour",
+   "Emergent Possibility",
+   "Emergent Protection",
+   "Emergent Instinct",
+   "Iron Rune",
+   "Glacial Rune",
+   "Desert Rune",
+   "Storm Rune",
+   "Body Rune",
+   "Mind Rune",
+   "Rebirth Rune",
+   "Inspiration Rune",
+   "Stone Rune",
+   "Vision Rune",
+   "Robust Rune",
+   "Adept Rune",
+   "Resolve Rune",
+   "Ward Rune",
+   "Charging Rune"
+  ]
+ },
+ "tablets": {
+  "types": [
+   "Overseer Tablet",
+   "Abyss Tablet",
+   "Breach Tablet",
+   "Ritual Tablet",
+   "Irradiated Tablet",
+   "Temple Tablet",
+   "Delirium Tablet"
+  ],
+  "uniques": [
+   [
+    "Irradiated Tablet",
+    "Visions of Paradise"
+   ],
+   [
+    "Irradiated Tablet",
+    "The Grand Project"
+   ],
+   [
+    "Irradiated Tablet",
+    "Mastered Domain"
+   ],
+   [
+    "Abyss Tablet",
+    "Unforeseen Consequences"
+   ],
+   [
+    "Ritual Tablet",
+    "Freedom of Faith"
+   ],
+   [
+    "Breach Tablet",
+    "Wraeclast Besieged"
+   ],
+   [
+    "Overseer Tablet",
+    "Cruel Hegemony"
+   ],
+   [
+    "Overseer Tablet",
+    "Season of the Hunt"
+   ],
+   [
+    "Delirium Tablet",
+    "Clear Skies"
+   ]
+  ]
+ },
+ "splinters": [
+  "Breach Splinter",
+  "Simulacrum Splinter"
+ ],
+ "wombgifts": [
+  "Banded Wombgift",
+  "Lavish Wombgift",
+  "Ornate Wombgift",
+  "Revelatory Wombgift",
+  "Signet Wombgift"
+ ],
+ "special_items": [
+  "An Audience with the King",
+  "Expedition Logbook",
+  "Kulemak's Invitation"
+ ],
+ "name_fixes": {
+  "corrections": {
+   "Stamped Wombgift": "Signet Wombgift",
+   "Pressurised Wombgift": "Ornate Wombgift"
+  },
+  "skip": [
+   "Necrotic Catalyst",
+   "Refined Necrotic Catalyst"
+  ]
+ },
+ "chance_bases": [
+  [
+   "Belts",
+   "Utility Belt",
+   "Mageblood"
+  ],
+  [
+   "Belts",
+   "Heavy Belt",
+   "Headhunter"
+  ],
+  [
+   "Rings",
+   "Gold Ring",
+   "Ventor's Gamble / Andvarius / Perandus Seal"
+  ],
+  [
+   "Amulets",
+   "Stellar Amulet",
+   "Astramentis"
+  ]
+ ],
+ "exotic_bases": [
+  "Aberrant Sledge",
+  "Absent Amulet",
+  "Abyssal Signet",
+  "Ancient Gauntlets",
+  "Ancient Leggings",
+  "Ancient Mail",
+  "Ancient Visor",
+  "Biostatic Ring",
+  "Breach Ring",
+  "Corona Amulet",
+  "Distorted Amulet",
+  "Dusk Amulet",
+  "Dusk Ring",
+  "Forking Belt",
+  "Glacial Fortress",
+  "Gloam Amulet",
+  "Gloam Ring",
+  "Grasping Mail",
+  "Grasping Ring",
+  "Heartwood Shortbow",
+  "Invoking Belt",
+  "Kinetic Ring",
+  "Lament Amulet",
+  "Mnemonic Ring",
+  "Oneiric Ring",
+  "Ornate Ringmail",
+  "Pearlescent Amulet",
+  "Penumbra Amulet",
+  "Penumbra Ring",
+  "Perching Staff",
+  "Portent Amulet",
+  "Primal Markings",
+  "Refined Breach Ring",
+  "Reflecting Staff",
+  "Runic Fork",
+  "Sacrificial Regalia",
+  "Sinew Belt",
+  "Stalking Belt",
+  "Tenebrous Amulet",
+  "Tenebrous Crown",
+  "Tenebrous Ring",
+  "Twisted Amulet",
+  "Twisted Wand",
+  "Two-Stone Ring",
+  "Venerable Defender",
+  "Veridical Chain",
+  "Vitalic Ring",
+  "Warding Quarterstaff"
+ ]
 }

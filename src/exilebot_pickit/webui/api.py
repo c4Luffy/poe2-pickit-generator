@@ -2493,7 +2493,7 @@ class AppApi:
         """Displayed item line -> the base type the pickit keys on.
 
         Quality Normal/Magic items copy with a "Superior " prefix, and a Magic
-        item wraps its base in affixes ("Sturdy Grand Regalia of the Bear"), so
+        item wraps its base in affixes ("Sturdy Soldier Cuirass of the Bear"), so
         the raw line frequently is NOT the base name. No real base starts with
         "Superior", so stripping it is safe; the affix case is resolved by
         finding the longest known base sitting inside the line.
