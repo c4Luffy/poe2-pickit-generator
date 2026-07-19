@@ -26,9 +26,9 @@
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
 </p>
 
-![Real ExileBot 2 Pickit Generator v4.35.2 Generate screen](docs/shots/01-generate.png)
+![Real ExileBot 2 Pickit Generator v4.38.0 Generate screen](docs/shots/01-generate.png)
 
-<p align="center"><sub>Real running-app capture · Generate · captured on v4.35.2</sub></p>
+<p align="center"><sub>Real running-app capture · Generate · captured on v4.38.0</sub></p>
 
 > [!IMPORTANT]
 > **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.38.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.38.0/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
@@ -131,10 +131,10 @@ Windows SmartScreen may ask for confirmation because this free community executa
 Every tab was audited this cycle. The headline items are behaviour fixes — things that were quietly answering wrong:
 
 - **🔓 Turn everything on now really does.** It flipped every switch, but Adaptive market floors then recomputed a high floor on the next run and threw most of it away. It now also drops both floors to 0, switches Adaptive floors off, and opens exceptional gates to quality 21 / ilvl 79. **Put my switches back** restores all of it.
-- **A floor you set by hand sticks** — typing one now switches Adaptive floors off instead of silently recomputing over your number.
-- **Item Check stopped rejecting quality white bases.** Items copy as `Superior <Base>` when they have quality, and that prefix was never stripped — so the exact bases the Exceptional tab collects were reported as "no rule matches".
-- **Implicits on every base** (Gold Ring `+6-15% Item Rarity`), read from the game's own data files. **Chance cards** show the live price of the unique you're chancing for. **Profiles** export/import, and an import previews what a profile turns OFF before you add it.
-- **v4.37.x:** filters color by real value — the five-tier ladder from live prices.
+- **A floor you set by hand sticks** — typing or dragging one now switches Adaptive floors off instead of silently recomputing over your number.
+- **Item Check stopped rejecting quality white bases.** It now strips the `Superior` prefix and resolves Magic items whose base is wrapped in affixes, so the bases your generated rules cover are recognized correctly.
+- **Create your filter translates `ItemLevel` and `WaystoneTier` exactly** instead of dropping them, so far fewer rules count as "shown wider" and Hide mode is safer.
+- **Useful detail across every tab:** bases display their game-data implicits when they have one; Chance cards show live target prices and art; profile imports preview everything they turn OFF; Preview explains and compares rules; Economy shows Top movers.
 
 [Read the complete v4.38.0 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.0) · [full changelog](CHANGELOG.md)
 
