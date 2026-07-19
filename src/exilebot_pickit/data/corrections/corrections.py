@@ -90,7 +90,6 @@ WOMBGIFTS = [
     "Banded Wombgift",
     "Lavish Wombgift",
     "Ornate Wombgift",
-    "Revelatory Wombgift",
     "Signet Wombgift",
 ]
 
