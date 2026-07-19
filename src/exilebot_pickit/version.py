@@ -1,11 +1,17 @@
 """Single source of truth for the app version."""
-VERSION = "4.39.2"
+VERSION = "4.39.3"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Implicits are finished. 27 bases showed a blank line where the game gives them a real implicit — including ones that change how you use the item: Corona Amulet grants a HELMET socket, Grasping Ring a GLOVE socket, Stalking Belt a BOOT socket, Forking/Invoking/Sinew Belt an extra charm slot, and Grasping Mail can also roll ring modifiers. 52 entries became 79.
+• Five implicits were showing the wrong number. Grand Spear read "+25 Weapon range" when the game stat is a PERCENTAGE — +25%, not a flat 25. Same for Striking Quarterstaff, Flexed Crossbow, Utility Belt (20% of flask recovery is instant) and Warlord Cuirass. Thane Mail showed "+15-25% ... -" with the stat id's trailing minus rendered as text; it is a REDUCTION, so it now reads -15-25%.
+• Two-Stone Ring is three different bases — fire+cold, fire+lightning and cold+lightning — and we displayed the cold+lightning roll for all three. It now says which pairs exist.
+• A test now cross-checks every implicit against the game's own files, so a base can't ship blank and a percentage can't lose its % sign again.
+
+Also in 4.39.2:
 • The bot can now buy An Audience with the King back from a Ritual altar. Its rule carried [IgnoreRitual], which tells the bot not to spend tribute on it — but that item IS the Ritual pinnacle fragment, so a Ritual reward window is exactly where you want it. The flag could only cost you: if the item shows up in the window the bot walked past ~50 ex, and if it only ever drops on the ground the flag did nothing at all. Expedition Logbook and Kulemak's Invitation keep the flag — the Logbook is a real ground drop, so not re-buying a copy with tribute is a genuine saving, and the Invitation is Abyss content where the flag never applies.
 
 Also in 4.39.1:

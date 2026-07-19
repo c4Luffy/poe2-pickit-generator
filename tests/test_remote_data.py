@@ -398,3 +398,71 @@ def test_both_special_item_writers_agree_on_the_action():
             force_names=set(gen.always_pick_force_names())) if name in ln)
         static = next(ln for ln in gen.build_special_item_rules(set()) if name in ln)
         assert forced.split("//")[0].strip() == static.strip(), name
+
+
+def test_every_shipped_base_with_an_implicit_shows_one():
+    """The Exceptional tab exists partly to tell you what an implicit is worth.
+    Half the table was blank: 64 shipped bases have an implicit in the game's
+    own data and only 37 displayed one, so Corona Amulet (grants a HELMET
+    socket) and Grasping Ring (a GLOVE socket) — facts that change how you use
+    the item — showed nothing at all.
+
+    Guarded against the GGPK dump so a future base can't quietly ship blank.
+    """
+    import glob
+    import json as _json
+
+    dumps = glob.glob(os.path.join(_ROOT, "dist", "**", "gamedata_cache",
+                                   "base_items.min.json"), recursive=True)
+    if not dumps:
+        pytest.skip("GGPK base-item dump not present in this checkout")
+
+    from exilebot_pickit.data.implicits.implicits import BASE_IMPLICITS
+
+    with open(dumps[0], encoding="utf-8") as f:
+        items = _json.load(f)
+    has_implicit = {v["name"] for v in items.values()
+                    if v.get("name") and v.get("implicits")}
+
+    # accessories live in their own frozenset, not in _BASE_TYPES_BY_CATEGORY —
+    # leaving them out made every ring and amulet look like an orphan entry.
+    shipped = ({n for ents in bt._BASE_TYPES_BY_CATEGORY.values() for n, _s in ents}
+               | set(corr.EXOTIC_BASES) | set(gen._ACCESSORY_BASES))
+    blank = sorted(n for n in shipped if n in has_implicit and n not in BASE_IMPLICITS)
+    assert not blank, f"shipped bases whose implicit we'd render blank: {blank}"
+
+    # and nothing in the table may point at a base we don't ship
+    orphans = sorted(n for n in BASE_IMPLICITS if n not in shipped)
+    assert not orphans, f"implicits for bases we don't ship: {orphans}"
+
+
+def test_percent_implicits_actually_say_percent():
+    """The stat id carries the unit, and three entries dropped it — Grand Spear
+    read "+25 Weapon range" for local_+%_weapon_range, i.e. a flat 25 rather
+    than +25%. Anything whose game stat id contains "+%" or "_-%" must show a
+    % sign, or the number means something entirely different to the reader."""
+    import glob
+    import json as _json
+
+    cache = glob.glob(os.path.join(_ROOT, "dist", "**", "gamedata_cache"),
+                      recursive=True)
+    if not cache:
+        pytest.skip("GGPK dump not present in this checkout")
+    with open(os.path.join(cache[0], "base_items.min.json"), encoding="utf-8") as f:
+        items = _json.load(f)
+    with open(os.path.join(cache[0], "mods.min.json"), encoding="utf-8") as f:
+        mods = _json.load(f)
+
+    from exilebot_pickit.data.implicits.implicits import BASE_IMPLICITS
+
+    offenders = []
+    for v in items.values():
+        name = v.get("name")
+        if name not in BASE_IMPLICITS or not v.get("implicits"):
+            continue
+        ids = [s.get("id", "") for mid in v["implicits"]
+               for s in ((mods.get(mid) or {}).get("stats") or [])]
+        pct = [i for i in ids if "+%" in i or "_-%" in i or "%_" in i]
+        if pct and "%" not in BASE_IMPLICITS[name]:
+            offenders.append((name, BASE_IMPLICITS[name], pct[0]))
+    assert not offenders, f"percentage implicits shown without a % sign: {offenders}"

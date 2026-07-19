@@ -6,6 +6,29 @@ download lives.
 
 ---
 
+## [v4.39.3] — 2026-07-19 — Implicits finished, and five that showed the wrong number
+
+- **27 bases showed a blank line** where the game gives them a real implicit —
+  52 entries became **79**. Several are facts that change how you use the item:
+  **Corona Amulet** grants a *helmet* socket, **Grasping Ring** a *glove*
+  socket, **Stalking Belt** a *boot* socket, **Forking / Invoking / Sinew Belt**
+  an extra charm slot, and **Grasping Mail** can also roll ring modifiers. The
+  nine Lake amulets now show the prefix/suffix trade they make.
+- **Five implicits displayed the wrong number.** The game's stat id carries the
+  unit and five entries had dropped it: Grand Spear read *"+25 Weapon range"*
+  for `local_+%_weapon_range` — a flat 25 instead of +25%. Same for Striking
+  Quarterstaff, Flexed Crossbow, Utility Belt (*20% of flask recovery is
+  instant*) and Warlord Cuirass. **Thane Mail** rendered the trailing minus of
+  `base_self_critical_strike_multiplier_-%` as literal text while keeping a
+  leading plus; it is a reduction, so it now reads **-15-25%**.
+- **Two-Stone Ring is three different bases** — fire+cold, fire+lightning and
+  cold+lightning — and the cold+lightning roll was shown for all three.
+- **Guarded by tests** that cross-check every implicit against the GGPK dump: a
+  shipped base can no longer render blank, and a percentage stat can no longer
+  lose its `%`. Those tests found two of the five wrong numbers on their own.
+
+---
+
 ## [v4.39.2] — 2026-07-19 — The bot can buy the Ritual fragment from a Ritual
 
 - **An Audience with the King no longer carries `[IgnoreRitual]`.** That flag
@@ -1745,6 +1768,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.39.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.3
 [v4.39.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.2
 [v4.39.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.1
 [v4.39.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.0
