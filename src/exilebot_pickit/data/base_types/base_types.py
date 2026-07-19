@@ -36,7 +36,11 @@ _BASE_TYPES_BY_CATEGORY: dict = {
     # drop). A white one never drops, so the rules here could never fire and the
     # Exceptional-tab toggles did nothing. Reflecting Staff stays in
     # EXOTIC_BASES, where an ungated rule catches the unique itself.
-    "Staves": (("Ravenous Staff", 3),),
+    # Sanctified (56) and Paralysing (52) added 2026-07-19 to replace the two
+    # unique-only staves. Low drop levels are normal here — this list already
+    # runs down to Omen Sceptre at 16 — and item level, not base level, is what
+    # the ilvl-82 gate actually tests.
+    "Staves": (("Ravenous Staff", 3), ("Sanctified Staff", 3), ("Paralysing Staff", 3),),
     "Bows": (("Obliterator Bow", 3), ("Warmonger Bow", 3), ("Guardian Bow", 3),),
     "Crossbows": (("Desolate Crossbow", 3), ("Flexed Crossbow", 3), ("Elegant Crossbow", 3),),
     "Belts": (("Fine Belt", 0), ("Heavy Belt", 0), ("Utility Belt", 0), ("Ornate Belt", 0),),

@@ -340,3 +340,22 @@ def test_no_exceptional_base_is_a_unique_only_base():
     assert not offenders, (
         "unique-only bases in the Exceptional list — a white one never drops, so "
         f"these rules can never fire: {offenders}")
+
+
+def test_bundled_json_base_types_match_the_code():
+    """game_data.json must mirror _BASE_TYPES_BY_CATEGORY exactly.
+
+    test_bundled_game_data_matches_code_defaults checks every OTHER section but
+    not this one — the largest, 119 entries. The gap is not theoretical: while
+    adding Sanctified/Paralysing Staff on 2026-07-19 the code was edited and the
+    JSON write silently no-opped on a bad anchor, and the whole suite still
+    passed with the two files disagreeing. An offline user (bundled code) and an
+    online user (remote JSON) would then generate different pickits.
+    """
+    data = _load_bundled()
+    json_bt = {c: [tuple(e) for e in ents] for c, ents in data["base_types"].items()}
+    code_bt = {c: [tuple(e) for e in ents]
+               for c, ents in bt._BASE_TYPES_BY_CATEGORY.items()}
+    assert json_bt == code_bt, (
+        "game_data.json and data/base_types.py disagree — re-sync them "
+        f"(JSON-only: {set(json_bt) - set(code_bt)}, code-only: {set(code_bt) - set(json_bt)})")

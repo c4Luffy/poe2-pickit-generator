@@ -507,8 +507,11 @@ RARE_GEAR = {
         # Permafrost Staff and Reflecting Staff dropped 2026-07-19: their
         # metadata is FourStaffUnique1/Unique3 — unique-only bases hosting The
         # Whispering Ice and Atziri's Rule. A rare one never drops, so these
-        # recipes could never match. Ravenous Staff is the real endgame staff.
-        "bases": ["Ravenous Staff"],
+        # recipes could never match. Sanctified (56) and Paralysing (52) take
+        # their place: the next two real staves, both NeverSink-listed. Every
+        # other slot keeps the top 3 that exist even when the levels fall off
+        # (Wand runs 65/33/25), so a lone staff would be the odd one out.
+        "bases": ["Ravenous Staff", "Sanctified Staff", "Paralysing Staff"],
         "weights": {
             "spell_skill_gem_level_+": 16.67,            # T1 max +6 (ALL spells)
             "fire_spell_skill_gem_level_+": 14.29,       # T1 max +7
