@@ -6,6 +6,38 @@ download lives.
 
 ---
 
+## [v4.39.1] — 2026-07-19 — First run picks up everything, and four bases corrected
+
+- **First run now picks up everything.** Both value floors were already 0 on a
+  fresh install, but the two exceptional gates defaulted to quality 25 / item
+  level 82 — so a brand-new user's very first pickit quietly skipped exceptional
+  bases they had never chosen to skip, while the Generate tab said *"Picking up
+  everything"*. They now open to **21 / 79**, the loosest legal values (quality
+  rolls 21–30, item level 79–82) and the same pair "Turn everything on" sets.
+  Anyone already running keeps their own settings — defaults only apply when no
+  config file exists.
+- **Permafrost Staff and Reflecting Staff removed.** Both exist *only* as
+  uniques — The Whispering Ice and Atziri's Rule (an Atziri temple drop). A
+  white or rare one never drops, so every non-unique rule naming them was dead.
+  Reflecting Staff keeps its ungated rule in the exotic list, which is now the
+  only place it appears, so the Exceptional-tab toggle that did nothing is gone.
+- **Shrine Sceptre stays.** It was caught by the same sweep and that was wrong:
+  it has three ordinary droppable variants (`FourSceptre6a/6b/6c`) alongside one
+  unique host, so it drops normally. Restored the same day.
+- **The staff slot is back to three bases** — Ravenous (65), Sanctified (56) and
+  Paralysing (52) — matching how every other slot keeps its top three even when
+  the levels fall off.
+- **Crafting on staves never worked.** The only staff in the craft list was
+  Permafrost Staff, which cannot drop as a Normal base, so the rule could never
+  fire. Ravenous Staff replaces it.
+- **The bundled lists and `game_data.json` can no longer drift apart unnoticed.**
+  Every other section was checked; base types — the largest at 119 entries —
+  was not, and a silently failed edit left the two disagreeing with the whole
+  suite still passing. That is exactly how offline and online users end up
+  generating different pickits.
+
+---
+
 ## [v4.39.0] — 2026-07-19 — The second half of the audit: nine more bugs
 
 v4.38.4 shipped the six most urgent findings. These are the rest, each
@@ -1693,6 +1725,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.39.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.1
 [v4.39.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.0
 [v4.38.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.4
 [v4.38.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.3

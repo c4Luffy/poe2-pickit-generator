@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.0/ExileBot2PickitGenerator.exe"><img alt="Download v4.39.0 for Windows" src="https://img.shields.io/badge/Download-v4.39.0-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.1/ExileBot2PickitGenerator.exe"><img alt="Download v4.39.1 for Windows" src="https://img.shields.io/badge/Download-v4.39.1-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&label=Downloads&labelColor=171411&color=829d78"></a>
 </p>
 
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://c4luffy.github.io/poe2-pickit-generator/">Website</a> ·
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.0">Release notes</a> ·
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.1">Release notes</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://discord.gg/T7DU3Afve6">Discord</a> ·
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
@@ -31,7 +31,7 @@
 <p align="center"><sub>Real running-app capture · Generate · captured on v4.38.2</sub></p>
 
 > [!IMPORTANT]
-> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.39.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.0/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
+> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.39.1](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.1/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
 
 ## Start here
 
@@ -116,7 +116,7 @@ Rare gear stays honest. If no recipe covers the base or its slot is disabled, th
 - Unusual item-name characters are excluded and reported instead of disappearing silently.
 - The app never asks for your Path of Exile account.
 
-Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.0/SHA256SUMS.txt).
+Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.1/SHA256SUMS.txt).
 
 ### Three important usage notes
 
@@ -124,9 +124,15 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.39.0
+## Current release: v4.39.1
 
-### The second half of the audit — nine more bugs
+### First run picks up everything, and four bases corrected
+
+- **First run now picks up everything.** The floors were already 0, but the two exceptional gates defaulted to quality 25 / item level 82 — so a new user's first pickit quietly skipped exceptional bases while the screen said "Picking up everything". They now open to 21 / 79. Anyone already running keeps their own settings.
+- **Permafrost Staff and Reflecting Staff removed** — both exist only as uniques (The Whispering Ice, Atziri's Rule), so every white/rare rule naming them was dead. **Shrine Sceptre stays**: it was caught by the same sweep and that was wrong — it drops normally.
+- **Crafting on staves never worked** — the only staff in the craft list couldn't drop as a Normal base. Ravenous Staff replaces it, and the rare staff slot is back to three bases.
+
+### v4.39.0 — The second half of the audit — nine more bugs
 
 - **A broken `game_data.json` can no longer strip your base rules.** That file self-updates from GitHub, and a truncated copy passed validation and silently deleted 16 of 17 base categories. A remote copy may now add bases, never delete a category.
 - **Top movers can finally show uniques.** Every unique was being skipped, so all 7 unique categories recorded zero prices — a full league now records 438.
@@ -165,7 +171,7 @@ Every tab was audited that cycle. The headline items are behaviour fixes — thi
 - **Create your filter translates `ItemLevel` and `WaystoneTier` exactly** instead of dropping them, so far fewer rules count as "shown wider" and Hide mode is safer.
 - **Useful detail across every tab:** bases display their game-data implicits when they have one; Chance cards show live target prices and art; profile imports preview everything they turn OFF; Preview explains and compares rules; Economy shows Top movers.
 
-[Read the complete v4.39.0 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.0) · [full changelog](CHANGELOG.md)
+[Read the complete v4.39.1 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.1) · [full changelog](CHANGELOG.md)
 
 <details>
 <summary><strong>Everything included</strong></summary>

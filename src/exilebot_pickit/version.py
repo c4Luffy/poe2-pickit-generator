@@ -1,11 +1,17 @@
 """Single source of truth for the app version."""
-VERSION = "4.39.0"
+VERSION = "4.39.1"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• First run now picks up EVERYTHING. Both value floors were already 0, but the two exceptional gates defaulted to quality 25 / item level 82 — so a brand-new user's first pickit quietly skipped exceptional bases while the screen said "Picking up everything". They now open to 21 / 79, the loosest legal values. Anyone already running keeps their own settings.
+• Three staves and a sceptre corrected. Permafrost Staff and Reflecting Staff exist ONLY as The Whispering Ice and Atziri's Rule — a white or rare one never drops, so every non-unique rule naming them was dead. Removed. Shrine Sceptre was caught by the same sweep, wrongly: it has three ordinary variants as well as a unique host, so it drops fine and stays. Sanctified Staff and Paralysing Staff fill the staff slot back to three.
+• Crafting on staves never actually worked — the only staff in the craft list was one of the two that cannot drop. Ravenous Staff replaces it.
+• The bundled item lists and game_data.json can no longer drift apart unnoticed; a stale copy of one is exactly how offline and online users end up with different pickits.
+
+Also in 4.39.0:
 The second half of the audit — nine more real bugs:
 • Top movers can finally show uniques. Prices were joined to an items table by id, but unique data carries the name on the row itself, so every unique was skipped and all 7 unique categories recorded ZERO prices. Mageblood could double and the panel stayed empty. It now records 438 unique prices for a full league.
 • A broken game_data.json can no longer strip your base rules. That file self-updates from GitHub, and a truncated copy passed validation and silently deleted 16 of 17 base categories. A remote copy may now add bases but never delete a category, and a name that would produce a rule matching EVERYTHING on the ground is rejected outright.
