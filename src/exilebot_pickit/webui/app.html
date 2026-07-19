@@ -2761,12 +2761,21 @@ function renderExcGrid(){
     const NOATTR="—";
     const groups={};
     for(const b of bases)(groups[b.attr||"—"]=groups[b.attr||"—"]||[]).push(b);
-    // pure attributes: pinned to three columns so Str | Dex | Int always line
-    // up. Hybrids go in their own section below — in one flat grid they wrapped
+    // pure attributes: one column each, so Str | Dex | Int line up. Only as
+    // many columns as this category actually HAS — pinning three left Shields
+    // (Str only) and Foci (Int only) filling a third of the width with two
+    // empty tracks beside them. With a single group there is nothing to line up
+    // against, so the cards flow as a normal grid instead of one tall column.
+    // Hybrids go in their own section below — in one flat grid they wrapped
     // into these columns and a column stopped meaning a single attribute.
-    const pureCols=document.createElement("div");
-    pureCols.className="attr-cols pure";
-    g.appendChild(pureCols);
+    const nPure=PURE.filter(a=>groups[a]&&groups[a].length).length;
+    let pureCols=null;
+    if(nPure){
+      pureCols=document.createElement("div");
+      pureCols.className=nPure>1?"attr-cols pure":"grid";
+      if(nPure>1)pureCols.style.gridTemplateColumns=`repeat(${nPure},1fr)`;
+      g.appendChild(pureCols);
+    }
     let hybCols=null,plainGrid=null;
     for(const attr of PURE.concat(HYBRID,[NOATTR])){
       const list=groups[attr];
@@ -2787,9 +2796,12 @@ function renderExcGrid(){
         hybCols.className="attr-cols";
         g.appendChild(hybCols);
       }
-      const cols=isNone?null:(isHyb?hybCols:pureCols);
-      const sub=isNone?plainGrid:document.createElement("div");
-      if(!isNone)sub.className="attr-col";
+      // flat = the cards flow straight into a grid instead of forming a column:
+      // no attribute at all, or the only pure group in this category.
+      const flat=isNone||(!isHyb&&nPure<=1);
+      const cols=flat?null:(isHyb?hybCols:pureCols);
+      const sub=flat?(isNone?plainGrid:pureCols):document.createElement("div");
+      if(!flat)sub.className="attr-col";
       for(const b of list){
         const d=document.createElement("div");
         d.className="bcard"+(b.enabled?"":" dis");
