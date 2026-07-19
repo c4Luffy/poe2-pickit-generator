@@ -373,7 +373,10 @@ _CRAFT_BEST_BASES: dict = {
     "Quarterstaves": [("Dreaming Quarterstaff", "DEX/INT"), ("Razor Quarterstaff", "DEX/INT")],
     "Crossbows":     [("Desolate Crossbow", "STR/DEX"), ("Flexed Crossbow", "STR/DEX")],
     "Bows":          [("Obliterator Bow", "DEX"), ("Warmonger Bow", "DEX")],
-    "Staves":        [("Permafrost Staff", "INT")],
+    # Permafrost Staff replaced 2026-07-19: its metadata is FourStaffUnique1, a
+    # unique-only base hosting The Whispering Ice, so a Normal one never drops
+    # and the craft rule could never fire. Ravenous Staff is the real endgame staff.
+    "Staves":        [("Ravenous Staff", "INT")],
     "Wands":         [("Dueling Wand", "INT")],
     # Accessories — high-value Normal bases worth crafting on from item level 75.
     # Solar = +Spirit implicit, Gold = rarity implicit (owner-picked pair,

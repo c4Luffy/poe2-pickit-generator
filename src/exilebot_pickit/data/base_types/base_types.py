@@ -19,15 +19,23 @@ _BASE_TYPES_BY_CATEGORY: dict = {
     # Hallowed Sceptre removed 2026-07-12: it is still in the game's item table
     # but does NOT drop (owner searched in-game; NeverSink doesn't list it, nor
     # any sceptre above Wrath). The table keeps legacy + [DNT] dev definitions.
-    "Sceptres": (("Wrath Sceptre", 2), ("Shrine Sceptre", 2), ("Omen Sceptre", 2),),
+    # Shrine Sceptre removed 2026-07-19: its metadata is FourSceptreUnique1 — a
+    # unique-only base. A white one never drops, so the Quality/ItemLevel rule
+    # here could never fire and its Exceptional-tab toggle did nothing. Its four
+    # uniques (Guiding Palm ×3, Sacred Flame) are still picked up by value.
+    "Sceptres": (("Wrath Sceptre", 2), ("Omen Sceptre", 2),),
     "Spears": (("Flying Spear", 2), ("Grand Spear", 2), ("Stalking Spear", 2),),
     "Wands": (("Dueling Wand", 2), ("Acrid Wand", 2), ("Galvanic Wand", 2),),
     "Two Hand Maces": (("Massive Greathammer", 3), ("Ironwood Greathammer", 3), ("Tawhoan Greatclub", 3),),
     "Quarterstaves": (("Dreaming Quarterstaff", 3), ("Razor Quarterstaff", 3), ("Striking Quarterstaff", 3),),
-    # Dark Staff removed 2026-07-12 — same story: in the item table, doesn't drop
-    # (its ilvl-65 peers Ravenous and Perching do). Reflecting Staff (70) takes
-    # its place as the second-highest staff that actually drops.
-    "Staves": (("Permafrost Staff", 3), ("Reflecting Staff", 3), ("Ravenous Staff", 3),),
+    # Dark Staff removed 2026-07-12 — in the item table, doesn't drop (owner
+    # searched in-game). Permafrost Staff and Reflecting Staff removed
+    # 2026-07-19: their metadata is FourStaffUnique1/Unique3 — unique-only bases
+    # that exist to host The Whispering Ice and Atziri's Rule (an Atziri temple
+    # drop). A white one never drops, so the rules here could never fire and the
+    # Exceptional-tab toggles did nothing. Reflecting Staff stays in
+    # EXOTIC_BASES, where an ungated rule catches the unique itself.
+    "Staves": (("Ravenous Staff", 3),),
     "Bows": (("Obliterator Bow", 3), ("Warmonger Bow", 3), ("Guardian Bow", 3),),
     "Crossbows": (("Desolate Crossbow", 3), ("Flexed Crossbow", 3), ("Elegant Crossbow", 3),),
     "Belts": (("Fine Belt", 0), ("Heavy Belt", 0), ("Utility Belt", 0), ("Ornate Belt", 0),),

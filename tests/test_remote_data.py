@@ -288,3 +288,35 @@ def test_a_future_dated_cache_does_not_block_updates_forever(tmp_path):
         json.dump({"ts": time.time() + 86400 * 365, "app_version": VERSION,
                    "data": {"base_types": _full_base_types()}}, f)
     assert rd.load_cached_game_data(cache_dir)[1] == 0.0
+
+
+def test_no_exceptional_base_is_a_unique_only_base():
+    """A base whose metadata path ends in ...Unique<N> exists ONLY to host a
+    unique — a white one never drops. Three had been curated into the
+    Exceptional list (Shrine Sceptre, Permafrost Staff, Reflecting Staff), so
+    their Quality/ItemLevel rules could never fire and their toggles in the
+    Exceptional tab did nothing at all. poe.ninja confirms it: those base names
+    only ever appear carrying a unique (Atziri's Rule, The Whispering Ice,
+    Guiding Palm, Sacred Flame), never as a tradeable white base.
+
+    Guarded here because the list is hand-curated and the mistake is invisible
+    without the metadata: the names look like ordinary high-level bases.
+    """
+    import glob
+    import json as _json
+
+    dumps = glob.glob(os.path.join(_ROOT, "dist", "**", "gamedata_cache",
+                                   "base_items.min.json"), recursive=True)
+    if not dumps:
+        pytest.skip("GGPK base-item dump not present in this checkout")
+
+    with open(dumps[0], encoding="utf-8") as f:
+        items = _json.load(f)
+    unique_only = {v["name"] for k, v in items.items()
+                   if v.get("name") and "Unique" in k.rsplit("/", 1)[-1]}
+
+    offenders = [(cat, n) for cat, entries in bt._BASE_TYPES_BY_CATEGORY.items()
+                 for n, _s in entries if n in unique_only]
+    assert not offenders, (
+        "unique-only bases in the Exceptional list — a white one never drops, so "
+        f"these rules can never fire: {offenders}")

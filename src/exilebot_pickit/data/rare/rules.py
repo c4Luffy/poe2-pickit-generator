@@ -453,8 +453,10 @@ RARE_GEAR = {
     "Sceptre": {
         # Hallowed Sceptre dropped 2026-07-12 — in the game's item table but it
         # does NOT drop (owner confirmed in-game; NeverSink lists no sceptre above
-        # Wrath). These are the three highest sceptres that actually drop.
-        "bases": ["Wrath Sceptre", "Shrine Sceptre", "Omen Sceptre"],
+        # Wrath). Shrine Sceptre dropped 2026-07-19: its metadata is
+        # FourSceptreUnique1, a unique-only base, so a RARE one never drops
+        # either — the recipe could never match.
+        "bases": ["Wrath Sceptre", "Omen Sceptre"],
         "weights": {
             "minion_skill_gem_level_+": 25.0,            # T1 max +4
             "allies_in_presence_damage_+%": 0.84,        # T1 max 119
@@ -502,8 +504,11 @@ RARE_GEAR = {
     # database 2026-07-12.
     "Staff": {
         # Dark Staff dropped 2026-07-12 (same reason as Hallowed Sceptre).
-        # Reflecting Staff (ilvl 70) is the second-highest staff that drops.
-        "bases": ["Permafrost Staff", "Reflecting Staff", "Ravenous Staff"],
+        # Permafrost Staff and Reflecting Staff dropped 2026-07-19: their
+        # metadata is FourStaffUnique1/Unique3 — unique-only bases hosting The
+        # Whispering Ice and Atziri's Rule. A rare one never drops, so these
+        # recipes could never match. Ravenous Staff is the real endgame staff.
+        "bases": ["Ravenous Staff"],
         "weights": {
             "spell_skill_gem_level_+": 16.67,            # T1 max +6 (ALL spells)
             "fire_spell_skill_gem_level_+": 14.29,       # T1 max +7
