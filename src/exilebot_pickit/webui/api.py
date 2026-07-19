@@ -45,6 +45,35 @@ def _config_warning() -> str:
     return _c.CONFIG_LOAD_ERROR or ""
 
 
+def _has_release_notes(body) -> bool:
+    """Does this release body actually say what changed?
+
+    GitHub auto-generates a body when a release is published before its notes
+    are attached, and that body is often just::
+
+        **Full Changelog**: https://github.com/.../compare/v4.38.0...v4.38.1
+
+    The what's-new dialog treated that as real notes and showed a bare link.
+    Strip the boilerplate — the changelog line, bare URLs, markdown headings
+    and list bullets — and see whether any prose survives. The test is
+    "is there anything at all", not "is there enough": real notes are
+    sometimes a single short line, and those must still win.
+    """
+    text = str(body or "")
+    kept = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if re.match(r"^\**\s*full changelog\s*\**\s*:", line, re.I):
+            continue
+        line = re.sub(r"https?://\S+", "", line)
+        line = line.strip(" \t#*-•_>")
+        if line:
+            kept.append(line)
+    return len(" ".join(kept)) >= 3
+
+
 def _theme_or_default(value) -> str:
     """THE theme normalization — read path, write path and import path all use
     this one membership test so the stored value, the dropdown and the written
@@ -1133,23 +1162,15 @@ class AppApi:
             notes = ""
             if str(self.cfg.get("pending_version") or "") == VERSION:
                 notes = str(self.cfg.get("pending_notes") or "")
-            if not notes:
+            # A release built before its notes were written carries GitHub's
+            # auto-generated body — a lone "Full Changelog: <compare url>". The
+            # dialog showed that and nothing else, which tells the reader
+            # nothing. Anything that thin loses to the bundled highlights.
+            if not _has_release_notes(notes):
                 # The highlights ship inside the exe (version.py) — the dialog
                 # must work offline and while GitHub is unreachable.
                 from exilebot_pickit.version import HIGHLIGHTS
-                notes = HIGHLIGHTS
-            if not notes:
-                try:
-                    import requests
-                    from exilebot_pickit.ui.updater import VERSION_URL
-                    base = VERSION_URL.rsplit("/", 1)[0]
-                    r = requests.get(f"{base}/tags/v{VERSION}", timeout=8,
-                                     headers={"User-Agent": f"poe2-pickit/{VERSION}",
-                                              "Accept": "application/vnd.github+json"})
-                    if r.status_code == 200:
-                        notes = str((r.json() or {}).get("body") or "")[:8000]
-                except Exception:
-                    notes = ""
+                notes = HIGHLIGHTS or notes
             return {"show": True, "version": VERSION, "notes": notes,
                     "url": f"https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v{VERSION}"}
         except Exception as e:

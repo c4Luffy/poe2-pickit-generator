@@ -529,6 +529,38 @@ def test_whats_new_does_not_greet_a_brand_new_user(api):
     assert api.cfg["last_seen_version"] == VERSION   # silently marked, so no nag later
 
 
+def test_whats_new_ignores_a_bare_auto_generated_changelog_link(api):
+    """v4.38.1 was published before its notes were attached, so GitHub filled the
+    body with a lone compare link — and the dialog dutifully showed a version
+    heading and one URL, telling the reader nothing. A body with no prose in it
+    loses to the highlights bundled in the exe."""
+    from exilebot_pickit.version import HIGHLIGHTS, VERSION
+    api.cfg["league"] = "L"
+    api.cfg["pending_version"] = VERSION
+    api.cfg["pending_notes"] = (
+        "**Full Changelog**: https://github.com/c4Luffy/poe2-pickit-generator"
+        "/compare/v4.38.0...v4.38.1")
+
+    r = api.whats_new()
+    assert r["show"] is True
+    assert r["notes"] == HIGHLIGHTS
+
+
+def test_whats_new_keeps_real_notes_that_also_link_the_changelog(api):
+    """The guard must not throw away GENUINE notes just because they end with the
+    same Full Changelog line — every real release body has one."""
+    from exilebot_pickit.version import VERSION
+    api.cfg["league"] = "L"
+    api.cfg["pending_version"] = VERSION
+    api.cfg["pending_notes"] = (
+        "## Exceptional tab uses its full width\n\n"
+        "- Shields and Foci no longer render into a third of the page.\n\n"
+        "**Full Changelog**: https://github.com/c4Luffy/poe2-pickit-generator"
+        "/compare/v4.38.0...v4.38.1")
+
+    assert "Shields and Foci" in api.whats_new()["notes"]
+
+
 def test_whats_new_survives_no_network(api, monkeypatch):
     """No cached notes and GitHub unreachable: the dialog still shows the REAL
     highlights — they ship inside the exe (version.HIGHLIGHTS) precisely so an
