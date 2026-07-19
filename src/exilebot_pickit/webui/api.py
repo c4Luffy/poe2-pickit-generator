@@ -981,7 +981,12 @@ class AppApi:
                        or f.get("magic_rare_flasks") is False
                        or int(f.get("base_quality") or 21) != 21
                        or int(f.get("base_min_level") or 79) != 79)
-        return {"ok": True, "flipped": flipped, "changed": changed}
+        # can_undo, not changed: the SECOND click flips nothing, so "changed"
+        # is False — and the UI was hiding the button on it, stranding the
+        # first snapshot with no way back for the rest of the session. That
+        # snapshot is exactly the curation this undo exists to protect.
+        return {"ok": True, "flipped": flipped, "changed": changed,
+                "can_undo": getattr(self, "_all_on_undo", None) is not None}
 
     def undo_all_on(self):
         """Put every switch back exactly as it was before the last All ON.
@@ -2611,8 +2616,33 @@ class AppApi:
             r["detail"] = ("Names match, but Auto-copy is off — the pickit won't be "
                            "deployed to the bot on its own.")
         else:
+            # Names matching is not the same as the file being THERE. "ok" used to
+            # be decided from the ini and a checkbox alone, so a fresh setup that
+            # had never generated — or a bot folder restored from a backup — was
+            # told "every Generate deploys it there" while the bot had no copy at
+            # all, or a month-old one. That is the exact failure this check exists
+            # to catch, so look at the actual file.
+            src = os.path.join(OUTPUT_DIR, out + ".ipd")
+            dst = os.path.join(folder, out + ".ipd")
             r["state"] = "ok"
             r["detail"] = f"Your bot reads {out}.ipd, and every Generate deploys it there."
+            try:
+                if not os.path.isfile(dst):
+                    if os.path.isfile(src):
+                        r["state"] = "notdeployed"
+                        r["detail"] = (f"Names match, but there's no {out}.ipd in the bot "
+                                       "folder yet — the bot has nothing to read. "
+                                       "Generate once to deploy it.")
+                    else:
+                        r["detail"] = (f"Your bot will read {out}.ipd once you generate "
+                                       "one — every Generate deploys it there.")
+                elif os.path.isfile(src) and os.path.getmtime(src) - os.path.getmtime(dst) > 2:
+                    r["state"] = "stale"
+                    r["detail"] = (f"The bot's copy of {out}.ipd is older than the one you "
+                                   "generated, so it's running out-of-date rules. "
+                                   "Generate again, or copy it across by hand.")
+            except OSError:
+                pass        # can't stat it — don't invent a problem
         return r
 
     def fix_bot_profile(self):
@@ -2943,6 +2973,67 @@ class AppApi:
                                          for t in targets][:12]})
         return rows
 
+    def _static_section_rows(self, snap, cands, klass, rarity):
+        """Verdict rows from the pickit sections that aren't priced or scored.
+
+        Item Check promises it "runs the same code that writes your pickit". It
+        didn't: it consulted the economy, base and rare paths only, so three whole
+        sections answered wrong on a real paste —
+
+          * a Waystone got "ignore" while the pickit takes EVERY waystone, because
+            those rules are keyed on [Category] and carry no item name to match;
+          * an Uncut Skill Gem got "nothing targets this" against 20 active rules,
+            because in-game it is named "Uncut Skill Gem" while the rules name
+            "Uncut Skill Gem (Level N)";
+          * a Magic flask got the same, because only Rare gear had a branch.
+
+        So ask the builders themselves rather than re-deriving: whatever they emit
+        IS the pickit. Reading the emitted lines also means a future section is
+        covered the moment it appears in the file.
+        """
+        out: list = []
+        low_class = (klass or "").lower()
+        low_rar = (rarity or "").lower()
+
+        def _names(line):
+            return set(gen._LF_TYPE_RE.findall(line))
+
+        # Waystones — [Category] rules, so match on the item class instead.
+        if "waystone" in low_class or any("waystone" in c.lower() for c in cands):
+            for ln in gen.build_waystone_lines():
+                if ln.startswith("[") and f'"{(rarity or "Normal").title()}"' in ln:
+                    out.append({"kind": "pick", "rule": ln.split("//")[0].strip(),
+                                "why": "Waystones are picked up by tier, not by name."})
+                    break
+
+        # Magic/Rare flasks — only Rare had a branch, so Magic answered "none".
+        if "flask" in low_class and low_rar in ("magic", "rare"):
+            for ln in gen.build_magic_rare_rules(bool(self.cfg.get("magic_rare_flasks", True))):
+                if not ln.startswith("[") or f'"{low_rar.title()}"' not in ln:
+                    continue
+                # A Magic item's base is wrapped in affixes ("Ultimate Life Flask
+                # of the Impala"), so an exact match never fires — look for the
+                # rule's base name inside the pasted name.
+                rn = _names(ln)
+                if (rn & cands) or any(n in c for n in rn for c in cands if c):
+                    out.append({"kind": "depends", "rule": ln.split("//")[0].strip(),
+                                "why": "Kept only if the charge roll is high enough — "
+                                       "pasted text doesn't carry that, so the bot "
+                                       "decides after pickup."})
+                    break
+
+        # A name the rules qualify with a suffix, e.g. "Uncut Skill Gem (Level 20)".
+        # The in-game item is just "Uncut Skill Gem", so exact matching never hit.
+        for ln in self._last_lines or []:
+            if not ln.startswith("[") or "//" == ln[:2]:
+                continue
+            for rule_name in _names(ln):
+                if any(rule_name.startswith(c + " (") for c in cands if c):
+                    out.append({"kind": "pick", "rule": ln.split("//")[0].strip(),
+                                "why": "Your pickit lists this by its exact variant name."})
+                    return out
+        return out
+
     def _rare_rows(self, snap, base, rarity):
         """Verdict rows for rare gear. Two of the three answers are definitive: a base
         no recipe covers is never taken, and a switched-off slot is never taken. Only
@@ -3171,6 +3262,7 @@ class AppApi:
             fractured = "fractured" in (text or "").lower()
             rows += self._base_rows(snap, cands, base, klass, rarity, ilvl, fractured)
             rows += self._rare_rows(snap, base, rarity)
+            rows += self._static_section_rows(snap, cands, klass, rarity)
 
             if any(r["kind"] == "pick" for r in rows):
                 verdict = "pick"

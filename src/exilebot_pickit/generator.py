@@ -1328,16 +1328,28 @@ def main():
             print(f"  ✗ {label}: {e}", file=sys.stderr)
 
     # ── Tablets ───────────────────────────────────────────────────────────────
-    output_lines.extend(build_tablet_rules())
+    # Anything poe.ninja already priced got a rule in its own economy category
+    # above, so a static rule for it here is a SECOND copy of the same item. The
+    # GUI has always deduped these; the CLI did not, and shipped five duplicated
+    # rules — the three Special Items plus both splinters — one carrying an
+    # ExValue and one bare, with conflicting actions on the Special Items.
+    _priced: set = set()
+    for _p in all_payloads.values():
+        if isinstance(_p, dict):
+            _priced.update(ITEM_NAME_CORRECTIONS.get(i["name"], i["name"])
+                           for i in _p.get("items", []) if i.get("name"))
+    _dupes = _priced & always_pick_force_names()
+
+    output_lines.extend(build_tablet_rules(_dupes))
 
     # ── Breach Wombgifts ──────────────────────────────────────────────────────
-    output_lines.extend(build_wombgift_rules())
+    output_lines.extend(build_wombgift_rules(_dupes))
 
     # ── Special Waystones ─────────────────────────────────────────────────────
-    output_lines.extend(build_special_item_rules())
+    output_lines.extend(build_special_item_rules(_dupes))
 
     # ── Exotic Bases ──────────────────────────────────────────────────────────
-    output_lines.extend(build_exotic_base_rules())
+    output_lines.extend(build_exotic_base_rules(_dupes))
 
     # ── Chance Orb Bases ──────────────────────────────────────────────────────
     output_lines.extend(build_chance_base_rules())
@@ -1396,6 +1408,17 @@ def main():
     print(f"Item report  : {csv_path}")
     print(f"Loot filter  : {filter_path}")
     print(f"Active rules : {active}   Commented out: {commented}")
+    # The GUI button says "Generate & Validate Pickit" and does exactly that;
+    # the headless path never validated, so it could write a file with a bad
+    # stat id or base name and report success. Same check, same output.
+    _val = validate_pickit(output_lines)
+    if _val["errors"] or _val["warnings"]:
+        print(f"Validation   : {len(_val['errors'])} errors, "
+              f"{len(_val['warnings'])} warnings", file=sys.stderr)
+        for _no, _msg in (_val["errors"] + _val["warnings"])[:10]:
+            print(f"   line {_no}: {_msg}", file=sys.stderr)
+    else:
+        print("Validation   : passed")
     if getattr(sys, 'frozen', False):
         input("\nDone! Press Enter to exit...")
 

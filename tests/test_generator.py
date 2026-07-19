@@ -681,3 +681,18 @@ def test_loot_filter_does_not_merge_different_item_levels():
             assert "ItemLevel >= 82" in b and '"B Base"' not in b
         if '"B Base"' in b:
             assert "ItemLevel >= 79" in b
+
+
+def test_cli_does_not_duplicate_a_priced_always_pick_item():
+    """A name poe.ninja prices gets a rule in its own economy category, so the
+    static builder must skip it or the file carries two rules for one item —
+    with conflicting actions, since only one of them has [IgnoreRitual]. The GUI
+    deduped these; the CLI did not, and shipped five duplicates."""
+    dupes = {"Expedition Logbook", "Breach Splinter"}
+    for build in (gen.build_special_item_rules, gen.build_tablet_rules):
+        out = "\n".join(build(dupes))
+        for name in dupes:
+            assert f'[Type] == "{name}"' not in out, (build.__name__, name)
+    # and with nothing to skip, they are still emitted
+    assert '[Type] == "Expedition Logbook"' in "\n".join(gen.build_special_item_rules(set()))
+    assert '[Type] == "Breach Splinter"' in "\n".join(gen.build_tablet_rules(set()))

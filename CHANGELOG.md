@@ -6,6 +6,57 @@ download lives.
 
 ---
 
+## [v4.40.0] — 2026-07-19 — Item Check tells the truth, and setup stops overwriting your floors
+
+Found by a second round of audits aimed at quality-of-life rather than
+correctness. Every fix below was reproduced before and verified after.
+
+- **Item Check said the bot would walk past items your pickit actually takes.**
+  Its promise is *"not a guess — it runs the same code that writes your pickit"*,
+  and it consulted only the economy, base and rare paths:
+
+  | Pasted item | It said | Reality |
+  | --- | --- | --- |
+  | Waystone | *ignored* | the pickit takes **every** waystone |
+  | Uncut Skill Gem | *nothing targets this* | **20** active rules |
+  | Magic life flask | *nothing targets this* | rules exist |
+
+  Three causes: waystone rules are keyed on `[Category]` and carry no name to
+  match; the in-game gem is named *"Uncut Skill Gem"* while the rules name
+  *"Uncut Skill Gem (Level N)"*; and only Rare gear had a branch, so Magic
+  flasks fell through. It now asks the rule builders themselves.
+- **Item Check's error messages were invisible.** They rendered into a `.banner`
+  element the stylesheet hides until a class is added, and that class was never
+  added — so an unreadable paste cleared the previous result and showed nothing
+  at all. The tab's primary button looked broken.
+- **The setup wizard overwrote your floors on arrival at the loot step.** It
+  applied Balanced before you chose anything, so a brand-new user went from 0/0
+  to 2/6 by pressing Next — silently undoing v4.39.1's "first run picks up
+  everything" — and re-running setup did the same to hand-tuned floors, despite
+  the button promising nothing is destroyed. Balanced is still Recommended; it
+  now waits for a click.
+- **"Turn everything on" twice hid the undo button.** The backend fix in v4.38.4
+  correctly keeps the FIRST snapshot, but the button was keyed to whether the
+  click changed anything — and a second click flips nothing. The way back
+  disappeared while the original settings were still held.
+- **`--cli` wrote five duplicate rules and never validated.** The three Special
+  Items and both splinters were emitted twice — once priced, once bare, with
+  conflicting actions — because only the GUI deduped names poe.ninja prices.
+  Headless runs now dedupe and validate, like the GUI always has.
+- **Create your filter: `[Type]` and `[Category]` joined the "shown wider"
+  accounting.** They were in the known-token list but missing from the parsed
+  map, so an unreadable one escaped both nets: `[Category] != "Flask" &&
+  [Rarity] == "Rare"` emitted a bare `Rarity = Rare` — every Rare item in the
+  game — while reporting nothing widened.
+- **The bot-connection check now looks at the file, not just the name.** "OK"
+  was decided from `pickit.ini` and a checkbox alone, so a fresh setup that had
+  never generated was told *"every Generate deploys it there"* while the bot had
+  no copy at all. Two new states: **nothing deployed yet**, and **the bot's copy
+  is older than yours**. It also runs after every generate now, not only when
+  you open Settings.
+
+---
+
 ## [v4.39.5] — 2026-07-19 — Two more honesty fixes in the conversion report
 
 - **The report counted every comment line as a "disabled rule".** A normal
@@ -1813,6 +1864,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.40.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.40.0
 [v4.39.5]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.5
 [v4.39.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.4
 [v4.39.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.3

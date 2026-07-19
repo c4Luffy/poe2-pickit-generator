@@ -1,11 +1,18 @@
 """Single source of truth for the app version."""
-VERSION = "4.39.5"
+VERSION = "4.40.0"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Item Check stops telling you the bot will walk past things it actually takes. Paste a Waystone and it said "ignored" — while your pickit grabs every waystone. An Uncut Skill Gem got "nothing targets this" against 20 active rules, because in-game it's just "Uncut Skill Gem" while the rules name "Uncut Skill Gem (Level N)". A Magic flask got the same, because only Rare gear had a branch. All three answer correctly now.
+• Item Check's error messages were invisible. They were rendered into a box the stylesheet keeps hidden, so a paste it couldn't read made the Check button look completely dead — no result, no error, nothing.
+• The setup wizard no longer overwrites your floors behind your back. It applied "Balanced" the moment you ARRIVED at the loot step, so a new user's floors went 0/0 to 2/6 just by pressing Next — quietly undoing the "first run picks up everything" default — and re-running setup did the same to hand-tuned floors. Balanced is still marked Recommended; now it waits for your click.
+• Clicking "Turn everything on" twice no longer hides the way back. The second click flips nothing, and the button was keyed to that — so it vanished while your original settings were still safely held.
+• The command line stopped writing five duplicate rules (the three Special Items and both splinters), and now validates the file it writes, like the GUI always has.
+
+Also in 4.39.5:
 • Two more honesty fixes in Create your filter. The report counted every comment line as a "disabled rule", so a normal pickit claimed 202 rules were switched off when the real answer was zero — section headers and the banner were being counted. And an imported pickit whose value read "1e3" was styled as barely useful: only the "1" was matched, so a 1000 ex item got a 1 ex label. A negative value found no number at all and fell through to section colouring instead of quiet.
 
 Also in 4.39.4:

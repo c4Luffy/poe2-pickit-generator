@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.5/ExileBot2PickitGenerator.exe"><img alt="Download v4.39.5 for Windows" src="https://img.shields.io/badge/Download-v4.39.5-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.40.0/ExileBot2PickitGenerator.exe"><img alt="Download v4.40.0 for Windows" src="https://img.shields.io/badge/Download-v4.40.0-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&label=Downloads&labelColor=171411&color=829d78"></a>
 </p>
 
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://c4luffy.github.io/poe2-pickit-generator/">Website</a> ·
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.5">Release notes</a> ·
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.40.0">Release notes</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://discord.gg/T7DU3Afve6">Discord</a> ·
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
@@ -31,7 +31,7 @@
 <p align="center"><sub>Real running-app capture · Generate · captured on v4.38.2</sub></p>
 
 > [!IMPORTANT]
-> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.39.5](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.5/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
+> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.40.0](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.40.0/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
 
 ## Start here
 
@@ -116,7 +116,7 @@ Rare gear stays honest. If no recipe covers the base or its slot is disabled, th
 - Unusual item-name characters are excluded and reported instead of disappearing silently.
 - The app never asks for your Path of Exile account.
 
-Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.39.5/SHA256SUMS.txt).
+Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.40.0/SHA256SUMS.txt).
 
 ### Three important usage notes
 
@@ -124,9 +124,17 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.39.5
+## Current release: v4.40.0
 
-### Two more honesty fixes in the conversion report
+### Item Check tells the truth, and setup stops overwriting your floors
+
+- **Item Check said the bot would walk past items your pickit actually takes** — a Waystone got *"ignored"* while the pickit grabs every waystone; an Uncut Skill Gem got *"nothing targets this"* against 20 active rules; a Magic flask the same. All three answer correctly now.
+- **Item Check's error messages were invisible** — an unreadable paste showed nothing at all, so the button looked broken.
+- **The setup wizard overwrote your floors on arrival at the loot step**, taking a new user from 0/0 to 2/6 by pressing Next and undoing the "first run picks up everything" default. Balanced is still recommended; it now waits for your click.
+- **"Turn everything on" twice hid the undo button**, and **`--cli` wrote five duplicate rules and never validated**.
+- **The bot-connection check now looks at the file, not just the name** — it can tell you nothing has been deployed yet, or that the bot's copy is older than yours.
+
+### v4.39.5 — Two more honesty fixes in the conversion report
 
 - **Every comment line was counted as a "disabled rule"** — a normal pickit claimed 202 disabled when the real answer was zero. Only a commented-out *rule* counts now.
 - **An imported value written as `1e3` was read as `1`**, so a 1000 ex item got a 1 ex label. A negative value matched nothing at all.
@@ -191,7 +199,7 @@ Every tab was audited that cycle. The headline items are behaviour fixes — thi
 - **Create your filter translates `ItemLevel` and `WaystoneTier` exactly** instead of dropping them, so far fewer rules count as "shown wider" and Hide mode is safer.
 - **Useful detail across every tab:** bases display their game-data implicits when they have one; Chance cards show live target prices and art; profile imports preview everything they turn OFF; Preview explains and compares rules; Economy shows Top movers.
 
-[Read the complete v4.39.5 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.5) · [full changelog](CHANGELOG.md)
+[Read the complete v4.40.0 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.40.0) · [full changelog](CHANGELOG.md)
 
 <details>
 <summary><strong>Everything included</strong></summary>

@@ -2179,6 +2179,10 @@ async function poll(){
     $("sVal").textContent=d.val_errors?`⚠ Validation: ${d.val_errors} errors, ${d.val_warnings} warnings`:
       (d.val_warnings?`⚠ Validation: ${d.val_warnings} warnings`:"✓ Validation passed")+
       (d.copied?"  ·  ✓ deployed to bot folder":"");
+    // A successful copy is not proof the bot will READ it: the ini could point
+    // elsewhere, or an earlier copy could have failed. Re-run the real check so
+    // the Generate tab reflects the bot's actual state, not just our file write.
+    loadBotConn();
     /* LAST RUN checklist + KPI tiles + top-picks table */
     $("lrRules").textContent=((d.active||0)+(d.commented||0)).toLocaleString();
     $("sSkip").textContent=(d.commented||0).toLocaleString();
@@ -2228,7 +2232,9 @@ $("allOnGo").onclick=async()=>{
   // one click must not destroy an hour of curation: offer the way back
   // whenever ANYTHING changed — floors and auto-floor move even when no
   // switch flipped, and those need undoing just as much
-  $("allOnUndo").style.display = (r&&r.changed) ? "" : "none";
+  // can_undo, not changed: a second click flips nothing, and keying off
+  // "changed" hid the button while the ORIGINAL snapshot was still held.
+  $("allOnUndo").style.display = (r&&(r.can_undo||r.changed)) ? "" : "none";
   info=await api().app_info();applyInfo(info);   // switches on screen match the new state
   doGenerate();};
 $("allOnUndo").onclick=async()=>{
@@ -3263,26 +3269,30 @@ function setStatus(key,mark,color,title){_setStatus[key]={mark,color,title};rend
 async function loadBotConn(){
   let c; try{ c = await api().bot_connection(); }catch(_){ return; }
   const TONE = {ok:["✓","var(--ok)"], mismatch:["⚠","var(--err)"], unset:["○","var(--warn)"],
-                nocopy:["⚠","var(--warn)"], noini:["?","var(--warn)"], badfolder:["⚠","var(--err)"]};
+                nocopy:["⚠","var(--warn)"], noini:["?","var(--warn)"], badfolder:["⚠","var(--err)"],
+                notdeployed:["⚠","var(--warn)"], stale:["⚠","var(--err)"]};
   const HEAD = {ok:"Connected — the bot is reading your pickit",
                 mismatch:"The bot is IGNORING everything you generate",
                 unset:"Not connected yet",
                 nocopy:"Almost — auto-copy is off",
                 noini:"Can't verify the bot's config",
-                badfolder:"That bot folder is gone"};
+                badfolder:"That bot folder is gone",
+                // matching names are not the same as the file being there:
+                notdeployed:"Nothing deployed to the bot yet",
+                stale:"The bot is running an OLD pickit"};
   const [ic,col] = TONE[c.state] || ["⋯","var(--dim)"];
   $("botIcon").textContent = ic;
   $("botIcon").style.color = col;
   $("botState").textContent = HEAD[c.state] || "Unknown";
   $("botState").style.color = col;
   $("botDetail").textContent = c.detail || "";
+  const BAD = (c.state==="mismatch"||c.state==="badfolder"||c.state==="stale");
   $("botStatus").style.borderColor = (c.state==="ok") ? "color-mix(in srgb,var(--ok) 45%,transparent)"
-                                   : (c.state==="mismatch"||c.state==="badfolder") ? "var(--err)"
-                                   : "var(--border)";
+                                   : BAD ? "var(--err)" : "var(--border)";
   $("botProfileLbl").textContent = c.profile ? (c.profile + ".ipd") : "—";
   $("botFix").style.display = (c.state==="mismatch" && c.ini) ? "" : "none";
   setStatus("bot", c.state==="ok"?"✓":"⚠",
-            c.state==="ok"?"var(--ok)":(c.state==="mismatch"||c.state==="badfolder")?"var(--err)":"var(--warn)",
+            c.state==="ok"?"var(--ok)":BAD?"var(--err)":"var(--warn)",
             c.detail||"");
 }
 $("botFix").onclick=async()=>{
@@ -3454,10 +3464,12 @@ const ickPill=k=>k==="pick"?'<span class="pill on">\u2713 picked</span>'
   :k==="depends"?'<span class="pill">\u26a0 depends</span>':'<span class="pill">\u2139 info</span>';
 $("ickRun").onclick=async()=>{
   const o=$("ickOut"),txt=$("ickInput").value;
-  if(!txt.trim()){o.innerHTML='<div class="banner warn">Paste an item first \u2014 hover it in-game and press Ctrl+C.</div>';return;}
+  // .banner is display:none until .on \u2014 without that class these rendered at
+  // zero height, so a bad paste made the Check button look completely dead.
+  if(!txt.trim()){o.innerHTML='<div class="banner warn on">Paste an item first \u2014 hover it in-game and press Ctrl+C.</div>';return;}
   o.innerHTML='<div class="hint">Checking it against your pickit and live poe.ninja prices\u2026</div>';
   const r=await api().check_item(txt,$("league").value||"");
-  if(r.error){o.innerHTML=`<div class="banner warn">${esc(r.error)}</div>`;return;}
+  if(r.error){o.innerHTML=`<div class="banner warn on">${esc(r.error)}</div>`;return;}
   const v=ICK_VD[r.verdict]||ICK_VD.none,it=r.item;
   const meta=[it.class,it.rarity,it.ilvl?"ilvl "+it.ilvl:""].filter(Boolean).map(esc).join(" \u00b7 ");
   o.innerHTML=`<div class="vd ${v.c}"><div class="vd-i">${v.i}</div>
@@ -4237,7 +4249,13 @@ const WZ=[
       looser than Vacuum. Next-Next-Next-Generate therefore walked a beginner straight
       into "why is my stash full of junk", which is the thing this wizard exists to
       prevent. Land them on Balanced and say so; every card is one tap away. */
-   prep:async()=>{if(!presetActive&&PRESETS.some(p=>p.key==="balanced"))await applyPreset("balanced");},
+   /* ...but RECOMMEND it, don't apply it behind their back. This used to call
+      applyPreset("balanced") on ARRIVAL at the step, so a brand-new user's
+      floors went 0/0 -> 2/6 just by pressing Next, silently undoing the
+      "first run picks up everything" default. Re-running setup did the same to
+      hand-tuned floors, because editing a floor clears preset_key and left
+      presetActive falsy. Balanced is still marked Recommended on the card. */
+   prep:async()=>{},
    build:()=>
    `<div class="wz-lead">How much should your bot stop for? Each option sets a
       <b>minimum value</b> — anything worth less than that, the bot walks past.</div>

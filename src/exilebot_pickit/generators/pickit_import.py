@@ -133,11 +133,18 @@ def _parse_rule(cond_part: str):
     seen: dict = {}
     for t in present:
         seen[t] = seen.get(t, 0) + 1
+    # Type and Category belong here too. They are in _KNOWN_TOKENS, so an
+    # unreadable one never reached "unknown" either, and fell through BOTH nets:
+    # `[Category] != "Flask" && [Rarity] == "Rare"` emitted a bare `Rarity = Rare`
+    # — every Rare item in the game — while reporting 0 shown wider. Same for a
+    # two-word category the \w+ pattern can't read, and for `[Type] != ...`.
     parsed = {"ItemLevel": 1 if mi else 0,
               "WaystoneTier": 1 if mw else 0,
               "Quality": 1 if mq else 0,
               "Sockets": 1 if (ms or msg) else 0,
-              "Rarity": 1 if mr else 0}
+              "Rarity": 1 if mr else 0,
+              "Type": len(names),
+              "Category": 1 if mc else 0}
     unparsed = sorted(t for t, n in parsed.items() if seen.get(t, 0) > n)
 
     return {

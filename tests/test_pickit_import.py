@@ -351,3 +351,20 @@ def test_our_own_generated_pickit_gains_no_new_widened_rules():
     ipd = gen.build_craft_base_rules() + gen.build_exotic_base_rules()
     r = convert_pickit_text("\n".join(ipd) + "\n")
     assert r["report"]["widened"] == 0, r["report"]
+
+
+def test_an_unreadable_type_or_category_is_reported_as_shown_wider():
+    """Type and Category are in _KNOWN_TOKENS, so an unreadable one never reached
+    "unknown" — and they were missing from the parsed map, so they never reached
+    "unparsed" either. They fell through BOTH nets: `[Category] != "Flask" &&
+    [Rarity] == "Rare"` emitted a bare `Rarity = Rare`, showing every Rare item
+    in the game, while reporting nothing widened."""
+    cases = [
+        '[Category] != "Flask" && [Rarity] == "Rare" # [StashItem] == "true"',
+        # a two-word category the \w+ pattern can't read
+        '[Category] == "Body Armour" && [Rarity] == "Rare" # [StashItem] == "true"',
+        '[Type] != "Gold Ring" && [Rarity] == "Rare" # [StashItem] == "true"',
+    ]
+    for rule in cases:
+        rep = convert_pickit_text(rule + "\n")["report"]
+        assert rep["widened"] >= 1, f"silently widened to every Rare item: {rule}"
