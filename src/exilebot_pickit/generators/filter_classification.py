@@ -23,7 +23,12 @@ USEFUL_VALUE_EXALT = 1.0
 # collapse into (or leapfrog under) its neighbour.
 TIER_SPREAD = 2.0
 
-_EXVALUE_RE = re.compile(r"\bExValue\s*=\s*([\d,.]+)", re.I)
+# Accepts a leading minus and scientific notation. The old [\d,.]+ matched
+# neither, and both misread a hand-edited or third-party pickit: "-5.00" found
+# no number at all and fell through to section styling instead of quiet, while
+# "1e3" matched just the "1" — styling a 1000 ex item as barely useful. Our own
+# generator writes f"{v:.2f}", so this only ever bit imported files.
+_EXVALUE_RE = re.compile(r"\bExValue\s*=\s*(-?[\d,]*\.?\d+(?:[eE][-+]?\d+)?)", re.I)
 _DIVINE_HEADER_RE = re.compile(
     r"\b1\s+Divine\s*=\s*([\d,.]+)\s+Exalted\b", re.I,
 )

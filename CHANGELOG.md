@@ -6,6 +6,23 @@ download lives.
 
 ---
 
+## [v4.39.5] — 2026-07-19 — Two more honesty fixes in the conversion report
+
+- **The report counted every comment line as a "disabled rule".** A normal
+  generated pickit claimed **202 disabled rules** when the real answer was
+  **zero** — section headers and the banner were all being counted. Only a
+  commented-out *rule* counts now.
+- **An imported value written as `1e3` was read as `1`.** The pattern matched
+  digits, commas and dots only, so scientific notation lost everything after
+  the first digit and a **1000 ex** item was painted with a 1 ex label. A
+  negative value matched nothing at all and fell through to section colouring
+  instead of quiet.
+- Neither shape can come out of this app — the generator writes `f"{v:.2f}"` —
+  so these only ever affected hand-edited and third-party pickits, which is
+  exactly what that tab exists to read.
+
+---
+
 ## [v4.39.4] — 2026-07-19 — Create your filter stops calling a dropped condition "converted"
 
 - **A condition the converter recognised but couldn't read used to vanish
@@ -1796,6 +1813,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.39.5]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.5
 [v4.39.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.4
 [v4.39.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.3
 [v4.39.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.2

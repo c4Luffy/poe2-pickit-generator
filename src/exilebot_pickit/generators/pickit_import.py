@@ -209,7 +209,11 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
         if heading:
             section = heading
         if line.startswith("/"):
-            disabled += 1
+            # Only a commented-out RULE counts as disabled. Counting every "//"
+            # line made the report claim 202 disabled rules for a file that had
+            # none — those were all section headers and the banner.
+            if gen._LF_ACTION_RE.search(line) or gen._LF_TYPE_RE.search(line):
+                disabled += 1
             continue
         rules += 1
         cond_part = _pickup_half(line)

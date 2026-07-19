@@ -33,7 +33,10 @@ def test_sample_converts_every_enabled_type_name():
     r = res["report"]
     assert r["rules"] == 7
     assert r["converted"] == 7
-    assert r["disabled"] == 2          # header comment + disabled rule
+    # ONE disabled rule. The banner "// ExileBot pickit — hand-made" is a
+    # comment, not a rule someone switched off — counting it here is how the
+    # report came to claim 202 disabled rules for a file that had none.
+    assert r["disabled"] == 1
     assert r["untranslatable_total"] == 0
 
 
@@ -156,9 +159,21 @@ def test_unmapped_category_with_other_conditions_counts_as_widened():
 
 
 def test_bom_before_comment_is_still_a_comment():
+    """A BOM in front of "//" must not turn the comment into a parsed rule."""
     res = convert_pickit_text('﻿// header comment\n[Type] == "Divine Orb" # [StashItem] == "true"')
     r = res["report"]
-    assert r["disabled"] == 1 and r["rules"] == 1 and r["untranslatable_total"] == 0
+    assert r["rules"] == 1 and r["untranslatable_total"] == 0
+    assert r["disabled"] == 0      # a header is not a switched-off rule
+    assert '"Divine Orb"' in "\n".join(res["filter_lines"])
+
+
+def test_a_commented_out_rule_still_counts_as_disabled():
+    """The other half of the same fix — a real disabled rule must still count."""
+    res = convert_pickit_text('// banner\n'
+                              '//[Type] == "Chaos Orb" # [StashItem] == "true"\n'
+                              '[Type] == "Divine Orb" # [StashItem] == "true"')
+    assert res["report"]["disabled"] == 1
+    assert res["report"]["rules"] == 1
 
 
 def test_non_string_input_is_safe():

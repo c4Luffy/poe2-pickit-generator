@@ -200,3 +200,28 @@ def test_missing_divine_header_falls_back_to_the_default_rate():
              "// Conversion: Divine rate unavailable",
              '[Type] == "Chaos Orb" # [StashItem] == "true" // ExValue = 2.50']
     assert extract_divine_rate(lines) == DEFAULT_DIVINE_EXALT
+
+
+def test_exvalue_survives_a_minus_sign_and_scientific_notation():
+    """Third-party and hand-edited pickits don't use our f"{v:.2f}" formatting.
+    The old [\d,.]+ pattern matched neither shape, and both misread the value:
+    "-5.00" found no number at all so the rule fell through to section styling
+    instead of quiet, and "1e3" matched just the "1" — painting a 1000 ex item
+    as barely useful."""
+    from exilebot_pickit.generators import filter_classification as fc
+
+    def val(s):
+        return fc.extract_ex_value(f'[Type] == "X" # [StashItem] == "true" // ExValue = {s}')
+
+    assert val("5.00") == 5.0
+    assert val("1,234.50") == 1234.5
+    assert val("-5.00") == -5.0        # was None
+    assert val("1e3") == 1000.0        # was 1.0
+    assert val("1.5e2") == 150.0
+
+    def kind(s):
+        return fc.classify_rule(
+            f'[Type] == "X" # [StashItem] == "true" // ExValue = {s}', None, 400.0)
+
+    assert kind("-5.00") == "quiet"    # worthless, not "named"
+    assert kind("1e3") == "mythic"     # 1000 ex, not "useful"

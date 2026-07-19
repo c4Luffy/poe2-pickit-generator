@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.39.4"
+VERSION = "4.39.5"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Two more honesty fixes in Create your filter. The report counted every comment line as a "disabled rule", so a normal pickit claimed 202 rules were switched off when the real answer was zero — section headers and the banner were being counted. And an imported pickit whose value read "1e3" was styled as barely useful: only the "1" was matched, so a 1000 ex item got a 1 ex label. A negative value found no number at all and fell through to section colouring instead of quiet.
+
+Also in 4.39.4:
 • Create your filter stops calling a dropped condition "converted". That report's honesty is the whole point of the tab, and a condition it RECOGNISED but could not read simply vanished — an [ItemLevel] written without quotes, a [Quality] using > instead of >=, or an ItemLevel floor AND ceiling where only the floor was taken. Those rules were counted as cleanly converted while the gate was gone from the filter. They now count as "shown wider", which is what actually happened. Pickits this app generates are unaffected — their numbers don't move by a single rule.
 
 Also in 4.39.3:
