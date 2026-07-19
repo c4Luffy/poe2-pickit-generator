@@ -47,6 +47,7 @@
   .bc2 .m{flex:1;min-width:0}
   .bc2 .m b{font-size:13.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bc2 .m .t{font-size:11.5px;color:var(--dim);margin-top:2px;line-height:1.45}
+  .imp{font-size:11px;color:var(--gold-dim);margin-top:3px;line-height:1.4}
   .bc2 .m .t .attr{display:inline-block;padding:0 5px;border-radius:5px;font-size:10px;
     font-weight:700;vertical-align:1px;margin-right:2px}
   .bc2 .cprice{flex-shrink:0;font-family:Consolas,ui-monospace,monospace;font-size:12.5px;font-weight:700;
@@ -2673,7 +2674,8 @@ function renderCraftGrid(){
     // attribute rides ON the card — as its own full-width row it broke the
     // grid into one card per line and left half the page empty
     d.innerHTML=(b.icon?`<img loading="lazy" src="${b.icon}">`:"")+
-      `<div class="m"><b>${esc(b.base)}</b><div class="t">${(attr?chip(attr)+" ":"")}${esc(meta)||"&nbsp;"}</div></div>
+      `<div class="m"><b>${esc(b.base)}</b><div class="t">${(attr?chip(attr)+" ":"")}${esc(meta)||"&nbsp;"}</div>`
+       +(b.implicit?`<div class="imp" title="Implicit — this base rolls it for free">${esc(b.implicit)}</div>`:"")+`</div>
        <div class="stepper" title="Minimum item level"><button type="button" class="sm">−</button>
          <input type="number" min="${b.lvl||75}" max="82" value="${b.ilvl}"><button type="button" class="sp2">+</button></div>
        <div class="switch${b.enabled?" on":""}"><i></i></div>`;
@@ -2752,7 +2754,10 @@ function renderExcGrid(){
     // vertically wasted the width and made a very long page; columns let you
     // read straight down the attribute your build uses.
     const PURE=["Str","Dex","Int"];
-    const HYBRID=["Str/Dex","Str/Int","Dex/Int","Str/Dex/Int","—"];
+    const HYBRID=["Str/Dex","Str/Int","Dex/Int","Str/Dex/Int"];
+    // "—" = no attribute requirement at all (quivers). NOT a hybrid, and with
+    // only one group it rendered as a single tall column.
+    const NOATTR="—";
     const groups={};
     for(const b of bases)(groups[b.attr||"—"]=groups[b.attr||"—"]||[]).push(b);
     // pure attributes: pinned to three columns so Str | Dex | Int always line
@@ -2761,11 +2766,17 @@ function renderExcGrid(){
     const pureCols=document.createElement("div");
     pureCols.className="attr-cols pure";
     g.appendChild(pureCols);
-    let hybCols=null;
-    for(const attr of PURE.concat(HYBRID)){
+    let hybCols=null,plainGrid=null;
+    for(const attr of PURE.concat(HYBRID,[NOATTR])){
       const list=groups[attr];
       if(!list||!list.length)continue;
       const isHyb=HYBRID.includes(attr);
+      const isNone=attr===NOATTR;
+      if(isNone&&!plainGrid){
+        plainGrid=document.createElement("div");
+        plainGrid.className="grid";      // no attribute to group by: just flow
+        g.appendChild(plainGrid);
+      }
       if(isHyb&&!hybCols){
         const lab=document.createElement("div");
         lab.className="hyb-label";
@@ -2775,9 +2786,9 @@ function renderExcGrid(){
         hybCols.className="attr-cols";
         g.appendChild(hybCols);
       }
-      const cols=isHyb?hybCols:pureCols;
-      const sub=document.createElement("div");
-      sub.className="attr-col";
+      const cols=isNone?null:(isHyb?hybCols:pureCols);
+      const sub=isNone?plainGrid:document.createElement("div");
+      if(!isNone)sub.className="attr-col";
       for(const b of list){
         const d=document.createElement("div");
         d.className="bcard"+(b.enabled?"":" dis");
@@ -2785,13 +2796,14 @@ function renderExcGrid(){
         const ico=b.icon?`<img class="icn" loading="lazy" src="${b.icon}" style="width:44px;height:44px;flex-shrink:0">`:"";
         const meta=[b.lvl?`lvl ${b.lvl}`:"",b.stats||""].filter(x=>x).join(" · ");
         const atc=(b.attr&&b.attr!=="—")?chip(b.attr)+" ":"";
-        d.innerHTML=`${ico}<div style="min-width:0;flex:1"><b>${esc(b.name)}</b><div class="t">${atc}${esc(meta)||"&nbsp;"}</div></div>`;
+        const imp=b.implicit?`<div class="imp" title="Implicit — this base rolls it for free">${esc(b.implicit)}</div>`:"";
+        d.innerHTML=`${ico}<div style="min-width:0;flex:1"><b>${esc(b.name)}</b><div class="t">${atc}${esc(meta)||"&nbsp;"}</div>${imp}</div>`;
         d.title="Click to include/exclude this base (white pickup + its uniques)";
         d.onclick=async()=>{b.enabled=!b.enabled;
           await api().set_item("_excbase",b.name,b.enabled);
           d.className="bcard"+(b.enabled?"":" dis");d.style.display="flex";cnt();buildExcSide();};
         sub.appendChild(d);}
-      cols.appendChild(sub);}}
+      if(cols)cols.appendChild(sub);}}
   cnt();}
 
 /* ── fracture bases (verified reference, not a pickit rule) ── */

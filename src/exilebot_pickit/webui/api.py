@@ -1761,6 +1761,7 @@ class AppApi:
         """Exceptional bases grouped by slot, with per-base toggle state,
         icon and stats — powers the Exceptional tab grid."""
         from exilebot_pickit.data.icons import STATIC_ICONS, BASE_STATS
+        from exilebot_pickit.data.implicits import BASE_IMPLICITS
         st = self.cfg.get("item_states", {}).get("_excbase", {})
 
         def _profile(stats: str):
@@ -1791,6 +1792,9 @@ class AppApi:
                 stats = bi.get("stats", "")
                 attr, total = _profile(stats)
                 bases.append({"name": n,
+                              # what the base rolls for free — sourced from the
+                              # GGPK dump, not a wiki
+                              "implicit": BASE_IMPLICITS.get(n, ""),
                               "enabled": st.get(n, {}).get("enabled", True),
                               "icon": STATIC_ICONS.get(n, ""),
                               "lvl": bi.get("lvl", 0),
@@ -1853,6 +1857,7 @@ class AppApi:
 
     def craft_bases(self):
         from exilebot_pickit.data.icons import STATIC_ICONS as _ci, BASE_STATS as _bs
+        from exilebot_pickit.data.implicits import BASE_IMPLICITS as _bi
         st = self.cfg.get("item_states", {}).get("_craftbase", {})
         out = []
         for cat, names in gen.craft_base_categories():
@@ -1861,6 +1866,7 @@ class AppApi:
                 out.append({"cat": cat, "base": n, "icon": _ci.get(n, ""),
                             "lvl": _bs.get(n, {}).get("lvl", 0),
                             "stats": _bs.get(n, {}).get("stats", ""),
+                            "implicit": _bi.get(n, ""),   # free roll on the base
                             "defence": gen.craft_base_defence(n),
                             "ilvl": int(s.get("ilvl", gen.craft_base_default_ilvl(n))),
                             "enabled": s.get("enabled", True)})
