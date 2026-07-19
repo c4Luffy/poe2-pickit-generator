@@ -507,10 +507,12 @@
   .pill.on{color:var(--ok);border-color:var(--ok)}
   /* bases grids */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
-  .attr-head{display:flex;align-items:center;gap:8px;margin:0 2px 7px}
-  .attr-head .n{color:var(--dim);font-size:11px}
   .attr-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));
     gap:14px;align-items:start;margin-bottom:6px}
+  .attr-cols.pure{grid-template-columns:repeat(3,1fr)}
+  .hyb-label{display:flex;align-items:center;gap:10px;margin:14px 2px 8px;
+    font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--dim)}
+  .hyb-label:after{content:"";flex:1;height:1px;background:var(--border)}
   .attr-col{display:flex;flex-direction:column;gap:8px;min-width:0}
   .attr-col .bcard{margin:0}
   .craft-layout{display:flex;gap:16px;align-items:flex-start}
@@ -2749,21 +2751,33 @@ function renderExcGrid(){
     // one COLUMN per attribute (Str | Dex | Int | hybrids). Stacking the groups
     // vertically wasted the width and made a very long page; columns let you
     // read straight down the attribute your build uses.
-    const ATTR_ORDER=["Str","Dex","Int","Str/Dex","Str/Int","Dex/Int","Str/Dex/Int","—"];
+    const PURE=["Str","Dex","Int"];
+    const HYBRID=["Str/Dex","Str/Int","Dex/Int","Str/Dex/Int","—"];
     const groups={};
     for(const b of bases)(groups[b.attr||"—"]=groups[b.attr||"—"]||[]).push(b);
-    const cols=document.createElement("div");
-    cols.className="attr-cols";
-    g.appendChild(cols);
-    for(const attr of ATTR_ORDER){
+    // pure attributes: pinned to three columns so Str | Dex | Int always line
+    // up. Hybrids go in their own section below — in one flat grid they wrapped
+    // into these columns and a column stopped meaning a single attribute.
+    const pureCols=document.createElement("div");
+    pureCols.className="attr-cols pure";
+    g.appendChild(pureCols);
+    let hybCols=null;
+    for(const attr of PURE.concat(HYBRID)){
       const list=groups[attr];
       if(!list||!list.length)continue;
+      const isHyb=HYBRID.includes(attr);
+      if(isHyb&&!hybCols){
+        const lab=document.createElement("div");
+        lab.className="hyb-label";
+        lab.textContent="Hybrid bases";
+        g.appendChild(lab);
+        hybCols=document.createElement("div");
+        hybCols.className="attr-cols";
+        g.appendChild(hybCols);
+      }
+      const cols=isHyb?hybCols:pureCols;
       const sub=document.createElement("div");
       sub.className="attr-col";
-      const ah=document.createElement("div");
-      ah.className="attr-head";
-      ah.innerHTML=(attr==="—"?'<span class="hint" style="margin:0">Other</span>':chip(attr));
-      sub.appendChild(ah);
       for(const b of list){
         const d=document.createElement("div");
         d.className="bcard"+(b.enabled?"":" dis");
