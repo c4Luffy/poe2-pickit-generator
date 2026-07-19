@@ -39,6 +39,22 @@ _FETCH_MIN_INTERVAL = 6 * 3600   # don't hammer GitHub on rapid relaunches
 _CACHE_BASENAME = "game_data_cache.json"
 
 
+def _is_base_name(v) -> bool:
+    """A base name that is safe to interpolate into a pickit rule.
+
+    A name carrying a newline splits one rule into two, and the second half has
+    no [Type] condition — which Exiled Bot reads as "matches everything on the
+    ground". An empty name yields `[Type] == ""`, which matches nothing. Neither
+    is recoverable once written, so both are rejected at the door.
+    """
+    return isinstance(v, str) and bool(v.strip()) and not any(c in v for c in "\r\n")
+
+
+def _is_socket_count(v) -> bool:
+    """A socket threshold. bool is a subclass of int, so True would sneak in as 1."""
+    return isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 6
+
+
 def _validate(data) -> bool:
     """True if *data* looks like a sane game_data.json."""
     if not isinstance(data, dict):
@@ -47,13 +63,23 @@ def _validate(data) -> bool:
     if bt is not None:
         if not isinstance(bt, dict) or not bt:
             return False
+        # game_data.json is a FULL snapshot, not a patch: _apply prunes any
+        # category the remote copy omits. A truncated or half-edited file used
+        # to pass here and silently delete 16 of 17 categories — i.e. strip
+        # almost every base rule from everyone's pickit, with no error. Dropping
+        # a whole category is a deliberate act that belongs in a release, so a
+        # remote copy may ADD categories and change their contents, never remove
+        # one. An emptied category is the same silent strip, so it is rejected too.
+        missing = [c for c in _bt._BASE_TYPES_BY_CATEGORY if c not in bt]
+        if missing:
+            return False
         for cat, entries in bt.items():
-            if not isinstance(cat, str) or not isinstance(entries, list):
+            if not isinstance(cat, str) or not isinstance(entries, list) or not entries:
                 return False
             for e in entries:
                 if (not isinstance(e, list) or len(e) != 2
-                        or not isinstance(e[0], str)
-                        or not isinstance(e[1], int)):
+                        or not _is_base_name(e[0])
+                        or not _is_socket_count(e[1])):
                     return False
     uc = data.get("unique_categories")
     if uc is not None:
@@ -222,12 +248,20 @@ def load_cached_game_data(cache_dir: str) -> tuple:
     if cached_ver != _VERSION:
         # Keep the bundled data and make refresh_game_data() fetch immediately.
         return ("cache from another app version ignored — using bundled data", 0.0)
-    if cached is not None and _validate(cached):
-        try:
-            _apply(cached)
-            status = "cached remote data applied"
-        except Exception:
-            pass
+    # A timestamp is only evidence that we HAVE good data. Returning a fresh ts
+    # for a cache whose payload is missing or failed validation told
+    # refresh_game_data "recently updated, skip the fetch", so a single bad cache
+    # write suppressed remote updates for 6 hours — and a future-dated ts (clock
+    # skew, a hand-edited file) suppressed them forever.
+    if cached is None or not _validate(cached):
+        return status, 0.0
+    if cached_ts > time.time() + _FETCH_MIN_INTERVAL:
+        return status, 0.0
+    try:
+        _apply(cached)
+        status = "cached remote data applied"
+    except Exception:
+        return status, 0.0
     return status, cached_ts
 
 

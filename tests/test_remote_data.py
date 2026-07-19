@@ -2,9 +2,12 @@
 
 import json
 import os
+import time
+
 import pytest
 
 from exilebot_pickit import generator as gen
+from exilebot_pickit.data import base_types as bt
 from exilebot_pickit.data import corrections as corr
 from exilebot_pickit.data import remote_data as rd
 
@@ -171,11 +174,17 @@ def test_cache_from_another_app_version_is_ignored(tmp_path):
     from exilebot_pickit.version import VERSION
 
     cache_dir = str(tmp_path)
-    stale = {"Sceptres": [["Ghost Sceptre", 2]]}
+    # A FULL snapshot with one category altered — a remote copy that omits
+    # categories is now rejected outright (it would delete them), and a
+    # future-dated ts is treated as "not fresh", so neither can stand in for
+    # "some cached data" here any more.
+    stale = {cat: [[n, s] for n, s in entries]
+             for cat, entries in bt._BASE_TYPES_BY_CATEGORY.items()}
+    stale["Sceptres"] = [["Ghost Sceptre", 2]]
 
     def _write(app_version):
         with open(os.path.join(cache_dir, rd._CACHE_BASENAME), "w", encoding="utf-8") as f:
-            json.dump({"ts": 9e9, "app_version": app_version,
+            json.dump({"ts": time.time(), "app_version": app_version,
                        "data": {"base_types": stale}}, f)
 
     # Same version → the cache is applied and reported as fresh.
@@ -189,3 +198,93 @@ def test_cache_from_another_app_version_is_ignored(tmp_path):
     status, ts = rd.load_cached_game_data(cache_dir)
     assert "another app version" in status
     assert ts == 0.0
+
+
+def _full_base_types(**overrides):
+    """A complete, valid base_types payload, optionally with categories replaced."""
+    out = {cat: [[n, s] for n, s in entries]
+           for cat, entries in bt._BASE_TYPES_BY_CATEGORY.items()}
+    out.update(overrides)
+    return out
+
+
+def test_remote_copy_may_not_delete_a_base_category():
+    """_apply prunes any category the remote copy omits, so a truncated or
+    half-edited game_data.json used to pass validation and silently delete 16 of
+    17 categories — stripping almost every base rule from every user's pickit,
+    with no error anywhere. game_data.json is a full snapshot, not a patch."""
+    before = len(bt._BASE_TYPES_BY_CATEGORY)
+    assert before > 1
+
+    partial = {"base_types": {"Belts": [["Fine Belt", 0]]}}
+    assert not rd._validate(partial)
+
+    # and the bundled data is untouched by the rejection
+    assert len(bt._BASE_TYPES_BY_CATEGORY) == before
+
+    # adding a category is still allowed
+    grown = {"base_types": _full_base_types(Newthing=[["Some Base", 0]])}
+    assert rd._validate(grown)
+
+
+def test_remote_copy_may_not_empty_a_base_category():
+    """A category present but emptied strips exactly the same rules as deleting
+    it, so it must be rejected the same way."""
+    assert not rd._validate({"base_types": _full_base_types(Belts=[])})
+
+
+def test_base_name_that_would_break_a_rule_is_rejected():
+    """A newline in a base name splits one rule into two, and the second half
+    carries no [Type] — which Exiled Bot reads as matching EVERYTHING on the
+    ground. An empty name yields [Type] == "" and matches nothing."""
+    for bad in ('Fine Belt" # x\n[Rarity] == "Normal', "", "   ", "\n", 5, None):
+        assert not rd._validate({"base_types": _full_base_types(Belts=[[bad, 0]])}), bad
+    assert rd._validate({"base_types": _full_base_types(Belts=[["Fine Belt", 0]])})
+
+
+def test_socket_threshold_must_be_a_real_int():
+    """bool is a subclass of int, so True would have been accepted as 1."""
+    for bad in (True, False, "2", 2.5, -1, 99, None):
+        assert not rd._validate({"base_types": _full_base_types(Belts=[["Fine Belt", bad]])}), bad
+    assert rd._validate({"base_types": _full_base_types(Belts=[["Fine Belt", 3]])})
+
+
+def test_a_bad_cache_does_not_block_the_next_fetch(tmp_path):
+    """load_cached_game_data returns a timestamp that refresh_game_data reads as
+    "recently updated, skip the fetch". Returning a FRESH ts for a cache that was
+    missing or failed validation suppressed remote updates for 6 hours on a
+    single bad write."""
+    from exilebot_pickit.version import VERSION
+
+    cache_dir = str(tmp_path)
+
+    def _write(payload):
+        with open(os.path.join(cache_dir, rd._CACHE_BASENAME), "w", encoding="utf-8") as f:
+            json.dump(payload, f)
+
+    # payload fails validation → ts must be 0 so a refetch happens
+    _write({"ts": time.time(), "app_version": VERSION,
+            "data": {"base_types": "not-a-dict"}})
+    assert rd.load_cached_game_data(cache_dir)[1] == 0.0
+
+    # no data key at all → same
+    _write({"ts": time.time(), "app_version": VERSION})
+    assert rd.load_cached_game_data(cache_dir)[1] == 0.0
+
+    # a good cache still reports its timestamp
+    _write({"ts": time.time(), "app_version": VERSION,
+            "data": {"base_types": _full_base_types()}})
+    status, ts = rd.load_cached_game_data(cache_dir)
+    assert ts > 0 and "cached remote data applied" in status
+
+
+def test_a_future_dated_cache_does_not_block_updates_forever(tmp_path):
+    """Clock skew or a hand-edited file could put ts far in the future, and
+    "now - ts < 6h" is then true forever — remote updates never resumed."""
+    from exilebot_pickit.version import VERSION
+
+    cache_dir = str(tmp_path)
+    with open(os.path.join(cache_dir, rd._CACHE_BASENAME), "w", encoding="utf-8") as f:
+        json.dump({"ts": time.time() + 86400 * 365, "app_version": VERSION,
+                   "data": {"base_types": _full_base_types()}}, f)
+    assert rd.load_cached_game_data(cache_dir)[1] == 0.0
