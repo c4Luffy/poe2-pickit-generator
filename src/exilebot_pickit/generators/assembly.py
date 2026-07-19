@@ -54,7 +54,15 @@ def active_rule_ids(lines) -> set[str]:
 
 def build_header_lines(league: str, gen_ts: datetime.datetime, gen_id: str,
                        min_exalt: float, min_exalt_unique: float) -> list[str]:
-    """The comment banner and embedded configuration guide that opens every .ipd."""
+    """The comment banner and embedded configuration guide for an .ipd.
+
+    NOT CURRENTLY WIRED UP. Both writers — webui/api.py and generator.main() —
+    hand-roll a shorter 8-line banner instead, so the shipped file has neither
+    the Generated timestamp nor the Pickit ID this produces. Kept because it is
+    the only written-down reference for the bot's own syntax ([WeightedSum],
+    [IgnoreRitual], the WeaponCategory vocabulary) and its tests still pin that
+    format. Wire it in or delete it deliberately — but don't assume it runs.
+    """
     return [
         "/" * gen._W,
         "//" + f"  EXILEBOT 2  |  PICKIT  |  ID: {gen_id}".center(gen._W - 4) + "//",

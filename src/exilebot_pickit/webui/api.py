@@ -36,6 +36,7 @@ _SETTABLE = {
     "base_quality", "base_min_level", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "filter_theme",
     "magic_rare_flasks", "known_leagues", "rare_gear_enabled",
+    "filter_hide_rest",
     "setup_done",
 }
 
@@ -173,6 +174,7 @@ class AppApi:
             "has_history": bool(c.get("history")),
             "theme": (c.get("theme") or "dark").lower(),
             "output_base": c.get("output_base", "poe2_pickit"),
+            "filter_hide_rest": bool(c.get("filter_hide_rest", False)),
             "bot_folder": c.get("bot_folder", ""),
             "auto_copy": bool(c.get("auto_copy", False)),
             "min_gear": float(c.get("min_exalt_gear", 0.0)),
@@ -2972,6 +2974,35 @@ class AppApi:
                                           "text": (t.get("text") or t.get("id", "")).split(" (")[0]}
                                          for t in targets][:12]})
         return rows
+
+    def item_check_context(self):
+        """Do the settings Item Check uses still match the pickit on disk?
+
+        Item Check runs the CURRENT config, but the tab is worded as answering
+        about "your pickit" — the file the bot is actually running. The most
+        common diagnosis sequence is: bot grabs junk -> tighten a floor -> paste
+        the item. That hits this every time, and the answer silently describes a
+        pickit that does not exist yet.
+        """
+        try:
+            hist = self.cfg.get("history") or []
+            if not hist:
+                return {"stale": False}
+            last = hist[-1]
+            gear = float(self.cfg.get("min_exalt_gear", 0.0) or 0.0)
+            uniq = float(self.cfg.get("min_exalt_unique", 0.0) or 0.0)
+            was_g = float(last.get("gf") or 0.0)
+            was_u = float(last.get("uf") or 0.0)
+            if abs(gear - was_g) < 1e-9 and abs(uniq - was_u) < 1e-9:
+                return {"stale": False}
+            return {"stale": True, "was_gear": was_g, "was_unique": was_u,
+                    "now_gear": gear, "now_unique": uniq,
+                    "detail": (f"Your floors changed since the pickit was built "
+                               f"({was_g:g}/{was_u:g} ex then, {gear:g}/{uniq:g} ex now). "
+                               "This shows what you'd get if you regenerate — not what "
+                               "the bot is running right now.")}
+        except Exception:
+            return {"stale": False}
 
     def _static_section_rows(self, snap, cands, klass, rarity):
         """Verdict rows from the pickit sections that aren't priced or scored.

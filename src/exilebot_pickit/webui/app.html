@@ -1138,7 +1138,12 @@
   <h1>Craft Bases</h1><div class="sub">Best white bases per slot at high item level — blank bases worth crafting on. Click to toggle; set the minimum item level per base. <span id="craftCount"></span></div>
   <div class="eco-head eco-toolbar"><input type="text" id="craftSearch" placeholder="🔎 Search bases…">
     <button class="ghost mini" id="craftAll">Enable all</button>
-    <button class="ghost mini" id="craftNone">Disable all</button></div>
+    <button class="ghost mini" id="craftNone">Disable all</button>
+    <span style="display:inline-flex;align-items:center;gap:6px;margin-left:auto">
+      <span class="hint" style="margin:0">Set all to</span>
+      <input type="number" id="craftIlvlAll" min="1" max="82" step="1" value="82"
+             style="width:66px;text-align:center" title="Item level to apply to every base shown">
+      <button class="ghost mini" id="craftIlvlApply">Apply</button></span></div>
   <div class="craft-layout">
     <div class="craft-side" id="craftSide"></div>
     <div class="grid" id="craftGrid"></div>
@@ -1184,6 +1189,8 @@
 <div class="page" id="p-fracture">
   <h1>Fracture Bases</h1><div class="sub">Which Magic/Rare bases are worth a Fracturing Orb — a verified reference, not a pickit rule. <span id="fracCount"></span></div>
   <div class="eco-head eco-toolbar"><input type="text" id="fracSearch" placeholder="🔎 Search classes or target mods… (e.g. &quot;skill level&quot;)"></div>
+  <!-- the grades were bare coloured badges with nothing saying what they rank -->
+  <div class="hint" style="margin:-4px 0 12px">Grades rank how much a fracture on that mod is worth: <b>S+</b> best in slot · <b>S</b> excellent · <b>A+</b> strong · <b>A</b> worth keeping. Anything below A isn't listed.</div>
   <div class="craft-layout">
     <div class="craft-side" id="fracSide"></div>
     <div style="flex:1;min-width:0">
@@ -1432,7 +1439,7 @@
     <div id="mypkTiers" style="display:none"></div>
     <div class="set-row" style="margin-top:10px"><div class="lab"><b>Hide everything else in game</b>
       <span>ON = clean screen, only your pickit's items show. ⚠ Turn OFF while botting — hidden labels can stall the bot's pickup.</span></div><div class="sp"></div>
-      <div class="switch on" id="mypkHide"><i></i></div></div>
+      <div class="switch" id="mypkHide"><i></i></div></div>
     <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
       <button class="primary" id="mypkSave">💾 Save filter</button>
       <button class="ghost mini" id="mypkOpenDir" title="Open the folder with the saved filter" style="display:none">📂 Open folder</button>
@@ -1453,7 +1460,7 @@
   <h1>Setup guide</h1><div class="sub">Five minutes, once. Step 3c is the one everybody misses — skip it and the bot quietly ignores everything you generate.</div>
 
   <div class="eco-head"><button class="primary" id="wzAgain" style="padding:9px 16px">▶ Walk me through it</button>
-    <span class="hint" style="margin:0">Four questions — the same wizard a new install gets. Nothing here is destroyed by running it again.</span></div>
+    <span class="hint" style="margin:0">Four questions — the same wizard a new install gets. It only changes what you pick, so your floors stay as they are unless you choose a preset.</span></div>
 
   <div class="card" style="border-color:var(--gold-dim)"><h2>What this app actually does</h2>
     <div class="hint">It checks what items are <b>worth money on poe.ninja right now</b>, and writes a <b>pickit</b> — a <code>.ipd</code> file that tells Exiled Bot 2 what to pick up. Prices move, so you press Generate again whenever you want the bot's loot list refreshed.</div>
@@ -2566,6 +2573,13 @@ function renderEco(){
     tr.onclick=async()=>{it.enabled=!it.enabled;
       await api().set_item(cat.key,it.name,it.enabled);renderEco();};
     body.appendChild(tr);}
+  // A blank table looks identical to a failed load or a broken app — say which.
+  if(!rows.length&&ecoCat!=="_movers_"){const tr=document.createElement("tr");
+    const q=($("ecoSearch").value||"").trim();
+    tr.innerHTML=`<td colspan="5" style="text-align:center;color:var(--dim);padding:14px 0">`+
+      (q?`No items match <b>${esc(q)}</b> — check the spelling, or clear the search to see everything.`
+        :"Nothing to show in this category.")+`</td>`;
+    body.appendChild(tr);}
   if(!rows.length&&ecoCat==="_movers_"){const tr=document.createElement("tr");
     tr.innerHTML='<td colspan="5" style="text-align:center;color:var(--dim);padding:14px 0">No 7-day price moves to show yet — poe.ninja hasn\'t reported trend data for this league.</td>';
     body.appendChild(tr);}
@@ -2575,6 +2589,11 @@ function renderEco(){
 async function ecoBulk(en){
   if(!eco)return;
   const rows=ecoRows();
+  // No undo, and rebuilding a hand-curated exclusion set across ~1900 items
+  // by hand is not realistic. Profile Delete already asks; so does this now.
+  if(!en&&rows.length>20&&!await askConfirm("Disable all",
+      `Turn OFF every one of these <b>${rows.length}</b> items?<br>There is no undo — you would have to re-enable them by hand.`,
+      {ok:"Disable them",danger:true}))return;
   const byCat={};
   for(const [cat,it] of rows){(byCat[cat.key]=byCat[cat.key]||[]).push(it.name);it.enabled=en;}
   for(const k in byCat)await api().set_items_bulk(k,byCat[k],en);
@@ -2745,6 +2764,15 @@ function renderCraftGrid(){
 async function craftBulk(en){
   for(const b of craftList)await api().set_craft(b.base,en,b.ilvl);
   loadCraft();toast((en?"Enabled":"Disabled")+" all craft bases");}
+// 27 separate steppers, all at 82: taking them to 80 by hand is 54 clicks.
+// Applies to whatever the current search shows, so it respects filtering.
+$("craftIlvlApply").onclick=async()=>{
+  const v=Math.max(1,Math.min(82,parseInt($("craftIlvlAll").value,10)||82));
+  const q=($("craftSearch").value||"").trim().toLowerCase();
+  const hit=craftList.filter(b=>!q||b.base.toLowerCase().includes(q));
+  if(!hit.length){toast("No bases match that search");return;}
+  for(const b of hit){b.ilvl=v;await api().set_craft(b.base,b.enabled,v);}
+  loadCraft();toast(`Item level ${v} applied to ${hit.length} base${hit.length===1?"":"s"}`);};
 $("craftAll").onclick=()=>craftBulk(true);
 $("craftNone").onclick=()=>craftBulk(false);
 $("craftSearch").addEventListener("input",()=>craftList.length&&renderCraftGrid());
@@ -3470,9 +3498,15 @@ $("ickRun").onclick=async()=>{
   o.innerHTML='<div class="hint">Checking it against your pickit and live poe.ninja prices\u2026</div>';
   const r=await api().check_item(txt,$("league").value||"");
   if(r.error){o.innerHTML=`<div class="banner warn on">${esc(r.error)}</div>`;return;}
+  // Item Check runs your CURRENT settings, but this tab reads as answering
+  // about the pickit the bot is running. Say so when they have diverged.
+  let _ctxHtml="";
+  try{const c=await api().item_check_context();
+    if(c&&c.stale)_ctxHtml=`<div class="banner warn on">${esc(c.detail)}</div>`;
+  }catch(_){}
   const v=ICK_VD[r.verdict]||ICK_VD.none,it=r.item;
   const meta=[it.class,it.rarity,it.ilvl?"ilvl "+it.ilvl:""].filter(Boolean).map(esc).join(" \u00b7 ");
-  o.innerHTML=`<div class="vd ${v.c}"><div class="vd-i">${v.i}</div>
+  o.innerHTML=_ctxHtml+`<div class="vd ${v.c}"><div class="vd-i">${v.i}</div>
       <div><div class="vd-t">${v.t}</div><div class="vd-s">${esc(v.s)}</div></div></div>
     <div class="ick-id"><b>${esc(it.name||it.base||"(unnamed)")}</b>${it.base&&it.base!==it.name?' <span style="color:var(--dim)">'+esc(it.base)+"</span>":""}${meta?' <span style="color:var(--dim)">\u2014 '+meta+"</span>":""}</div>`
     +r.rows.map(row=>`<div class="ick-row">
@@ -3867,6 +3901,7 @@ async function _mypkConvert(){
     return;
   }
   $("mypkResult").style.display="";
+  mypkShowResult();   // bring the answer into view, not just onto the page
   const rep=r.report;
   $("mypkRules").textContent=rep.rules;
   $("mypkConv").textContent=rep.converted;
@@ -3922,7 +3957,18 @@ $("mypkBot").onclick=async()=>{
 };
 $("mypkHide").onclick=async()=>{
   if(mypkBusy)return;   // don't flip the visual while a convert owns the state
-  $("mypkHide").classList.toggle("on");await mypkConvert();};
+  $("mypkHide").classList.toggle("on");
+  // persist it — this used to be visual only, so anyone who turned it OFF
+  // (which the warning below it tells botters to do) got it back ON at the
+  // next launch and on every revisit to the tab.
+  await api().set_setting("filter_hide_rest",$("mypkHide").classList.contains("on"));
+  await mypkConvert();};
+// The result of the main action sat below a full-width screenshot, so the
+// viewport never moved and the conversion looked like a no-op.
+function mypkShowResult(){
+  const el=$("mypkResult");
+  if(el&&el.scrollIntoView)el.scrollIntoView({behavior:"smooth",block:"start"});
+}
 $("mypkSave").onclick=async()=>{
   const r=await api().import_pickit_save();
   if(r.error){toast(r.error);return;}
@@ -3993,7 +4039,7 @@ async function loadBackups(){
        <button class="ghost mini bak-r" data-n="${esc(b.name)}">Restore</button></div>`).join("");
   el.querySelectorAll(".bak-r").forEach(btn=>btn.onclick=async()=>{
     if(!await askConfirm("Restore backup",
-      "Make this backup your current pickit?<br>The pickit being replaced is backed up first — nothing is lost.",
+      "Make this backup your current pickit?<br>The pickit being replaced is backed up first, so no file is lost.<br><br><b>Your settings are not changed</b> — this swaps the file only, so the next Generate will overwrite it with your current floors and toggles.",
       {ok:"Restore"}))return;
     const r=await api().restore_backup(btn.dataset.n);
     if(r.error)return toast("✗ "+r.error);
@@ -4068,6 +4114,8 @@ function applyInfo(i){
   $("uAmt").value=i.min_unique||0;
   $("gAmt").value=i.min_gear||0;
   $("outBase").value=i.output_base;
+  // restore the persisted "Hide everything else" choice on every launch
+  $("mypkHide").classList.toggle("on",!!i.filter_hide_rest);
   $("botFolderLbl").textContent=i.bot_folder||"not set";
   setupNudge(i.bot_folder);        // fresh install → point them at the guide
   sw("swCopy","auto_copy",i.auto_copy);
@@ -4189,7 +4237,7 @@ const WZ=[
      `<option value="${esc(o.value)}"${o.value===$("league").value?" selected":""}>${esc(o.textContent)}</option>`).join("");
    return `<div class="wz-lead">This turns <b>live poe.ninja prices</b> into a pickit file
      your bot reads — so it only stops for loot that's actually worth money today.</div>
-     <div class="hint">Three questions and you're done.</div>
+     <div class="hint">Four questions and you're done.</div>
      <div><b>Which league are you farming?</b>
        <div class="hint" style="margin:2px 0 7px">Prices are pulled for this league.</div>
        <select id="wzLeague">${opts}</select></div>`;},

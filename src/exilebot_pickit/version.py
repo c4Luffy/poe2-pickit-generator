@@ -1,11 +1,21 @@
 """Single source of truth for the app version."""
-VERSION = "4.40.0"
+VERSION = "4.40.1"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• "Hide everything else" now remembers your choice, and starts OFF. It was hardcoded ON in the markup and never saved — so anyone who turned it off, which the warning directly beneath it tells botters to do, got it back at every launch.
+• Restoring a backup no longer claims "nothing is lost". It swaps the FILE only; your settings are untouched, so the next Generate overwrites it. The dialog says that now instead of implying otherwise.
+• Item Check warns when your floors have changed since the pickit was built. It answers with your CURRENT settings, but the tab reads as answering about the pickit your bot is running — exactly the sequence you hit after tightening a floor to stop the bot grabbing junk.
+• "Disable all" in Economy asks first. It flipped up to ~1900 items with no undo and no confirmation.
+• An empty search says so, instead of leaving a blank table that looks like a failed load.
+• Craft: set the item level on every base at once instead of 27 steppers one click at a time. Respects the current search.
+• Create your filter scrolls to the result, which used to render below a full-width screenshot so the conversion looked like it did nothing.
+• Fracture grades finally say what they mean: S+ best in slot, S excellent, A+ strong, A worth keeping.
+
+Also in 4.40.0:
 • Item Check stops telling you the bot will walk past things it actually takes. Paste a Waystone and it said "ignored" — while your pickit grabs every waystone. An Uncut Skill Gem got "nothing targets this" against 20 active rules, because in-game it's just "Uncut Skill Gem" while the rules name "Uncut Skill Gem (Level N)". A Magic flask got the same, because only Rare gear had a branch. All three answer correctly now.
 • Item Check's error messages were invisible. They were rendered into a box the stylesheet keeps hidden, so a paste it couldn't read made the Check button look completely dead — no result, no error, nothing.
 • The setup wizard no longer overwrites your floors behind your back. It applied "Balanced" the moment you ARRIVED at the loot step, so a new user's floors went 0/0 to 2/6 just by pressing Next — quietly undoing the "first run picks up everything" default — and re-running setup did the same to hand-tuned floors. Balanced is still marked Recommended; now it waits for your click.

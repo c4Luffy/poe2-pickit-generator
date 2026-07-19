@@ -6,6 +6,40 @@ download lives.
 
 ---
 
+## [v4.40.1] — 2026-07-20 — The quality-of-life pass
+
+The rest of what the QoL audits turned up. Mostly small, all things that made
+the app harder to trust or to use.
+
+- **"Hide everything else" remembers your choice, and starts OFF.** It was
+  hardcoded ON in the markup and the handler never saved it — so anyone who
+  turned it off (which the warning directly beneath it tells botters to do) got
+  it back at every launch and on every revisit to the tab.
+- **Restoring a backup no longer claims "nothing is lost".** It replaces the
+  file only; your settings are untouched, so the next Generate overwrites it.
+  The dialog says that now instead of implying the opposite.
+- **Item Check warns when your floors changed since the pickit was built.** It
+  answers with your *current* settings while the tab reads as answering about
+  the pickit your bot is running — which is exactly the sequence you hit after
+  tightening a floor to stop the bot grabbing junk.
+- **"Disable all" in Economy asks first.** It flipped up to ~1,900 items with no
+  confirmation and no undo. It now uses the same danger dialog as Delete profile.
+- **An empty search says so.** A no-match search left a blank table that looked
+  identical to a failed price load or a broken app.
+- **Craft: set the item level on every base at once.** 27 separate steppers meant
+  54 clicks to move them all from 82 to 80. The bulk field respects the current
+  search, so it only touches what you can see.
+- **Create your filter scrolls to the result.** It rendered below a full-width
+  screenshot, so the viewport never moved and the main action looked like a no-op.
+- **Fracture grades say what they mean** — S+ best in slot, S excellent, A+
+  strong, A worth keeping — instead of bare coloured badges.
+- The Setup guide said "Four questions" while the wizard said "Three", and it
+  promised nothing is destroyed by re-running; both are accurate now.
+- `build_header_lines` is documented as unreachable rather than looking live —
+  both writers hand-roll their own banner, and only its tests call it.
+
+---
+
 ## [v4.40.0] — 2026-07-19 — Item Check tells the truth, and setup stops overwriting your floors
 
 Found by a second round of audits aimed at quality-of-life rather than
@@ -1864,6 +1898,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.40.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.40.1
 [v4.40.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.40.0
 [v4.39.5]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.5
 [v4.39.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.4

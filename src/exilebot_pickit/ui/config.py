@@ -110,6 +110,12 @@ DEFAULT_CONFIG = {
     # to the loosest legal values (quality 21-30, item level 79-82). 25/82 sent
     # a first-time user a pickit that silently skipped exceptional bases they had
     # never chosen to skip. These are the same values "Turn everything on" sets.
+    # "Hide everything else" in Create your filter. OFF by default: this
+    # app's users bot, and the warning right under that switch says hidden
+    # ground labels can stall the bot's pickup. It shipped ON, hardcoded in
+    # the markup, and never persisted — so anyone who turned it off got it
+    # back at every launch.
+    "filter_hide_rest": False,
     "base_quality": 21,
     "base_min_level": 79,
     "item_states":  {},
