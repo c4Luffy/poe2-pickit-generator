@@ -495,17 +495,38 @@ def test_build_unique_lines_sorted_high_to_low():
     assert vals == sorted(vals, reverse=True), f"uniques not sorted high→low: {vals}"
 
 
-def test_runeforged_base_stripped_from_unique_rules():
-    """Runeforged/Runemastered bases don't drop and are invalid to the bot —
-    a unique priced on one must emit a rule naming the plain droppable base."""
-    assert gen.strip_runeforged_base("Runeforged Warden Bow") == "Warden Bow"
-    assert gen.strip_runeforged_base("Runemastered Enlightened Robe") == "Enlightened Robe"
-    assert gen.strip_runeforged_base("Warden Bow") == "Warden Bow"
+def test_anvil_only_bases_are_dropped_from_unique_rules():
+    """Runeforged/Runemastered bases are made at the anvil from dropped items, so
+    they never appear as ground loot and no pickup rule can fire on one. These
+    rows used to be kept with the prefix stripped, on the assumption that the
+    plain base is what drops — but the plain base does not always exist, and the
+    rewrite then invented a base type the game has never had (owner ruling,
+    2026-07-19: drop the row instead)."""
+    assert gen.is_anvil_only_base("Runeforged Warden Bow")
+    assert gen.is_anvil_only_base("Runemastered Verisium Cuffs")
+    assert not gen.is_anvil_only_base("Warden Bow")
+
     payload = {"lines": [{"name": "Some Unique",
                           "baseType": "Runeforged Warden Bow", "primaryValue": 100.0}]}
     out = gen.build_unique_lines(payload, 1.0, min_exalt=0.0)
-    assert any('[Type] == "Warden Bow"' in l for l in out)
-    assert not any("Runeforged" in l for l in out)
+    assert not any("Runeforged" in ln for ln in out)
+    assert not any('"Warden Bow"' in ln for ln in out), "must not invent a plain-base rule"
+
+
+def test_unique_keeps_its_droppable_base_when_ninja_also_lists_an_anvil_one():
+    """The Prisoner's Manacles is priced on both "Runemastered Verisium Cuffs"
+    and "Kalguuran Cuffs". The game has no plain "Verisium Cuffs", so stripping
+    the prefix emitted a rule that could never fire and that the bot's validator
+    rejected. The real base must survive; the anvil one must not."""
+    payload = {"lines": [
+        {"name": "The Prisoner's Manacles", "baseType": "Runemastered Verisium Cuffs",
+         "primaryValue": 100.0},
+        {"name": "The Prisoner's Manacles", "baseType": "Kalguuran Cuffs",
+         "primaryValue": 100.0},
+    ]}
+    out = gen.build_unique_lines(payload, 1.0, min_exalt=0.0)
+    assert any('[Type] == "Kalguuran Cuffs"' in ln for ln in out)
+    assert not any("Verisium" in ln for ln in out)
 
 
 def test_webui_entry_and_api_import():

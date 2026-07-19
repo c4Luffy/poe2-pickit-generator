@@ -948,15 +948,30 @@ def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: f
     return output
 
 
-def strip_runeforged_base(base_type: str) -> str:
-    """Strip a 'Runeforged '/'Runemastered ' prefix from a base-type name.
+ANVIL_ONLY_PREFIXES = ("Runeforged ", "Runemastered ")
 
-    These are anvil-crafted variants that never drop as ground loot, so a
-    [Type] rule naming one is invalid to the bot ("Invalid base type"). The
-    dropped item is on the plain base — a unique on such a base still drops on
-    the plain base and is identified by [UniqueName] anyway. Owner-verified
-    against the bot's own validator (2026-07-09)."""
-    for pfx in ("Runeforged ", "Runemastered "):
+
+def is_anvil_only_base(base_type: str) -> bool:
+    """Is this base made at the anvil rather than dropped?
+
+    Runeforged/Runemastered variants are crafted from dropped items, so they
+    never appear as ground loot and no pickup rule can ever fire on one — the
+    bot's validator rejects the name outright. poe.ninja pricing a unique on
+    such a base proves it is traded (player-crafted), not that it drops.
+    Owner ruling, 2026-07-19: drop these rows entirely.
+    """
+    return base_type.startswith(ANVIL_ONLY_PREFIXES)
+
+
+def strip_runeforged_base(base_type: str) -> str:
+    """Strip an anvil-only prefix from a base-type name.
+
+    Kept for callers that want the plain name. NOT used to rewrite pickit rules
+    any more: stripping assumes the plain base exists, and it does not always —
+    the game has "Runemastered Verisium Cuffs" but no "Verisium Cuffs", so the
+    rewrite invented a base type that exists nowhere. See is_anvil_only_base.
+    """
+    for pfx in ANVIL_ONLY_PREFIXES:
         if base_type.startswith(pfx):
             return base_type[len(pfx):]
     return base_type
@@ -971,7 +986,16 @@ def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: flo
     seen = set()
     for line in payload.get("lines", []):
         name = line.get("name")
-        base_type = strip_runeforged_base(line.get("baseType", ""))
+        base_type = line.get("baseType", "")
+        # Anvil-only base: skip the row outright. These used to be kept with the
+        # prefix stripped, on the assumption that the plain base is what drops —
+        # but the plain base does not always exist. poe.ninja lists The
+        # Prisoner's Manacles on both "Runemastered Verisium Cuffs" and
+        # "Kalguuran Cuffs", and the game has no plain "Verisium Cuffs" at all,
+        # so stripping invented a base type that exists nowhere: a rule that can
+        # never fire and that the bot's validator rejects.
+        if is_anvil_only_base(base_type):
+            continue
         if not name or (name, base_type) in seen:
             continue
         seen.add((name, base_type))
