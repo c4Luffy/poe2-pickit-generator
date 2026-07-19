@@ -235,3 +235,34 @@ def test_save_config_reports_failure_instead_of_pretending(tmp_path, monkeypatch
     assert cfgmod.load_config()["league"] == "Standard"
     leftovers = [f for f in os.listdir(str(tmp_path)) if f.startswith(".pickit_cfg-")]
     assert not leftovers, "failed save left a temp file behind"
+
+
+def test_a_brand_new_user_picks_up_everything(tmp_path, monkeypatch):
+    """First run must pick up EVERYTHING, so a new user sees the bot working
+    before they tighten anything. Both value floors are 0 and the two
+    exceptional gates sit at the loosest legal values (quality 21-30, item
+    level 79-82). The old 25/82 defaults silently skipped exceptional bases a
+    first-time user had never chosen to skip."""
+    monkeypatch.setattr(cfgmod, "CONFIG_PATH", str(tmp_path / "cfg.json"))
+    cfg = cfgmod.load_config()
+    assert cfg["min_exalt_gear"] == 0.0
+    assert cfg["min_exalt_unique"] == 0.0
+    assert cfg["auto_floor"] is False          # nothing re-filters it on generate
+    assert not cfg["active_preset"]            # no preset narrowing the pickit
+    assert cfg["base_quality"] == 21
+    assert cfg["base_min_level"] == 79
+
+
+def test_an_existing_users_gates_are_never_reset_to_the_new_defaults(tmp_path, monkeypatch):
+    """Loosening the first-run defaults must not touch anyone already running.
+    Only the two historical migrations (75 -> 82, 28 -> 25) may rewrite these,
+    and only from those exact old defaults."""
+    import json
+    p = tmp_path / "cfg.json"
+    p.write_text(json.dumps({"base_quality": 24, "base_min_level": 82,
+                             "min_exalt_gear": 200.0, "auto_floor": True}),
+                 encoding="utf-8")
+    monkeypatch.setattr(cfgmod, "CONFIG_PATH", str(p))
+    cfg = cfgmod.load_config()
+    assert cfg["base_quality"] == 24 and cfg["base_min_level"] == 82
+    assert cfg["min_exalt_gear"] == 200.0 and cfg["auto_floor"] is True

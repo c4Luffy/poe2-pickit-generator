@@ -105,8 +105,13 @@ DEFAULT_CONFIG = {
     # generate ("keep top N%" percentile).
     "auto_floor": False,
     "auto_floor_pct": 40,
-    "base_quality": 25,
-    "base_min_level": 82,
+    # First run picks up EVERYTHING, so a new user sees the bot working before
+    # they tighten anything: both value floors are already 0, and these two open
+    # to the loosest legal values (quality 21-30, item level 79-82). 25/82 sent
+    # a first-time user a pickit that silently skipped exceptional bases they had
+    # never chosen to skip. These are the same values "Turn everything on" sets.
+    "base_quality": 21,
+    "base_min_level": 79,
     "item_states":  {},
     "last_gen_prices": {},
     # App version that produced the current .ipd — Preview warns when it no
