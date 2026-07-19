@@ -6,6 +6,70 @@ download lives.
 
 ---
 
+## [v4.39.0] — 2026-07-19 — The second half of the audit: nine more bugs
+
+v4.38.4 shipped the six most urgent findings. These are the rest, each
+reproduced before and verified after against live poe.ninja data.
+
+### Data safety
+
+- **A broken `game_data.json` can no longer strip your base rules.** That file
+  self-updates from GitHub, and `_apply` prunes any category the remote copy
+  omits — so a truncated or half-edited copy passed validation and silently
+  deleted **16 of 17** base categories, stripping almost every base rule from
+  every user's pickit with no error anywhere. A remote copy may now add
+  categories and change their contents, never remove or empty one. Base names
+  carrying a newline are rejected too: they split one rule in two, and the
+  second half has no `[Type]`, which Exiled Bot reads as matching *everything*
+  on the ground. A cache whose payload fails validation no longer reports a
+  fresh timestamp (one bad write used to suppress updates for 6 hours, and a
+  future-dated stamp suppressed them forever).
+
+### Fixed
+
+- **Top movers can finally show uniques.** Prices were joined to an items table
+  by id, but unique payloads ship `items: []` and carry the name on the row
+  itself — so every unique was skipped and all **7 unique categories recorded
+  zero prices**. Mageblood could double and the panel stayed empty, permanently,
+  because the saved baseline was empty too. A full league now records **438**
+  unique prices. A unique priced on several bases keeps its highest price
+  instead of letting iteration order decide.
+- **Backups stop touching other profiles.** Backups are `<output_base>-<stamp>.ipd`
+  matched by prefix, but `-` is a legal output-name character — so with
+  `pickit`, every `pickit-strict-*.ipd` matched. Rotation deleted its own
+  backups while keeping the other profile's, Clear backups wiped files it didn't
+  own, and Restore could put another profile's pickit over yours and copy it to
+  the bot. One shared matcher now requires the exact `YYYYMMDD-HHMMSS` stamp.
+- **A shared profile can no longer break your app.** Profile fields were copied
+  into your config and saved *before* anything could raise, so a bad profile
+  persisted, broke Generate for the rest of the session, and could set an
+  `output_base` that wrote your `.ipd` outside the output folder permanently.
+  Profiles are validated first and rejected with a message.
+- **"Saved" now means saved.** `save_config` returned nothing whether it wrote
+  the file or not, so ~25 actions answered a hard-coded success: with an
+  unwritable config directory the toast said *Saved* while nothing was written
+  and the setting vanished at next launch. The atomic-write and corruption
+  recovery path is unchanged.
+- **The Economy tab can no longer hang forever.** A failed price poll aborted
+  before clearing its timer, so the tab pinned on "Loading prices…" and every
+  revisit started another timer hammering the bridge every 250 ms — only a
+  restart recovered.
+- **Auto floor redraws its sliders** instead of leaving the fills frozen at the
+  old position beside a changed number.
+- **Ctrl+1…0 match the sidebar again.** The shortcut list omitted Create your
+  filter, so Ctrl+4 opened History and everything above it was off by one. It is
+  derived from the sidebar now, so it cannot drift again. With 14 tabs and 10
+  digits, **Magic & Rare no longer has a binding** — it only had one because of
+  that off-by-one.
+- **"— no profile —" no longer pretends.** It did nothing and silently reverted;
+  there is no way to clear the active profile from the bridge, so the option is
+  disabled rather than misleading.
+- **The command line stops passing off month-old prices as today's.** When
+  poe.ninja was unreachable it fell back to the disk copy — kept up to 60 days —
+  and printed nothing. It now names the affected categories.
+
+---
+
 ## [v4.38.4] — 2026-07-19 — Six bugs found by a full audit of the app
 
 Five parallel audits covered the rule engine, the Python↔JS bridge and config,
@@ -1629,6 +1693,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.39.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.0
 [v4.38.4]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.4
 [v4.38.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.3
 [v4.38.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.2
