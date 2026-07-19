@@ -6,6 +6,18 @@ download lives.
 
 ---
 
+## [v4.38.1] — 2026-07-19 — Exceptional tab uses its full width
+
+- **Shields and Foci no longer render into a third of the page.** Every
+  category in the Exceptional tab was pinned to three equal columns so
+  Str | Dex | Int would line up. Shields only has Str bases and Foci only Int,
+  so a single filled column sat beside two empty ones. Each category now gets
+  as many attribute columns as it actually has, and a category with only one
+  group flows its cards as a normal grid. Body Armours, Helmets, Gloves and
+  Boots keep their aligned Str | Dex | Int columns.
+
+---
+
 ## [v4.38.0] — 2026-07-19 — "Everything on" means everything, plus a tab-by-tab cleanup
 
 Every tab in the app was audited this cycle. The headline items are behaviour
@@ -1547,6 +1559,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.38.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.1
 [v4.38.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.38.0
 [v4.37.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.37.0
 [v4.36.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.36.0

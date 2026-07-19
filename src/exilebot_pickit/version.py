@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.38.0"
+VERSION = "4.38.1"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Exceptional: Shields and Foci no longer waste two thirds of the width. Every category was pinned to three attribute columns so Str | Dex | Int would line up — but Shields only has Str bases and Foci only Int, leaving one filled column beside two empty ones. Categories now get as many columns as they actually have.
+
+Also in 4.38.0:
 • 🔓 Turn everything on now really does: both floors drop to 0, Adaptive floors switch off and exceptional gates open to quality 21 / ilvl 79 — before, Adaptive floors quietly re-filtered everything you just enabled. "Put my switches back" restores it all.
 • Setting a floor by hand now turns Adaptive floors OFF instead of ignoring you — your number sticks.
 • Item Check no longer answers "no rule matches" for a QUALITY white base. Items copy as "Superior <Base>" when they have quality, and that prefix was never stripped — so the exact bases the Exceptional tab collects were answering wrong. Magic items resolve now too.
