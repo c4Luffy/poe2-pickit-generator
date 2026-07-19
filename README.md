@@ -26,9 +26,9 @@
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
 </p>
 
-![Real ExileBot 2 Pickit Generator v4.38.0 Generate screen](docs/shots/01-generate.png)
+![Real ExileBot 2 Pickit Generator v4.38.2 Generate screen](docs/shots/01-generate-v4382.png)
 
-<p align="center"><sub>Real running-app capture · Generate · captured on v4.38.0</sub></p>
+<p align="center"><sub>Real running-app capture · Generate · captured on v4.38.2</sub></p>
 
 > [!IMPORTANT]
 > **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.38.3](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.38.3/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
