@@ -109,10 +109,22 @@ button{font:inherit}
 .app-stage{position:relative;z-index:3;margin-top:54px}
 .app-frame,.item-shot{margin:0}
 .app-frame{padding:8px;border:1px solid var(--line);border-radius:13px;background:#111216;box-shadow:var(--shadow)}
-.app-frame>a{display:block;border:1px solid #26231e;border-radius:8px;overflow:hidden;background:#08090b}
-.app-frame img{width:100%;aspect-ratio:1864/951;object-fit:cover}
+.carousel-viewport{position:relative;overflow:hidden;aspect-ratio:1920/1009;border:1px solid #26231e;border-radius:8px;background:#08090b}
+.carousel-slide{position:absolute;inset:0;display:block;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .45s ease}
+.carousel-slide.is-active{opacity:1;visibility:visible;pointer-events:auto}
+.carousel-slide img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;background:#08090b}
 .app-caption{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 7px 4px;color:var(--quiet);font-size:12px}
 .app-caption strong{color:var(--paper-2);font-weight:650}
+.carousel-controls{display:flex;align-items:center;gap:9px;padding:8px 5px 4px;border-top:1px solid var(--line-soft)}
+.carousel-button{display:inline-grid;place-items:center;min-width:36px;height:32px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--paper-2);font:700 11px "Segoe UI",sans-serif;cursor:pointer;transition:border-color .2s,color .2s,background .2s}
+.carousel-button:hover{border-color:var(--gold);color:var(--gold-2);background:var(--gold-wash)}
+.carousel-button:focus-visible,.carousel-dot:focus-visible{outline:2px solid var(--gold-2);outline-offset:2px}
+.carousel-button:disabled{cursor:default;opacity:.55}
+.carousel-dots{display:flex;flex:1;align-items:center;justify-content:center;gap:1px;min-width:0}
+.carousel-dot{display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:999px;background:transparent;cursor:pointer}
+.carousel-dot::before{content:"";width:7px;height:7px;border-radius:999px;background:#4a463d;transition:width .2s,background .2s}
+.carousel-dot[aria-current="true"]::before{width:16px;background:var(--gold-2)}
+.carousel-note{margin:0;padding:5px 7px 2px;color:var(--quiet);font-size:10.5px;line-height:1.5}
 
 .trust-strip{margin-top:30px;border:1px solid var(--line);border-radius:16px;background:rgba(18,22,16,.72);display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden}
 .trust-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:126px;padding:19px 24px;border-right:1px solid var(--line);text-align:center}
@@ -177,7 +189,7 @@ button{font:inherit}
 
 .item-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:54px;align-items:center}
 .item-shot{padding:7px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow)}
-.item-shot a{display:block;border-radius:10px;overflow:hidden}.item-shot img{width:100%;aspect-ratio:1624/941;object-fit:cover;object-position:left top}
+.item-shot a{display:block;border-radius:10px;overflow:hidden}.item-shot img{width:100%;aspect-ratio:1920/1009;object-fit:cover;object-position:left top}
 .shot-caption{padding:10px 7px 3px;color:var(--quiet);font-size:12px}.shot-caption b{color:var(--paper-2)}
 .verdicts{display:flex;flex-wrap:wrap;gap:7px;margin:24px 0 21px}.verdict{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:10.5px;font-weight:750}.verdict.good{color:var(--green-2);border-color:rgba(135,198,111,.35)}.verdict.bad{color:#e89387;border-color:rgba(223,120,108,.35)}.verdict.depends{color:var(--gold-2);border-color:rgba(210,163,79,.4)}
 .truth-callout{padding:20px 21px;border-left:2px solid var(--gold);background:rgba(201,154,74,.055)}.truth-callout strong{display:block;color:var(--gold-2);font:20px/1.3 Georgia,"Times New Roman",serif}.truth-callout p{margin:7px 0 0;color:var(--muted);font-size:12px}
@@ -211,7 +223,7 @@ footer{border-top:1px solid var(--line-soft);padding:27px 0 35px;color:var(--qui
   .wrap{width:min(100% - 30px,1180px)}
   .nav-row{height:65px}.nav-row>.nav-cta{display:none}.brand img{width:37px;height:37px}.brand-copy b{font-size:12px}.menu{flex:0 0 44px}
   .hero{padding-top:61px}.hero h1{font-size:clamp(42px,13vw,63px)}.hero-lead{font-size:15px}.btn{width:100%}.hero-actions{display:grid;grid-template-columns:1fr;width:100%}
-  .app-stage{margin-top:40px}.app-frame{min-width:0;padding:5px;border-radius:10px}.app-frame img{aspect-ratio:16/10;object-fit:cover;object-position:left top}.app-caption{display:flex;flex-wrap:wrap;padding:10px 5px 4px;font-size:11px}
+  .app-stage{margin-top:40px}.app-frame{min-width:0;padding:5px;border-radius:10px}.carousel-viewport{aspect-ratio:1920/1009}.app-caption{display:flex;flex-wrap:wrap;padding:10px 5px 4px;font-size:11px}.carousel-controls{gap:6px}.carousel-button{min-width:32px;height:30px;padding:0 8px}.carousel-dots{display:none}.carousel-note{padding-inline:5px}
   .trust-strip{grid-template-columns:1fr}.trust-item{flex-direction:row;justify-content:flex-start;min-height:78px;border-right:0;border-bottom:1px solid var(--line);text-align:left}.trust-item:last-child{border-bottom:0}
   .section{padding:72px 0}.section-head{margin-bottom:34px}.section-head h2{font-size:clamp(34px,10vw,47px)}
   .paths{grid-template-columns:1fr}.path{min-height:375px;padding:28px}.path-index{top:28px;right:28px}.path-link{left:28px}
@@ -270,9 +282,46 @@ footer{border-top:1px solid var(--line-soft);padding:27px 0 35px;color:var(--qui
       </div>
 
       <div class="app-stage">
-        <figure class="app-frame">
-          <a href="shots/01-generate.png" target="_blank" rel="noopener" aria-label="Open the real v4.38.0 Generate capture at full size"><img src="shots/01-generate.png" width="1920" height="1009" alt="Real running-app v4.38.0 Generate capture showing a completed run with 1,231 validated and deployed rules"></a>
-          <figcaption class="app-caption"><strong>Real running-app capture</strong><span>Generate · captured on v4.38.0 · tap to open full size</span></figcaption>
+        <figure class="app-frame" data-carousel role="region" aria-roledescription="carousel" aria-label="Real screenshots of all 14 app tabs">
+          <div class="carousel-viewport">
+            <a class="carousel-slide is-active" data-title="Generate" data-version="v4.38.0" href="shots/01-generate.png" target="_blank" rel="noopener" aria-label="Open the real v4.38.0 Generate capture at full size"><img src="shots/01-generate.png" width="1920" height="1009" fetchpriority="high" decoding="async" alt="Real running-app v4.38.0 Generate capture showing a completed run with 1,231 validated and deployed rules"></a>
+            <a class="carousel-slide" data-title="Preview" data-version="v4.38.0" href="shots/05-preview.png" target="_blank" rel="noopener" aria-label="Open the real v4.38.0 Preview capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/05-preview.png" width="1920" height="1009" loading="lazy" decoding="async" alt="Real running-app v4.38.0 Preview capture showing the generated pickit and its current header"></a>
+            <a class="carousel-slide" data-title="Item Check" data-version="v4.38.0" href="shots/03-item-check.png" target="_blank" rel="noopener" aria-label="Open the real v4.38.0 Item Check capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/03-item-check.png" width="1920" height="1009" loading="lazy" decoding="async" alt="Real running-app v4.38.0 Item Check capture showing a rare fractured Warmonger Bow, its Picked up verdict, and the rules that decided it"></a>
+            <a class="carousel-slide" data-title="Create your filter" data-version="v4.38.0" href="shots/04-create-your-filter.png" target="_blank" rel="noopener" aria-label="Open the real v4.38.0 Create your filter capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/04-create-your-filter.png" width="1920" height="1009" loading="lazy" decoding="async" alt="Real running-app v4.38.0 Create your filter capture converting the active pickit and reporting the result"></a>
+            <a class="carousel-slide" data-title="History" data-version="v4.20.0" href="shots/tour-history-v4200.png" target="_blank" rel="noopener" aria-label="Open the real v4.20.0 History capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/tour-history-v4200.png" width="1624" height="941" loading="lazy" decoding="async" alt="Real running-app v4.20.0 History capture showing logged generation runs and rule-count changes"></a>
+            <a class="carousel-slide" data-title="Economy" data-version="v4.20.0" href="shots/tour-economy-v4200.png" target="_blank" rel="noopener" aria-label="Open the real v4.20.0 Economy capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/tour-economy-v4200.png" width="1624" height="941" loading="lazy" decoding="async" alt="Real running-app v4.20.0 Economy capture showing live item prices and generated-pickit inclusion controls"></a>
+            <a class="carousel-slide" data-title="Chance" data-version="v4.38.0" href="shots/02-chance.png" target="_blank" rel="noopener" aria-label="Open the real v4.38.0 Chance capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/02-chance.png" width="1920" height="1009" loading="lazy" decoding="async" alt="Real running-app v4.38.0 Chance capture showing live target-unique prices and art for each base"></a>
+            <a class="carousel-slide" data-title="Craft" data-version="v4.20.0" href="shots/tour-craft-v4200.png" target="_blank" rel="noopener" aria-label="Open the real v4.20.0 Craft capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/tour-craft-v4200.png" width="1624" height="941" loading="lazy" decoding="async" alt="Real running-app v4.20.0 Craft capture showing enabled bases and per-base item-level controls"></a>
+            <a class="carousel-slide" data-title="Exceptional" data-version="v4.38.0" href="shots/03-exceptional.png" target="_blank" rel="noopener" aria-label="Open the real v4.38.0 Exceptional capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/03-exceptional.png" width="1920" height="1009" loading="lazy" decoding="async" alt="Real running-app v4.38.0 Exceptional capture showing Strength, Dexterity, Intelligence, and hybrid base groups with implicits"></a>
+            <a class="carousel-slide" data-title="Fracture" data-version="v4.20.0" href="shots/tour-fracture-v4200.png" target="_blank" rel="noopener" aria-label="Open the real v4.20.0 Fracture capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/tour-fracture-v4200.png" width="1624" height="941" loading="lazy" decoding="async" alt="Real running-app v4.20.0 Fracture capture showing verified target modifiers by equipment class"></a>
+            <a class="carousel-slide" data-title="Magic &amp; Rare" data-version="v4.20.0" href="shots/tour-magic-rare-v4200.png" target="_blank" rel="noopener" aria-label="Open the real v4.20.0 Magic and Rare capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/tour-magic-rare-v4200.png" width="1624" height="941" loading="lazy" decoding="async" alt="Real running-app v4.20.0 Magic and Rare capture showing flask and rare-gear scoring rules"></a>
+            <a class="carousel-slide" data-title="Setup guide" data-version="v4.20.0" href="shots/tour-setup-guide-v4200.png" target="_blank" rel="noopener" aria-label="Open the real v4.20.0 Setup guide capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/tour-setup-guide-v4200.png" width="1624" height="941" loading="lazy" decoding="async" alt="Real running-app v4.20.0 Setup guide capture explaining generation and Exiled Bot 2 connection steps"></a>
+            <a class="carousel-slide" data-title="Settings" data-version="v4.20.0" href="shots/tour-settings-v4200.png" target="_blank" rel="noopener" aria-label="Open the real v4.20.0 Settings capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/tour-settings-v4200.png" width="1624" height="941" loading="lazy" decoding="async" alt="Real running-app v4.20.0 Settings capture showing pickit-folder connection and automatic deployment controls"></a>
+            <a class="carousel-slide" data-title="Debug" data-version="v4.38.0" href="shots/06-debug.png" target="_blank" rel="noopener" aria-label="Open the real v4.38.0 Debug capture at full size" aria-hidden="true" tabindex="-1"><img src="shots/06-debug.png" width="1920" height="1009" loading="lazy" decoding="async" alt="Real running-app v4.38.0 Debug capture showing the health check, price repair, and problem-report actions"></a>
+          </div>
+          <figcaption class="app-caption"><strong><span data-carousel-title>Generate</span> · real running-app capture</strong><span><span data-carousel-count>1 of 14</span> · captured on <span data-carousel-version>v4.38.0</span> · tap to open full size</span></figcaption>
+          <div class="carousel-controls" aria-label="Screenshot tour controls">
+            <button class="carousel-button" type="button" data-carousel-toggle aria-label="Pause automatic screenshot tour">Pause</button>
+            <button class="carousel-button" type="button" data-carousel-prev aria-label="Show previous tab screenshot">←</button>
+            <div class="carousel-dots" aria-label="Choose a tab screenshot">
+              <button class="carousel-dot" type="button" data-carousel-dot="0" aria-label="Show Generate screenshot" aria-current="true"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="1" aria-label="Show Preview screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="2" aria-label="Show Item Check screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="3" aria-label="Show Create your filter screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="4" aria-label="Show History screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="5" aria-label="Show Economy screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="6" aria-label="Show Chance screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="7" aria-label="Show Craft screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="8" aria-label="Show Exceptional screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="9" aria-label="Show Fracture screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="10" aria-label="Show Magic and Rare screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="11" aria-label="Show Setup guide screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="12" aria-label="Show Settings screenshot"></button>
+              <button class="carousel-dot" type="button" data-carousel-dot="13" aria-label="Show Debug screenshot"></button>
+            </div>
+            <button class="carousel-button" type="button" data-carousel-next aria-label="Show next tab screenshot">→</button>
+          </div>
+          <p class="carousel-note">All 14 tabs · seven current v4.38.0 captures and seven real v4.20.0 captures where current shots are not yet available. Older frames may show controls that have since changed.</p>
         </figure>
       </div>
 
@@ -477,7 +526,59 @@ if(menu&&mobile){
   mobile.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>setMenuState(false)));
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&mobile.classList.contains('open')){setMenuState(false);menu.focus();}});
 }
+const carousel=document.querySelector('[data-carousel]');
+if(carousel){
+  const slides=Array.from(carousel.querySelectorAll('.carousel-slide'));
+  const dots=Array.from(carousel.querySelectorAll('[data-carousel-dot]'));
+  const title=carousel.querySelector('[data-carousel-title]');
+  const version=carousel.querySelector('[data-carousel-version]');
+  const count=carousel.querySelector('[data-carousel-count]');
+  const previous=carousel.querySelector('[data-carousel-prev]');
+  const next=carousel.querySelector('[data-carousel-next]');
+  const toggle=carousel.querySelector('[data-carousel-toggle]');
+  let active=0;
+  let timer=0;
+  let userPaused=false;
+  let hovered=false;
+  let focused=false;
+  const stop=()=>{if(timer){window.clearTimeout(timer);timer=0;}};
+  const syncToggle=()=>{
+    toggle.textContent=userPaused?'Play':'Pause';
+    toggle.setAttribute('aria-label',userPaused?'Play automatic screenshot tour':'Pause automatic screenshot tour');
+  };
+  const schedule=()=>{
+    stop();
+    if(userPaused||hovered||focused||document.hidden||slides.length<2)return;
+    timer=window.setTimeout(()=>show(active+1),5000);
+  };
+  const show=nextIndex=>{
+    const target=(nextIndex+slides.length)%slides.length;
+    slides.forEach((slide,index)=>{
+      const selected=index===target;
+      slide.classList.toggle('is-active',selected);
+      slide.setAttribute('aria-hidden',String(!selected));
+      slide.tabIndex=selected?0:-1;
+      dots[index]?.setAttribute('aria-current',selected?'true':'false');
+    });
+    active=target;
+    title.textContent=slides[active].dataset.title;
+    version.textContent=slides[active].dataset.version;
+    count.textContent=`${active+1} of ${slides.length}`;
+    schedule();
+  };
+  previous.addEventListener('click',()=>show(active-1));
+  next.addEventListener('click',()=>show(active+1));
+  dots.forEach((dot,index)=>dot.addEventListener('click',()=>show(index)));
+  toggle.addEventListener('click',()=>{userPaused=!userPaused;if(!userPaused){hovered=false;focused=false;}syncToggle();schedule();});
+  carousel.addEventListener('mouseenter',()=>{hovered=true;stop();});
+  carousel.addEventListener('mouseleave',()=>{hovered=false;schedule();});
+  carousel.addEventListener('focusin',()=>{focused=true;stop();});
+  carousel.addEventListener('focusout',event=>{if(!carousel.contains(event.relatedTarget)){focused=false;schedule();}});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else schedule();});
+  syncToggle();
+  show(0);
+}
 </script>
-<noscript><style>@media(max-width:980px){.menu{display:none}.mobile-nav{display:block}}</style></noscript>
+<noscript><style>.carousel-controls{display:none}@media(max-width:980px){.menu{display:none}.mobile-nav{display:block}}</style></noscript>
 </body>
 </html>
