@@ -1,6 +1,15 @@
 """Fracture Bases: verified-target lookup table shape and exclusion rules."""
+import glob
+import json
+import os
+import re
+
+import pytest
+
 from exilebot_pickit import generator as gen
 from exilebot_pickit.data.fracture_bases import fracture_bases
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _names():
@@ -407,3 +416,119 @@ def test_all_emitted_mod_ids_are_valid_bot_stats():
                 if stat not in BOT_STAT_IDS:
                     bad.add(stat)
     assert not bad, f"emitted mod ids not in the bot mod list: {sorted(bad)}"
+
+
+# ── Dead-base guards (2026-07-19) ────────────────────────────────────────────
+# Three classes of name look like a normal endgame base but can never be picked
+# up off the ground, so any rule naming one is silently dead:
+#   * unique-only  — metadata path ends "...Unique<N>"; the base exists solely
+#                    to host one unique (e.g. .../Staves/FourStaffUnique3 is
+#                    "Reflecting Staff" = Atziri's Rule and nothing else).
+#   * anvil-only   — "Runeforged "/"Runemastered " names are crafted, not dropped.
+#   * absent       — not in the game's item table at all (renamed/removed patch).
+# Fracture names bases in two places: the owner overrides in
+# _FRACTURE_BASE_OVERRIDES, and the top-N ranking pulled from
+# _BASE_TYPES_BY_CATEGORY — both end up in emitted [Type] == "..." rules, so
+# the check runs over the real generated output.
+
+# Fracture class name -> the item_class the game's own item table files it under.
+_FRACTURE_ITEM_CLASS = {
+    "Body Armours": "Body Armour", "Helmets": "Helmet", "Gloves": "Gloves",
+    "Boots": "Boots", "Shields": "Shield", "Foci": "Focus", "Quivers": "Quiver",
+    "Bows": "Bow", "Crossbows": "Crossbow", "Quarterstaves": "Warstaff",
+    "Spears": "Spear", "One Hand Maces": "One Hand Mace",
+    "Two Hand Maces": "Two Hand Mace", "Sceptres": "Sceptre", "Wands": "Wand",
+    "Staves": "Staff", "Amulets": "Amulet", "Rings": "Ring", "Belts": "Belt",
+}
+
+
+def _game_items():
+    dumps = glob.glob(os.path.join(_ROOT, "dist", "**", "gamedata_cache",
+                                   "base_items.min.json"), recursive=True)
+    if not dumps:
+        pytest.skip("GGPK base-item dump not present in this checkout")
+    with open(dumps[0], encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _emitted_bases_by_class():
+    """[(fracture class, base name)] for every [Type] rule the builder emits."""
+    states = {c: {"enabled": True} for _g, cs in gen.FRACTURE_CLASS_GROUPS for c in cs}
+    out, cls = [], None
+    for line in gen.build_fracture_pickit_rules(states):
+        section = re.match(r"^// -- (.+?) -+$", line)
+        if section:
+            cls = section.group(1).strip()
+            continue
+        name = re.match(r'^\[Type\] == "([^"]+)"', line)
+        if name and cls:
+            out.append((cls, name.group(1)))
+    return sorted(set(out))
+
+
+def test_every_fracture_base_really_drops():
+    items = _game_items()
+    by_name = {}
+    for path, v in items.items():
+        if v.get("name"):
+            by_name.setdefault(v["name"], []).append((path, v))
+
+    emitted = _emitted_bases_by_class()
+    assert emitted, "fracture emitted no [Type] rules at all"
+
+    dead = []
+    for cls, name in emitted:
+        if name.startswith(("Runeforged ", "Runemastered ")):
+            dead.append(f"{cls}/{name}: anvil-only (crafted, never dropped)")
+            continue
+        entries = by_name.get(name)
+        if not entries:
+            dead.append(f"{cls}/{name}: absent from the game's item table")
+            continue
+        want = _FRACTURE_ITEM_CLASS.get(cls)
+        droppable = [
+            (p, v) for p, v in entries
+            if "Unique" not in p.rsplit("/", 1)[-1]
+            and v.get("release_state") == "released"
+            and (want is None or v.get("item_class") == want)
+        ]
+        if not droppable:
+            paths = ", ".join(
+                f"{p} (item_class={v.get('item_class')!r}, {v.get('release_state')})"
+                for p, v in entries)
+            dead.append(f"{cls}/{name}: no droppable base — expected item_class "
+                        f"{want!r}; found {paths}")
+    assert not dead, (
+        "fracture rules name bases that can never be picked up:\n  "
+        + "\n  ".join(dead))
+
+
+def test_no_fracture_class_is_left_with_no_bases():
+    """Removing a dead base must never empty a class — an empty base list drops
+    the class back to the whole-category selector, which is far broader than
+    intended (and, if the class selector were ever missing too, would drop the
+    class from the pickit entirely)."""
+    for _g, classes in gen.FRACTURE_CLASS_GROUPS:
+        for cls in classes:
+            if not gen.fracture_targets_for_class(cls):
+                continue    # no targets -> nothing to emit, by design
+            assert fracture_bases._fracture_base_selectors(cls), (
+                f"{cls} has fracture targets but no base selector at all")
+
+
+def test_no_fracture_rule_is_ever_missing_its_type_condition(monkeypatch):
+    """A rule with no [Type]/[Category]/[WeaponCategory] condition matches
+    EVERYTHING on the ground. The base-table fallback must still gate on the
+    item class, so this holds both normally and with the base table empty."""
+    from exilebot_pickit.data import base_types as bt
+
+    states = {c: {"enabled": True} for _g, cs in gen.FRACTURE_CLASS_GROUPS for c in cs}
+    for empty in (False, True):
+        if empty:
+            monkeypatch.setattr(bt, "_BASE_TYPES_BY_CATEGORY", {})
+        lines = gen.build_fracture_pickit_rules(states)
+        rules = [l for l in lines if "[StashItem]" in l and not l.startswith("//")]
+        assert rules
+        for line in rules:
+            assert re.match(r'^\[(Type|Category|WeaponCategory)\] == "[^"]+" &&', line), (
+                f"fracture rule with no item-class condition (matches everything): {line}")

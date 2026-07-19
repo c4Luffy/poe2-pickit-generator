@@ -580,6 +580,16 @@ FRACTURE_MIN_ITEM_TIER = 4
 # These four are drop_level 1, but that is the base's floor, not the dropped
 # item's tier — Solar Amulet (drop_level 30) already passes the same
 # [ItemTier] >= 4 gate, so they are not filtered out by it.
+#
+# This is the ONLY place in this module that holds base-type NAMES (everything
+# else here is stat ids, item-class names or tier numbers). Audited 2026-07-19
+# against the GGPK item table: all 8 resolve to a released, non-unique-only
+# metadata path of the right item_class (Metadata/Items/Amulets/FourAmulet9 +10,
+# Metadata/Items/Rings/FourRingB1, FourRing10, FourRingLake1-4). Before adding a
+# name here, check it is not a "...Unique<N>" path (that base only ever exists
+# carrying its unique — a white/magic/rare one never drops) and not a
+# "Runeforged "/"Runemastered " anvil-only craft; tests/test_fracture_bases.py
+# ::test_every_fracture_base_really_drops enforces both.
 _FRACTURE_BASE_OVERRIDES: dict = {
     "Amulets": ["Solar Amulet", "Gold Amulet"],
     "Rings": ["Biostatic Ring", "Gold Ring", "Tenebrous Ring",

@@ -19,11 +19,12 @@ _BASE_TYPES_BY_CATEGORY: dict = {
     # Hallowed Sceptre removed 2026-07-12: it is still in the game's item table
     # but does NOT drop (owner searched in-game; NeverSink doesn't list it, nor
     # any sceptre above Wrath). The table keeps legacy + [DNT] dev definitions.
-    # Shrine Sceptre removed 2026-07-19: its metadata is FourSceptreUnique1 — a
-    # unique-only base. A white one never drops, so the Quality/ItemLevel rule
-    # here could never fire and its Exceptional-tab toggle did nothing. Its four
-    # uniques (Guiding Palm ×3, Sacred Flame) are still picked up by value.
-    "Sceptres": (("Wrath Sceptre", 2), ("Omen Sceptre", 2),),
+    # Shrine Sceptre was briefly removed 2026-07-19 as "unique-only" and PUT BACK
+    # the same day: it has FOUR metadata entries — FourSceptre6a/6b/6c (ordinary
+    # drops, one per Purity skill) plus FourSceptreUnique1. Only the last hosts a
+    # unique. A name is unique-only when ALL of its paths are Unique-suffixed,
+    # not when any one of them is; Shrine Sceptre drops normally and stays.
+    "Sceptres": (("Wrath Sceptre", 2), ("Shrine Sceptre", 2), ("Omen Sceptre", 2),),
     "Spears": (("Flying Spear", 2), ("Grand Spear", 2), ("Stalking Spear", 2),),
     "Wands": (("Dueling Wand", 2), ("Acrid Wand", 2), ("Galvanic Wand", 2),),
     "Two Hand Maces": (("Massive Greathammer", 3), ("Ironwood Greathammer", 3), ("Tawhoan Greatclub", 3),),

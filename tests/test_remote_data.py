@@ -301,6 +301,11 @@ def test_no_exceptional_base_is_a_unique_only_base():
 
     Guarded here because the list is hand-curated and the mistake is invisible
     without the metadata: the names look like ordinary high-level bases.
+
+    NOTE the grouping below. The first version of this check asked whether ANY
+    of a name's metadata paths was Unique-suffixed, which wrongly condemned
+    Shrine Sceptre — it has three ordinary variants as well as a unique host —
+    and it was removed from the data on that false basis before being restored.
     """
     import glob
     import json as _json
@@ -312,8 +317,23 @@ def test_no_exceptional_base_is_a_unique_only_base():
 
     with open(dumps[0], encoding="utf-8") as f:
         items = _json.load(f)
-    unique_only = {v["name"] for k, v in items.items()
-                   if v.get("name") and "Unique" in k.rsplit("/", 1)[-1]}
+
+    # A name is unique-only when ALL of its metadata paths are Unique-suffixed.
+    # Testing "any path" is wrong and cost us a real base: Shrine Sceptre has
+    # FourSceptre6a/6b/6c (ordinary drops, one per Purity skill) alongside
+    # FourSceptreUnique1, and the any-check condemned it. Group by name FIRST,
+    # then require every path to be a unique host.
+    paths_by_name: dict = {}
+    for k, v in items.items():
+        if v.get("name"):
+            paths_by_name.setdefault(v["name"], []).append(k)
+    unique_only = {n for n, paths in paths_by_name.items()
+                   if all("Unique" in p.rsplit("/", 1)[-1] for p in paths)}
+
+    # the control: a name with both kinds of path must NOT be treated as dead
+    assert "Shrine Sceptre" not in unique_only, (
+        "the any-path bug is back — Shrine Sceptre drops normally")
+    assert "Reflecting Staff" in unique_only, "expected a real unique-only base"
 
     offenders = [(cat, n) for cat, entries in bt._BASE_TYPES_BY_CATEGORY.items()
                  for n, _s in entries if n in unique_only]

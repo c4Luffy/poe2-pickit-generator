@@ -453,10 +453,10 @@ RARE_GEAR = {
     "Sceptre": {
         # Hallowed Sceptre dropped 2026-07-12 — in the game's item table but it
         # does NOT drop (owner confirmed in-game; NeverSink lists no sceptre above
-        # Wrath). Shrine Sceptre dropped 2026-07-19: its metadata is
-        # FourSceptreUnique1, a unique-only base, so a RARE one never drops
-        # either — the recipe could never match.
-        "bases": ["Wrath Sceptre", "Omen Sceptre"],
+        # Wrath). Shrine Sceptre was briefly dropped 2026-07-19 as "unique-only"
+        # and PUT BACK the same day: FourSceptreUnique1 is only one of its four
+        # metadata entries — FourSceptre6a/6b/6c are ordinary drops. It drops.
+        "bases": ["Wrath Sceptre", "Shrine Sceptre", "Omen Sceptre"],
         "weights": {
             "minion_skill_gem_level_+": 25.0,            # T1 max +4
             "allies_in_presence_damage_+%": 0.84,        # T1 max 119
