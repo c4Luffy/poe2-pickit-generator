@@ -656,10 +656,7 @@
    "Stamped Wombgift": "Signet Wombgift",
    "Pressurised Wombgift": "Ornate Wombgift"
   },
-  "skip": [
-   "Necrotic Catalyst",
-   "Refined Necrotic Catalyst"
-  ]
+  "skip": []
  },
  "chance_bases": [
   [

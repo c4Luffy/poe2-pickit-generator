@@ -136,8 +136,9 @@ VALID_EQUIPMENT_BASES: frozenset = (
 # already hit so they're caught immediately if a data update reintroduces them as
 # a [Type] (note: "Dustbloom" is still valid as a [UniqueName], which we don't flag).
 KNOWN_INVALID_TYPES: set = {
-    "Necrotic Catalyst",
-    "Refined Necrotic Catalyst",
+    # Both Necrotic Catalysts left this set 2026-07-20 together with the skip
+    # list: they are real released currency (drop levels 30 and 50), and leaving
+    # them here would fail validation on our own output the moment we emit them.
     "Dustbloom",
 }
 

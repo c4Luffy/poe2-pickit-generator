@@ -88,9 +88,24 @@ def test_validate_clean_rule_passes():
 
 
 def test_validate_flags_known_invalid_type():
-    # "Refined Necrotic Catalyst" is in KNOWN_INVALID_TYPES
-    res = gen.validate_pickit(['[Type] == "Refined Necrotic Catalyst" # [StashItem] == "true"'])
+    # "Dustbloom" is in KNOWN_INVALID_TYPES. The two Necrotic Catalysts left that
+    # set on 2026-07-20 — they are real released currency, and the bot-validator
+    # complaint they were blocked for turned out to be cosmetic.
+    res = gen.validate_pickit(['[Type] == "Dustbloom" # [StashItem] == "true"'])
     assert any("Invalid base type" in m for _, m in res["errors"])
+
+
+def test_the_necrotic_catalysts_are_no_longer_suppressed():
+    """They were skipped AND flagged invalid, costing a ~145 ex pickup every time
+    one dropped. Both are released StackableCurrency (drop levels 30 and 50); the
+    shipped pickit already carries five names that same bot validator flags
+    without the bot minding; and the app already picks up Refined Sibilant
+    Catalyst at ~2374 ex — the identical family and naming pattern."""
+    for name in ("Necrotic Catalyst", "Refined Necrotic Catalyst"):
+        assert name not in gen.ITEM_NAME_SKIP
+        assert name not in gen.KNOWN_INVALID_TYPES
+        rule = f'[Type] == "{name}" # [StashItem] == "true"'
+        assert gen.validate_pickit([rule])["errors"] == []
 
 
 def test_validate_flags_unknown_equipment_base():
@@ -106,10 +121,14 @@ def test_validate_flags_missing_stashitem():
 
 # ── build_exchange_lines ─────────────────────────────────────────────────────
 
-def test_exchange_skips_skip_items():
-    payload = _payload([(1, "Refined Necrotic Catalyst", 50.0), (2, "Chaos Orb", 1.0)], rate=1.0)
+def test_exchange_skips_skip_items(monkeypatch):
+    """ITEM_NAME_SKIP is empty today — see
+    test_the_necrotic_catalysts_are_no_longer_suppressed — so this pins the
+    MECHANISM with a stand-in name rather than a real one."""
+    monkeypatch.setattr(gen, "ITEM_NAME_SKIP", {"Bogus Skipped Item"})
+    payload = _payload([(1, "Bogus Skipped Item", 50.0), (2, "Chaos Orb", 1.0)], rate=1.0)
     out = "\n".join(gen.build_exchange_lines(payload, divine_rate_exalts=200.0))
-    assert "Refined Necrotic Catalyst" not in out
+    assert "Bogus Skipped Item" not in out
     assert "Chaos Orb" in out
 
 

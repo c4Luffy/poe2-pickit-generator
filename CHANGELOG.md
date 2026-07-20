@@ -6,6 +6,25 @@ download lives.
 
 ---
 
+## [v4.41.1] — 2026-07-20 — The Necrotic Catalysts come back
+
+- **Refined Necrotic Catalyst (~136 ex) is picked up again.** Both Necrotic
+  Catalysts were suppressed twice over — in the skip list *and* flagged as
+  invalid base types — on the grounds that "Exiled Bot's pickit validator
+  rejects these base types". That is a claim about the **validator**, not about
+  whether the item drops, and it was costing a real pickup every time one fell.
+
+  Two things settled it: the shipped pickit already carries five names that same
+  validator flags (the four Orbs of Sacrifice and Tethering Bands) and the bot
+  loads the file perfectly well, so the warning is cosmetic; and the app already
+  picks up **Refined Sibilant Catalyst at ~2374 ex**, the identical family and
+  naming pattern. Both are released `StackableCurrency` at drop levels 30 and 50.
+
+  The cheaper plain Necrotic Catalyst (~8 ex) is emitted too, and your value
+  floor decides it as usual.
+
+---
+
 ## [v4.41.0] — 2026-07-20 — A whole price category was never being fetched
 
 The owner noticed loot going unpicked in game. Chasing it found one missing item
@@ -1933,6 +1952,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.41.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.1
 [v4.41.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.0
 [v4.40.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.40.1
 [v4.40.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.40.0

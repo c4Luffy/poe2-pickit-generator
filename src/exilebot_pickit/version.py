@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.0"
+VERSION = "4.41.1"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Refined Necrotic Catalyst (~136 ex) is picked up again. Both Necrotic Catalysts were suppressed on the grounds that "Exiled Bot's validator rejects these base types" — but that is a claim about the validator, not about whether the item drops, and it was costing a real pickup. Your pickit already carries five names that same validator flags and the bot loads it fine, and the app already picks up Refined Sibilant Catalyst — the identical family.
+
+Also in 4.41.0:
 • A whole poe.ninja category was never being fetched. "Verisium" has always been served and this app never asked for it, so all 24 of its items had NO rule at any floor — your bot was walking past Celestial Alloy at ~308 ex, Warding Starlit Ore at ~143 ex, and 14 more worth over 1 ex. Now fetched like every other category, so it prices and updates itself.
 • Raven's Reflection is picked up. The Delirium pinnacle key, dropped from Simulacrum, had no rule at all: poe.ninja prices it in no category, and almost every rule this app writes comes from a price — so an unpriced valuable is invisible unless it's named in the always-pick list. It is now.
 

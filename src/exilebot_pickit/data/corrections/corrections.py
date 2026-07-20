@@ -12,10 +12,19 @@ ITEM_NAME_CORRECTIONS: dict = {
 # Items returned by poe.ninja that have no valid in-game base type and should
 # be skipped entirely rather than written to the pickit. (Exiled Bot's pickit
 # validator rejects these base types, so writing them just fails validation.)
-ITEM_NAME_SKIP: set = {
-    "Necrotic Catalyst",
-    "Refined Necrotic Catalyst",
-}
+# Emptied 2026-07-20. It held both Necrotic Catalysts on the grounds that
+# "Exiled Bot's pickit validator rejects these base types" — but that is a claim
+# about the BOT'S validator, not about whether the item drops, and it was costing
+# a ~145 ex pickup every time one fell.
+#
+# Two things settled it. The shipped pickit already carries five names that same
+# validator flags (the four Orbs of Sacrifice and Tethering Bands) and the bot
+# loads the file perfectly well, so the warning is cosmetic rather than fatal.
+# And the app already picks up Refined Sibilant Catalyst at ~2374 ex — the
+# identical family and naming pattern. Both Necrotic Catalysts are released
+# StackableCurrency at drop levels 30 and 50 with ordinary quality-currency
+# descriptions.
+ITEM_NAME_SKIP: set = set()
 
 # Currency items that must always be picked up even if poe.ninja omits them
 # (Exalted Orb is the PoE2 base pricing currency and won't appear in lines).
