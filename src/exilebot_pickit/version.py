@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.3"
+VERSION = "4.41.4"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• The always-pick section is split into real categories. Tablets, wombgifts, pinnacle keys and exotic bases each get their own sidebar entry, so Raven’s Reflection — a Delirium boss key — is no longer filed under "Fragments" next to splinters and wombgifts, three unrelated things that only ever shared a bucket. Switches you had already turned off in the old bucket stay off.
+
+Also in 4.41.3:
 • The Economy grouping added in 4.41.2 is removed. Collapsing families like "Thaumaturgic Flux (Level 8-20)" and the Reliquary Keys into labelled blocks sounded tidy and made the tab worse to use, so it is gone — every category reads exactly as it did before. Raven's Reflection keeps the artwork that shipped alongside it.
 
 Removed from 4.41.2:

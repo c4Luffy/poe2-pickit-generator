@@ -372,9 +372,10 @@ class AppApi:
             # Synthetic always-pick categories (no poe.ninja prices — picked
             # because they're map juice/valuable bases, not exchange value).
             # Each group is its own sidebar entry with its own toggles.
-            _emj = {"_ap_tablets": "🗿", "_ap_frag": "🧩", "_ap_exotic": "🧿"}
+            _emj = {"_ap_tablets": "🗿", "_ap_splinters": "🧩", "_ap_wombgifts": "🥚",
+                    "_ap_keys": "🗝️", "_ap_exotic": "🧿"}
             for key, label, rows in self._ap_groups():
-                st = {**states.get("_static", {}), **states.get(key, {})}  # _static = pre-split legacy
+                st = self._ap_item_states(states, key)
                 items = [{"name": nm, "base": base, "ex": 0,
                           "icon": icon_idx.get(nm, ""),
                           "chg": None, "static": True, "emj": _emj.get(key, "📌"),
@@ -382,13 +383,17 @@ class AppApi:
                          # ninja prices it → it lives in its priced category
                          # (force-kept above the floor there), not here too
                          for nm, base in rows if nm not in priced]
-                out.append({"key": key, "label": label, "unique": False,
-                            "items": items})
+                # A group whose every name is priced elsewhere (splinters, most
+                # patches) would be a sidebar entry that opens an empty table.
+                # It reappears on its own if ninja ever stops pricing one.
+                if items:
+                    out.append({"key": key, "label": label, "unique": False,
+                                "items": items})
 
             enabled_cfg = self.cfg.get("category_enabled", {})
             cat_en = {c[0]: enabled_cfg.get(c[0], True) for c in gen.ALL_CATEGORIES}
             for key, _l, _r in self._ap_groups():
-                cat_en[key] = enabled_cfg.get(key, enabled_cfg.get("_static", True))
+                cat_en[key] = self._ap_cat_enabled(enabled_cfg, key)
             return {"divine_rate": round(div_rate, 1),
                     "cats": out, "stale": sorted(stale),
                     "cat_enabled": cat_en}
@@ -427,25 +432,61 @@ class AppApi:
             ("_ap_tablets", "Tablets",
              [(t, "all rarities") for t in gen.TABLET_TYPES]
              + [(un, f"unique · {typ}") for typ, un in gen.TABLET_UNIQUES]),
-            ("_ap_frag", "Fragments & Keys",
-             [(s, "splinter") for s in gen.SPLINTERS]
-             + [(w, "wombgift") for w in gen.WOMBGIFTS]
-             + [(sp, "key") for sp in gen.SPECIAL_ITEMS]),
+            # Split out of one "Fragments & Keys" bucket 2026-07-20. Three
+            # unrelated things shared a category, so a pinnacle key like Raven's
+            # Reflection was filed under "Fragments" and looked misplaced.
+            ("_ap_splinters", "Splinters", [(s, "") for s in gen.SPLINTERS]),
+            ("_ap_wombgifts", "Wombgifts", [(w, "") for w in gen.WOMBGIFTS]),
+            ("_ap_keys", "Pinnacle Keys", [(sp, "") for sp in gen.SPECIAL_ITEMS]),
             ("_ap_exotic",  "Exotic Bases", [(b, "") for b in gen.EXOTIC_BASES]),
         ]
+
+    # Retired category keys each always-pick group inherits saved switches from,
+    # oldest first. Switches are stored per category, so renaming a key orphans
+    # every one saved under the old name — and an item that silently comes back
+    # on puts junk straight back in the stash. "_static" predates the groups
+    # entirely; "_ap_frag" was the one "Fragments & Keys" bucket that splinters,
+    # wombgifts and pinnacle keys were split out of on 2026-07-20.
+    _AP_LEGACY = {
+        "_ap_tablets":   ("_static",),
+        "_ap_splinters": ("_static", "_ap_frag"),
+        "_ap_wombgifts": ("_static", "_ap_frag"),
+        "_ap_keys":      ("_static", "_ap_frag"),
+        "_ap_exotic":    ("_static",),
+    }
+
+    @classmethod
+    def _ap_item_states(cls, states, key):
+        """One group's saved per-item switches, oldest key first so the current
+        category wins wherever both remember the same item."""
+        merged = {}
+        for lk in cls._AP_LEGACY.get(key, ()):
+            merged.update(states.get(lk, {}))
+        merged.update(states.get(key, {}))
+        return merged
+
+    @classmethod
+    def _ap_cat_enabled(cls, enabled_cfg, key):
+        """Whether a group's whole category is on, newest key first."""
+        for k in (key, *reversed(cls._AP_LEGACY.get(key, ()))):
+            if k in enabled_cfg:
+                return enabled_cfg[k]
+        return True
 
     def _ap_disabled(self, snap):
         """Names switched off across all always-pick groups — a group whose
         whole category is off contributes every one of its names."""
         states = snap["item_states"]
-        legacy = states.get("_static", {})
-        dis = {n for n, s in legacy.items() if not s.get("enabled", True)}
+        dis = set()
         for key, _label, rows in self._ap_groups():
             if not snap["cat_enabled"].get(key, True):
                 dis.update(n for n, _b in rows)
                 continue
-            st = states.get(key, {})
-            dis.update(n for n, s in st.items() if not s.get("enabled", True))
+            # Only this group's own names: "_ap_frag" is shared by three
+            # successor groups, so walking the saved dict instead would let each
+            # one re-inject the others' switches and no later "on" could win.
+            st = self._ap_item_states(states, key)
+            dis.update(n for n, _b in rows if not st.get(n, {}).get("enabled", True))
         return dis
 
     def set_items_bulk(self, cat_key, names, enabled):
@@ -2177,7 +2218,7 @@ class AppApi:
         item_states["_craftbase"] = cb
         cat_enabled = {c[0]: enabled_cfg.get(c[0], True) for c in gen.ALL_CATEGORIES}
         for apk, _l, _r in self._ap_groups():
-            cat_enabled[apk] = enabled_cfg.get(apk, enabled_cfg.get("_static", True))
+            cat_enabled[apk] = self._ap_cat_enabled(enabled_cfg, apk)
         return {
             "cat_enabled": cat_enabled,
             "cat_thresh": {},          # per-category floors removed by design

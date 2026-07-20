@@ -1384,3 +1384,52 @@ def test_a_malformed_profile_is_rejected_before_anything_is_saved(api):
     assert api.profile_load("good")["ok"]
     ob = api.cfg["output_base"]
     assert os.sep not in ob and ".." != ob and os.path.basename(ob) == ob
+
+
+def test_always_pick_groups_are_split_by_kind(api):
+    """"Fragments & Keys" bundled splinters, wombgifts and pinnacle keys into one
+    category, so Raven's Reflection — a Delirium boss key — was filed under
+    "Fragments" and read as misplaced. Each kind is its own category now."""
+    labels = {label for _k, label, _rows in api._ap_groups()}
+    assert {"Splinters", "Wombgifts", "Pinnacle Keys"} <= labels
+    assert "Fragments & Keys" not in labels
+
+    keys = dict((k, rows) for k, _l, rows in api._ap_groups())
+    assert [n for n, _b in keys["_ap_keys"]] == list(gen.SPECIAL_ITEMS)
+
+
+def test_splitting_the_group_does_not_re_enable_old_disables(api):
+    """Item states are keyed by CATEGORY, so renaming one orphans every switch
+    saved under the old key — and a silently re-enabled item puts junk straight
+    back in the stash. The retired "_ap_frag" key is still read."""
+    api.cfg["item_states"] = {"_ap_frag": {
+        "Breach Splinter": {"enabled": False},
+        "Kulemak's Invitation": {"enabled": False},
+    }}
+    dis = api._ap_disabled(api._snapshot())
+    assert "Breach Splinter" in dis
+    assert "Kulemak's Invitation" in dis
+    assert "Simulacrum Splinter" not in dis      # untouched stays on
+
+
+def test_disabling_the_whole_old_category_survives_the_split(api):
+    """Turning off all of "Fragments & Keys" saved one switch under "_ap_frag".
+    All three successor categories must still read as off."""
+    api.cfg["category_enabled"] = {"_ap_frag": False}
+    snap = api._snapshot()
+    for key in ("_ap_splinters", "_ap_wombgifts", "_ap_keys"):
+        assert snap["cat_enabled"][key] is False, key
+    # groups that were never part of that bucket are untouched
+    assert snap["cat_enabled"]["_ap_tablets"] is True
+    dis = api._ap_disabled(snap)
+    assert "Raven's Reflection" in dis
+    assert not any(t in dis for t in gen.TABLET_TYPES)
+
+
+def test_a_current_switch_beats_the_retired_one(api):
+    """Re-enabling an item after the split must win over the old "off"."""
+    api.cfg["item_states"] = {
+        "_ap_frag": {"Raven's Reflection": {"enabled": False}},
+        "_ap_keys": {"Raven's Reflection": {"enabled": True}},
+    }
+    assert "Raven's Reflection" not in api._ap_disabled(api._snapshot())
