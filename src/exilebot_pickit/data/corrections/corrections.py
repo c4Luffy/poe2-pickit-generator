@@ -143,8 +143,8 @@ EXOTIC_BASES = [
     "Gloam Amulet", "Gloam Ring", "Grasping Mail", "Grasping Ring",
     "Heartwood Shortbow", "Invoking Belt", "Kinetic Ring", "Lament Amulet",
     "Mnemonic Ring", "Oneiric Ring", "Ornate Ringmail", "Pearlescent Amulet",
-    "Penumbra Amulet", "Penumbra Ring", "Perching Staff", "Portent Amulet",
-    "Primal Markings", "Refined Breach Ring", "Reflecting Staff", "Runic Fork",
+    "Penumbra Amulet", "Penumbra Ring", "Portent Amulet",
+    "Primal Markings", "Refined Breach Ring", "Runic Fork",
     "Sacrificial Regalia", "Sinew Belt", "Stalking Belt", "Tenebrous Amulet",
     "Tenebrous Crown", "Tenebrous Ring", "Twisted Amulet",
     "Twisted Wand", "Two-Stone Ring", "Venerable Defender", "Veridical Chain",
@@ -212,9 +212,6 @@ EXOTIC_BASE_SLOTS = {
     # Wands
     "Runic Fork": "Wands",
     "Twisted Wand": "Wands",
-    # Staves
-    "Perching Staff": "Staves",
-    "Reflecting Staff": "Staves",
     # Quarterstaves
     "Warding Quarterstaff": "Quarterstaves",
     # Bows
@@ -234,7 +231,6 @@ EXOTIC_SLOT_ORDER = [
     "Boots",
     "Shields",
     "Wands",
-    "Staves",
     "Quarterstaves",
     "Bows",
     "Two Hand Maces",

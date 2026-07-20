@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.7"
+VERSION = "4.41.8"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Two dead staff bases removed. Reflecting Staff and Perching Staff were in the exotic-bases list, but neither drops as a white or rare — each exists only as the base of a unique (Atziri’s Rule and The Raven’s Flock). The exotic-base rule for them could never fire; the real unique rules are untouched, so you still pick up Atziri’s Rule. Reflecting Staff was confirmed dead back in 4.39.1; Perching Staff is its exact twin.
+
+Also in 4.41.7:
 • A "Keys" view gathers every boss key in one place. There are 20 — seven pinnacle keys, nine reliquary keys and four boss invitations — but poe.ninja scatters them across Fragments and Omens, and one (Raven’s Reflection) has no price at all, so you could never see the set. The new Keys entry (top of the sidebar, next to Top movers) reads across those categories and groups them under Pinnacle Keys, Reliquary Keys and Boss Invitations — each with its live price. It is a lens, not a new category: keeping or skipping a key here is the same switch as in Fragments, so nothing is duplicated. The old one-item "Pinnacle Keys" always-pick entry is folded into it. Removed content stays out — poe.ninja does not price the Calamity Fragments, so they are not listed.
 
 Also in 4.41.6:
