@@ -2601,7 +2601,7 @@ function renderEco(){
       (it.chg===0?`<span class="chg flat">– 0%</span>`:
       `<span class="chg ${it.chg>0?"up":"dn"}">${it.chg>0?"▲":"▼"} ${Math.abs(it.chg)}%</span>`);
     const dir=it.chg==null?0:(it.chg>0?1:it.chg<0?-1:0);
-    tr.innerHTML=`<td title="${esc(it.name)}">${nm}</td><td class="val">${it.static?'<span class="pill">always picked</span>':fmtVal(it.ex)}</td>
+    tr.innerHTML=`<td title="${esc(it.name)}">${nm}</td><td class="val">${it.static?'<span class="pill" title="poe.ninja doesn\'t price this item — it is picked up regardless of value">No price · always kept</span>':fmtVal(it.ex)}</td>
       <td class="chgcell"${it.spark?' title="7-day price trend"':""}>${sparkSvg(it.spark,dir)}${chg}</td>
       <td style="text-align:center"><span class="pill ${it.enabled?"on":""}">${it.enabled?"● keep":"skip"}</span></td>
       <td><button class="rowbtn">copy</button></td>`;

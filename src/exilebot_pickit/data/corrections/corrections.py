@@ -231,14 +231,14 @@ EXOTIC_SLOT_ORDER = [
 # are treated as gone and left out. Sections come from the game's own item
 # class (PinnacleKeyStackable / VaultKey / MapFragment).
 KEY_ITEM_SECTIONS = {
-    # Pinnacle Keys
-    "Ancient Crisis Fragment": "Pinnacle Keys",
-    "Faded Crisis Fragment": "Pinnacle Keys",
-    "Weathered Crisis Fragment": "Pinnacle Keys",
-    "Origin Core": "Pinnacle Keys",
-    "Origin Spark": "Pinnacle Keys",
-    "Origin Cradle": "Pinnacle Keys",
-    "Call of the Shadows": "Pinnacle Keys",
+    # Crisis Fragments — the three that combine for one pinnacle key
+    "Ancient Crisis Fragment": "Crisis Fragments",
+    "Faded Crisis Fragment": "Crisis Fragments",
+    "Weathered Crisis Fragment": "Crisis Fragments",
+    # Origin — the three that combine for another
+    "Origin Core": "Origin",
+    "Origin Spark": "Origin",
+    "Origin Cradle": "Origin",
     # Reliquary Keys
     "The Arbiter's Reliquary Key": "Reliquary Keys",
     "The Trialmaster's Reliquary Key": "Reliquary Keys",
@@ -252,12 +252,13 @@ KEY_ITEM_SECTIONS = {
     # Boss Invitations
     "An Audience with the King": "Boss Invitations",
     "Kulemak's Invitation": "Boss Invitations",
+    "Call of the Shadows": "Boss Invitations",
     "Raven's Reflection": "Boss Invitations",
     "Simulacrum": "Boss Invitations",
 }
 
 # Section order for the Keys view.
-KEY_SECTION_ORDER = ["Pinnacle Keys", "Reliquary Keys", "Boss Invitations"]
+KEY_SECTION_ORDER = ["Crisis Fragments", "Origin", "Reliquary Keys", "Boss Invitations"]
 
 # Fallback waystone rules used when poe.ninja returns no waystone rows.
 WAYSTONE_FALLBACK_RULES = [

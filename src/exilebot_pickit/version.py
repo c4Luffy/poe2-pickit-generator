@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.9"
+VERSION = "4.41.10"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• The Keys view reads clearer. Its 20 keys now sit under four headings — Crisis Fragments, Origin, Reliquary Keys and Boss Invitations — instead of lumping the crisis and origin sets into one "Pinnacle Keys" block. And an item poe.ninja doesn’t price (Raven’s Reflection) now says "No price · always kept" in the value column instead of just "always picked", so a missing number reads as intended rather than broken.
+
+Also in 4.41.9:
 • 15 more dead exotic bases removed — 17 total with the two staves in 4.41.8. Each exists only as a specific unique’s base and never drops as a plain white or rare, so its pickit rule could never fire: Runic Fork (Runeseeker’s Call), Ornate Ringmail (Loreweave), Glacial Fortress (Nightfall), the three Decree armours, and more. You confirmed each on the trade site — every one lists only as its unique, never as a base. The uniques themselves are still picked up from poe.ninja, so no loot is lost; only the never-firing base rule is gone.
 
 Also in 4.41.8:
