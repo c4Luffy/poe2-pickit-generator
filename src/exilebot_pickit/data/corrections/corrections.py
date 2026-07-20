@@ -152,6 +152,94 @@ EXOTIC_BASES = [
 ]
 
 
+
+# Which gear slot each exotic base occupies, so the Economy tab can show them
+# grouped instead of as one 48-row alphabetical run. Read from the game's own
+# base_items data — the name does not give the slot away ("Veridical Chain" is
+# an amulet, "Primal Markings" a body armour, "Runic Fork" a wand).
+# EXOTIC_BASES self-updates from game_data.json, so a base added remotely that
+# is missing here is shown under "Other" rather than dropped.
+EXOTIC_BASE_SLOTS = {
+    # Amulets
+    "Absent Amulet": "Amulets",
+    "Corona Amulet": "Amulets",
+    "Distorted Amulet": "Amulets",
+    "Dusk Amulet": "Amulets",
+    "Gloam Amulet": "Amulets",
+    "Lament Amulet": "Amulets",
+    "Pearlescent Amulet": "Amulets",
+    "Penumbra Amulet": "Amulets",
+    "Portent Amulet": "Amulets",
+    "Tenebrous Amulet": "Amulets",
+    "Twisted Amulet": "Amulets",
+    "Veridical Chain": "Amulets",
+    # Rings
+    "Abyssal Signet": "Rings",
+    "Biostatic Ring": "Rings",
+    "Breach Ring": "Rings",
+    "Dusk Ring": "Rings",
+    "Gloam Ring": "Rings",
+    "Grasping Ring": "Rings",
+    "Kinetic Ring": "Rings",
+    "Mnemonic Ring": "Rings",
+    "Oneiric Ring": "Rings",
+    "Penumbra Ring": "Rings",
+    "Refined Breach Ring": "Rings",
+    "Tenebrous Ring": "Rings",
+    "Two-Stone Ring": "Rings",
+    "Vitalic Ring": "Rings",
+    # Belts
+    "Forking Belt": "Belts",
+    "Invoking Belt": "Belts",
+    "Sinew Belt": "Belts",
+    "Stalking Belt": "Belts",
+    # Body Armours
+    "Ancient Mail": "Body Armours",
+    "Grasping Mail": "Body Armours",
+    "Ornate Ringmail": "Body Armours",
+    "Primal Markings": "Body Armours",
+    "Sacrificial Regalia": "Body Armours",
+    # Helmets
+    "Ancient Visor": "Helmets",
+    "Tenebrous Crown": "Helmets",
+    # Gloves
+    "Ancient Gauntlets": "Gloves",
+    # Boots
+    "Ancient Leggings": "Boots",
+    # Shields
+    "Glacial Fortress": "Shields",
+    "Venerable Defender": "Shields",
+    # Wands
+    "Runic Fork": "Wands",
+    "Twisted Wand": "Wands",
+    # Staves
+    "Perching Staff": "Staves",
+    "Reflecting Staff": "Staves",
+    # Quarterstaves
+    "Warding Quarterstaff": "Quarterstaves",
+    # Bows
+    "Heartwood Shortbow": "Bows",
+    # Two Hand Maces
+    "Aberrant Sledge": "Two Hand Maces",
+}
+
+# Section order for the above — gear people think of first, then weapons.
+EXOTIC_SLOT_ORDER = [
+    "Amulets",
+    "Rings",
+    "Belts",
+    "Body Armours",
+    "Helmets",
+    "Gloves",
+    "Boots",
+    "Shields",
+    "Wands",
+    "Staves",
+    "Quarterstaves",
+    "Bows",
+    "Two Hand Maces",
+]
+
 # Fallback waystone rules used when poe.ninja returns no waystone rows.
 WAYSTONE_FALLBACK_RULES = [
     '[Category] == "Waystone" && [Rarity] == "Normal" && [WaystoneTier] >= "1" # [StashItem] == "true" && [IgnoreRitual] == "true"',

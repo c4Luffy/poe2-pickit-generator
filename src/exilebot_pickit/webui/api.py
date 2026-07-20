@@ -372,17 +372,17 @@ class AppApi:
             # Synthetic always-pick categories (no poe.ninja prices — picked
             # because they're map juice/valuable bases, not exchange value).
             # Each group is its own sidebar entry with its own toggles.
-            _emj = {"_ap_tablets": "🗿", "_ap_tablet_uniques": "🗿", "_ap_splinters": "🧩",
+            _emj = {"_ap_tablets": "🗿", "_ap_splinters": "🧩",
                     "_ap_wombgifts": "🥚", "_ap_keys": "🗝️", "_ap_exotic": "🧿"}
             for key, label, rows in self._ap_groups():
                 st = self._ap_item_states(states, key)
-                items = [{"name": nm, "base": base, "ex": 0,
+                items = [{"name": nm, "base": base, "ex": 0, "sec": sec,
                           "icon": icon_idx.get(nm, ""),
                           "chg": None, "static": True, "emj": _emj.get(key, "📌"),
                           "enabled": st.get(nm, {}).get("enabled", True)}
                          # ninja prices it → it lives in its priced category
                          # (force-kept above the floor there), not here too
-                         for nm, base in rows if nm not in priced]
+                         for nm, base, sec in rows if nm not in priced]
                 # A group whose every name is priced elsewhere (splinters, most
                 # patches) would be a sidebar entry that opens an empty table.
                 # It reappears on its own if ninja ever stops pricing one.
@@ -425,21 +425,37 @@ class AppApi:
             return {"running": self._eco.get("running", False), "result": self._eco.get("result")}
 
     @staticmethod
+    def _slot_rank(slot):
+        """Sort key for an exotic base's gear slot. An unmapped slot sorts
+        last so a remotely-added base is visible under "Other", not lost."""
+        order = gen.EXOTIC_SLOT_ORDER
+        return order.index(slot) if slot in order else len(order)
+
+    @staticmethod
     def _ap_groups():
         """The always-pick groups shown as their own Economy categories.
-        Each: (category key, sidebar label, [(item name, sub label), ...])."""
+        Each: (key, sidebar label, [(item name, sub label, section), ...]).
+        A blank section means the category renders as one flat list."""
         return [
+            # Rows are (name, sub-label, section). The section splits one
+            # category's table under sub-headings — 16 tablets read as an
+            # undifferentiated list, and 48 exotic bases as one alphabetical
+            # run where the rings and amulets you care about are scattered.
             ("_ap_tablets", "Tablets",
-             [(t, "all rarities") for t in gen.TABLET_TYPES]),
-            ("_ap_tablet_uniques", "Unique Tablets",
-             [(un, f"unique · {typ}") for typ, un in gen.TABLET_UNIQUES]),
+             [(t, "all rarities", "Tablets") for t in gen.TABLET_TYPES]
+             + [(un, f"unique · {typ}", "Unique Tablets")
+                for typ, un in gen.TABLET_UNIQUES]),
             # Split out of one "Fragments & Keys" bucket 2026-07-20. Three
             # unrelated things shared a category, so a pinnacle key like Raven's
             # Reflection was filed under "Fragments" and looked misplaced.
-            ("_ap_splinters", "Splinters", [(s, "") for s in gen.SPLINTERS]),
-            ("_ap_wombgifts", "Wombgifts", [(w, "") for w in gen.WOMBGIFTS]),
-            ("_ap_keys", "Pinnacle Keys", [(sp, "") for sp in gen.SPECIAL_ITEMS]),
-            ("_ap_exotic",  "Exotic Bases", [(b, "") for b in gen.EXOTIC_BASES]),
+            ("_ap_splinters", "Splinters", [(s, "", "") for s in gen.SPLINTERS]),
+            ("_ap_wombgifts", "Wombgifts", [(w, "", "") for w in gen.WOMBGIFTS]),
+            ("_ap_keys", "Pinnacle Keys", [(sp, "", "") for sp in gen.SPECIAL_ITEMS]),
+            ("_ap_exotic",  "Exotic Bases", sorted(
+                ((b, "", gen.EXOTIC_BASE_SLOTS.get(b, "Other")) for b in gen.EXOTIC_BASES),
+                # a remotely-added base with no slot mapped sorts last under
+                # "Other" instead of disappearing from the tab
+                key=lambda r: (AppApi._slot_rank(r[2]), r[0]))),
         ]
 
     # Retired category keys each always-pick group inherits saved switches from,
@@ -449,10 +465,10 @@ class AppApi:
     # entirely; "_ap_frag" was the one "Fragments & Keys" bucket that splinters,
     # wombgifts and pinnacle keys were split out of on 2026-07-20.
     _AP_LEGACY = {
-        "_ap_tablets":   ("_static",),
-        # split off the tablet group 2026-07-20; base and unique tablets are
-        # bought and used differently and read as one undifferentiated list
-        "_ap_tablet_uniques": ("_static", "_ap_tablets"),
+        "_ap_tablets":   ("_static", "_ap_tablet_uniques"),
+        # "_ap_tablet_uniques" was a separate category for the nine unique
+        # tablets in 4.41.5; they are a section inside "Tablets" again, so any
+        # switch saved against it during that release still counts.
         "_ap_splinters": ("_static", "_ap_frag"),
         "_ap_wombgifts": ("_static", "_ap_frag"),
         "_ap_keys":      ("_static", "_ap_frag"),
@@ -484,13 +500,14 @@ class AppApi:
         dis = set()
         for key, _label, rows in self._ap_groups():
             if not snap["cat_enabled"].get(key, True):
-                dis.update(n for n, _b in rows)
+                dis.update(n for n, _b, _s in rows)
                 continue
             # Only this group's own names: "_ap_frag" is shared by three
             # successor groups, so walking the saved dict instead would let each
             # one re-inject the others' switches and no later "on" could win.
             st = self._ap_item_states(states, key)
-            dis.update(n for n, _b in rows if not st.get(n, {}).get("enabled", True))
+            dis.update(n for n, _b, _s in rows
+                       if not st.get(n, {}).get("enabled", True))
         return dis
 
     def set_items_bulk(self, cat_key, names, enabled):
@@ -2921,7 +2938,7 @@ class AppApi:
         if not rows:                           # always-pick groups carry no price
             ap_off = self._ap_disabled(snap)
             for key, label, ap_rows in self._ap_groups():
-                nm = next((n for n, _b in ap_rows if n in cands), None)
+                nm = next((n for n, _b, _s in ap_rows if n in cands), None)
                 if nm is None:
                     continue
                 if snap["cat_enabled"].get(key, True) and nm not in ap_off:

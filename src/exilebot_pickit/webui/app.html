@@ -472,7 +472,11 @@
   .eco-header{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap}
   .eco-header h1{margin:0}
   .eco-header .sub{margin:2px 0 0}
-  .eco-rate{margin-left:auto;display:flex;align-items:center;gap:9px;background:var(--bg2);
+  .secrow td{padding:9px 0 4px;border:0}
+.secrow span{display:inline-block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--dim);border-left:2px solid var(--acc);padding-left:7px;opacity:.85}
+.secrow:first-child td{padding-top:2px}
+.eco-rate{margin-left:auto;display:flex;align-items:center;gap:9px;background:var(--bg2);
         border:1px solid var(--border);border-radius:14px;padding:8px 14px}
   .eco-rate .k{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
   .eco-rate .v{font-size:15px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums}
@@ -2550,7 +2554,16 @@ function renderEco(){
   document.querySelectorAll("th[data-s] .s-ind").forEach(s=>s.textContent="");
   const activeTh=movers?null:document.querySelector(`th[data-s="${ecoSort}"] .s-ind`);
   if(activeTh)activeTh.textContent=ecoDir===1?" ▲":" ▼";
+  let lastSec=null;
   for(const [cat,it] of rows.slice(0,400)){
+    // Sub-headings inside one always-pick category (base vs unique tablets, exotic
+    // bases by gear slot). Only in the unsorted static view — a heading that a
+    // column sort can scatter is worse than no heading, which is what sank the
+    // Economy grouping in 4.41.2.
+    if(isStatic&&it.sec&&it.sec!==lastSec){lastSec=it.sec;
+      const hr=document.createElement("tr");hr.className="secrow";
+      hr.innerHTML=`<td colspan="5"><span>${esc(it.sec)}</span></td>`;
+      body.appendChild(hr);}
     const tr=document.createElement("tr");tr.className="item"+(it.enabled?"":" dis");
     const ico=it.icon?`<img class="icn" loading="lazy" src="${esc(it.icon)}" onerror="this.style.display='none'">`
       :(it.emj?`<span class="icn" style="display:inline-flex;align-items:center;justify-content:center;font-size:15px">${it.emj}</span>`:"");

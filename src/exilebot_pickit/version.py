@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.5"
+VERSION = "4.41.6"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Tablets and Exotic Bases are split into sections inside their own category, instead of into separate categories. Tablets reads "Tablets" (7) then "Unique Tablets" (9); Exotic Bases groups its 48 by gear slot — Amulets, Rings, Belts, Body Armours and on through the weapons — so you can find the rings without reading a 48-row alphabetical run. Slots come from the game's own files, because the name does not give it away: "Veridical Chain" is an amulet, "Primal Markings" a body armour, "Runic Fork" a wand. The headings only appear in the unsorted view, so a column sort can never scatter them.
+
+Superseded from 4.41.5:
 • Base and unique tablets are separate categories. Sixteen rows read as one undifferentiated list — the seven tablets you juice maps with, then nine uniques mixed in below them. They are "Tablets" (7) and "Unique Tablets" (9) now.
 
 Also in 4.41.4:

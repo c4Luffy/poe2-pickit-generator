@@ -1395,7 +1395,7 @@ def test_always_pick_groups_are_split_by_kind(api):
     assert "Fragments & Keys" not in labels
 
     keys = dict((k, rows) for k, _l, rows in api._ap_groups())
-    assert [n for n, _b in keys["_ap_keys"]] == list(gen.SPECIAL_ITEMS)
+    assert [n for n, _b, _s in keys["_ap_keys"]] == list(gen.SPECIAL_ITEMS)
 
 
 def test_splitting_the_group_does_not_re_enable_old_disables(api):
@@ -1435,18 +1435,53 @@ def test_a_current_switch_beats_the_retired_one(api):
     assert "Raven's Reflection" not in api._ap_disabled(api._snapshot())
 
 
-def test_tablets_split_into_base_and_unique(api):
-    """16 rows read as one undifferentiated list: 7 base tablets you juice maps
-    with, then 9 uniques. Turning off the old combined category must still turn
-    off both, or uniques someone disabled come back on."""
+def test_tablets_are_one_category_split_into_sections(api):
+    """16 tablets read as one undifferentiated list: the 7 you juice maps with,
+    then 9 uniques. They stay ONE category (4.41.5 briefly made them two) and are
+    separated by a sub-heading instead."""
     groups = dict((k, rows) for k, _l, rows in api._ap_groups())
-    assert [n for n, _b in groups["_ap_tablets"]] == list(gen.TABLET_TYPES)
-    assert ([n for n, _b in groups["_ap_tablet_uniques"]]
+    assert "_ap_tablet_uniques" not in groups
+    secs = [(n, s) for n, _b, s in groups["_ap_tablets"]]
+    assert [n for n, s in secs if s == "Tablets"] == list(gen.TABLET_TYPES)
+    assert ([n for n, s in secs if s == "Unique Tablets"]
             == [u for _t, u in gen.TABLET_UNIQUES])
-    assert not set(groups["_ap_tablets"]) & set(groups["_ap_tablet_uniques"])
+    # base tablets must all come before the uniques, or the heading splits nothing
+    kinds = [s for _n, s in secs]
+    assert kinds == sorted(kinds, key=lambda s: s == "Unique Tablets")
 
-    api.cfg["category_enabled"] = {"_ap_tablets": False}
-    snap = api._snapshot()
-    assert snap["cat_enabled"]["_ap_tablet_uniques"] is False
-    dis = api._ap_disabled(snap)
-    assert all(u in dis for _t, u in gen.TABLET_UNIQUES)
+
+def test_a_switch_saved_during_the_split_release_still_counts(api):
+    """4.41.5 shipped uniques as their own category. Switches saved against that
+    key must survive folding them back in, or a disabled unique comes back on."""
+    api.cfg["item_states"] = {"_ap_tablet_uniques": {"Clear Skies": {"enabled": False}}}
+    assert "Clear Skies" in api._ap_disabled(api._snapshot())
+
+
+def test_exotic_bases_are_grouped_by_gear_slot(api):
+    """48 bases in one alphabetical run buries the rings and amulets. Every base
+    carries a slot, ordered jewellery-first."""
+    rows = dict((k, r) for k, _l, r in api._ap_groups())["_ap_exotic"]
+    assert len(rows) == len(gen.EXOTIC_BASES)
+    order = [s for _n, _b, s in rows]
+    assert order[0] == "Amulets" and "Rings" in order
+    # each slot appears as ONE contiguous block, else the heading repeats
+    seen = []
+    for s in order:
+        if not seen or seen[-1] != s:
+            assert s not in seen, f"{s} is split into two blocks"
+            seen.append(s)
+    assert seen == [s for s in gen.EXOTIC_SLOT_ORDER if s in seen]
+    # the map must not fall behind the list it describes
+    assert [b for b in gen.EXOTIC_BASES if b not in gen.EXOTIC_BASE_SLOTS] == []
+
+
+def test_a_remotely_added_exotic_base_is_shown_not_dropped(api):
+    """EXOTIC_BASES self-updates from game_data.json, so a base can arrive with no
+    slot mapped. It must still be pickable, under "Other"."""
+    gen.EXOTIC_BASES.append("Mystery Trinket")
+    try:
+        rows = dict((k, r) for k, _l, r in api._ap_groups())["_ap_exotic"]
+        assert ("Mystery Trinket", "", "Other") in rows
+        assert rows[-1][0] == "Mystery Trinket"      # unmapped sorts last
+    finally:
+        gen.EXOTIC_BASES.remove("Mystery Trinket")
