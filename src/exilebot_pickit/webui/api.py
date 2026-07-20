@@ -388,7 +388,10 @@ class AppApi:
                 # It reappears on its own if ninja ever stops pricing one.
                 if items:
                     out.append({"key": key, "label": label, "unique": False,
-                                "items": items})
+                                # the Keys lens already lists these wherever they
+                                # live; a near-empty duplicate entry beside it is
+                                # the thing this replaces
+                                "hidden": key == "_ap_keys", "items": items})
 
             enabled_cfg = self.cfg.get("category_enabled", {})
             cat_en = {c[0]: enabled_cfg.get(c[0], True) for c in gen.ALL_CATEGORIES}
@@ -396,6 +399,8 @@ class AppApi:
                 cat_en[key] = self._ap_cat_enabled(enabled_cfg, key)
             return {"divine_rate": round(div_rate, 1),
                     "cats": out, "stale": sorted(stale),
+                    "key_sections": dict(gen.KEY_ITEM_SECTIONS),
+                    "key_order": list(gen.KEY_SECTION_ORDER),
                     "cat_enabled": cat_en}
         except Exception as e:
             return {"error": str(e)}

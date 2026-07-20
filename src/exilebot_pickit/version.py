@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.6"
+VERSION = "4.41.7"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• A "Keys" view gathers every boss key in one place. There are 20 — seven pinnacle keys, nine reliquary keys and four boss invitations — but poe.ninja scatters them across Fragments and Omens, and one (Raven’s Reflection) has no price at all, so you could never see the set. The new Keys entry (top of the sidebar, next to Top movers) reads across those categories and groups them under Pinnacle Keys, Reliquary Keys and Boss Invitations — each with its live price. It is a lens, not a new category: keeping or skipping a key here is the same switch as in Fragments, so nothing is duplicated. The old one-item "Pinnacle Keys" always-pick entry is folded into it. Removed content stays out — poe.ninja does not price the Calamity Fragments, so they are not listed.
+
+Also in 4.41.6:
 • Tablets and Exotic Bases are split into sections inside their own category, instead of into separate categories. Tablets reads "Tablets" (7) then "Unique Tablets" (9); Exotic Bases groups its 48 by gear slot — Amulets, Rings, Belts, Body Armours and on through the weapons — so you can find the rings without reading a 48-row alphabetical run. Slots come from the game's own files, because the name does not give it away: "Veridical Chain" is an amulet, "Primal Markings" a body armour, "Runic Fork" a wand. The headings only appear in the unsorted view, so a column sort can never scatter them.
 
 Superseded from 4.41.5:

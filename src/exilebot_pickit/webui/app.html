@@ -2483,9 +2483,19 @@ function renderChips(){
   mv.title="Biggest 7-day price swings across the whole economy (poe.ninja)";
   mv.onclick=()=>{ecoCat="_movers_";ecoSort="chg";ecoDir=-1;renderChips();renderEco();};
   c.appendChild(mv);
+  const nKeys=Object.keys(eco.key_sections||{}).filter(n=>
+    eco.cats.some(ct=>ct.items.some(i=>i.name===n))).length;
+  if(nKeys){
+    const kb=document.createElement("button");
+    kb.className="cside-btn"+(ecoCat==="_keys_"?" on":"");
+    kb.innerHTML=`<span>🗝️ Keys</span><span class="n">${nKeys}</span>`;
+    kb.title="Every boss key, reliquary key and invitation, wherever poe.ninja files it";
+    kb.onclick=()=>{ecoCat="_keys_";renderChips();renderEco();};
+    c.appendChild(kb);}
   const group=k=>k.startsWith("_ap_")?"Always pick":(k.startsWith("unique_")?"Uniques":"Market");
   let lastG=null;
   for(const cat of eco.cats){
+    if(cat.hidden)continue;      // shown through the Keys lens instead
     const g=group(cat.key);
     if(g!==lastG){lastG=g;
       const h=document.createElement("div");h.className="csgrp";h.textContent=g;c.appendChild(h);}
@@ -2516,6 +2526,19 @@ function ecoRows(){
   else if(ecoCat==="_movers_"){   // every category, only items that actually moved
     for(const cat of eco.cats)for(const it of cat.items)
       if(it.chg!=null&&it.chg!==0)rows.push([cat,it]);}
+  // Keys: a lens, not a category. Boss keys, vault keys and invitations are
+  // scattered across Fragments and Omens by poe.ninja, and one of them (Raven's
+  // Reflection) has no price at all — so the only place you can see the set is
+  // a view that reads across them. Each row keeps its REAL category, so the
+  // keep/skip switch here is the same switch as in Fragments.
+  else if(ecoCat==="_keys_"){
+    const secs=eco.key_sections||{};
+    for(const cat of eco.cats)for(const it of cat.items)
+      if(secs[it.name])rows.push([cat,it]);
+    const ord=eco.key_order||[];
+    rows.sort((a,b)=>{
+      const d=ord.indexOf(secs[a[1].name])-ord.indexOf(secs[b[1].name]);
+      return d||b[1].ex-a[1].ex||a[1].name.localeCompare(b[1].name);});}
   else{const cat=eco.cats.find(c=>c.key===ecoCat);if(cat)rows=cat.items.map(i=>[cat,i]);}
   return rows;}
 /* Sparkline from the 7-day curve poe.ninja already sends us (we only ever read
@@ -2541,18 +2564,19 @@ function renderEco(){
   let rows=ecoRows();
   const movers=ecoCat==="_movers_"&&!q;
   const isStatic=!q&&(ecoCat||"").startsWith("_ap_");
+  const isKeys=!q&&ecoCat==="_keys_";
   if(movers){
     // Top movers is a fixed leaderboard: biggest swings first, high → low,
     // capped so it's a glance not a scroll. Rank by the LARGEST move in either
     // direction (a −80% crash matters as much as a +80% spike).
     rows.sort((a,b)=>Math.abs(b[1].chg||0)-Math.abs(a[1].chg||0));
     rows=rows.slice(0,20);
-  }else if(!isStatic)rows.sort((a,b)=>{
+  }else if(!isStatic&&!isKeys)rows.sort((a,b)=>{
     const cmp=ecoSort==="name"?a[1].name.localeCompare(b[1].name):
       ecoSort==="chg"?(a[1].chg||0)-(b[1].chg||0):a[1].ex-b[1].ex;
     return ecoDir*cmp;});
   document.querySelectorAll("th[data-s] .s-ind").forEach(s=>s.textContent="");
-  const activeTh=movers?null:document.querySelector(`th[data-s="${ecoSort}"] .s-ind`);
+  const activeTh=(movers||isKeys)?null:document.querySelector(`th[data-s="${ecoSort}"] .s-ind`);
   if(activeTh)activeTh.textContent=ecoDir===1?" ▲":" ▼";
   let lastSec=null;
   for(const [cat,it] of rows.slice(0,400)){
@@ -2560,14 +2584,16 @@ function renderEco(){
     // bases by gear slot). Only in the unsorted static view — a heading that a
     // column sort can scatter is worse than no heading, which is what sank the
     // Economy grouping in 4.41.2.
-    if(isStatic&&it.sec&&it.sec!==lastSec){lastSec=it.sec;
+    const sec=isKeys?(eco.key_sections||{})[it.name]:(isStatic?it.sec:"");
+    if(sec&&sec!==lastSec){lastSec=sec;
       const hr=document.createElement("tr");hr.className="secrow";
-      hr.innerHTML=`<td colspan="5"><span>${esc(it.sec)}</span></td>`;
+      hr.innerHTML=`<td colspan="5"><span>${esc(sec)}</span></td>`;
       body.appendChild(hr);}
     const tr=document.createElement("tr");tr.className="item"+(it.enabled?"":" dis");
     const ico=it.icon?`<img class="icn" loading="lazy" src="${esc(it.icon)}" onerror="this.style.display='none'">`
       :(it.emj?`<span class="icn" style="display:inline-flex;align-items:center;justify-content:center;font-size:15px">${it.emj}</span>`:"");
-    const showCat=q||ecoCat==="_movers_";   // multi-category views tag the source
+    const showCat=q||ecoCat==="_movers_";   // multi-category views tag the source; the
+                                            // Keys lens groups by kind instead
     const nm=ico+esc(it.name)+(showCat?` <span class="pill" title="${esc(cat.label)}">${esc(cat.label)}</span>`:"")+
       (it.base?` <span class="pill" title="${esc(it.base)}">${esc(it.base)}</span>`:"");
     // 0 (or no data) → neutral dash, not a misleading green ▲ 0%

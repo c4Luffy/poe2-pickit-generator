@@ -1485,3 +1485,25 @@ def test_a_remotely_added_exotic_base_is_shown_not_dropped(api):
         assert rows[-1][0] == "Mystery Trinket"      # unmapped sorts last
     finally:
         gen.EXOTIC_BASES.remove("Mystery Trinket")
+
+
+def test_key_sections_only_list_items_poe_ninja_prices(monkeypatch, api):
+    """The Keys lens must not resurrect removed content. Calamity Fragments are in
+    the game files but poe.ninja does not price them, so they are left out
+    entirely — the same removed-item test used everywhere else."""
+    from exilebot_pickit.data import corrections as corr
+    listed = set(corr.KEY_ITEM_SECTIONS)
+    assert "Raven’s Reflection".replace("’", "'") in listed
+    assert not any("Calamity Fragment" in n for n in listed)
+    assert set(corr.KEY_ITEM_SECTIONS.values()) == set(corr.KEY_SECTION_ORDER)
+
+def test_keys_group_is_hidden_from_the_sidebar(api):
+    """The one-item always-pick keys category would sit beside the Keys lens
+    showing the same lone key. It is marked hidden so only the lens shows it,
+    but it still exists so generation keeps writing its rules."""
+    eco = api.economy("L")
+    cats = {c["key"]: c for c in eco["cats"]}
+    assert cats["_ap_keys"]["hidden"] is True
+    assert eco["key_order"] == list(gen.KEY_SECTION_ORDER)
+    # nothing else is hidden
+    assert [k for k, c in cats.items() if c.get("hidden")] == ["_ap_keys"]
