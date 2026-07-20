@@ -466,3 +466,20 @@ def test_percent_implicits_actually_say_percent():
         if pct and "%" not in BASE_IMPLICITS[name]:
             offenders.append((name, BASE_IMPLICITS[name], pct[0]))
     assert not offenders, f"percentage implicits shown without a % sign: {offenders}"
+
+
+def test_special_items_cover_the_unpriced_pinnacle_keys():
+    """SPECIAL_ITEMS is the ONLY route to a rule for something poe.ninja doesn't
+    price — almost every other rule this app writes comes from a price.
+
+    Raven's Reflection (the Delirium pinnacle key, dropped from Simulacrum) had
+    no rule at all for exactly that reason: unpriced in every category, and not
+    named here. The owner noticed it missing from his pickit in-game. An unpriced
+    valuable is invisible to the whole pipeline unless it is in this list.
+    """
+    assert "Raven's Reflection" in corr.SPECIAL_ITEMS
+
+    rules = "\n".join(gen.build_special_item_rules(set()))
+    for name in corr.SPECIAL_ITEMS:
+        assert f'[Type] == "{name}"' in rules, f"{name} emits no rule"
+    assert gen.validate_pickit(gen.build_special_item_rules(set()))["errors"] == []

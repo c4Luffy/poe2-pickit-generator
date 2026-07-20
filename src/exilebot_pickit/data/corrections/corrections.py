@@ -99,6 +99,13 @@ SPECIAL_ITEMS = [
     "An Audience with the King",
     "Expedition Logbook",
     "Kulemak's Invitation",
+    # Raven's Reflection — the Delirium pinnacle key, dropped from Simulacrum
+    # (owner, in-game, 2026-07-20). Added because it had NO rule at all: poe.ninja
+    # prices it in no category, and almost every rule this app writes comes from a
+    # price. An unpriced item only ever gets picked up if it is named here, which
+    # is what this list is for. Metadata Currency/Delirium/DeliriumPinnacleKey,
+    # class MapFragment, released — the same shape as Kulemak's Invitation.
+    "Raven's Reflection",
 ]
 
 # Special Items the bot MAY buy back from a Ritual altar — i.e. the ones whose
