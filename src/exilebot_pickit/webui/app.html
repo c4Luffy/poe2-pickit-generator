@@ -218,10 +218,13 @@
   #ver{cursor:pointer}
   /* The version number was the only way into the changelog and nobody knew to
      click it — this is the visible affordance. */
-  .whatsnew{display:inline-block;margin-top:4px;cursor:pointer;font:600 10px/1 Consolas,ui-monospace,monospace;
-    letter-spacing:.03em;color:var(--gold);background:var(--gold-bg,rgba(212,175,110,.10));
-    border:1px solid var(--gold-dim);border-radius:6px;padding:3px 7px;transition:background .12s,color .12s}
-  .whatsnew:hover{background:var(--gold);color:#141414}
+  .whatsnew{display:inline-flex;align-items:center;gap:5px;margin-top:6px;cursor:pointer;
+    font:600 10px/1 Consolas,ui-monospace,monospace;letter-spacing:.05em;
+    color:var(--gold);background:var(--gold-bg,rgba(212,175,110,.09));
+    border:1px solid var(--gold-dim);border-radius:999px;padding:4px 11px;
+    transition:background .14s,color .14s,box-shadow .14s,transform .14s}
+  .whatsnew:hover{background:var(--gold);color:#141414;box-shadow:0 3px 10px rgba(0,0,0,.3);transform:translateY(-1px)}
+  .whatsnew:active{transform:translateY(0)}
   #profHint{display:inline-block;max-width:190px;overflow:hidden;text-overflow:ellipsis;
     white-space:nowrap;vertical-align:bottom}
   .prof-rows{display:flex;flex-direction:column;gap:5px;margin-top:4px}

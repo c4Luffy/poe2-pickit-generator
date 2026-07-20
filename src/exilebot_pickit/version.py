@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.11"
+VERSION = "4.41.12"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• The "What’s new" button is a rounded pill now, and lifts a little on hover — small polish on the button added last version.
+
+Also in 4.41.11:
 • Pinnacle keys are always kept now, whatever the price. Reliquary keys, Crisis Fragments, Origin fragments, Simulacrum and Call of the Shadows used to be commented out when they dropped below your value floor — so a cheap key you were collecting got skipped. They now stay in the pickit regardless, like the boss invitations always have.
 • A visible "What’s new" button. The version number opened this changelog but nobody knew to click it — there’s a proper button under the title now.
 • Resetting settings keeps your theme. Reset still turns every toggle back on and clears your floors, but it no longer repaints the app back to the default look.
