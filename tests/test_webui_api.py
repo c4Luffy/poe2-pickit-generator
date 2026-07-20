@@ -1433,3 +1433,20 @@ def test_a_current_switch_beats_the_retired_one(api):
         "_ap_keys": {"Raven's Reflection": {"enabled": True}},
     }
     assert "Raven's Reflection" not in api._ap_disabled(api._snapshot())
+
+
+def test_tablets_split_into_base_and_unique(api):
+    """16 rows read as one undifferentiated list: 7 base tablets you juice maps
+    with, then 9 uniques. Turning off the old combined category must still turn
+    off both, or uniques someone disabled come back on."""
+    groups = dict((k, rows) for k, _l, rows in api._ap_groups())
+    assert [n for n, _b in groups["_ap_tablets"]] == list(gen.TABLET_TYPES)
+    assert ([n for n, _b in groups["_ap_tablet_uniques"]]
+            == [u for _t, u in gen.TABLET_UNIQUES])
+    assert not set(groups["_ap_tablets"]) & set(groups["_ap_tablet_uniques"])
+
+    api.cfg["category_enabled"] = {"_ap_tablets": False}
+    snap = api._snapshot()
+    assert snap["cat_enabled"]["_ap_tablet_uniques"] is False
+    dis = api._ap_disabled(snap)
+    assert all(u in dis for _t, u in gen.TABLET_UNIQUES)

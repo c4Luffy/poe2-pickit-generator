@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.4"
+VERSION = "4.41.5"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Base and unique tablets are separate categories. Sixteen rows read as one undifferentiated list — the seven tablets you juice maps with, then nine uniques mixed in below them. They are "Tablets" (7) and "Unique Tablets" (9) now.
+
+Also in 4.41.4:
 • The always-pick section is split into real categories. Tablets, wombgifts, pinnacle keys and exotic bases each get their own sidebar entry, so Raven’s Reflection — a Delirium boss key — is no longer filed under "Fragments" next to splinters and wombgifts, three unrelated things that only ever shared a bucket. Switches you had already turned off in the old bucket stay off.
 
 Also in 4.41.3:

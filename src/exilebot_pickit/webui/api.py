@@ -372,8 +372,8 @@ class AppApi:
             # Synthetic always-pick categories (no poe.ninja prices — picked
             # because they're map juice/valuable bases, not exchange value).
             # Each group is its own sidebar entry with its own toggles.
-            _emj = {"_ap_tablets": "🗿", "_ap_splinters": "🧩", "_ap_wombgifts": "🥚",
-                    "_ap_keys": "🗝️", "_ap_exotic": "🧿"}
+            _emj = {"_ap_tablets": "🗿", "_ap_tablet_uniques": "🗿", "_ap_splinters": "🧩",
+                    "_ap_wombgifts": "🥚", "_ap_keys": "🗝️", "_ap_exotic": "🧿"}
             for key, label, rows in self._ap_groups():
                 st = self._ap_item_states(states, key)
                 items = [{"name": nm, "base": base, "ex": 0,
@@ -430,8 +430,9 @@ class AppApi:
         Each: (category key, sidebar label, [(item name, sub label), ...])."""
         return [
             ("_ap_tablets", "Tablets",
-             [(t, "all rarities") for t in gen.TABLET_TYPES]
-             + [(un, f"unique · {typ}") for typ, un in gen.TABLET_UNIQUES]),
+             [(t, "all rarities") for t in gen.TABLET_TYPES]),
+            ("_ap_tablet_uniques", "Unique Tablets",
+             [(un, f"unique · {typ}") for typ, un in gen.TABLET_UNIQUES]),
             # Split out of one "Fragments & Keys" bucket 2026-07-20. Three
             # unrelated things shared a category, so a pinnacle key like Raven's
             # Reflection was filed under "Fragments" and looked misplaced.
@@ -449,6 +450,9 @@ class AppApi:
     # wombgifts and pinnacle keys were split out of on 2026-07-20.
     _AP_LEGACY = {
         "_ap_tablets":   ("_static",),
+        # split off the tablet group 2026-07-20; base and unique tablets are
+        # bought and used differently and read as one undifferentiated list
+        "_ap_tablet_uniques": ("_static", "_ap_tablets"),
         "_ap_splinters": ("_static", "_ap_frag"),
         "_ap_wombgifts": ("_static", "_ap_frag"),
         "_ap_keys":      ("_static", "_ap_frag"),
