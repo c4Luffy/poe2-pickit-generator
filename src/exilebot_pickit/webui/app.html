@@ -3158,6 +3158,17 @@ function renderRare(){
        <div style="flex:1;min-width:220px"><div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">BASES (ONE RULE EACH)</div>
          <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${r.bases.map(b=>`<span class="pill">${esc(b)}</span>`).join("")}</div></div>
      </div>
+     <div style="display:flex;align-items:center;gap:14px;margin:0 0 14px;${slotOn?"":"opacity:.5"}">
+       <div style="flex:0 0 auto"><div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">STRICTNESS · THIS SLOT</div>
+         <div class="hint" style="margin-top:2px;max-width:210px"><b>Default</b> follows the global dial above; override it just for ${esc(rareSel)}.</div></div>
+       <div class="seg rare-slot-strict" style="flex:1;min-width:300px">
+         <button type="button" data-lv="">Default</button>
+         <button type="button" data-lv="looser">Looser</button>
+         <button type="button" data-lv="balanced">Balanced</button>
+         <button type="button" data-lv="strict">Strict</button>
+         <button type="button" data-lv="very_strict">Very strict</button>
+       </div>
+     </div>
      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
        <div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">SCORED STATS</div>
        <button type="button" class="ghost mini rare-copy" data-kind="stats" style="font-size:10.5px;padding:3px 9px">Copy stats</button></div>
@@ -3177,6 +3188,17 @@ function renderRare(){
     renderRare();
     toast(rareSel+(on?" is in your pickit":" removed — regenerate to apply"));
   };
+  // per-slot strictness: "" (Default) inherits the global dial
+  el.querySelectorAll(".rare-slot-strict button").forEach(b=>{
+    b.classList.toggle("on",b.dataset.lv===(r.strictness_override||""));
+    b.onclick=async()=>{
+      await api().set_rare_slot_strictness(rareSel,b.dataset.lv);
+      const rrsp=await api().rare_recipes();          // re-pull: cutoff changed
+      window.rareRecipes=(rrsp&&rrsp.slots)||window.rareRecipes;
+      renderRare();
+      const nm={"":"Default (global)",looser:"Looser",balanced:"Balanced",strict:"Strict",very_strict:"Very strict"}[b.dataset.lv];
+      toast(rareSel+" strictness: "+nm+" — regenerate to apply");
+    };});
   el.querySelectorAll(".rare-copy").forEach(btn=>btn.onclick=async()=>{
     const ok=await copyText(btn.dataset.kind==="rules"?rulesText:statsText);
     const o=btn.textContent;btn.textContent=ok?"Copied":"Failed";

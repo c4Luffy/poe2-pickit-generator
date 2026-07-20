@@ -578,19 +578,26 @@ def _slot_lines(spec: dict, mult: float = 1.0) -> list:
     ]
 
 
-def rare_gear_body(disabled=None, mult: float = 1.0) -> list:
+def rare_gear_body(disabled=None, mult: float = 1.0, mults: dict | None = None) -> list:
     """Rule lines for all enabled rare-gear slots, each under its own
     ``// -- Rare {slot}`` sub-header. The caller adds the major section banner.
-    Empty when everything is off. ``mult`` is the strictness dial."""
+    Empty when everything is off.
+
+    ``mult`` is the global strictness dial (applied to every slot). ``mults`` is
+    an optional ``{slot: multiplier}`` map of PER-SLOT overrides — a slot listed
+    there uses its own multiplier instead of the global one, so Body Armour can
+    be very strict while Helmet is looser."""
     disabled = set(disabled or ())
+    mults = mults or {}
     body: list = []
     for slot, spec in RARE_GEAR.items():
         if slot in disabled:
             continue
+        m = mults.get(slot, mult)
         body.append(f"// -- Rare {slot} ({len(spec['bases'])} bases, "
-                    f"WeightedSum >= {scaled_threshold(spec, mult)}) "
+                    f"WeightedSum >= {scaled_threshold(spec, m)}) "
                     + "-" * 20)
-        body.extend(_slot_lines(spec, mult))
+        body.extend(_slot_lines(spec, m))
         body.append("")
     return body
 

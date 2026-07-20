@@ -1541,3 +1541,26 @@ def test_rare_strictness_scales_the_cutoff(api):
     api.set_rare_strictness("nonsense")   # unknown -> balanced
     assert api.cfg["rare_strictness"] == "balanced"
     assert api.rare_recipes()["slots"][slot]["threshold"] == base
+
+
+def test_per_slot_strictness_overrides_the_global_dial(api):
+    """Each slot can override the global dial: Body Armour very strict while the
+    rest stay looser. Clearing an override falls back to the global level, and
+    the generate-time multiplier map reflects both."""
+    from exilebot_pickit.data.rare import rules as rr
+    ba = int(rr.RARE_GEAR["Body Armour"]["threshold"])
+    api.set_rare_strictness("looser")
+    api.set_rare_slot_strictness("Body Armour", "very_strict")
+    rec = api.rare_recipes()
+    assert rec["slots"]["Body Armour"]["threshold"] == int(round(ba * 1.5))   # override
+    assert rec["slots"]["Body Armour"]["strictness_override"] == "very_strict"
+    hb = int(rr.RARE_GEAR["Helmet"]["threshold"])
+    assert rec["slots"]["Helmet"]["threshold"] == int(round(hb * 0.8))        # inherits looser
+    assert rec["slots"]["Helmet"]["strictness_override"] == ""
+
+    mults = api._rare_slot_mults(api._snapshot())
+    assert mults["Body Armour"] == 1.5 and mults["Helmet"] == 0.8
+
+    api.set_rare_slot_strictness("Body Armour", "inherit")   # clear -> global
+    assert api.rare_recipes()["slots"]["Body Armour"]["threshold"] == int(round(ba * 0.8))
+    assert api.set_rare_slot_strictness("Nope", "strict")["ok"] is False   # unknown slot

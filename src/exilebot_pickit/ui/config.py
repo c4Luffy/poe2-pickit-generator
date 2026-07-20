@@ -96,6 +96,10 @@ DEFAULT_CONFIG = {
     # Strictness dial for those recipes: looser/balanced/strict/very_strict —
     # scales every slot's WeightedSum cutoff. balanced = the tuned defaults.
     "rare_strictness": "balanced",
+    # Per-slot strictness overrides {slot: level}. A slot NOT listed follows the
+    # global dial above; a listed slot uses its own level (Body Armour strict,
+    # Helmet looser, ...).
+    "rare_strictness_slots": {},
     # League names already seen in the dropdown — one NOT in this list
     # triggers the "new league detected" banner on the Generate tab.
     "known_leagues": [],

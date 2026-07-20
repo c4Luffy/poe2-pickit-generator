@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.14"
+VERSION = "4.41.15"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Each rare slot can set its own strictness. The dial at the top is still the default for everything, but open a slot (Body Armour, Helmet, …) and there’s a per-slot row: leave it on Default to follow the global dial, or override just that slot — Body Armour Very strict while Helmet stays Looser. Each slot’s cutoff and rules update to match.
+
+Also in 4.41.14:
 • The Magic & Rare tab has a strictness dial. Rare gear is kept by a score, and until now that bar was fixed. Pick Looser / Balanced / Strict / Very strict and every slot’s score cutoff scales together — Balanced is the tuned default, stricter keeps fewer but better rares. The recipes (which stats, what weights) don’t change, only the bar they clear, and the numbers shown on the tab are exactly what gets written.
 
 Also in 4.41.13:
