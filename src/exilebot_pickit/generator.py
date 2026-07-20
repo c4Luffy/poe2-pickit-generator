@@ -1061,8 +1061,15 @@ def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: flo
 
 def always_pick_force_names() -> set:
     """Always-pick item names that must stay ACTIVE even when poe.ninja
-    prices them below the value floor (single source for dedupe too)."""
-    return set(SPECIAL_ITEMS) | set(SPLINTERS) | set(WOMBGIFTS) | set(TABLET_TYPES)
+    prices them below the value floor (single source for dedupe too).
+
+    Pinnacle keys (KEY_ITEM_SECTIONS: reliquary keys, crisis fragments, origin
+    fragments, Simulacrum, Call of the Shadows and the boss invitations) join
+    the list 2026-07-21 by owner decision — a key you're collecting shouldn't be
+    skipped for dropping under the floor. They have no static builder of their
+    own, so this just keeps their priced fragments-category rule uncommented."""
+    return (set(SPECIAL_ITEMS) | set(SPLINTERS) | set(WOMBGIFTS)
+            | set(TABLET_TYPES) | set(KEY_ITEM_SECTIONS))
 
 
 # Economy-tab row names for the three waystone pickup rules.

@@ -1507,3 +1507,15 @@ def test_keys_group_is_hidden_from_the_sidebar(api):
     assert eco["key_order"] == list(gen.KEY_SECTION_ORDER)
     # nothing else is hidden
     assert [k for k, c in cats.items() if c.get("hidden")] == ["_ap_keys"]
+
+
+def test_reset_defaults_keeps_theme_but_clears_settings(api):
+    """Reset turns every toggle back on and clears tuned floors, but must NOT
+    repaint the app — the chosen theme is user data, kept like history/profiles."""
+    api.cfg["theme"] = "twilight"
+    api.cfg["min_exalt"] = 99
+    api.cfg.setdefault("item_states", {}).setdefault("currency", {})["Chaos Orb"] = {"enabled": False}
+    api.reset_defaults()
+    assert api.cfg["theme"] == "twilight"          # kept
+    assert api.cfg["min_exalt"] != 99              # floor cleared
+    assert api.cfg["item_states"].get("currency", {}).get("Chaos Orb") is None  # toggle back on

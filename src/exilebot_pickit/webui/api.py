@@ -1945,11 +1945,12 @@ class AppApi:
         on/off toggles, and a 'reset to defaults' that preserved them left
         everything the user had switched off still off (reported as a bug).
         Genuine user *data* is kept: run history, saved profiles, the last
-        price snapshot, window size and current league."""
+        price snapshot, window size, current league and the chosen theme
+        (owner decision 2026-07-21 — a reset shouldn't repaint the app)."""
         from exilebot_pickit.ui.config import DEFAULT_CONFIG
         keep = {k: self.cfg.get(k) for k in
                 ("history", "profiles", "last_gen_prices",
-                 "window_geometry_web", "league")}
+                 "window_geometry_web", "league", "theme")}
         import copy
         self.cfg.clear()
         # deepcopy: plain update() shares DEFAULT_CONFIG's nested dicts, and
