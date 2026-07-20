@@ -85,11 +85,9 @@ BASE_IMPLICITS: dict = {
     'Unset Ring': '+1 Item additional skill slots',
     'Utility Belt': '20% of Flask recovery is instant',
     'Utzaal Cuirass': '+30-40% Stun threshold',
-    'Veridical Chain': '+30-40 Maximum Ward',
     'Visceral Quiver': '+20-30% Attack Crit Chance',
     'Vitalic Ring': '+4-6% Maximum life',
     'Volant Quiver': '+20-30% Arrow speed',
-    'Warding Quarterstaff': '+30-50 Maximum Ward',
     'Warlord Cuirass': '15-25% of Armour also applies to Fire, Cold and Lightning damage',
     'Wyrmscale Coat': '+30-40% Ailment threshold',
 }

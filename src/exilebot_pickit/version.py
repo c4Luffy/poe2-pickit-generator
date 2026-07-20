@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.8"
+VERSION = "4.41.9"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• 15 more dead exotic bases removed — 17 total with the two staves in 4.41.8. Each exists only as a specific unique’s base and never drops as a plain white or rare, so its pickit rule could never fire: Runic Fork (Runeseeker’s Call), Ornate Ringmail (Loreweave), Glacial Fortress (Nightfall), the three Decree armours, and more. You confirmed each on the trade site — every one lists only as its unique, never as a base. The uniques themselves are still picked up from poe.ninja, so no loot is lost; only the never-firing base rule is gone.
+
+Also in 4.41.8:
 • Two dead staff bases removed. Reflecting Staff and Perching Staff were in the exotic-bases list, but neither drops as a white or rare — each exists only as the base of a unique (Atziri’s Rule and The Raven’s Flock). The exotic-base rule for them could never fire; the real unique rules are untouched, so you still pick up Atziri’s Rule. Reflecting Staff was confirmed dead back in 4.39.1; Perching Staff is its exact twin.
 
 Also in 4.41.7:

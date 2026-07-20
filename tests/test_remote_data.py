@@ -147,7 +147,10 @@ def test_unique_exceptional_removed():
 def test_exotic_base_rules():
     exo = gen.build_exotic_base_rules()
     assert '[Type] == "Breach Ring" # [StashItem] == "true"' in exo
-    assert '[Type] == "Runic Fork" # [StashItem] == "true"' in exo
+    assert '[Type] == "Dusk Ring" # [StashItem] == "true"' in exo
+    # unique-host bases pruned 2026-07-21 (owner trade-site check) must not
+    # come back as dead rules — the plain base never drops
+    assert not any('"Runic Fork"' in r or '"Glacial Fortress"' in r for r in exo)
     assert gen.build_exotic_base_rules(set(corr.EXOTIC_BASES)) == []
     assert gen.validate_pickit(exo)["errors"] == []
     # removed features must STAY removed (owner-confirmed 2026-07-05):

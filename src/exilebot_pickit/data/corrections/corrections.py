@@ -133,22 +133,32 @@ RITUAL_BUYABLE = {"An Audience with the King"}
 
 
 # Exotic bases — drop-only special bases that sell as bases at any rarity
-# (breach rings, dusk/gloam jewellery, Runic Fork...). Extracted verbatim
-# from NeverSink's PoE2 filter ($type->exoticbases), 2026-07-05.
+# (breach rings, dusk/gloam jewellery...). Extracted from NeverSink's PoE2
+# filter ($type->exoticbases) 2026-07-05, then pruned of unique-host bases.
+#
+# NeverSink's list mixes two things: bases that genuinely drop as white/rare
+# (kept below) and bases that exist ONLY as a specific unique's host, which
+# never drop plain — their rule could never fire. 17 of the latter were
+# removed: Reflecting Staff (Atziri's Rule) and Perching Staff (The Raven's
+# Flock) on 2026-07-20, then 15 more on 2026-07-21 after the owner confirmed
+# on the trade site that each shows only as its unique, never as a base
+# (Runic Fork→Runeseeker's Call, Ornate Ringmail→Loreweave,
+# Glacial Fortress→Nightfall, the three Decree armours, etc.). See
+# [[unique-host-base-droppability]] — no data source proves this, only the
+# owner's trade/in-game check. The uniques are still picked up via poe.ninja.
 EXOTIC_BASES = [
-    "Aberrant Sledge", "Absent Amulet", "Abyssal Signet", "Ancient Gauntlets",
-    "Ancient Leggings", "Ancient Mail", "Ancient Visor", "Biostatic Ring",
+    "Absent Amulet", "Abyssal Signet", "Biostatic Ring",
     "Breach Ring", "Corona Amulet", "Distorted Amulet",
-    "Dusk Amulet", "Dusk Ring", "Forking Belt", "Glacial Fortress",
+    "Dusk Amulet", "Dusk Ring", "Forking Belt",
     "Gloam Amulet", "Gloam Ring", "Grasping Mail", "Grasping Ring",
-    "Heartwood Shortbow", "Invoking Belt", "Kinetic Ring", "Lament Amulet",
-    "Mnemonic Ring", "Oneiric Ring", "Ornate Ringmail", "Pearlescent Amulet",
+    "Invoking Belt", "Kinetic Ring", "Lament Amulet",
+    "Mnemonic Ring", "Oneiric Ring", "Pearlescent Amulet",
     "Penumbra Amulet", "Penumbra Ring", "Portent Amulet",
-    "Primal Markings", "Refined Breach Ring", "Runic Fork",
+    "Refined Breach Ring",
     "Sacrificial Regalia", "Sinew Belt", "Stalking Belt", "Tenebrous Amulet",
-    "Tenebrous Crown", "Tenebrous Ring", "Twisted Amulet",
-    "Twisted Wand", "Two-Stone Ring", "Venerable Defender", "Veridical Chain",
-    "Vitalic Ring", "Warding Quarterstaff",
+    "Tenebrous Ring", "Twisted Amulet",
+    "Two-Stone Ring",
+    "Vitalic Ring",
 ]
 
 
@@ -194,46 +204,18 @@ EXOTIC_BASE_SLOTS = {
     "Sinew Belt": "Belts",
     "Stalking Belt": "Belts",
     # Body Armours
-    "Ancient Mail": "Body Armours",
     "Grasping Mail": "Body Armours",
-    "Ornate Ringmail": "Body Armours",
-    "Primal Markings": "Body Armours",
     "Sacrificial Regalia": "Body Armours",
-    # Helmets
-    "Ancient Visor": "Helmets",
-    "Tenebrous Crown": "Helmets",
-    # Gloves
-    "Ancient Gauntlets": "Gloves",
-    # Boots
-    "Ancient Leggings": "Boots",
-    # Shields
-    "Glacial Fortress": "Shields",
-    "Venerable Defender": "Shields",
-    # Wands
-    "Runic Fork": "Wands",
-    "Twisted Wand": "Wands",
-    # Quarterstaves
-    "Warding Quarterstaff": "Quarterstaves",
-    # Bows
-    "Heartwood Shortbow": "Bows",
-    # Two Hand Maces
-    "Aberrant Sledge": "Two Hand Maces",
 }
 
-# Section order for the above — gear people think of first, then weapons.
+# Section order for the above. Weapon and other-armour slots dropped out when
+# the unique-host bases were pruned (see the EXOTIC_BASES note) — every
+# remaining exotic base is jewellery, a belt, or a body armour.
 EXOTIC_SLOT_ORDER = [
     "Amulets",
     "Rings",
     "Belts",
     "Body Armours",
-    "Helmets",
-    "Gloves",
-    "Boots",
-    "Shields",
-    "Wands",
-    "Quarterstaves",
-    "Bows",
-    "Two Hand Maces",
 ]
 
 
