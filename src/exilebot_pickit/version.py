@@ -1,11 +1,15 @@
 """Single source of truth for the app version."""
-VERSION = "4.40.1"
+VERSION = "4.41.0"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• A whole poe.ninja category was never being fetched. "Verisium" has always been served and this app never asked for it, so all 24 of its items had NO rule at any floor — your bot was walking past Celestial Alloy at ~308 ex, Warding Starlit Ore at ~143 ex, and 14 more worth over 1 ex. Now fetched like every other category, so it prices and updates itself.
+• Raven's Reflection is picked up. The Delirium pinnacle key, dropped from Simulacrum, had no rule at all: poe.ninja prices it in no category, and almost every rule this app writes comes from a price — so an unpriced valuable is invisible unless it's named in the always-pick list. It is now.
+
+Also in 4.40.1:
 • "Hide everything else" now remembers your choice, and starts OFF. It was hardcoded ON in the markup and never saved — so anyone who turned it off, which the warning directly beneath it tells botters to do, got it back at every launch.
 • Restoring a backup no longer claims "nothing is lost". It swaps the FILE only; your settings are untouched, so the next Generate overwrites it. The dialog says that now instead of implying otherwise.
 • Item Check warns when your floors have changed since the pickit was built. It answers with your CURRENT settings, but the tab reads as answering about the pickit your bot is running — exactly the sequence you hit after tightening a floor to stop the bot grabbing junk.

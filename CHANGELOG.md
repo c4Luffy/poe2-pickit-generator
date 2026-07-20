@@ -6,6 +6,41 @@ download lives.
 
 ---
 
+## [v4.41.0] — 2026-07-20 — A whole price category was never being fetched
+
+The owner noticed loot going unpicked in game. Chasing it found one missing item
+and then something much larger behind it.
+
+- **poe.ninja serves a "Verisium" category and this app never asked for it.**
+  All **24** of its items therefore had no rule at any floor — nothing failed,
+  because a category you don't fetch produces no error, it simply isn't in your
+  pickit. Your bot was walking past:
+
+  | Item | Value |
+  | --- | --- |
+  | Celestial Alloy | **~308 ex** |
+  | Warding Starlit Ore | ~143 ex |
+  | Veridical Starlit Ore | ~67 ex |
+  | Sovereign Alloy | ~66 ex |
+  | Adaptive Alloy | ~61 ex |
+
+  …and 11 more above 1 ex. Every one is ordinary `StackableCurrency`, so they
+  drop like any other currency. Now fetched like every other category, which
+  means they price and update themselves from here on.
+- **Raven's Reflection is picked up.** The Delirium pinnacle key, dropped from
+  Simulacrum, had no rule at all — poe.ninja prices it in *no* category, and
+  almost every rule this app writes comes from a price. An unpriced valuable is
+  invisible to the whole pipeline unless it's named in the always-pick list,
+  which is exactly what that list is for and where the Abyss and Ritual
+  equivalents already lived.
+- Two guards added: every always-pick entry must emit a validating rule, and the
+  category list is pinned against duplicate keys and typos — the likeliest way
+  to lose one again.
+
+A live generate goes from 1,173 to **1,185 active rules**, validation passing.
+
+---
+
 ## [v4.40.1] — 2026-07-20 — The quality-of-life pass
 
 The rest of what the QoL audits turned up. Mostly small, all things that made
@@ -1898,6 +1933,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.41.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.0
 [v4.40.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.40.1
 [v4.40.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.40.0
 [v4.39.5]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.39.5

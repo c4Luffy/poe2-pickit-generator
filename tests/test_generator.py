@@ -696,3 +696,24 @@ def test_cli_does_not_duplicate_a_priced_always_pick_item():
     # and with nothing to skip, they are still emitted
     assert '[Type] == "Expedition Logbook"' in "\n".join(gen.build_special_item_rules(set()))
     assert '[Type] == "Breach Splinter"' in "\n".join(gen.build_tablet_rules(set()))
+
+
+def test_every_exchange_category_has_a_unique_key_and_type():
+    """A whole poe.ninja category was missing for months.
+
+    poe.ninja has always served "Verisium" and the app simply never fetched it,
+    so all 24 items had no rule at ANY floor — Celestial Alloy at ~308 ex was
+    being walked past. Nothing failed, because a category you don't ask for
+    produces no error; it just silently isn't in your pickit.
+
+    This can't detect a category nobody has heard of, but it does pin the list
+    against typos and duplicates, which is how one would most likely be lost.
+    """
+    keys = [k for k, _t, _l, _u in gen.ALL_CATEGORIES]
+    types = [t for _k, t, _l, _u in gen.ALL_CATEGORIES]
+    assert len(keys) == len(set(keys)), "duplicate category key"
+    assert len(types) == len(set(types)), "duplicate poe.ninja type"
+    assert "verisium" in keys, "Verisium dropped out of the fetch list again"
+    for k, t, label, _u in gen.ALL_CATEGORIES:
+        assert k and t and label, (k, t, label)
+        assert k == k.lower(), f"category key should be lowercase: {k}"

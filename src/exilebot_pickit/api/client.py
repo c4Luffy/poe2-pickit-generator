@@ -30,6 +30,12 @@ EXCHANGE_CATEGORIES = [
     ("uncut_gems",          "UncutGems",          "Uncut Gems",           False),
     ("lineage_support_gems","LineageSupportGems", "Support Gems",         False),
     ("expedition",          "Expedition",         "Expedition",           False),
+    # Verisium — added 2026-07-20 after the owner noticed loot going unpicked.
+    # poe.ninja has always served this category and the app never fetched it, so
+    # all 24 items had NO rule at any floor: Celestial Alloy at ~308 ex was being
+    # walked past. Every one is StackableCurrency (ordinary drops), and the value
+    # floor filters the sub-1 ex tail on its own.
+    ("verisium",            "Verisium",           "Verisium",             False),
     ("waystones",           "Waystones",          "Waystones",            False),
 ]
 
