@@ -1,11 +1,12 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.12"
+VERSION = "4.41.13"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Generate now checks its own poe.ninja coverage. If a whole category comes back empty — the fingerprint of poe.ninja renaming or retiring a type, which silently stops the app pricing that category (exactly how Verisium went unfetched for weeks) — a warning banner tells you right after Generate instead of you noticing loot going unpicked days later. Waystones, which poe.ninja never prices, is allowlisted so it never false-alarms.
 • The "What’s new" button is a rounded pill now, and lifts a little on hover — small polish on the button added last version.
 
 Also in 4.41.11:

@@ -2259,6 +2259,7 @@ class AppApi:
 
     def _generate(self, league, min_gear, min_unique):
         t0 = time.time()
+        self._coverage_alerts = []   # categories that fetched empty this run
         try:
             if self.cfg.get("auto_floor"):
                 sf = self.suggest_floors(league, int(self.cfg.get("auto_floor_pct", 40) or 40))
@@ -2310,6 +2311,15 @@ class AppApi:
                 out += [gen.header_sub(label), ""] + lines + [""]
                 ok += 1
                 self._log(f"✓ {label}")
+
+            # Coverage self-check: a category that fetched OK but came back EMPTY
+            # is the signature of poe.ninja renaming/retiring a type — the whole
+            # category silently stops pricing (how Verisium went unfetched). Warn
+            # loudly so it's caught here, not weeks later in-game.
+            for _key, _label in asm.coverage_warnings(payloads, cats):
+                self._log(f"⚠ {_label}: poe.ninja returned no items — the category "
+                          f"may have been renamed. Report it so it can be re-mapped.")
+                self._coverage_alerts.append(_label)
 
             # Always-pick sections — each group is its own Economy category;
             # single items and whole groups can be switched off there.
@@ -2561,6 +2571,7 @@ class AppApi:
                     "val_warnings": len(validation.get("warnings", [])),
                     "copied": copied,
                     "added": added, "removed": removed, "alerts": alerts,
+                    "coverage_alerts": list(self._coverage_alerts),
                     "safety": safety,
                 }
         except Exception as e:

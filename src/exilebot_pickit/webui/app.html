@@ -942,6 +942,7 @@
     <button class="ghost mini" id="lgNewGo" style="margin-left:10px">Switch</button>
     <button class="ghost mini" id="lgNewNo">Dismiss</button></div>
   <div class="banner warn" id="gdBanner" style="cursor:default"></div>
+  <div class="banner warn" id="covBanner" style="cursor:default;display:none"></div>
   <div class="banner" id="setupNudge" style="cursor:pointer"></div>
 
   <div class="page-head">
@@ -2228,6 +2229,13 @@ async function poll(){
     if(d.safety){const ob=$("offBanner");
       ob.textContent="🛑 SAFETY: "+d.safety+" — auto-copy was blocked. Check the Preview tab before using this pickit.";
       ob.classList.add("on");}
+    // Coverage self-check: a poe.ninja category came back empty (renamed/retired
+    // type). Surface it so a whole category doesn't silently stop pricing.
+    {const cb=$("covBanner"),ca=d.coverage_alerts||[];
+      if(ca.length){cb.textContent="⚠ poe.ninja returned no items for: "+ca.join(", ")+
+        " — that category may have been renamed and stopped pricing. Please report it.";
+        cb.style.display="";cb.classList.add("on");}
+      else{cb.style.display="none";cb.classList.remove("on");}}
     logLine(`Done in ${d.secs}s → ${d.path}`,"ok");uEx();gEx();
   } else if(d.error){setSeal("err","Run failed",d.error);logLine("✗ "+d.error,"err");}}
 async function doGenerate(){

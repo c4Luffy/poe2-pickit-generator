@@ -179,3 +179,35 @@ def test_a_unique_priced_on_several_bases_keeps_its_highest_price():
     }}
     prices, _ = asm.compute_price_alerts(cats, payloads, {}, 1.0, 0.2)
     assert prices["unique_armours"]["Two Base Unique"] == 50.0
+
+
+def test_coverage_warnings_flags_empty_but_fetched_categories():
+    """A payload that arrives but carries no items is poe.ninja renaming/retiring
+    a type — the category silently stops pricing (how Verisium went unfetched).
+    That must be flagged; a missing payload (network fail) must NOT be."""
+    cats = [
+        ("currency", "Currency", "Currency", False),
+        ("idols", "Idols", "Idols", False),
+        ("runes", "Runes", "Runes", False),
+        ("waystones", "Waystones", "Waystones", False),
+        ("unique_weapons", "UniqueWeapons", "Unique Weapons", True),
+    ]
+    payloads = {
+        "currency": {"items": [{"name": "Chaos Orb"}]},   # healthy
+        "idols": {"items": []},                            # fetched but EMPTY -> flag
+        "runes": None,                                     # network fail -> NOT flagged here
+        "waystones": {"items": []},                        # expected-empty -> skipped
+        "unique_weapons": {"lines": []},                   # empty unique -> flag
+    }
+    warns = asm.coverage_warnings(payloads, cats)
+    keys = {k for k, _l in warns}
+    assert keys == {"idols", "unique_weapons"}
+    assert "waystones" not in keys      # allowlisted
+    assert "runes" not in keys          # missing != empty
+    assert "currency" not in keys       # healthy
+
+
+def test_coverage_warnings_respects_a_custom_allowlist():
+    cats = [("idols", "Idols", "Idols", False)]
+    payloads = {"idols": {"items": []}}
+    assert asm.coverage_warnings(payloads, cats, expected_empty={"idols"}) == []

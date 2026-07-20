@@ -200,6 +200,38 @@ def compute_divine_rate(currency_payload: dict) -> tuple[float, bool, float]:
     return divine_rate_exalts, found, rate
 
 
+# ── Coverage self-check ───────────────────────────────────────────────────────
+
+# Categories that legitimately price ZERO items: poe.ninja doesn't list them and
+# the app fills them from fallback rules, so an empty payload is normal, not a
+# gap. Waystones has always returned 0 from the exchange endpoint — WAYSTONE_
+# FALLBACK_RULES exists for exactly that. Grow this set, never silence the check.
+EXPECTED_EMPTY_CATEGORIES = {"waystones"}
+
+
+def coverage_warnings(payloads: dict, categories: list,
+                      expected_empty: set | None = None) -> list:
+    """Fetched categories whose payload ARRIVED but carries no priced items —
+    the fingerprint of poe.ninja renaming or retiring a type, which silently
+    stops the app pricing that whole category (the class of bug that hid
+    Verisium and, before it, would hide any renamed type).
+
+    Returns ``[(key, label), ...]``. The expected-empty allowlist is skipped.
+    A *missing* payload (network failure) is deliberately NOT flagged here — it
+    is transient and reported separately; this only fires on a payload that came
+    back successfully yet empty, which is a real, persistent coverage break."""
+    skip = EXPECTED_EMPTY_CATEGORIES if expected_empty is None else expected_empty
+    warns = []
+    for key, _t, label, _is_unique in categories:
+        if key in skip:
+            continue
+        p = payloads.get(key)
+        # dict = fetched OK (a missing payload is None/str and skipped)
+        if isinstance(p, dict) and not (p.get("items") or p.get("lines")):
+            warns.append((key, label))
+    return warns
+
+
 # ── Per-category rule building ────────────────────────────────────────────────
 
 def effective_min(snapshot: dict, key: str, is_unique: bool,
