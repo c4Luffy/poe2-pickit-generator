@@ -537,43 +537,68 @@ RARE_GEAR = {
 }
 
 
-def _slot_lines(spec: dict) -> list:
+# Strictness dial — scales every slot's WeightedSum cutoff by one multiplier.
+# "Balanced" is the hand-tuned defaults above; higher = a rare must score more
+# to be kept (fewer, better rares), lower = more rares slip through. The per-slot
+# recipes (which stats, what weights) never change — only the bar they clear.
+STRICTNESS_LEVELS = {
+    "looser":      0.80,
+    "balanced":    1.00,   # default / recommended — the tuned thresholds
+    "strict":      1.25,
+    "very_strict": 1.50,
+}
+DEFAULT_STRICTNESS = "balanced"
+
+
+def strictness_mult(level) -> float:
+    """Multiplier for a strictness level name; unknown/blank -> balanced (1.0)."""
+    return STRICTNESS_LEVELS.get(str(level or "").lower(), 1.0)
+
+
+def scaled_threshold(spec: dict, mult: float = 1.0) -> int:
+    """A slot's WeightedSum cutoff after the strictness multiplier."""
+    return int(round(float(spec["threshold"]) * mult))
+
+
+def _slot_lines(spec: dict, mult: float = 1.0) -> list:
     """One validated rule line per base for a slot spec.
 
     Post-# order: hard gates (required minimums) first, then the WeightedSum
-    over the remaining stats, then the pickup action."""
+    over the remaining stats, then the pickup action. ``mult`` is the strictness
+    dial — it scales only the cutoff, never the weights or gates."""
     terms = ",".join(f"{sid}:{w}" for sid, w in spec["weights"].items())
     gates = "".join(f'[{sid}] >= "{v}" && '
                     for sid, v in spec.get("gates", {}).items())
+    cutoff = scaled_threshold(spec, mult)
     return [
         f'[Type] == "{base}" && [ItemTier] >= "{spec["item_tier"]}" '
         f'&& [Rarity] == "Rare" # {gates}[WeightedSum({terms})] >= '
-        f'"{spec["threshold"]}" && [StashItem] == "true"'
+        f'"{cutoff}" && [StashItem] == "true"'
         for base in spec["bases"]
     ]
 
 
-def rare_gear_body(disabled=None) -> list:
+def rare_gear_body(disabled=None, mult: float = 1.0) -> list:
     """Rule lines for all enabled rare-gear slots, each under its own
     ``// -- Rare {slot}`` sub-header. The caller adds the major section banner.
-    Empty when everything is off."""
+    Empty when everything is off. ``mult`` is the strictness dial."""
     disabled = set(disabled or ())
     body: list = []
     for slot, spec in RARE_GEAR.items():
         if slot in disabled:
             continue
         body.append(f"// -- Rare {slot} ({len(spec['bases'])} bases, "
-                    f"WeightedSum >= {spec['threshold']}) "
+                    f"WeightedSum >= {scaled_threshold(spec, mult)}) "
                     + "-" * 20)
-        body.extend(_slot_lines(spec))
+        body.extend(_slot_lines(spec, mult))
         body.append("")
     return body
 
 
-def rare_gear_example_lines(slot: str) -> list:
+def rare_gear_example_lines(slot: str, mult: float = 1.0) -> list:
     """The exact emitted lines for one slot, for tab display (== output)."""
     spec = RARE_GEAR.get(slot)
-    return _slot_lines(spec) if spec else []
+    return _slot_lines(spec, mult) if spec else []
 
 
 def rare_gear_slots() -> list:

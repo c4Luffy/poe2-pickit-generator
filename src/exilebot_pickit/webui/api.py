@@ -36,6 +36,7 @@ _SETTABLE = {
     "base_quality", "base_min_level", "backup_count",
     "copy_filter_to_game", "poe2_filter_dir", "filter_theme",
     "magic_rare_flasks", "known_leagues", "rare_gear_enabled",
+    "rare_strictness",
     "filter_hide_rest",
     "setup_done",
 }
@@ -970,21 +971,36 @@ class AppApi:
         """
         from exilebot_pickit.data.rare import rules as rare_rules
         off = self.rare_slot_disabled()
+        level = self.cfg.get("rare_strictness", rare_rules.DEFAULT_STRICTNESS)
+        mult = rare_rules.strictness_mult(level)
         slots = {}
         for slot, spec in rare_rules.RARE_GEAR.items():
             slots[slot] = {
                 "bases": list(spec["bases"]),
-                "threshold": spec["threshold"],
+                # the cutoff shown must be the one that will be WRITTEN — i.e.
+                # after the strictness dial, or the tab lies about the pickit
+                "threshold": rare_rules.scaled_threshold(spec, mult),
                 "item_tier": spec["item_tier"],
                 "enabled": slot not in off,
                 "weights": [
                     {"stat": sid, "w": w,
                      "label": rare_rules.STAT_LABELS.get(sid, sid)}
                     for sid, w in spec["weights"].items()],
-                "lines": rare_rules.rare_gear_example_lines(slot),
+                "lines": rare_rules.rare_gear_example_lines(slot, mult),
             }
         return {"enabled": bool(self.cfg.get("rare_gear_enabled", True)),
+                "strictness": level,
+                "strictness_levels": list(rare_rules.STRICTNESS_LEVELS),
                 "slots": slots}
+
+    def set_rare_strictness(self, level):
+        """Set the rare-gear strictness dial (looser/balanced/strict/very_strict)."""
+        from exilebot_pickit.data.rare.rules import STRICTNESS_LEVELS, DEFAULT_STRICTNESS
+        level = str(level or "").lower()
+        if level not in STRICTNESS_LEVELS:
+            level = DEFAULT_STRICTNESS
+        self.cfg["rare_strictness"] = level
+        return {"ok": bool(_save(self.cfg)), "strictness": level}
 
     def enable_all_rules(self):
         """One click before a full run: every category, item, chance base,
@@ -2255,6 +2271,7 @@ class AppApi:
             "base_min_level": int(self.cfg.get("base_min_level", 82)),
             "magic_rare_flasks": bool(self.cfg.get("magic_rare_flasks", True)),
             "rare_gear_enabled": bool(self.cfg.get("rare_gear_enabled", True)),
+            "rare_strictness": self.cfg.get("rare_strictness", "balanced"),
         }
 
     def _generate(self, league, min_gear, min_unique):
@@ -2348,13 +2365,14 @@ class AppApi:
             # 51-rule "Rare Gear" one just looked broken in the Preview sidebar.
             # rare_gear_body() already emits its own per-slot sub-headers.
             if snap.get("rare_gear_enabled", True):
-                from exilebot_pickit.data.rare.rules import rare_gear_body
+                from exilebot_pickit.data.rare.rules import rare_gear_body, strictness_mult
                 # Per-slot switches: a slot the user turned off leaves the pickit
                 # entirely. Read from the snapshot, not self.cfg — the worker runs
                 # on a thread and must see the settings as they were at Generate.
                 _rgst = (snap.get("item_states", {}) or {}).get("_raregear", {})
                 _off = {s for s, v in _rgst.items() if not v.get("enabled", True)}
-                _rg = rare_gear_body(disabled=_off)
+                _rg = rare_gear_body(disabled=_off,
+                                     mult=strictness_mult(snap.get("rare_strictness")))
                 if _rg:
                     out += [""] + _rg
             excdis = self._excbase_disabled(snap)

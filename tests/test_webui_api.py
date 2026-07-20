@@ -1519,3 +1519,25 @@ def test_reset_defaults_keeps_theme_but_clears_settings(api):
     assert api.cfg["theme"] == "twilight"          # kept
     assert api.cfg["min_exalt"] != 99              # floor cleared
     assert api.cfg["item_states"].get("currency", {}).get("Chaos Orb") is None  # toggle back on
+
+
+def test_rare_strictness_scales_the_cutoff(api):
+    """The strictness dial scales every slot WeightedSum cutoff; the recipe
+    (stats/weights) is untouched, and what the tab shows must equal what is
+    written into the pickit."""
+    from exilebot_pickit.data.rare import rules as rr
+    slot, spec = next(iter(rr.RARE_GEAR.items()))
+    base = int(spec["threshold"])
+    api.set_rare_strictness("very_strict")
+    rec = api.rare_recipes()
+    assert rec["strictness"] == "very_strict"
+    shown = rec["slots"][slot]["threshold"]
+    assert shown == int(round(base * 1.5)) > base            # cutoff raised
+    assert f'>= "{shown}"' in rec["slots"][slot]["lines"][0]  # tab == output
+
+    api.set_rare_strictness("looser")
+    assert api.rare_recipes()["slots"][slot]["threshold"] == int(round(base * 0.8)) < base
+
+    api.set_rare_strictness("nonsense")   # unknown -> balanced
+    assert api.cfg["rare_strictness"] == "balanced"
+    assert api.rare_recipes()["slots"][slot]["threshold"] == base

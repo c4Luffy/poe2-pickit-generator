@@ -93,6 +93,9 @@ DEFAULT_CONFIG = {
     "magic_rare_flasks": True,
     # Master switch for the rare-gear WeightedSum recipes (17 slots).
     "rare_gear_enabled": True,
+    # Strictness dial for those recipes: looser/balanced/strict/very_strict —
+    # scales every slot's WeightedSum cutoff. balanced = the tuned defaults.
+    "rare_strictness": "balanced",
     # League names already seen in the dropdown — one NOT in this list
     # triggers the "new league detected" banner on the Generate tab.
     "known_leagues": [],
