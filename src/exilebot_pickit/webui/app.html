@@ -688,6 +688,12 @@
   tr.item:hover td,.hrow:hover td{background:color-mix(in srgb,var(--gold) 6%,transparent)}
   .hrow:hover{background:transparent}
   #ecoBody tr.item td:first-child{font-weight:600}
+  /* heading rule above a level family (Thaumaturgic Flux 8-20 and friends) */
+  #ecoBody tr.eco-fam td{padding:13px 0 5px;border-bottom:1px solid var(--border);
+        display:flex;align-items:center;gap:10px}
+  #ecoBody tr.eco-fam td>span:first-child{font-size:11px;letter-spacing:.6px;
+        text-transform:uppercase;color:var(--dim)}
+  #ecoBody tr.eco-fam td>.hint{margin-left:auto;font-size:11px}
   td.val{font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums;font-weight:600}
   td.val .u{font-size:10.5px;font-weight:700;color:var(--gold);margin-left:3px}
   #histRows td:nth-child(3),#histRows td:nth-child(4),#histRows td:nth-child(6){
@@ -2514,6 +2520,38 @@ function ecoRows(){
       if(it.chg!=null&&it.chg!==0)rows.push([cat,it]);}
   else{const cat=eco.cats.find(c=>c.key===ecoCat);if(cat)rows=cat.items.map(i=>[cat,i]);}
   return rows;}
+/* A family like "Thaumaturgic Flux (Level 8…20)" reads as ONE item but its
+   thirteen rows scatter all through a value sort, so you can never see the set
+   at a glance or tell which levels you already have. Pull each family into a
+   contiguous block, ordered by level, with a labelled rule above it.
+   The block sits where its best-ranked member sorted, so grouping never buries
+   an expensive item at the bottom of the table. Fewer than three members isn't
+   a family worth a heading — those stay in the normal sort. */
+const ECO_LEVEL_RE=/^(.*) \(Level (\d+)\)$/;
+function ecoGroupLevelFamilies(rows){
+  const fam=new Map();
+  for(const r of rows){const m=ECO_LEVEL_RE.exec(r[1].name);
+    if(m){if(!fam.has(m[1]))fam.set(m[1],[]);fam.get(m[1]).push([r,+m[2]]);}}
+  for(const [k,v] of [...fam])if(v.length<3)fam.delete(k);
+  if(!fam.size)return rows;
+  const out=[],done=new Set();
+  for(const r of rows){
+    const m=ECO_LEVEL_RE.exec(r[1].name);
+    const key=(m&&fam.has(m[1]))?m[1]:null;
+    if(!key){out.push(r);continue;}
+    if(done.has(key))continue;          // the whole block already went out
+    done.add(key);
+    // Follow the column you actually sorted by. Only NAME needs overriding:
+    // a text sort puts "Level 10" before "Level 8", which is never what you
+    // want from a level list — so name-sort means numeric level order. Value
+    // and 7d keep the outer sort, so clicking Value reorders inside the block
+    // instead of the block ignoring you.
+    let members=fam.get(key);
+    if(ecoSort==="name")members=members.slice().sort((a,b)=>ecoDir*(a[1]-b[1]));
+    out.push(["__sep__",{name:key,count:members.length}]);
+    for(const [row] of members)out.push(row);
+  }
+  return out;}
 /* Sparkline from the 7-day curve poe.ninja already sends us (we only ever read
    totalChange out of it and binned the shape). Points are cumulative % change from
    day 0 — a trend, not a price. Thin line + emphasised endpoint, in the same colour
@@ -2550,7 +2588,16 @@ function renderEco(){
   document.querySelectorAll("th[data-s] .s-ind").forEach(s=>s.textContent="");
   const activeTh=movers?null:document.querySelector(`th[data-s="${ecoSort}"] .s-ind`);
   if(activeTh)activeTh.textContent=ecoDir===1?" ▲":" ▼";
+  // Group AFTER sorting, so each family lands where its best member ranked.
+  // Not in Top movers: that view is a leaderboard, and reordering it would
+  // break the one thing it promises (biggest swing first).
+  if(!movers)rows=ecoGroupLevelFamilies(rows);
   for(const [cat,it] of rows.slice(0,400)){
+    if(cat==="__sep__"){
+      const sep=document.createElement("tr");sep.className="eco-fam";
+      sep.innerHTML=`<td colspan="5"><span>${esc(it.name)}</span>`+
+        `<span class="hint" style="margin:0">${it.count} levels</span></td>`;
+      body.appendChild(sep);continue;}
     const tr=document.createElement("tr");tr.className="item"+(it.enabled?"":" dis");
     const ico=it.icon?`<img class="icn" loading="lazy" src="${esc(it.icon)}" onerror="this.style.display='none'">`
       :(it.emj?`<span class="icn" style="display:inline-flex;align-items:center;justify-content:center;font-size:15px">${it.emj}</span>`:"");

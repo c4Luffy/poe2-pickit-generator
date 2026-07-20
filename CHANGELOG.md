@@ -6,6 +6,29 @@ download lives.
 
 ---
 
+## [v4.41.2] — 2026-07-20 — Level families read as one thing
+
+- **"Thaumaturgic Flux (Level 8…20)" is thirteen rows that read as one item**,
+  and a value sort scattered them all through the Economy table — you could
+  never see the set at a glance or tell which levels you already had. Each
+  family now sits in one block under a labelled rule.
+
+  The block is positioned where its **best-priced member** ranked, so grouping
+  never buries something expensive at the bottom. Sorting by name runs them
+  8, 9, 10… in true level order (a text sort would put "Level 10" before
+  "Level 8"); sorting by value reorders them inside the block, so clicking a
+  column still does what you asked. Top movers is left alone — it is a
+  leaderboard, and regrouping it would break the one thing it promises.
+
+  Families of fewer than three stay in the normal sort; two rows don't need a
+  heading.
+- **Raven's Reflection has its artwork.** It has no poe.ninja price row, so the
+  Economy tab's usual fallback to poe.ninja art never fired for it. The icon is
+  embedded from the game's own `visual_identity` instead, so it works offline
+  like every other shipped icon.
+
+---
+
 ## [v4.41.1] — 2026-07-20 — The Necrotic Catalysts come back
 
 - **Refined Necrotic Catalyst (~136 ex) is picked up again.** Both Necrotic
@@ -1952,6 +1975,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.41.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.2
 [v4.41.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.1
 [v4.41.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.0
 [v4.40.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.40.1

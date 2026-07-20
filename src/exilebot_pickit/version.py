@@ -1,11 +1,15 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.1"
+VERSION = "4.41.2"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Level families group together in Economy. "Thaumaturgic Flux (Level 8…20)" is thirteen rows that read as one item, and a value sort scattered them all through the table — you could never see the set at a glance or tell which levels you already had. Each family now sits in one block under a labelled rule, positioned where its best-priced member ranked so nothing valuable gets buried. Sort by name and they run 8, 9, 10… in level order; sort by value and they reorder inside the block, so clicking a column still does what you asked.
+• Raven's Reflection has its artwork. It has no poe.ninja price row, so the Economy tab's usual fallback to poe.ninja art never fired for it — the icon is embedded from the game's own files instead, and works offline like every other shipped icon.
+
+Also in 4.41.1:
 • Refined Necrotic Catalyst (~136 ex) is picked up again. Both Necrotic Catalysts were suppressed on the grounds that "Exiled Bot's validator rejects these base types" — but that is a claim about the validator, not about whether the item drops, and it was costing a real pickup. Your pickit already carries five names that same validator flags and the bot loads it fine, and the app already picks up Refined Sibilant Catalyst — the identical family.
 
 Also in 4.41.0:
