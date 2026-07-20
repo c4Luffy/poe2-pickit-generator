@@ -6,6 +6,17 @@ download lives.
 
 ---
 
+## [v4.41.3] — 2026-07-20 — Revert the Economy grouping
+
+- **The item grouping added in v4.41.2 is removed.** Collapsing families like
+  "Thaumaturgic Flux (Level 8…20)" and the Reliquary Keys into labelled blocks
+  sounded tidy and made the tab worse to use in practice. Every Economy category
+  now reads exactly as it did in v4.41.1.
+- **Raven's Reflection keeps its artwork**, which shipped in the same release and
+  is unrelated.
+
+---
+
 ## [v4.41.2] — 2026-07-20 — Level families read as one thing
 
 - **"Thaumaturgic Flux (Level 8…20)" is thirteen rows that read as one item**,
@@ -1975,6 +1986,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.41.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.3
 [v4.41.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.2
 [v4.41.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.1
 [v4.41.0]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.0

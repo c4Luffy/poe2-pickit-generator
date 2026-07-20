@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.2"
+VERSION = "4.41.3"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• The Economy grouping added in 4.41.2 is removed. Collapsing families like "Thaumaturgic Flux (Level 8-20)" and the Reliquary Keys into labelled blocks sounded tidy and made the tab worse to use, so it is gone — every category reads exactly as it did before. Raven's Reflection keeps the artwork that shipped alongside it.
+
+Removed from 4.41.2:
 • Level families group together in Economy. "Thaumaturgic Flux (Level 8…20)" is thirteen rows that read as one item, and a value sort scattered them all through the table — you could never see the set at a glance or tell which levels you already had. Each family now sits in one block under a labelled rule, positioned where its best-priced member ranked so nothing valuable gets buried. Sort by name and they run 8, 9, 10… in level order; sort by value and they reorder inside the block, so clicking a column still does what you asked.
 • Raven's Reflection has its artwork. It has no poe.ninja price row, so the Economy tab's usual fallback to poe.ninja art never fired for it — the icon is embedded from the game's own files instead, and works offline like every other shipped icon.
 
