@@ -3507,3 +3507,47 @@ class AppApi:
         except Exception as e:
             return {"error": str(e)}
 
+
+
+def headless_regenerate(league: str | None = None) -> int:
+    """Refresh prices and rebuild the .ipd from the SAVED settings, no window.
+
+    Same engine and the same _generate pipeline the GUI's Generate button uses,
+    so it honours every saved setting — value floors, per-category and per-item
+    switches, rare-gear strictness (global and per-slot), the output folder and
+    auto-copy to the bot — and runs synchronously for a scheduled task. Returns
+    a process exit code (0 ok, 1 generate failed, 2 no league)."""
+    api = AppApi()
+    lg = (league or api.cfg.get("league") or "").strip()
+    if not lg:
+        try:
+            leagues = gen.fetch_live_leagues()
+            lg = (leagues[0][0] if leagues else "")
+        except Exception:
+            lg = ""
+    if not lg:
+        print('No league. Pass --league "<name>", or pick one in the app once so it saves.')
+        return 2
+    try:
+        mg = float(api.cfg.get("min_exalt_gear", api.cfg.get("min_exalt", 0)) or 0)
+        mu = float(api.cfg.get("min_exalt_unique", 0) or 0)
+    except (TypeError, ValueError):
+        mg = mu = 0.0
+    print(f"Regenerating pickit for {lg}  (gear >= {mg:g} ex · uniques >= {mu:g} ex)")
+    # tee the run log to stdout so a scheduled run leaves a readable trace
+    _orig_log = api._log
+    api._log = lambda msg: (_orig_log(msg), print("  " + msg))[0]
+    api._generate(lg, mg, mu)                      # synchronous — no worker thread
+    done = api._status.get("done") or {}
+    if not done.get("ok"):
+        print("FAILED:", done.get("error", "unknown error"))
+        return 1
+    print(f"OK  ·  {done.get('active', 0)} active / {done.get('commented', 0)} commented"
+          f"  ->  {done.get('path', '')}")
+    if done.get("copied"):
+        print("Copied to the bot folder.")
+    if done.get("coverage_alerts"):
+        print("Coverage warning — empty categories: " + ", ".join(done["coverage_alerts"]))
+    if done.get("val_errors"):
+        print(f"Validation: {done['val_errors']} errors (see Preview in the app)")
+    return 0

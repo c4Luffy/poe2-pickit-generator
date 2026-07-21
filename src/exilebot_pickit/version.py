@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.15"
+VERSION = "4.41.16"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• A headless refresh for scheduled tasks: <code>python -m exilebot_pickit --regenerate</code> rebuilds the pickit from your SAVED settings — floors, every switch, rare-gear strictness (global and per-slot), the output folder and auto-copy to the bot — without opening the window. Add <code>--league "Name"</code> to override the league. Point Task Scheduler at it to keep the bot’s loot list fresh on a timer.
+
+Also in 4.41.15:
 • Each rare slot can set its own strictness. The dial at the top is still the default for everything, but open a slot (Body Armour, Helmet, …) and there’s a per-slot row: leave it on Default to follow the global dial, or override just that slot — Body Armour Very strict while Helmet stays Looser. Each slot’s cutoff and rules update to match.
 
 Also in 4.41.14:

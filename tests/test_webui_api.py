@@ -1564,3 +1564,35 @@ def test_per_slot_strictness_overrides_the_global_dial(api):
     api.set_rare_slot_strictness("Body Armour", "inherit")   # clear -> global
     assert api.rare_recipes()["slots"]["Body Armour"]["threshold"] == int(round(ba * 0.8))
     assert api.set_rare_slot_strictness("Nope", "strict")["ok"] is False   # unknown slot
+
+
+def _headless_env(tmp_path, monkeypatch, cfg):
+    def fake_fetch(league, categories, **kw):
+        return {k: FAKE.get(k, _payload([])) for k, *_ in categories}
+    monkeypatch.setattr(webapi.gen, "fetch_all_payloads", fake_fetch)
+    monkeypatch.setattr(webapi.gen, "set_disk_cache_dir", lambda *a, **k: None)
+    monkeypatch.setattr(webapi.gen, "prune_disk_cache", lambda *a, **k: None)
+    monkeypatch.setattr(webapi, "OUTPUT_DIR", str(tmp_path))
+    monkeypatch.setattr(webapi, "save_config", lambda cfg: True)
+    monkeypatch.setattr(webapi, "load_config", lambda: dict(cfg))
+
+
+def test_headless_regenerate_uses_saved_config(tmp_path, monkeypatch):
+    """--regenerate rebuilds from the SAVED settings with no window: it takes the
+    saved league and floors and writes the pickit, returning exit code 0."""
+    _headless_env(tmp_path, monkeypatch, {
+        "output_base": "t", "league": "L", "min_exalt_gear": 5,
+        "min_exalt_unique": 20, "history": [], "item_states": {},
+        "category_enabled": {}, "backup_count": 0})
+    assert webapi.headless_regenerate() == 0          # saved league used
+    assert os.path.isfile(os.path.join(str(tmp_path), "t.ipd"))
+
+
+def test_headless_regenerate_league_override_and_no_league(tmp_path, monkeypatch):
+    _headless_env(tmp_path, monkeypatch, {
+        "output_base": "t", "history": [], "item_states": {},
+        "category_enabled": {}, "backup_count": 0})               # no saved league
+    monkeypatch.setattr(webapi.gen, "fetch_live_leagues", lambda: [])
+    assert webapi.headless_regenerate() == 2                       # nothing to run
+    assert webapi.headless_regenerate("L") == 0                    # explicit override works
+    assert os.path.isfile(os.path.join(str(tmp_path), "t.ipd"))

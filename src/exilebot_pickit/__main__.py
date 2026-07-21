@@ -1,8 +1,10 @@
 """Run the ExileBot 2 Pickit Generator GUI.
 
 Usage:
-    python -m exilebot_pickit           # Launch the GUI
-    python -m exilebot_pickit --cli     # Run the CLI generator
+    python -m exilebot_pickit                     # Launch the GUI
+    python -m exilebot_pickit --cli               # CLI generator (defaults)
+    python -m exilebot_pickit --regenerate        # rebuild from SAVED settings, no window
+    python -m exilebot_pickit --regenerate --league "Fate of the Vaal"
 """
 import sys as _sys
 
@@ -50,6 +52,15 @@ def _tune_webview2() -> None:
     if "CalculateNativeWinOcclusion" not in existing:
         os.environ[key] = (existing + " " + flags).strip()
 
+
+if "--regenerate" in _sys.argv:
+    _sys.argv.remove("--regenerate")
+    _league = None
+    if "--league" in _sys.argv:
+        _i = _sys.argv.index("--league")
+        _league = _sys.argv[_i + 1] if _i + 1 < len(_sys.argv) else None
+    from exilebot_pickit.webui.api import headless_regenerate
+    _sys.exit(headless_regenerate(_league))
 
 if "--cli" in _sys.argv:
     _sys.argv.remove("--cli")
