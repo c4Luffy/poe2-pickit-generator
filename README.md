@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.3/ExileBot2PickitGenerator.exe"><img alt="Download v4.41.3 for Windows" src="https://img.shields.io/badge/Download-v4.41.3-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.17/ExileBot2PickitGenerator.exe"><img alt="Download v4.41.17 for Windows" src="https://img.shields.io/badge/Download-v4.41.17-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&label=Downloads&labelColor=171411&color=829d78"></a>
 </p>
 
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://c4luffy.github.io/poe2-pickit-generator/">Website</a> ·
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.3">Release notes</a> ·
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.17">Release notes</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://discord.gg/T7DU3Afve6">Discord</a> ·
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
@@ -31,7 +31,7 @@
 <p align="center"><sub>Real running-app capture · Generate · captured on v4.38.2</sub></p>
 
 > [!IMPORTANT]
-> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.41.3](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.3/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
+> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.41.17](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.17/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
 
 ## Start here
 
@@ -116,7 +116,7 @@ Rare gear stays honest. If no recipe covers the base or its slot is disabled, th
 - Unusual item-name characters are excluded and reported instead of disappearing silently.
 - The app never asks for your Path of Exile account.
 
-Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.3/SHA256SUMS.txt).
+Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.17/SHA256SUMS.txt).
 
 ### Three important usage notes
 
@@ -124,9 +124,18 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.41.3
+## Current release: v4.41.17
 
-### Revert the Economy grouping
+### Safer loot rules, rare-gear control, and clearer Economy views
+
+- **Seventeen dead exotic-base rules are gone, and pinnacle keys stay enabled at every price.** Runic Fork, Ornate Ringmail, Glacial Fortress, Reflecting Staff, Perching Staff, the three Decree armours and the other unique-only bases never drop as plain white or rare items, so those rules could never fire. The generator still adds their uniques from poe.ninja. Reliquary keys, Crisis Fragments, Origin fragments, Simulacrum and Call of the Shadows now remain in the generated pickit regardless of price.
+- **Economy puts all 20 boss keys in one Keys view.** It groups Crisis Fragments, Origin fragments, nine Reliquary Keys and Boss Invitations with live prices, including Raven's Reflection even though poe.ninja does not price it. The view reuses the same switches as Fragments, so nothing is duplicated; an unpriced item reads "No price · always kept". The old "Fragments & Keys" bucket is also split into Tablets, Wombgifts and Exotic Bases, with unique tablets separated and exotic bases grouped by gear slot from the game's own files.
+- **Rare gear has a strictness dial.** Choose **Looser**, **Balanced**, **Strict**, or **Very strict** to scale the score cutoff for all 17 slots, then override any slot on its own. Recipes and stat weights stay the same; only the score a rare must clear changes. Each slot shows a real example built from its own stats, such as a T1 Life + T1 Spirit + T1 Fire resistance rare scoring about 300 and clearing 250.
+- **Scheduled refreshes run without opening the window.** `python -m exilebot_pickit --regenerate` rebuilds the generated pickit from your saved floors, every switch, global and per-slot rare strictness, output folder and auto-copy setting. Add `--league "Name"` to override the league and point Task Scheduler at it.
+- **Generate warns when poe.ninja returns a whole category empty.** The warning appears immediately instead of leaving that category unpriced without telling you. Waystones are allowlisted because poe.ninja never prices them.
+- **What's new is visible, and Reset keeps your app appearance.** A rounded button under the app title opens the changelog. Reset still enables every toggle and clears the floors, but no longer changes the appearance you chose.
+
+### v4.41.3 — Revert the Economy grouping
 
 - **The item grouping added in v4.41.2 is removed.** It sounded tidy and made the tab worse to use. Every Economy category reads exactly as it did before.
 - **Raven's Reflection keeps its artwork**, which shipped in the same release and is unrelated.
@@ -142,8 +151,11 @@ Windows SmartScreen may ask for confirmation because this free community executa
 
 ### v4.41.0 — A whole price category was never being fetched
 
-- **poe.ninja serves a "Verisium" category and this app never asked for it** — all 24 of its items had no rule at any floor. Your bot was walking past **Celestial Alloy at ~308 ex**, Warding Starlit Ore at ~143 ex, and 14 more worth over 1 ex. Now fetched like every other category, so they price and update themselves.
+- **poe.ninja serves a "Verisium" category and this app never asked for it** — all 24 of its items had no rule at any floor. The generated pickit therefore had no rule for **Celestial Alloy at ~308 ex**, Warding Starlit Ore at ~143 ex, or 14 more worth over 1 ex. Now fetched like every other category, so they price and update themselves.
 - **Raven's Reflection is picked up.** The Delirium pinnacle key, dropped from Simulacrum, had no rule at all — poe.ninja prices it in no category, and an unpriced valuable is invisible unless it's named in the always-pick list.
+
+<details>
+<summary><strong>Older releases</strong></summary>
 
 ### v4.40.1 — The quality-of-life pass
 
@@ -226,7 +238,9 @@ Every tab was audited that cycle. The headline items are behaviour fixes — thi
 - **Create your filter translates `ItemLevel` and `WaystoneTier` exactly** instead of dropping them, so far fewer rules count as "shown wider" and Hide mode is safer.
 - **Useful detail across every tab:** bases display their game-data implicits when they have one; Chance cards show live target prices and art; profile imports preview everything they turn OFF; Preview explains and compares rules; Economy shows Top movers.
 
-[Read the complete v4.41.3 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.3) · [full changelog](CHANGELOG.md)
+</details>
+
+[Read the complete v4.41.17 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.17) · [full changelog](CHANGELOG.md)
 
 <details>
 <summary><strong>Everything included</strong></summary>
