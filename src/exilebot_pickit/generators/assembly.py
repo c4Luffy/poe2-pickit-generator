@@ -54,15 +54,13 @@ def active_rule_ids(lines) -> set[str]:
 
 def build_header_lines(league: str, gen_ts: datetime.datetime, gen_id: str,
                        min_exalt: float, min_exalt_unique: float) -> list[str]:
-    """The comment banner and embedded configuration guide for an .ipd.
-
-    NOT CURRENTLY WIRED UP. Both writers — webui/api.py and generator.main() —
-    hand-roll a shorter 8-line banner instead, so the shipped file has neither
-    the Generated timestamp nor the Pickit ID this produces. Kept because it is
-    the only written-down reference for the bot's own syntax ([WeightedSum],
-    [IgnoreRitual], the WeaponCategory vocabulary) and its tests still pin that
-    format. Wire it in or delete it deliberately — but don't assume it runs.
-    """
+    """A banner + the embedded syntax guide (see syntax_guide_lines below), kept
+    for its own tests and as a reference format. NOT the banner either shipping
+    writer uses — webui/api.py and generator.main() hand-roll a shorter banner
+    with info this one lacks (a Divine-rate-missing safety guard, the app
+    version): swapping either writer to THIS banner would regress that. What
+    both writers DO use is syntax_guide_lines() below, appended after their own
+    banner — see the "Configuration guide" call site there for real usage."""
     return [
         "/" * gen._W,
         "//" + f"  EXILEBOT 2  |  PICKIT  |  ID: {gen_id}".center(gen._W - 4) + "//",
@@ -72,6 +70,17 @@ def build_header_lines(league: str, gen_ts: datetime.datetime, gen_id: str,
         f"// Pickit ID : {gen_id}",
         f"// Threshold : {min_exalt:.0f} ex  (currency/items)  |  {min_exalt_unique:.0f} ex  (unique gear)",
         "/" * gen._W, "",
+    ] + syntax_guide_lines()
+
+
+def syntax_guide_lines() -> list[str]:
+    """The Exiled Bot 2 syntax reference embedded in every generated .ipd —
+    [WeightedSum], [IgnoreRitual], WeaponCategory vocabulary, and worked
+    examples. Static content (no run-specific data), so both writers can
+    append it after their own banner. Wired in 2026-07-21 — previously only
+    build_header_lines produced this text, and neither writer called that
+    function, so no shipped file ever carried this reference at all."""
+    return [
         # ── Configuration guide ───────────────────────────────────────
         "//",
         "// Exiled Bot 2 Pickit - Configuration Guide for Path of Exile 2",
@@ -270,8 +279,12 @@ def build_category_lines(key: str, is_unique: bool, payload: dict,
     if is_unique:
         dis = {n for n, s in (cat_states or {}).items()
                if not s.get("enabled", True)}
+        # force_names: same "always kept regardless of floor" guarantee the
+        # exchange branch below gets — dormant today (nothing force-picked is
+        # priced as a unique), but the guarantee must hold if that ever changes.
         return gen.build_unique_lines(payload, divine_rate_exalts, min_exalt=eff_min,
-                                      disabled_names=dis)
+                                      disabled_names=dis,
+                                      force_names=gen.always_pick_force_names())
     if key == "uncut_gems":
         return gen.build_uncut_gem_lines(payload, divine_rate_exalts, min_exalt=eff_min,
                                          enabled_names=enabled_names)

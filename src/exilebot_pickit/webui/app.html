@@ -2606,7 +2606,10 @@ function renderEco(){
       ecoSort==="chg"?(a[1].chg||0)-(b[1].chg||0):a[1].ex-b[1].ex;
     return ecoDir*cmp;});
   document.querySelectorAll("th[data-s] .s-ind").forEach(s=>s.textContent="");
-  const activeTh=(movers||isKeys)?null:document.querySelector(`th[data-s="${ecoSort}"] .s-ind`);
+  // isStatic (Always-pick: Tablets, Exotic Bases...) never sorts either — its
+  // rows stay in section order — so the arrow must stay off there too, or a
+  // column click paints ▲/▼ on a header that visibly does nothing.
+  const activeTh=(movers||isKeys||isStatic)?null:document.querySelector(`th[data-s="${ecoSort}"] .s-ind`);
   if(activeTh)activeTh.textContent=ecoDir===1?" ▲":" ▼";
   let lastSec=null;
   for(const [cat,it] of rows.slice(0,400)){

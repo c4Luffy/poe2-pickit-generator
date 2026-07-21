@@ -736,3 +736,25 @@ def test_every_exchange_category_has_a_unique_key_and_type():
     for k, t, label, _u in gen.ALL_CATEGORIES:
         assert k and t and label, (k, t, label)
         assert k == k.lower(), f"category key should be lowercase: {k}"
+
+
+def test_build_unique_lines_honours_force_names():
+    """build_unique_lines had no force_names parameter at all, so the
+    "always kept regardless of floor" guarantee every other builder gives
+    always_pick_force_names() silently did not apply here. Dormant today
+    (nothing force-picked is currently priced as a unique), but the
+    guarantee must hold if that ever changes (audited 2026-07-21)."""
+    payload = {"core": {"rates": {"exalted": 1.0}}, "lines": [{
+        "name": "Forced Cheap Unique", "baseType": "Coral Amulet", "primaryValue": 0.1}]}
+    below_floor = gen.build_unique_lines(payload, 1.0, min_exalt=50.0)
+    assert below_floor[0].startswith("//"), "should be commented: below floor, not forced"
+
+    forced = gen.build_unique_lines(payload, 1.0, min_exalt=50.0,
+                                    force_names={"Forced Cheap Unique"})
+    assert not forced[0].startswith("//"), "force_names must override the floor"
+
+    # an explicit disable still wins over force_names, same as the exchange builder
+    forced_but_disabled = gen.build_unique_lines(payload, 1.0, min_exalt=50.0,
+                                                 force_names={"Forced Cheap Unique"},
+                                                 disabled_names={"Forced Cheap Unique"})
+    assert forced_but_disabled[0].startswith("//")

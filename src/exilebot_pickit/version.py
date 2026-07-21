@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.17"
+VERSION = "4.41.18"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• A full audit pass — 5 parallel reviews of the rule engine, the bridge, the UI, the data files and config safety, every finding verified by hand before anything shipped. Real fixes: item/unique names with a literal double-quote could corrupt a rule’s syntax (latent — no live item has one today, but the quoting helper existed and 4 call sites weren’t using it); the "always kept regardless of price" guarantee had no way to apply to a name ever priced under a unique-shaped payload (also latent, but the guarantee is supposed to be unconditional); clicking a column header on an Always-pick view (Tablets, Exotic Bases) painted a sort arrow that lied — the rows never actually sorted; and the app’s own embedded syntax guide ([WeightedSum], [IgnoreRitual], WeaponCategory) existed, fully written and tested, but neither writer ever called it — no generated file has ever shipped it until now. Two small data cleanups: an exotic-base slot entry left over from a removed item, and a stronger test so the slot map can’t drift in either direction again.
+
+Also in 4.41.17:
 • The strictness controls explain themselves now. Each slot shows a real example — e.g. "a T1 Life + T1 Spirit + T1 Fire res rare scores ≈ 300, clears ≥ 250, kept" — built from that slot’s own stats, and the global dial lists the actual cutoffs (Looser 200 · Balanced 250 · Strict 312 · Very strict 375). The per-slot control no longer had a "Default" button that duplicated whatever the global was set to (two "Looser" side by side); it just highlights the level in effect, with a "↺ Follow the global dial" link when a slot is overridden.
 
 Also in 4.41.16:

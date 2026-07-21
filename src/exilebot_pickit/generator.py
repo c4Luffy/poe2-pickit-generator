@@ -866,7 +866,7 @@ def format_rule(name: str, exalt_value: float, _divine_value: float, header: str
     action = '[StashItem] == "true"'
     if ritual_threshold is not None and exalt_value < ritual_threshold:
         action += ' && [IgnoreRitual] == "true"'
-    rule = f'[{header}] == "{name}" # {action} // ExValue = {exalt_value:.2f}'
+    rule = f'[{header}] == "{_quote_ipd(name)}" # {action} // ExValue = {exalt_value:.2f}'
     return rule if exalt_value >= threshold else f"//{rule}"
 
 
@@ -911,7 +911,7 @@ def build_exchange_lines(
 
     if pick_all:
         result = [
-            f'[Type] == "{name}" # [StashItem] == "true" // ExValue = {ev:.2f}'
+            f'[Type] == "{_quote_ipd(name)}" # [StashItem] == "true" // ExValue = {ev:.2f}'
             for name, ev, _ in rows
         ]
     else:
@@ -1024,9 +1024,17 @@ def strip_runeforged_base(base_type: str) -> str:
 
 
 def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: float | None = None,
-                       disabled_names=None) -> list:
+                       disabled_names=None, force_names=None) -> list:
+    """``force_names``: names that stay ACTIVE regardless of the value floor
+    (mirrors build_exchange_lines' force_names). Latent until now — if a name in
+    always_pick_force_names() (special items, pinnacle keys, splinters,
+    wombgifts, tablets) is ever priced under a *unique*-shaped payload instead
+    of an exchange one, its "always kept" guarantee did not apply here at all,
+    since this builder had no way to honor it. Nothing currently is, but the
+    guarantee should hold regardless of which payload shape prices a name."""
     threshold = min_exalt if min_exalt is not None else MIN_EXALT
     dis = set(disabled_names or ())
+    force = set(force_names or ())
     rate = exalted_rate(payload)
     rows = []
     seen = set()
@@ -1051,7 +1059,7 @@ def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: flo
             f'[Type] == "{base_type}" && [Rarity] == "Unique" # [UniqueName] == "{name}" '
             f'&& [StashItem] == "true" // ExValue = {exalt_value:.2f}'
         )
-        keep = exalt_value >= threshold and name not in dis
+        keep = (exalt_value >= threshold or name in force) and name not in dis
         rows.append((exalt_value, rule if keep else f"//{rule}"))
     # Sort by value, highest first — matches every other category. (Previously
     # `key=-r[0]` *with* reverse=True cancelled out, listing uniques cheapest-first.)
@@ -1232,6 +1240,9 @@ def main():
         categories = UNIQUE_CATEGORIES
 
     # ── File header ──────────────────────────────────────────────────────────
+    # local import: generators.assembly imports THIS module at load time, so a
+    # module-level import here would be circular
+    from .generators.assembly import syntax_guide_lines
     output_lines = [
         "/" * _W,
         "//" + "  EXILEBOT 2  |  AUTO-GENERATED PICKIT".center(_W - 4) + "//",
@@ -1241,7 +1252,7 @@ def main():
         "// Source  : poe.ninja PoE2 economy API",
         "/" * _W,
         "",
-    ]
+    ] + syntax_guide_lines()
 
     # ── Currency (establish divine rate) ─────────────────────────────────────
     currency_payload = fetch_category(league, "currency", "Currency", False)

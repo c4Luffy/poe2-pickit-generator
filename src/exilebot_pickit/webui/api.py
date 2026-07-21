@@ -2310,7 +2310,6 @@ class AppApi:
 
     def _generate(self, league, min_gear, min_unique):
         t0 = time.time()
-        self._coverage_alerts = []   # categories that fetched empty this run
         try:
             if self.cfg.get("auto_floor"):
                 sf = self.suggest_floors(league, int(self.cfg.get("auto_floor_pct", 40) or 40))
@@ -2342,7 +2341,8 @@ class AppApi:
                    (f"// Divine  : 1 Divine = {div_rate:.2f} Exalted"
                     if div_found else "// Divine  : rate unavailable"),
                    f"// Source  : poe.ninja PoE2 economy API  ·  Pickit Generator v{VERSION}",
-                   "/" * W, "",
+                   "/" * W, ""
+                   ] + asm.syntax_guide_lines() + [
                    gen.header_major("Economy Items"), ""]
             top_pool = []
             ok = fail = 0
@@ -2367,10 +2367,13 @@ class AppApi:
             # is the signature of poe.ninja renaming/retiring a type — the whole
             # category silently stops pricing (how Verisium went unfetched). Warn
             # loudly so it's caught here, not weeks later in-game.
+            # local, not self. — accumulated across the run like top_pool/alerts
+            # below, and only handed to self._status inside the final lock.
+            cov_alerts = []
             for _key, _label in asm.coverage_warnings(payloads, cats):
                 self._log(f"⚠ {_label}: poe.ninja returned no items — the category "
                           f"may have been renamed. Report it so it can be re-mapped.")
-                self._coverage_alerts.append(_label)
+                cov_alerts.append(_label)
 
             # Always-pick sections — each group is its own Economy category;
             # single items and whole groups can be switched off there.
@@ -2623,7 +2626,7 @@ class AppApi:
                     "val_warnings": len(validation.get("warnings", [])),
                     "copied": copied,
                     "added": added, "removed": removed, "alerts": alerts,
-                    "coverage_alerts": list(self._coverage_alerts),
+                    "coverage_alerts": cov_alerts,
                     "safety": safety,
                 }
         except Exception as e:

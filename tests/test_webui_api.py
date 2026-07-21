@@ -1471,8 +1471,12 @@ def test_exotic_bases_are_grouped_by_gear_slot(api):
             assert s not in seen, f"{s} is split into two blocks"
             seen.append(s)
     assert seen == [s for s in gen.EXOTIC_SLOT_ORDER if s in seen]
-    # the map must not fall behind the list it describes
+    # the map must not fall behind the list it describes, in EITHER direction:
+    # a base removed from EXOTIC_BASES (e.g. the 17 unique-host bases pruned
+    # 2026-07-21) must also be removed from EXOTIC_BASE_SLOTS, or the slot map
+    # accumulates dead entries for names the app no longer ships at all
     assert [b for b in gen.EXOTIC_BASES if b not in gen.EXOTIC_BASE_SLOTS] == []
+    assert [b for b in gen.EXOTIC_BASE_SLOTS if b not in gen.EXOTIC_BASES] == []
 
 
 def test_a_remotely_added_exotic_base_is_shown_not_dropped(api):
@@ -1596,3 +1600,17 @@ def test_headless_regenerate_league_override_and_no_league(tmp_path, monkeypatch
     assert webapi.headless_regenerate() == 2                       # nothing to run
     assert webapi.headless_regenerate("L") == 0                    # explicit override works
     assert os.path.isfile(os.path.join(str(tmp_path), "t.ipd"))
+
+
+def test_generated_ipd_carries_the_syntax_guide(api, tmp_path):
+    """assembly.syntax_guide_lines() existed but neither writer called it, so no
+    generated .ipd ever carried the bots own syntax reference ([WeightedSum],
+    [IgnoreRitual], WeaponCategory vocabulary). Wired in 2026-07-21; this pins
+    it so it cannot silently go unwired again."""
+    api._generate("L", 5, 20)
+    d = api._status["done"]
+    assert d and d["ok"], d
+    text = open(d["path"], encoding="utf-8").read()
+    assert "Configuration Guide for Path of Exile 2" in text
+    assert "[WeightedSum(stat:weight" in text
+    assert "[IgnoreRitual]" in text

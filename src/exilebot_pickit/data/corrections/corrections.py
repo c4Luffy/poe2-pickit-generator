@@ -182,7 +182,6 @@ EXOTIC_BASE_SLOTS = {
     "Portent Amulet": "Amulets",
     "Tenebrous Amulet": "Amulets",
     "Twisted Amulet": "Amulets",
-    "Veridical Chain": "Amulets",
     # Rings
     "Abyssal Signet": "Rings",
     "Biostatic Ring": "Rings",
@@ -230,6 +229,12 @@ EXOTIC_SLOT_ORDER = [
 # Tertiary Calamity Fragment, which poe.ninja does not price at all, so they
 # are treated as gone and left out. Sections come from the game's own item
 # class (PinnacleKeyStackable / VaultKey / MapFragment).
+#
+# "An Audience with the King" and "Kulemak's Invitation" also appear in
+# SPECIAL_ITEMS above — intentional, not drift. SPECIAL_ITEMS drives force-pick
+# behavior (they're always kept, [IgnoreRitual] on the Invitation); this dict
+# only drives which Keys-lens heading each name is shown under. Both need the
+# same two names; audited 2026-07-21, do not "deduplicate" one out.
 KEY_ITEM_SECTIONS = {
     # Crisis Fragments — the three that combine for one pinnacle key
     "Ancient Crisis Fragment": "Crisis Fragments",
