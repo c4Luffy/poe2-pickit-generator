@@ -1247,7 +1247,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:14px;margin-top:13px;padding-top:13px;border-top:1px solid var(--border)">
       <div style="flex:1"><b style="font-size:12.5px">Strictness</b>
-        <div class="hint" style="margin-top:2px">How high a rare must score to be kept. <b>Balanced</b> is the tuned default; stricter keeps fewer, better rares. The recipes don't change — only the bar they clear.</div></div>
+        <div class="hint" style="margin-top:2px">How high a rare must score to be kept — a stat at a perfect roll ≈ 100 points. <b>Balanced</b> is the tuned default; stricter keeps fewer, better rares. The recipes don't change — only the bar they clear.<br><span style="color:var(--dim)">Example — Body Armour cutoff: Looser <b>200</b> · Balanced <b>250</b> · Strict <b>312</b> · Very strict <b>375</b> (≈ 2–4 perfect stats). Each slot can override this below.</span></div></div>
       <div class="seg" id="rareStrict" style="flex:0 0 auto;min-width:300px">
         <button type="button" data-lv="looser">Looser</button>
         <button type="button" data-lv="balanced">Balanced</button>
@@ -3135,6 +3135,16 @@ function renderRare(){
   const slotOn=r.enabled!==false;
   const statsText=r.weights.map(w=>`${w.label}\t${w.w}\t${w.stat}`).join("\n");
   const rulesText=r.lines.join("\n");
+  const STRICT_NICE={"":"Default",looser:"Looser",balanced:"Balanced",strict:"Strict",very_strict:"Very strict"};
+  const gLevel=window.rareStrict||"balanced";
+  const perfectStats=(Number(r.threshold)/100).toFixed(1);
+  const overriding=!!r.strictness_override;
+  // Concrete example: each stat at its T1 max roll ≈ 100 points (weights are
+  // 100 ÷ T1 max), so name enough of this slot's top stats to clear the cutoff.
+  const _need=Math.max(2,Math.round(Number(r.threshold)/100));
+  const _exStats=r.weights.slice(0,_need).map(w=>w.label);
+  const exampleTxt=_exStats.map(s=>"T1 "+s).join(" + ");
+  const examplePts=_exStats.length*100;
   const el=$("rareList");
   el.innerHTML=
     `<div style="display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--border);
@@ -3158,16 +3168,24 @@ function renderRare(){
        <div style="flex:1;min-width:220px"><div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">BASES (ONE RULE EACH)</div>
          <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${r.bases.map(b=>`<span class="pill">${esc(b)}</span>`).join("")}</div></div>
      </div>
-     <div style="display:flex;align-items:center;gap:14px;margin:0 0 14px;${slotOn?"":"opacity:.5"}">
+     <div style="display:flex;align-items:center;gap:14px;margin:0 0 6px;${slotOn?"":"opacity:.5"}">
        <div style="flex:0 0 auto"><div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">STRICTNESS · THIS SLOT</div>
-         <div class="hint" style="margin-top:2px;max-width:210px"><b>Default</b> follows the global dial above; override it just for ${esc(rareSel)}.</div></div>
+         <div class="hint" style="margin-top:2px;max-width:220px">Overrides the global dial just for ${esc(rareSel)}.</div></div>
        <div class="seg rare-slot-strict" style="flex:1;min-width:300px">
-         <button type="button" data-lv="">Default</button>
          <button type="button" data-lv="looser">Looser</button>
          <button type="button" data-lv="balanced">Balanced</button>
          <button type="button" data-lv="strict">Strict</button>
          <button type="button" data-lv="very_strict">Very strict</button>
        </div>
+     </div>
+     <div class="hint" style="margin:0 0 6px;${slotOn?"":"opacity:.5"}">
+       Keeps a rare that scores <b style="color:var(--gold)">≥ ${esc(r.threshold)}</b> — about <b>${perfectStats}</b> perfect stats' worth.
+       ${overriding
+          ? `Overridden for ${esc(rareSel)}. <a class="rare-strict-reset" style="color:var(--gold);cursor:pointer;text-decoration:underline dotted">↺ Follow the global dial (${esc(STRICT_NICE[gLevel])})</a>`
+          : `Following the <b>global dial</b> (<b>${esc(STRICT_NICE[gLevel])}</b>) — the highlighted level above. Pick a different one to override only ${esc(rareSel)}.`}
+     </div>
+     <div class="hint" style="margin:0 0 14px;padding:8px 11px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;${slotOn?"":"opacity:.5"}">
+       <span style="color:var(--gold)">Example →</span> a <b>${esc(exampleTxt)}</b> rare scores ≈ <b>${examplePts}</b>, so it clears ≥ ${esc(r.threshold)} and is <b style="color:var(--ok)">kept</b>. A single mediocre stat (well under ${esc(r.threshold)}) is skipped.
      </div>
      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
        <div style="color:var(--dim);font-size:10.5px;letter-spacing:.7px">SCORED STATS</div>
@@ -3188,17 +3206,21 @@ function renderRare(){
     renderRare();
     toast(rareSel+(on?" is in your pickit":" removed — regenerate to apply"));
   };
-  // per-slot strictness: "" (Default) inherits the global dial
+  // per-slot strictness. The EFFECTIVE level is highlighted (override if set,
+  // else the inherited global) so there's never a confusing second copy of it.
+  async function _applyRareStrict(level){
+    await api().set_rare_slot_strictness(rareSel,level);
+    const rrsp=await api().rare_recipes();            // re-pull: cutoff changed
+    window.rareRecipes=(rrsp&&rrsp.slots)||window.rareRecipes;
+    renderRare();
+    const nm={"":"Default — follows the global dial",looser:"Looser",balanced:"Balanced",strict:"Strict",very_strict:"Very strict"}[level];
+    toast(rareSel+" strictness: "+nm+" — regenerate to apply");
+  }
   el.querySelectorAll(".rare-slot-strict button").forEach(b=>{
-    b.classList.toggle("on",b.dataset.lv===(r.strictness_override||""));
-    b.onclick=async()=>{
-      await api().set_rare_slot_strictness(rareSel,b.dataset.lv);
-      const rrsp=await api().rare_recipes();          // re-pull: cutoff changed
-      window.rareRecipes=(rrsp&&rrsp.slots)||window.rareRecipes;
-      renderRare();
-      const nm={"":"Default (global)",looser:"Looser",balanced:"Balanced",strict:"Strict",very_strict:"Very strict"}[b.dataset.lv];
-      toast(rareSel+" strictness: "+nm+" — regenerate to apply");
-    };});
+    b.classList.toggle("on",b.dataset.lv===r.strictness);   // highlight effective
+    b.onclick=()=>_applyRareStrict(b.dataset.lv);});
+  const _reset=el.querySelector(".rare-strict-reset");
+  if(_reset)_reset.onclick=()=>_applyRareStrict("");         // clear override -> global
   el.querySelectorAll(".rare-copy").forEach(btn=>btn.onclick=async()=>{
     const ok=await copyText(btn.dataset.kind==="rules"?rulesText:statsText);
     const o=btn.textContent;btn.textContent=ok?"Copied":"Failed";
