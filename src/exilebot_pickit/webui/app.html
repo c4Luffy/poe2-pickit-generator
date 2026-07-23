@@ -4593,6 +4593,13 @@ async function init(){
     // Persist whatever is actually selected.
     if(sel.value&&sel.value!==info.league){info.league=sel.value;api().set_setting("league",sel.value);}
     logLine("Loaded "+ls.length+" leagues.","ok");sideMark(true);
+    // Pre-warm the price cache in the background. Opening Economy fetches 24
+    // poe.ninja categories 5 at a time — several seconds the user used to wait
+    // for on first open. Starting it now, while they're still on Generate,
+    // means the tab (and the next Generate, which shares the same 15-min cache)
+    // is usually ready instantly. Fire-and-forget: any failure just means the
+    // tab loads the old way, and economy_start() is safe to call again.
+    if(sel.value)setTimeout(()=>{try{api().economy_start(sel.value);}catch(_){}},1200);
     // New-league banner: a league we've never seen (e.g. league launch day).
     // First run just records the list; the banner nags until switched/dismissed.
     try{

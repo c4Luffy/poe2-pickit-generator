@@ -6,6 +6,27 @@ download lives.
 
 ---
 
+## [v4.41.21] — 2026-07-23 — Prices load in the background, so the Economy tab opens instantly
+
+- **The price fetch now starts at launch instead of when you open Economy.**
+  Opening the Economy tab used to fetch **24 separate poe.ninja category price
+  lists** on the spot — only five at a time, each subject to a back-off wait
+  whenever poe.ninja rate-limited — and you sat on "Loading prices…" while it
+  finished. That identical fetch is now kicked off in the background shortly
+  after the app opens, while you're still on the Generate tab, so the Economy
+  tab is normally fully populated the instant you click it.
+- **Everything that reads prices shares the same 15-minute cache**, so the one
+  background fetch also gives a head start to **Generate**, the **Chance** tab
+  (which prices the unique you're chancing for) and **Auto-floor** suggestions —
+  not just Economy.
+- Fire-and-forget and non-blocking: if the pre-fetch fails or the app is offline
+  it changes nothing, the tab simply loads the way it always did. Price
+  freshness is unchanged (the same 15-minute cache as before), and **Refresh
+  prices** still forces a live re-fetch.
+- The tabs that never touched the network — Craft, Exceptional, Fracture, Magic
+  & Rare, Preview, Item Check, History, Debug — read bundled game data and were
+  already instant; they are unaffected.
+
 ## [v4.41.20] — 2026-07-23 — Economy tab overhaul: hover cards, value bars, collapsible groups
 
 - **Hover cards on Economy rows.** Hover any item and a card shows its art, live

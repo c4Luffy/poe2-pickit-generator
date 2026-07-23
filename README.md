@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.20/ExileBot2PickitGenerator.exe"><img alt="Download v4.41.20 for Windows" src="https://img.shields.io/badge/Download-v4.41.20-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.21/ExileBot2PickitGenerator.exe"><img alt="Download v4.41.21 for Windows" src="https://img.shields.io/badge/Download-v4.41.21-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&label=Downloads&labelColor=171411&color=829d78"></a>
 </p>
 
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://c4luffy.github.io/poe2-pickit-generator/">Website</a> ·
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.20">Release notes</a> ·
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.21">Release notes</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://discord.gg/T7DU3Afve6">Discord</a> ·
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
@@ -31,7 +31,7 @@
 <p align="center"><sub>Real running-app capture · Generate · captured on v4.38.2</sub></p>
 
 > [!IMPORTANT]
-> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.41.20](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.20/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
+> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.41.21](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.21/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
 
 ## Start here
 
@@ -116,7 +116,7 @@ Rare gear stays honest. If no recipe covers the base or its slot is disabled, th
 - Unusual item-name characters are excluded and reported instead of disappearing silently.
 - The app never asks for your Path of Exile account.
 
-Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.20/SHA256SUMS.txt).
+Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.21/SHA256SUMS.txt).
 
 ### Three important usage notes
 
@@ -124,9 +124,15 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.41.20
+## Current release: v4.41.21
 
-### Economy tab overhaul: hover cards, value bars, collapsible groups
+### Prices load in the background, so the Economy tab opens instantly
+
+- **The price fetch starts at launch instead of when you open Economy.** Opening the tab used to fetch 24 separate poe.ninja category price lists on the spot — five at a time, each with a back-off wait whenever poe.ninja rate-limited — and you watched "Loading prices…" while it finished. That same fetch now runs in the background shortly after the app opens, while you're still on Generate, so Economy is normally fully populated the moment you click it.
+- **One fetch speeds up everything that reads prices.** They all share the same 15-minute cache, so **Generate**, the **Chance** tab and **Auto-floor** get the same head start — not just Economy.
+- **Nothing else changes.** It's fire-and-forget: if the pre-fetch fails or you're offline, the tab loads exactly as before. Price freshness is unchanged, and **Refresh prices** still forces a live re-fetch. Tabs that never touched the network (Craft, Exceptional, Fracture, Magic & Rare, Preview, Item Check, History, Debug) were already instant.
+
+### v4.41.20 — Economy tab overhaul: hover cards, value bars, collapsible groups
 
 - **Hover cards on Economy rows.** Hover any item and a card shows its art, live price, 7-day trend, keep/skip status, and the exact pickit rule that catches it — so it's obvious at a glance what any row does. Unpinned, the card is a pass-through tooltip that never covers the row's own buttons; **click a row to pin it** into a stable panel with a Copy button and its own keep/skip toggle, closed by ✕, Esc, or a click away. It flips near the screen edges so it never spills off-screen.
 - **Right-click a row to copy its pickit rule** instantly, without opening the card.
@@ -263,7 +269,7 @@ Every tab was audited that cycle. The headline items are behaviour fixes — thi
 
 </details>
 
-[Read the complete v4.41.20 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.20) · [full changelog](CHANGELOG.md)
+[Read the complete v4.41.21 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.21) · [full changelog](CHANGELOG.md)
 
 <details>
 <summary><strong>Everything included</strong></summary>

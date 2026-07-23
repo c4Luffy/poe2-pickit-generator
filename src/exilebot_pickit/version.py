@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.20"
+VERSION = "4.41.21"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Prices load in the background the moment the app opens, so the wait is gone. Opening Economy used to fetch 24 poe.ninja price lists on the spot — five at a time, with a back-off whenever poe.ninja rate-limited — and you watched "Loading prices…" for it. That same fetch now starts in the background at launch, while you're still on Generate, so the tab is normally ready the instant you click it. Everything that reads prices shares the one cache, so Generate, the Chance tab and Auto-floor all get the same head start. Nothing else changed: prices are just as fresh, and Refresh prices still forces a live re-fetch.
+
+Also in 4.41.20:
 • The Economy tab has hover cards now. Hover any item and a card shows its art, live price, 7-day trend, keep/skip status, and the exact pickit rule that catches it — so you can see at a glance what any row actually does. Click a row to PIN the card open; pinned, it gets a Copy button and its own keep/skip toggle, and stays put until you close it with ✕, Esc, or a click anywhere else. Unpinned it is a pass-through tooltip, so it never covers the row's own buttons.
 • Right-click any Economy row to copy its pickit rule instantly, without opening anything.
 • Value bars sit behind each price — a faint fill, scaled logarithmically, that shows worth at a glance. A one-ex common and a multi-thousand-ex chase item both read now, instead of everything but the top few flattening into identical slivers.
