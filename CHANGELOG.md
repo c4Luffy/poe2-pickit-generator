@@ -6,6 +6,39 @@ download lives.
 
 ---
 
+## [v4.41.22] — 2026-07-24 — Three UIs stop reporting skipped rules that were never skipped
+
+- **Preview claimed "9 skipped" for a pickit with nothing disabled.** Those nine
+  lines were the `// Example:` entries of the Exiled Bot syntax guide that
+  v4.41.18 began writing into every generated `.ipd`. They contain
+  `[StashItem]` and start with `//`, so a bare substring test counted each one
+  as a rule the user had switched off. The **"Skipped" filter chip** listed
+  them as your disabled rules, and the total rule count was inflated by nine.
+- **The same miscount was in three places, not one.** It also fed the Generate
+  tab's "skipped" tile and the `--cli` "Commented out:" total, so three
+  separate UIs reported a number that had never been real. All three now share
+  one `assembly.is_rule_line()` helper: a line is a rule only if it carries the
+  `[StashItem]` action **and** the `#` identify split, and isn't a guide
+  example. Same class of miscount the conversion report fixed in v4.39.5.
+- **The Chance tab shows the real outcome pool.** Every base now lists each
+  unique that shares it, dearest first, with live prices — so the tab's own
+  warning ("a Utility Belt is far more often an Ingenuity than a Mageblood") is
+  now visible data: Mageblood at ~328 div sitting directly above the 5 ex and
+  1 ex outcomes. The curated jackpot is highlighted, the list is built from the
+  `baseType` already present in the fetched poe.ninja payload (no extra network
+  calls), and it is read-only so reading it can never toggle the base off.
+- **Chance prices no longer flip units at an arbitrary point.** A ~46 ex unique
+  rendered as a useless "0,1 div" while a 13 ex one correctly read "13,5 ex" —
+  divine was used whenever a divine rate existed, no matter how small the
+  result. Divine now appears only at 1 divine or more.
+- **Pasted diagnostics are readable.** The report ended with 30 identical
+  `INFO config saved` lines, pushing the one line that explained the problem
+  off the end — the opposite of what a paste-for-help is for. Repeated messages
+  collapse to `(x30)` and any `ERROR`/`WARNING` is kept even when it falls
+  outside the tail window. Applied to both the copy link and the pre-filled
+  GitHub issue.
+- The curated chance-base list itself is unchanged.
+
 ## [v4.41.21] — 2026-07-23 — Prices load in the background, so the Economy tab opens instantly
 
 - **The price fetch now starts at launch instead of when you open Economy.**

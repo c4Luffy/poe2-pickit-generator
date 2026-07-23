@@ -40,6 +40,18 @@
   .bc2-bot{min-width:0}
   .bc2-bot b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bc2-bot .t{font-size:12px;color:var(--dim);margin-top:2px;line-height:1.45}
+  /* Outcome pool: every unique that shares the base, dearest first, so the card
+     shows what chancing REALLY rolls instead of only the jackpot. Read-only —
+     clicks here don't toggle the card (see the .cpool guard in the handler). */
+  .cpool{margin-top:9px;padding-top:8px;border-top:1px solid var(--border);cursor:default}
+  .cpool-h{font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+  .cpool-row{display:flex;align-items:center;gap:7px;padding:2.5px 0;font-size:11.5px;min-width:0}
+  .cpool-row img,.cpool-row .ph{width:20px;height:20px;flex:0 0 20px;object-fit:contain}
+  .cpool-row .n{flex:1;min-width:0;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cpool-row .v{flex:0 0 auto;font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums;color:var(--dim)}
+  /* the curated jackpot stands out from the rest of the pool */
+  .cpool-row.tgt .n{color:var(--text);font-weight:700}
+  .cpool-row.tgt .v{color:var(--gold-br);font-weight:700}
   /* the unique you're chancing FOR — wider box (belt art is 2:1) + soft glow */
   .bc2 img.uq{width:52px;height:34px;filter:drop-shadow(0 0 7px rgba(255,150,60,.35))}
   .bc2.chance.many img.uq{width:46px;height:33px}
@@ -2996,7 +3008,7 @@ async function loadChance(){
     // were loading is preserved (enabled state stays what the user just set)
     for(const b of chanceList){const p=pm[b.base];
       if(p){b.target_ex=p.target_ex;b.target_div=p.target_div;
-            b.targets=p.targets;b.target_icon=p.target_icon;}}
+            b.targets=p.targets;b.target_icon=p.target_icon;b.pool=p.pool;}}
     renderChanceGrid();
   }catch(_){/* no prices is fine — the cards already work */}}
 function renderChanceGrid(){
@@ -3012,10 +3024,14 @@ function renderChanceGrid(){
     const d=document.createElement("div");
     d.className="bc2 chance"+(b.enabled?"":" dis");
     // live price of the target unique ("what you're chancing FOR"), div when it's big
+    // Only read in divine once it's actually worth a divine or more. The bridge
+    // fills target_div whenever a divine rate exists, so a ~46 ex unique came
+    // through as a useless "0,1 div" while a 13 ex one correctly said "13,5 ex"
+    // (its div rounded to 0 and went falsy) — the unit flipped at an arbitrary point.
     const price=b.target_ex==null?"":
-      (b.target_div?`${b.target_div.toLocaleString()} div`:`${b.target_ex.toLocaleString()} ex`);
+      (b.target_div>=1?`${b.target_div.toLocaleString()} div`:`${b.target_ex.toLocaleString()} ex`);
     const priceHtml=price?`<span class="cprice" title="Live poe.ninja price of ${esc(b.target.split(' / ')[0])}">${price}</span>`:"";
-    const px=t=>t.div?`${t.div.toLocaleString()} div`:(t.ex!=null?`${t.ex.toLocaleString()} ex`:"no price");
+    const px=t=>t.div>=1?`${t.div.toLocaleString()} div`:(t.ex!=null?`${t.ex.toLocaleString()} ex`:"no price");
     // one icon per CURATED target — a base with several (Gold Ring) shows each
     const tgs=(b.targets&&b.targets.length?b.targets
               :[{name:b.target,icon:b.target_icon}]).filter(t=>t.icon);
@@ -3024,13 +3040,26 @@ function renderChanceGrid(){
     // name the ones beyond the curated target, so "what else can come out" is
     // readable and not just a row of pictures
     if(tgs.length>2)d.classList.add("many");
+    // The realistic outcome pool: every unique that shares this base, dearest
+    // first, with the curated jackpot marked. The banner warns that chancing
+    // rolls the whole pool — this shows what that actually means.
+    const pool=b.pool||[];
+    const poolHtml=pool.length?`<div class="cpool"><div class="cpool-h">Can roll into</div>`
+      +pool.map(t=>`<div class="cpool-row${t.target?" tgt":""}">`
+        +(t.icon?`<img loading="lazy" src="${t.icon}" alt="">`:`<span class="ph"></span>`)
+        +`<span class="n">${esc(t.name)}</span>`
+        +`<span class="v">${px(t)}</span></div>`).join("")
+      +`</div>`:"";
     d.innerHTML=`<div class="bc2-top">`
       +(b.icon?`<img loading="lazy" src="${b.icon}">`:"")+tgHtml
       +`<span class="sp"></span>${priceHtml}`
       +`<div class="switch${b.enabled?" on":""}"><i></i></div></div>`
       +`<div class="bc2-bot"><b>${esc(b.base)}</b>`
-      +`<div class="t">→ ${esc(b.target)}</div></div>`;
-    d.onclick=async()=>{b.enabled=!b.enabled;
+      +`<div class="t">→ ${esc(b.target)}</div></div>`
+      +poolHtml;
+    d.onclick=async e=>{
+      if(e.target.closest(".cpool"))return;   // reading the outcome list must not toggle the base
+      b.enabled=!b.enabled;
       await api().set_item("_chance",b.base,b.enabled);
       d.className="bc2 chance"+(b.enabled?"":" dis");
       d.querySelector(".switch").classList.toggle("on",b.enabled);chanceCount();buildChanceSide();};
@@ -3843,6 +3872,22 @@ $("dbgClear").onclick=async()=>{await api().clear_cache();
   toast("Price cache cleared");};
 $("dbgCopy").onclick=async()=>{const r=await copyText($("dbgOut").textContent);toast(r?"Copied":"Clipboard blocked");};
 $("dbgLog").onclick=async()=>{const r=await api().open_file("log");if(r&&r.error)toast(r.error);};
+/* Condense the log tail for a paste-able report. A raw tail is almost all
+   routine noise — 30 identical "INFO config saved" lines crowd out the one line
+   that actually explains the problem, which is the whole point of the paste.
+   Runs of the same message collapse to "(x30)", and any ERROR/WARNING is kept
+   even if it's older than the tail window. */
+function dbgLogDigest(lines,max=12){
+  const strip=s=>s.replace(/^\d{4}-\d\d-\d\d[ T][\d:,.]+\s*/,"");
+  const runs=[];
+  for(const raw of (lines||[]).map(s=>s.trim()).filter(Boolean)){
+    const last=runs[runs.length-1];
+    if(last&&strip(last.line)===strip(raw)){last.n++;continue;}
+    runs.push({line:raw,n:1});}
+  const bad=runs.filter(r=>/\b(ERROR|WARNING|CRITICAL)\b/.test(r.line));
+  const tail=runs.slice(-max);
+  const keep=[...bad.filter(b=>!tail.includes(b)),...tail].slice(-max);
+  return keep.map(r=>r.n>1?`${r.line}   (x${r.n})`:r.line);}
 $("dbgDiag").onclick=async(ev)=>{
   ev.preventDefault();            // it's a link inside a hint, not a button
   const d=await api().debug_info();
@@ -3854,8 +3899,8 @@ $("dbgDiag").onclick=async(ev)=>{
     `bot folder: ${i.bot_folder?"set":"not set"} · auto-copy: ${i.auto_copy?"on":"off"} · output: ${i.output_base}.ipd`,
     `cache: ${JSON.stringify(d.cache)}`,
     `config: ${d.config_path}`,
-    ``, `— last log lines —`,
-    ...(d.log||[]).slice(-30)
+    ``, `— recent log —`,
+    ...dbgLogDigest(d.log)
   ].join("\n");
   toast(await copyText(txt)?"📋 Diagnostics copied — paste anywhere":"Clipboard blocked");};
 $("dbgReport").onclick=async()=>{
@@ -3872,7 +3917,7 @@ $("dbgReport").onclick=async()=>{
     `floors: gear ${i.min_gear} ex · uniques ${i.min_unique} ex · base q${i.base_quality} ilvl${i.base_min_level}`,
     `auto-floor: ${i.auto_floor?("on "+i.auto_floor_pct+"%"):"off"} · bot folder: ${i.bot_folder?"set":"not set"} · auto-copy: ${i.auto_copy?"on":"off"}`,
     `cache: ${JSON.stringify(d.cache)}`];
-  let logs=(d.log||[]).slice(-15);
+  let logs=dbgLogDigest(d.log);
   const mk=()=>{
     const body=[
       "**What went wrong?**",
@@ -3880,7 +3925,7 @@ $("dbgReport").onclick=async()=>{
       "","",
       "---",
       "_Diagnostics (auto-filled — please keep, it helps a lot):_",
-      "~~~",...head,"",`— last ${logs.length} log lines —`,...logs,"~~~"
+      "~~~",...head,"","— recent log —",...logs,"~~~"
     ].join("\n");
     return "https://github.com/c4Luffy/poe2-pickit-generator/issues/new?title="
       +encodeURIComponent("Bug report: ")+"&body="+encodeURIComponent(body);};
@@ -4007,8 +4052,17 @@ function parseSections(){
       const t=l.slice(2,-2).trim();
       if(t&&!/^─/.test(t)){cur={title:t,start:i,active:0,skip:0};pvSections.push(cur);continue;}}
     if(cur&&l.includes("[StashItem]")){l.startsWith("//")?cur.skip++:cur.active++;}}}
+/* A REAL pickit rule: carries the action, has the "#" identify split, and is not
+   an "// Example:" line from the built-in syntax guide. v4.41.18 began writing
+   that guide into every .ipd and its examples contain [StashItem], so a plain
+   `includes("[StashItem]")` counted 9 of them as skipped rules — Preview claimed
+   "9 skipped" for a pickit with nothing disabled at all. Same class of bug the
+   conversion report fixed in v4.39.5. */
+function pvIsRule(l){
+  if(!l.includes("[StashItem]")||!l.includes("#"))return false;
+  return !l.replace(/^\s*\/+\s*/,"").startsWith("Example:");}
 function pvLineOK(l){
-  const isRule=l.includes("[StashItem]");
+  const isRule=pvIsRule(l);
   switch(pvFilter){
     case "active":return isRule&&!l.startsWith("//");
     case "skip":return isRule&&l.startsWith("//");
@@ -4154,8 +4208,8 @@ function renderPreview(){
     +(capped?`
 <span class="l-c">// … ${(shown.length-6000).toLocaleString()} more lines not shown here — `
              +`use the search box to narrow it, or Copy all / open the .ipd for the complete file.</span>`:"");
-  const tot=prevLines.filter(l=>l.includes("[StashItem]")).length;
-  const act=prevLines.filter(l=>l.includes("[StashItem]")&&!l.startsWith("//")).length;
+  const tot=prevLines.filter(pvIsRule).length;
+  const act=prevLines.filter(l=>pvIsRule(l)&&!l.startsWith("//")).length;
   $("pvTotal").textContent=tot?tot.toLocaleString():"–";
   $("pvActive").textContent=tot?act.toLocaleString():"–";
   $("pvSkip").textContent=tot?(tot-act).toLocaleString():"–";

@@ -73,6 +73,21 @@ def build_header_lines(league: str, gen_ts: datetime.datetime, gen_id: str,
     ] + syntax_guide_lines()
 
 
+def is_rule_line(line: str) -> bool:
+    """True for a REAL pickit rule line (active or commented-out).
+
+    A rule carries the [StashItem] action AND the "#" before/after-identify
+    split. The embedded syntax guide's ``// Example: ...`` lines also contain
+    [StashItem], so a bare ``"[StashItem]" in line`` test counted 9 of them as
+    commented-out rules — every UI that reads these numbers reported "9 skipped"
+    for a pickit with nothing disabled at all. Same class of miscount the
+    conversion report fixed in v4.39.5.
+    """
+    if "[StashItem]" not in line or "#" not in line:
+        return False
+    return not line.lstrip().lstrip("/").lstrip().startswith("Example:")
+
+
 def syntax_guide_lines() -> list[str]:
     """The Exiled Bot 2 syntax reference embedded in every generated .ipd —
     [WeightedSum], [IgnoreRitual], WeaponCategory vocabulary, and worked

@@ -42,6 +42,13 @@ _SETTABLE = {
 }
 
 
+# Uniques kept OUT of the Chance tab's "Can roll into" outcome list. This is
+# owner-curated, exactly like gen.CHANCE_BASES — do NOT add or remove a name
+# without an explicit owner decision. Display only: it never changes which
+# bases the generated pickit picks up, only what the card lists as outcomes.
+_CHANCE_POOL_HIDE = {"Ingenuity"}
+
+
 def _config_warning() -> str:
     from exilebot_pickit.ui import config as _c
     return _c.CONFIG_LOAD_ERROR or ""
@@ -2120,11 +2127,30 @@ class AppApi:
             targets = [_one(n.strip()) for n in tgt.split(" / ") if n.strip()]
             priced = [t["ex"] for t in targets if t["ex"] is not None]
             best = max(priced) if priced else None
+            # EVERY unique that actually shares this base — the realistic
+            # outcomes, not just the curated jackpot. Chancing rolls the whole
+            # pool (a Utility Belt is far more often an Ingenuity than a
+            # Mageblood), so listing it with live prices is the difference
+            # between a lottery ticket and an informed choice. Display only:
+            # the curated CHANCE_BASES list still decides what gets picked up.
+            names = {n.strip() for n in tgt.split(" / ") if n.strip()}
+            pool_names = []
+            if isinstance(acc, dict):
+                for ln in acc.get("lines", []):
+                    if (ln.get("baseType") == base and ln.get("name")
+                            and ln["name"] not in _CHANCE_POOL_HIDE):
+                        pool_names.append(ln["name"])
+            pool = [_one(n) for n in dict.fromkeys(pool_names)]   # dedupe, keep order
+            for t in pool:
+                t["target"] = t["name"] in names       # flag the curated jackpot
+            # dearest first; unpriced sink to the bottom
+            pool.sort(key=lambda t: (t["ex"] is None, -(t["ex"] or 0)))
             out.append({"cat": cat, "base": base, "target": tgt,
                         "icon": STATIC_ICONS.get(base, ""),
                         # first target's art kept for older callers/tests
                         "target_icon": targets[0]["icon"] if targets else "",
                         "targets": targets,
+                        "pool": pool,
                         "target_ex": best,
                         "target_div": round(best / div_rate, 1)
                         if best is not None and div_rate > 1 else None,
@@ -2592,8 +2618,8 @@ class AppApi:
             # Headers are multi-line strings; Preview's section parser works
             # line-by-line, so flatten to real lines (same shape as the file).
             self._last_lines = content.splitlines()
-            active = sum(1 for l in out if l and not l.startswith("//") and "[StashItem]" in l)
-            commented = sum(1 for l in out if l.startswith("//") and "[StashItem]" in l)
+            active = sum(1 for l in out if l and not l.startswith("//") and asm.is_rule_line(l))
+            commented = sum(1 for l in out if l.startswith("//") and asm.is_rule_line(l))
             top_pool.sort(key=lambda t: -t[1])
             _seen = set()
             top_pool = [t for t in top_pool

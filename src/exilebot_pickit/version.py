@@ -1,11 +1,17 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.21"
+VERSION = "4.41.22"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Preview stopped inventing skipped rules. It read "9 skipped" on a pickit with nothing disabled at all — those 9 were the "// Example:" lines of the syntax guide the app began writing into every .ipd in 4.41.18. They contain [StashItem], so a plain substring test counted them as rules you had switched off. The same miscount fed the Generate tab's "skipped" tile and the command line's "Commented out:" total, so three places reported a number that was never real. All three now count a rule only if it carries the action AND the "#" identify split and isn't a guide example.
+• The Chance tab shows what chancing REALLY rolls. Each base now lists every unique that shares it, dearest first, with live prices — so "a Utility Belt is far more often an Ingenuity than a Mageblood" becomes data you can see (Mageblood at 327 div sitting next to the 1 ex outcomes) instead of a warning you take on faith. The jackpot is highlighted, and the list is read-only so reading it can never toggle the base off.
+• Chance prices stopped flipping units at random. A ~46 ex unique showed as a useless "0,1 div" while a 13 ex one correctly read "13,5 ex" — divine was used whenever a divine rate existed, however tiny the result. Divine now appears only once something is actually worth a divine or more.
+• Diagnostics you paste for help are readable. The report ended with 30 identical "INFO config saved" lines, which pushed the one line explaining the problem off the end. Repeats now collapse to "(x30)", and any ERROR or WARNING is kept even when older than the window, so the useful line survives the noise.
+
+Also in 4.41.21:
 • Prices load in the background the moment the app opens, so the wait is gone. Opening Economy used to fetch 24 poe.ninja price lists on the spot — five at a time, with a back-off whenever poe.ninja rate-limited — and you watched "Loading prices…" for it. That same fetch now starts in the background at launch, while you're still on Generate, so the tab is normally ready the instant you click it. Everything that reads prices shares the one cache, so Generate, the Chance tab and Auto-floor all get the same head start. Nothing else changed: prices are just as fresh, and Refresh prices still forces a live re-fetch.
 
 Also in 4.41.20:

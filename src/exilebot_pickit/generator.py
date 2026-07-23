@@ -1486,8 +1486,9 @@ def main():
     write_text_atomic(filter_path, "\n".join(
         build_loot_filter(output_lines, theme=args.filter_theme)))
 
-    active    = sum(1 for l in output_lines if l and not l.startswith("//") and "[StashItem]" in l)
-    commented = sum(1 for l in output_lines if l.startswith("//") and "[StashItem]" in l)
+    from .generators.assembly import is_rule_line
+    active    = sum(1 for l in output_lines if l and not l.startswith("//") and is_rule_line(l))
+    commented = sum(1 for l in output_lines if l.startswith("//") and is_rule_line(l))
     print(f"Written to   : {args.output}")
     print(f"Item report  : {csv_path}")
     print(f"Loot filter  : {filter_path}")
