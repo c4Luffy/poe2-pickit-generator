@@ -138,6 +138,30 @@ def test_build_category_lines_waystones_ignores_payload():
     assert lines == gen.build_waystone_lines()
 
 
+def test_build_category_lines_tablets_dispatches_before_is_unique_branch():
+    """The "tablets" key must be checked BEFORE the generic `is_unique` branch,
+    even though it also fetches via the stash endpoint (is_unique=True) —
+    otherwise it would wrongly fall into build_unique_lines and emit
+    [UniqueName] rules for an ordinary Normal/Magic/Rare tablet."""
+    payload = {
+        "core": {"rates": {"exalted": 1.0}},
+        "lines": [
+            {"name": "Ritual Tablet", "baseType": "Ritual Tablet",
+             "variant": "Normal", "primaryValue": 50.0},
+            {"name": "Ritual Tablet", "baseType": "Ritual Tablet",
+             "variant": "Rare", "primaryValue": 1.0},
+        ],
+    }
+    cat_states = {"Ritual Tablet (Rare)": {"enabled": False}}
+    lines = asm.build_category_lines("tablets", True, payload, 1.0, 10.0, 5.0,
+                                     None, cat_states=cat_states)
+    joined = "\n".join(lines)
+    assert '[UniqueName]' not in joined
+    assert '[Type] == "Ritual Tablet" && [Rarity] == "Normal"' in joined
+    # disabled by its combined (base, variant) identity -> gone entirely
+    assert "Rare" not in joined
+
+
 def test_price_alerts_record_uniques_not_just_items_table_categories():
     """Unique payloads ship items: [] and carry the name on the LINE — the same
     reason build_unique_lines reads the line directly. compute_price_alerts

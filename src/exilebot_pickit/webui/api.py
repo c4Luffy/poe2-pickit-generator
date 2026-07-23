@@ -331,7 +331,39 @@ class AppApi:
                             if isinstance(v, (int, float)) and math.isfinite(v)]
                     return [round(v, 2) for v in vals] if len(vals) >= 2 else None
 
-                if is_unique:
+                if key == "tablets":
+                    # Regular tablets are priced PER RARITY VARIANT — the
+                    # payload's own "name" is just the tablet type and is the
+                    # SAME for all three rarity rows, so keying on "name" alone
+                    # (like the is_unique branch below does) would silently
+                    # dedupe two of every three rows. "{baseType} ({variant})"
+                    # matches this app's existing "Uncut Skill Gem (Level N)"
+                    # convention for the same same-name-different-variant shape.
+                    #
+                    # "sec" groups the table by tablet TYPE (Overseer, Abyss,
+                    # Breach, Ritual, Irradiated, Temple, Delirium) with its
+                    # Normal/Magic/Rare rows kept together underneath, instead
+                    # of one flat 21-row list sorted by value — same idea as
+                    # Exotic Bases grouping by gear slot.
+                    for line in p.get("lines", []):
+                        base = line.get("baseType") or line.get("name")
+                        variant = line.get("variant")
+                        if not base or not variant:
+                            continue
+                        nm = f"{base} ({variant})"
+                        if nm in seen:
+                            continue
+                        seen.add(nm)
+                        ev = float(line.get("primaryValue") or 0.0) * (r or 1.0)
+                        if not math.isfinite(ev):
+                            ev = 0.0           # NaN over the bridge hangs the JS promise
+                        items.append({"name": nm, "base": base, "ex": round(ev, 2),
+                                      "enabled": cat_states.get(nm, {}).get("enabled", True),
+                                      "icon": line.get("icon") or "",
+                                      "chg": _chg(nm, ev, line.get("sparkLine")),
+                                      "spark": _spark(line.get("sparkLine")),
+                                      "sec": base, "_variant": variant})
+                elif is_unique:
                     for line in p.get("lines", []):
                         nm = line.get("name")
                         if not nm or nm in seen:
@@ -365,7 +397,17 @@ class AppApi:
                         items.append({"name": nm, "base": "", "ex": round(ev, 2),
                                       "enabled": cat_states.get(nm, {}).get("enabled", True),
                                       "icon": img, "chg": _chg(nm, ev)})
-                items.sort(key=lambda i: -i["ex"])
+                if key == "tablets":
+                    # Type order matches poe.ninja's own row order; rarity order
+                    # is always Normal, Magic, Rare within a type — a value sort
+                    # here would scatter Normal (priced) away from its near-
+                    # worthless Rare/Magic siblings, defeating the grouping.
+                    rarity_rank = {"Normal": 0, "Magic": 1, "Rare": 2}
+                    type_order = list(dict.fromkeys(i["sec"] for i in items))
+                    items.sort(key=lambda i: (type_order.index(i["sec"]),
+                                               rarity_rank.get(i.pop("_variant"), 9)))
+                else:
+                    items.sort(key=lambda i: -i["ex"])
                 if not is_unique:
                     priced.update(i["name"] for i in items)
                 out.append({"key": key, "label": label, "unique": is_unique, "items": items})
@@ -443,14 +485,15 @@ class AppApi:
         Each: (key, sidebar label, [(item name, sub label, section), ...]).
         A blank section means the category renders as one flat list."""
         return [
+            # Tablets (regular and unique) left this always-pick list 2026-07-23:
+            # poe.ninja now prices both ("tablets" / "unique_tablets" categories),
+            # so they show up as normal priced Economy categories instead — see
+            # api/client.py and build_tablet_market_lines.
+            #
             # Rows are (name, sub-label, section). The section splits one
-            # category's table under sub-headings — 16 tablets read as an
-            # undifferentiated list, and 48 exotic bases as one alphabetical
-            # run where the rings and amulets you care about are scattered.
-            ("_ap_tablets", "Tablets",
-             [(t, "all rarities", "Tablets") for t in gen.TABLET_TYPES]
-             + [(un, f"unique · {typ}", "Unique Tablets")
-                for typ, un in gen.TABLET_UNIQUES]),
+            # category's table under sub-headings — 48 exotic bases as one
+            # alphabetical run where the rings and amulets you care about are
+            # scattered, for the group still below.
             # Split out of one "Fragments & Keys" bucket 2026-07-20. Three
             # unrelated things shared a category, so a pinnacle key like Raven's
             # Reflection was filed under "Fragments" and looked misplaced.
@@ -614,6 +657,15 @@ class AppApi:
     def rule_for(self, cat_key, name, is_unique, base, ex):
         """The pickit rule line for one item — for right-click 'copy rule'."""
         safe = name.replace('"', '\\"')
+        if cat_key == "tablets":
+            # Display name is "{base type} ({variant})" (see economy()) —
+            # pull the rarity back out to rebuild the real emitted rule,
+            # which is gated on [Rarity], never [UniqueName].
+            m = re.match(r'^(.*) \((Normal|Magic|Rare)\)$', name)
+            if m:
+                bt = m.group(1).replace('"', '\\"')
+                return (f'[Type] == "{bt}" && [Rarity] == "{m.group(2)}" '
+                        f'# [StashItem] == "true" // ExValue = {float(ex):.2f}')
         if is_unique:
             sb = gen.strip_runeforged_base(base or "").replace('"', '\\"')
             return (f'[Type] == "{sb}" && [Rarity] == "Unique" # [UniqueName] == "{safe}" '
@@ -624,11 +676,10 @@ class AppApi:
                     return next((r for r in gen.WAYSTONE_FALLBACK_RULES
                                  if f'"{rar}"' in r), "")
         if cat_key == "_static" or cat_key.startswith("_ap_"):
-            if any(name == n for _t, n in gen.TABLET_UNIQUES):
-                typ = next(t for t, n in gen.TABLET_UNIQUES if n == name)
-                st = typ.replace('"', '\\"')
-                return (f'[Type] == "{st}" && [Rarity] == "Unique" # [UniqueName] == "{safe}" '
-                        f'&& [StashItem] == "true" && [IgnoreRitual] == "true"')
+            # Unique tablets left the always-pick groups 2026-07-23 (they're a
+            # real priced "unique_tablets" category now, handled by the
+            # `is_unique` branch above) — nothing under "_ap_*" needs the
+            # [UniqueName] shape any more.
             return f'[Type] == "{safe}" # [StashItem] == "true"'
         return f'[Type] == "{safe}" # [StashItem] == "true" // ExValue = {float(ex):.2f}'
 
@@ -2940,7 +2991,7 @@ class AppApi:
                 return float(ln.get("primaryValue") or 0.0) * r
         return None
 
-    def _economy_rows(self, league, snap, gear, uniq, cands):
+    def _economy_rows(self, league, snap, gear, uniq, cands, rarity=""):
         """Verdict rows for a priced item — and the .ipd line, when it is picked.
 
         This does not *simulate* anything: it runs the same ``assembly`` call that
@@ -2954,12 +3005,26 @@ class AppApi:
         chaos = self._chaos_rate(cur)
         # people price things in different units — show all three
         px = lambda v: self._price_str(v, div, chaos)          # noqa: E731
+        variant = (rarity or "").strip().title()
 
         for key, _t, label, is_uniq in gen.ALL_CATEGORIES:
             p = payloads.get(key)
             if not isinstance(p, dict):
                 continue
-            price = self._payload_price(p, cands, is_uniq)
+            if key == "tablets":
+                # Regular tablets are priced PER RARITY VARIANT, not by name
+                # alone (the payload's "name" is the same for all three of a
+                # type's rows) — match the pasted item's own rarity too, or
+                # this could quote a different variant's price than the one
+                # actually being checked.
+                if not variant:
+                    continue
+                price = next((float(ln.get("primaryValue") or 0.0) * (gen.exalted_rate(p) or 1.0)
+                             for ln in p.get("lines", [])
+                             if (ln.get("baseType") or ln.get("name")) in cands
+                             and ln.get("variant") == variant), None)
+            else:
+                price = self._payload_price(p, cands, is_uniq)
             if price is None:
                 continue                       # this category doesn't price it
             cat_on = bool(snap["cat_enabled"].get(key, True))
@@ -2970,8 +3035,14 @@ class AppApi:
                 en = asm.enabled_names_for(key, is_uniq, p, cs)
                 for line in asm.build_category_lines(key, is_uniq, p, div, eff,
                                                      gear, en, cat_states=cs):
-                    if (line and not line.startswith("//") and "[StashItem]" in line
-                            and asm.extract_rule_name(line) in cands):
+                    if not (line and not line.startswith("//") and "[StashItem]" in line):
+                        continue
+                    if key == "tablets":
+                        if (asm.extract_rule_name(line) in cands
+                                and f'[Rarity] == "{variant}"' in line):
+                            hit = line
+                            break
+                    elif asm.extract_rule_name(line) in cands:
                         hit = line
                         break
             what = "unique floor" if is_uniq else "item floor"
@@ -3423,7 +3494,7 @@ class AppApi:
 
             rows, rule = [], None
             if league:
-                rows, rule = self._economy_rows(league, snap, gear, uniq, cands)
+                rows, rule = self._economy_rows(league, snap, gear, uniq, cands, rarity)
             fractured = "fractured" in (text or "").lower()
             rows += self._base_rows(snap, cands, base, klass, rarity, ilvl, fractured)
             rows += self._rare_rows(snap, base, rarity)

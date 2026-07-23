@@ -1,11 +1,16 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.18"
+VERSION = "4.41.19"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Regular and unique tablets are priced live now, not hardcoded. poe.ninja added real pricing for both — Precursor Tablets (Overseer, Abyss, Breach, Ritual, Irradiated, Temple, Delirium; priced separately per rarity, Normal/Magic/Rare) and Unique Tablets (all nine) — so generated pickits now respect the normal value floor for tablets like every other market item, instead of force-picking every rarity regardless of what it's actually worth. Some are genuinely valuable (a Normal Ritual Tablet has been worth close to a Divine).
+• Both show up as their own Economy categories under Atlas, matching how poe.ninja itself groups them, with live prices, 7-day trend arrows and per-item switches. Precursor Tablets are further grouped by tablet type, with each type's Normal/Magic/Rare rows kept together — the same idea as Exotic Bases grouping by gear slot.
+• The Economy sidebar now matches poe.ninja's own layout exactly — section names, order, and item order within each section (General, Equipment, Atlas), checked directly against the live site. Waystones moved out of General into Always pick, since poe.ninja doesn't price it at all and every tier is always kept regardless of value.
+
+Also in 4.41.18:
 • A full audit pass — 5 parallel reviews of the rule engine, the bridge, the UI, the data files and config safety, every finding verified by hand before anything shipped. Real fixes: item/unique names with a literal double-quote could corrupt a rule’s syntax (latent — no live item has one today, but the quoting helper existed and 4 call sites weren’t using it); the "always kept regardless of price" guarantee had no way to apply to a name ever priced under a unique-shaped payload (also latent, but the guarantee is supposed to be unconditional); clicking a column header on an Always-pick view (Tablets, Exotic Bases) painted a sort arrow that lied — the rows never actually sorted; and the app’s own embedded syntax guide ([WeightedSum], [IgnoreRitual], WeaponCategory) existed, fully written and tested, but neither writer ever called it — no generated file has ever shipped it until now. Two small data cleanups: an exotic-base slot entry left over from a removed item, and a stronger test so the slot map can’t drift in either direction again.
 
 Also in 4.41.17:

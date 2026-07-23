@@ -62,14 +62,16 @@ def test_bundled_game_data_matches_code_defaults():
 
 
 def test_static_builders_emit_expected_rules():
+    """Tablets (regular and unique) left build_tablet_rules 2026-07-23 — poe.ninja
+    prices both live now (the "tablets" / "unique_tablets" categories, see
+    build_tablet_market_lines), so they're built by the normal priced pipeline
+    like any other market item instead of being force-picked here. This builder
+    only emits splinters any more."""
     tab = gen.build_tablet_rules()
-    # one rule per unique tablet + 3 rarities per tablet type + splinters
-    assert sum('[Rarity] == "Unique"' in ln for ln in tab) == len(corr.TABLET_UNIQUES)
-    for typ in corr.TABLET_TYPES:
-        for rar in ("Normal", "Magic", "Rare"):
-            assert f'[Type] == "{typ}" && [Rarity] == "{rar}" # [StashItem] == "true"' in tab
     for s in corr.SPLINTERS:
         assert f'[Type] == "{s}" # [StashItem] == "true"' in tab
+    assert not any('[Rarity] == "Unique"' in ln for ln in tab)
+    assert not any("Tablet" in ln for ln in tab)
     womb = gen.build_wombgift_rules()
     for w in corr.WOMBGIFTS:
         assert f'[Type] == "{w}" # [StashItem] == "true"' in womb
@@ -78,9 +80,15 @@ def test_static_builders_emit_expected_rules():
 
 
 def test_apply_updates_static_sections_in_place():
-    """A remote edit (e.g. a new tablet type after a patch) must flow into the
+    """A remote edit (e.g. a new wombgift or chance base) must flow into the
     generated rules without a restart, and generator's imported references
-    must see it (in-place mutation)."""
+    must see it (in-place mutation).
+
+    Tablets no longer feed a rule builder from this data (poe.ninja prices
+    them live — see build_tablet_market_lines / the unique_tablets category),
+    but the remote-update mechanism for TABLET_TYPES/TABLET_UNIQUES themselves
+    is still exercised here so that data (kept for reference) stays correct.
+    """
     saved = {
         "types": list(corr.TABLET_TYPES),
         "uniques": list(corr.TABLET_UNIQUES),
@@ -96,9 +104,8 @@ def test_apply_updates_static_sections_in_place():
             "chance_bases": [["Belts", "Heavy Belt", "Headhunter"]],
             "name_fixes": {"skip": ["Bogus Item"]},
         })
-        tab = gen.build_tablet_rules()
-        assert '[Type] == "Testline Tablet" && [Rarity] == "Rare" # [StashItem] == "true"' in tab
-        assert any("Imaginary Unique" in ln for ln in tab)
+        assert "Testline Tablet" in corr.TABLET_TYPES
+        assert ("Testline Tablet", "Imaginary Unique") in corr.TABLET_UNIQUES
         assert '[Type] == "New Wombgift" # [StashItem] == "true"' in gen.build_wombgift_rules()
         assert gen.CHANCE_BASES == [("Belts", "Heavy Belt", "Headhunter")]
         assert "Bogus Item" in gen.ITEM_NAME_SKIP  # same object as corr's
@@ -120,22 +127,46 @@ def test_validate_rejects_malformed_sections():
 
 
 def test_builders_respect_disabled_names():
-    dis = {"Overseer Tablet", "Visions of Paradise", "Breach Splinter"}
+    """build_tablet_rules only carries splinters now — tablets moved to the
+    priced pipeline (see test_tablet_market_lines_respect_disabled_names_and_floor
+    below for that mechanism)."""
+    dis = {"Breach Splinter"}
     lines = gen.build_tablet_rules(dis)
     tab = "\n".join(lines)
-    # the TYPE toggle kills the all-rarity rules but not that type's uniques
-    assert '[Type] == "Overseer Tablet" && [Rarity] == "Normal"' not in tab
-    assert "Cruel Hegemony" in tab
-    assert "Visions of Paradise" not in tab
     assert "Breach Splinter" not in tab
     assert "Simulacrum Splinter" in tab
-    assert "Abyss Tablet" in tab
     assert gen.build_wombgift_rules(set(corr.WOMBGIFTS)) == []
     assert gen.build_special_item_rules(set(corr.SPECIAL_ITEMS)) == []
-    # nothing disabled → all sections present
+    # nothing disabled → all splinters present
     full = "\n".join(gen.build_tablet_rules())
-    for t in corr.TABLET_TYPES:
-        assert t in full
+    for s in corr.SPLINTERS:
+        assert s in full
+
+
+def test_tablet_market_lines_respect_disabled_names_and_floor():
+    """The new priced-tablet builder (poe.ninja's PrecursorTablets category,
+    added 2026-07-23): per (type, rarity) disable, and the normal value floor —
+    the two things the old always-pick build_tablet_rules skipped entirely
+    because poe.ninja didn't price tablets at all back then."""
+    payload = {
+        "core": {"rates": {"exalted": 100.0}},
+        "lines": [
+            {"name": "Ritual Tablet", "baseType": "Ritual Tablet",
+             "variant": "Normal", "primaryValue": 1.0},
+            {"name": "Ritual Tablet", "baseType": "Ritual Tablet",
+             "variant": "Magic", "primaryValue": 0.01},
+            {"name": "Overseer Tablet", "baseType": "Overseer Tablet",
+             "variant": "Rare", "primaryValue": 1.0},
+        ],
+    }
+    out = gen.build_tablet_market_lines(payload, 100.0, min_exalt=10.0,
+                                        disabled_names={"Overseer Tablet (Rare)"})
+    assert any(l == '[Type] == "Ritual Tablet" && [Rarity] == "Normal" '
+                    '# [StashItem] == "true" // ExValue = 100.00' for l in out)
+    # below the floor: commented out, not dropped
+    assert any(l.startswith('//[Type] == "Ritual Tablet" && [Rarity] == "Magic"') for l in out)
+    # disabled: gone entirely, active or commented
+    assert not any("Overseer Tablet" in l for l in out)
 
 
 def test_unique_exceptional_removed():

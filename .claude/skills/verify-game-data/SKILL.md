@@ -10,9 +10,11 @@ PoE2 removes and renames items every patch. Before adding ANY item name to
 `generator.CHANCE_BASES`, verify it actually DROPS in the current patch:
 
 1. **Primary source — NeverSink's live filter** (the FilterBlade data):
-   download `https://raw.githubusercontent.com/NeverSinkDev/NeverSink-Filter-for-PoE2/main/NeverSink's%20filter%202%20-%200-SOFT.filter`
-   and grep for the exact name. If it's not in the SOFT filter, it does not
-   drop — do not add it (poe2db lists datamined UNRELEASED items, e.g.
+   download `https://raw.githubusercontent.com/NeverSinkDev/NeverSink-PoE2litefilter/master/NeverSink's%20filter%202%20-%200-SOFT.filter`
+   (this is the exact URL `tools/check_game_data.py`'s `NEVERSINK_URL` uses —
+   keep this skill's link in sync with that constant, they drifted apart once
+   already) and grep for the exact name. If it's not in the SOFT filter, it
+   does not drop — do not add it (poe2db lists datamined UNRELEASED items, e.g.
    "Expedition Tablet" and "Tempered Rune" were traps).
 2. **Secondary — poe2db.tw** for stats/icons: page URL is the name with
    spaces→underscores, apostrophes kept ("Kulemaks_Invitation" style when

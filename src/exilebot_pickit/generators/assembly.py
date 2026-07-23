@@ -276,6 +276,15 @@ def build_category_lines(key: str, is_unique: bool, payload: dict,
                          cat_states: dict | None = None) -> list[str]:
     """Build the pickit lines for one economy category, dispatching to the right
     builder in poe2_pickit_generator based on the category key."""
+    if key == "tablets":
+        # Regular tablets are priced PER RARITY VARIANT (Normal/Magic/Rare),
+        # not by name alone — this must be checked before the generic
+        # is_unique branch below, even though this category also uses the
+        # stash endpoint (is_unique=True) for fetching.
+        dis = {n for n, s in (cat_states or {}).items()
+               if not s.get("enabled", True)}
+        return gen.build_tablet_market_lines(payload, divine_rate_exalts, min_exalt=eff_min,
+                                             disabled_names=dis)
     if is_unique:
         dis = {n for n, s in (cat_states or {}).items()
                if not s.get("enabled", True)}

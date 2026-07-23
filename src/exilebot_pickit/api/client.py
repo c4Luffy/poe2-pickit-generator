@@ -16,20 +16,24 @@ MIN_EXALT = 10.0
 
 
 EXCHANGE_CATEGORIES = [
-    # Order matches the in-game stash-tab list
+    # Order matches poe.ninja's own "GENERAL" sidebar section exactly (checked
+    # 2026-07-23 against the live site) so our Economy tab reads the same top
+    # to bottom as the site the prices come from.
     ("currency",            "Currency",           "Currency",             False),
-    ("essences",            "Essences",           "Essences",             False),
-    ("liquid_emotions",     "Delirium",           "Delirium",             False),
-    ("catalysts",           "Breach",             "Catalysts",            False),
-    ("abyssal_bones",       "Abyss",              "Abyss",                False),
     ("fragments",           "Fragments",          "Fragments",            False),
-    ("runes",               "Runes",              "Runes",                False),
-    ("omens",               "Ritual",             "Omens",                False),
+    ("abyssal_bones",       "Abyss",              "Abyssal Bones",        False),
+    ("uncut_gems",          "UncutGems",          "Uncut Gems",           False),
+    # poe.ninja labels this "Lineage Gems" in its sidebar; LineageSupportGems
+    # is only the API type name.
+    ("lineage_support_gems","LineageSupportGems", "Lineage Gems",         False),
+    ("essences",            "Essences",           "Essences",             False),
     ("soul_cores",          "SoulCores",          "Soul Cores",           False),
     ("idols",               "Idols",              "Idols",                False),
-    ("uncut_gems",          "UncutGems",          "Uncut Gems",           False),
-    ("lineage_support_gems","LineageSupportGems", "Support Gems",         False),
+    ("runes",               "Runes",              "Runes",                False),
+    ("omens",               "Ritual",             "Omens",                False),
     ("expedition",          "Expedition",         "Expedition",           False),
+    ("liquid_emotions",     "Delirium",           "Liquid Emotions",      False),
+    ("catalysts",           "Breach",             "Catalysts",            False),
     # Verisium — added 2026-07-20 after the owner noticed loot going unpicked.
     # poe.ninja has always served this category and the app never fetched it, so
     # all 24 items had NO rule at any floor: Celestial Alloy at ~308 ex was being
@@ -37,6 +41,16 @@ EXCHANGE_CATEGORIES = [
     # floor filters the sub-1 ex tail on its own.
     ("verisium",            "Verisium",           "Verisium",             False),
     ("waystones",           "Waystones",          "Waystones",            False),
+    # Tablets — added 2026-07-23. poe.ninja now prices regular precursor tablets
+    # (Overseer/Abyss/Breach/Ritual/Irradiated/Temple/Delirium), one row per
+    # (type, rarity) pair — 7 types x 3 rarities = 21 rows — under the STASH
+    # endpoint (hence is_unique=True, purely for endpoint routing: this is not a
+    # real unique category, see build_tablet_market_lines). These used to be
+    # hardcoded always-pick rules (TABLET_TYPES / build_tablet_rules) with no
+    # live price and no value floor; now they're priced and floored like every
+    # other market item. Confirmed live 2026-07-23 (owner-provided network
+    # capture): type="PrecursorTablets".
+    ("tablets",             "PrecursorTablets",   "Precursor Tablets",    True),
 ]
 
 UNIQUE_CATEGORIES = [
@@ -47,6 +61,13 @@ UNIQUE_CATEGORIES = [
     ("unique_charms",     "UniqueCharms",       "Unique Charms",      True),
     ("unique_jewels",     "UniqueJewels",       "Unique Jewels",      True),
     ("unique_relics",     "UniqueSanctumRelics","Unique Relics",      True),
+    # Unique tablets — added 2026-07-23, same day as "tablets" above. Unlike
+    # regular tablets this payload shape matches every other unique category
+    # exactly (name/baseType/primaryValue, no rarity variant dimension — a
+    # unique tablet has only one form), so it needs no special handling at all:
+    # build_unique_lines() already does the right thing. Replaces the
+    # hardcoded TABLET_UNIQUES always-pick block.
+    ("unique_tablets",    "UniqueTablets",      "Unique Tablets",     True),
 ]
 
 ALL_CATEGORIES = EXCHANGE_CATEGORIES + UNIQUE_CATEGORIES

@@ -136,6 +136,85 @@ def test_economy_shape(api):
     assert cur["items"][0]["icon"].startswith("https://web.poecdn.com")
 
 
+def test_economy_tablets_keys_rows_by_rarity_not_just_name(api, monkeypatch):
+    """poe.ninja's PrecursorTablets payload gives every rarity of a tablet type
+    the SAME "name" — keying Economy rows on name alone (like the generic
+    is_unique branch does for real uniques) would silently dedupe two of every
+    three rows. "{base} ({variant})" must keep all three visible and priced."""
+    payload = {
+        "core": {"rates": {"exalted": 1.0}},
+        "lines": [
+            {"name": "Ritual Tablet", "baseType": "Ritual Tablet",
+             "variant": "Normal", "primaryValue": 90.0, "icon": "https://x/n.png"},
+            {"name": "Ritual Tablet", "baseType": "Ritual Tablet",
+             "variant": "Magic", "primaryValue": 50.0, "icon": "https://x/m.png"},
+            {"name": "Ritual Tablet", "baseType": "Ritual Tablet",
+             "variant": "Rare", "primaryValue": 10.0, "icon": "https://x/r.png"},
+        ],
+    }
+
+    def fake(league, categories, **kw):
+        return {k: (payload if k == "tablets" else {"core": {"rates": {"exalted": 1.0}},
+                                                     "items": [], "lines": []})
+                for k, *_ in categories}
+    monkeypatch.setattr(webapi.gen, "fetch_all_payloads", fake)
+
+    cat = next(c for c in api.economy("L")["cats"] if c["key"] == "tablets")
+    names = {i["name"] for i in cat["items"]}
+    assert names == {"Ritual Tablet (Normal)", "Ritual Tablet (Magic)", "Ritual Tablet (Rare)"}
+    assert len(cat["items"]) == 3      # nothing deduped away
+    normal = next(i for i in cat["items"] if i["name"] == "Ritual Tablet (Normal)")
+    assert normal["base"] == "Ritual Tablet" and normal["ex"] == 90.0
+
+
+def test_economy_tablets_group_by_type_with_rarities_kept_together(api, monkeypatch):
+    """The Economy tab groups Precursor Tablets by tablet type (like Delirium's
+    own "sec" grouping) with Normal/Magic/Rare kept together underneath, instead
+    of one flat list sorted by value — a value sort would tear a type's cheap
+    Rare away from its priced Normal, scattering the very grouping requested."""
+    payload = {
+        "core": {"rates": {"exalted": 1.0}},
+        "lines": [
+            {"name": "Overseer Tablet", "baseType": "Overseer Tablet",
+             "variant": "Rare", "primaryValue": 1.0},
+            {"name": "Overseer Tablet", "baseType": "Overseer Tablet",
+             "variant": "Normal", "primaryValue": 200.0},
+            {"name": "Ritual Tablet", "baseType": "Ritual Tablet",
+             "variant": "Normal", "primaryValue": 90.0},
+            {"name": "Overseer Tablet", "baseType": "Overseer Tablet",
+             "variant": "Magic", "primaryValue": 50.0},
+            {"name": "Ritual Tablet", "baseType": "Ritual Tablet",
+             "variant": "Rare", "primaryValue": 5.0},
+            {"name": "Ritual Tablet", "baseType": "Ritual Tablet",
+             "variant": "Magic", "primaryValue": 30.0},
+        ],
+    }
+
+    def fake(league, categories, **kw):
+        return {k: (payload if k == "tablets" else {"core": {"rates": {"exalted": 1.0}},
+                                                     "items": [], "lines": []})
+                for k, *_ in categories}
+    monkeypatch.setattr(webapi.gen, "fetch_all_payloads", fake)
+
+    cat = next(c for c in api.economy("L")["cats"] if c["key"] == "tablets")
+    names = [i["name"] for i in cat["items"]]
+    # Overseer's three variants stay adjacent, in rarity order, ahead of Ritual's
+    # three — never sorted by value (which would put both Normals first).
+    assert names == ["Overseer Tablet (Normal)", "Overseer Tablet (Magic)",
+                      "Overseer Tablet (Rare)", "Ritual Tablet (Normal)",
+                      "Ritual Tablet (Magic)", "Ritual Tablet (Rare)"]
+    assert all(i["sec"] == i["base"] for i in cat["items"])
+    assert all("_variant" not in i for i in cat["items"])   # internal sort helper, not shipped
+
+
+def test_rule_for_tablets_rebuilds_the_rarity_gated_rule(api):
+    """The right-click 'copy rule' button must reconstruct the real emitted
+    rule ([Rarity]-gated, never [UniqueName]) from the combined display name."""
+    r = api.rule_for("tablets", "Ritual Tablet (Normal)", True, "Ritual Tablet", 42.5)
+    assert r == ('[Type] == "Ritual Tablet" && [Rarity] == "Normal" '
+                 '# [StashItem] == "true" // ExValue = 42.50')
+
+
 def test_presets_are_well_formed():
     """Every preset must carry the copy the UI renders (name/tag/picks/floors/cost)
     and a strictness the meter can actually draw."""
@@ -1419,10 +1498,10 @@ def test_disabling_the_whole_old_category_survives_the_split(api):
     snap = api._snapshot()
     for key in ("_ap_splinters", "_ap_wombgifts", "_ap_keys"):
         assert snap["cat_enabled"][key] is False, key
-    # groups that were never part of that bucket are untouched
-    assert snap["cat_enabled"]["_ap_tablets"] is True
     dis = api._ap_disabled(snap)
     assert "Raven's Reflection" in dis
+    # Tablets left the always-pick groups entirely 2026-07-23 (poe.ninja prices
+    # them live now) — they can no longer appear in this set at all.
     assert not any(t in dis for t in gen.TABLET_TYPES)
 
 
@@ -1435,26 +1514,28 @@ def test_a_current_switch_beats_the_retired_one(api):
     assert "Raven's Reflection" not in api._ap_disabled(api._snapshot())
 
 
-def test_tablets_are_one_category_split_into_sections(api):
-    """16 tablets read as one undifferentiated list: the 7 you juice maps with,
-    then 9 uniques. They stay ONE category (4.41.5 briefly made them two) and are
-    separated by a sub-heading instead."""
+def test_tablets_no_longer_have_an_always_pick_group(api):
+    """Tablets (regular and unique) left the always-pick groups entirely
+    2026-07-23 — poe.ninja prices both live now (the "tablets" /
+    "unique_tablets" categories, see build_tablet_market_lines), so they're
+    normal priced Economy categories with no static bucket or legacy key at
+    all any more."""
     groups = dict((k, rows) for k, _l, rows in api._ap_groups())
+    assert "_ap_tablets" not in groups
     assert "_ap_tablet_uniques" not in groups
-    secs = [(n, s) for n, _b, s in groups["_ap_tablets"]]
-    assert [n for n, s in secs if s == "Tablets"] == list(gen.TABLET_TYPES)
-    assert ([n for n, s in secs if s == "Unique Tablets"]
-            == [u for _t, u in gen.TABLET_UNIQUES])
-    # base tablets must all come before the uniques, or the heading splits nothing
-    kinds = [s for _n, s in secs]
-    assert kinds == sorted(kinds, key=lambda s: s == "Unique Tablets")
 
 
-def test_a_switch_saved_during_the_split_release_still_counts(api):
-    """4.41.5 shipped uniques as their own category. Switches saved against that
-    key must survive folding them back in, or a disabled unique comes back on."""
-    api.cfg["item_states"] = {"_ap_tablet_uniques": {"Clear Skies": {"enabled": False}}}
-    assert "Clear Skies" in api._ap_disabled(api._snapshot())
+def test_a_stale_tablet_switch_from_before_the_migration_is_harmless(api):
+    """Old switches saved under the retired tablet keys must not raise or leak
+    into the always-pick disabled set — tablets aren't rows in any always-pick
+    group any more, so there is nothing left for them to apply to."""
+    api.cfg["item_states"] = {
+        "_ap_tablets": {"Overseer Tablet": {"enabled": False}},
+        "_ap_tablet_uniques": {"Clear Skies": {"enabled": False}},
+    }
+    dis = api._ap_disabled(api._snapshot())
+    assert "Overseer Tablet" not in dis
+    assert "Clear Skies" not in dis
 
 
 def test_exotic_bases_are_grouped_by_gear_slot(api):

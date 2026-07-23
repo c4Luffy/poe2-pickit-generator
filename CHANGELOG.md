@@ -6,6 +6,40 @@ download lives.
 
 ---
 
+## [v4.41.19] — 2026-07-23 — Tablets are priced live now, not hardcoded
+
+- **Regular and unique tablets are no longer a hardcoded always-pick list.**
+  poe.ninja added real pricing for both — Precursor Tablets (Overseer, Abyss,
+  Breach, Ritual, Irradiated, Temple, Delirium; priced separately per rarity,
+  Normal/Magic/Rare) and Unique Tablets (Visions of Paradise, The Grand
+  Project, and the rest of the nine) — so generated pickits now respect the
+  normal value floor for tablets, the same as every other market item, instead
+  of force-picking every rarity regardless of what it's actually worth. Some
+  of these are genuinely valuable (a Normal Ritual Tablet has been worth close
+  to a Divine), so seeing a real price and being able to set a floor is a real
+  improvement, not just tidiness.
+- **Both show up as their own Economy categories now — filed under Atlas**,
+  matching how poe.ninja itself groups them (separate from its General and
+  Equipment sections), with live prices, 7-day trend arrows, and per-item
+  switches, instead of one undifferentiated always-pick bucket.
+- Confirmed live via a real network capture (2026-07-23): poe.ninja's
+  `PrecursorTablets` category prices all 21 (type x rarity) rows, and
+  `UniqueTablets` prices all nine uniques — both under the same endpoint shape
+  this app already uses for unique items.
+- **The Economy sidebar now matches poe.ninja's own layout exactly** — section
+  names, section order, and item order within each section (GENERAL,
+  EQUIPMENT, ATLAS), checked directly against the live site. Waystones moved
+  out of General into Always pick, next to Wombgifts and Exotic Bases, since
+  poe.ninja doesn't price it at all — every tier is always kept regardless of
+  value, so it belongs with the app's other unconditional picks, not filed as
+  if it were a priced market category.
+- **Precursor Tablets are grouped by tablet type** (Overseer, Abyss, Breach,
+  Ritual, Irradiated, Temple, Delirium), with each type's Normal/Magic/Rare
+  rows kept together underneath — instead of one flat 21-row list a value sort
+  could scatter, same idea as Exotic Bases grouping by gear slot.
+
+---
+
 ## [v4.41.3] — 2026-07-20 — Revert the Economy grouping
 
 - **The item grouping added in v4.41.2 is removed.** Collapsing families like
@@ -1986,6 +2020,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.41.19]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.19
 [v4.41.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.3
 [v4.41.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.2
 [v4.41.1]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.1

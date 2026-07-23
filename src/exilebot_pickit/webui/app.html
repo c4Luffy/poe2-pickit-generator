@@ -2522,26 +2522,54 @@ function renderChips(){
     kb.title="Every boss key, reliquary key and invitation, wherever poe.ninja files it";
     kb.onclick=()=>{ecoCat="_keys_";renderChips();renderEco();};
     c.appendChild(kb);}
-  const group=k=>k.startsWith("_ap_")?"Always pick":(k.startsWith("unique_")?"Uniques":"Market");
-  let lastG=null;
+  const group=k=>(k.startsWith("_ap_")||k==="waystones")?"Always pick"
+    // Waystones isn't a poe.ninja category at all — it has no price, no floor,
+    // every tier is always kept (build_waystone_lines ignores the payload
+    // entirely) — same deal as Wombgifts/Exotic Bases, so it belongs with them,
+    // not filed as if it were a priced market category.
+    :(k==="tablets"||k==="unique_tablets")?"Atlas"    // poe.ninja files tablets under Atlas, not General
+    :(k.startsWith("unique_")?"Equipment":"General");
+  // Bucket by group instead of opening a header on every label change: "tablets"
+  // and "unique_tablets" both belong to "Atlas" but sit far apart in eco.cats
+  // (tablets among the exchange cats, unique_tablets at the end of the unique
+  // cats), so a change-tracking loop split Atlas into two sections with
+  // Equipment sandwiched between them. Grouping first keeps each section
+  // contiguous, and section names/order match poe.ninja's own sidebar exactly
+  // (checked 2026-07-23 against the live site): GENERAL, EQUIPMENT, ATLAS,
+  // then our own app-only extras (Always pick) that poe.ninja doesn't have.
+  const order=["General","Equipment","Atlas","Always pick"];
+  // poe.ninja lists Unique Tablets above Precursor Tablets inside ATLAS —
+  // opposite of these categories' natural array order (tablets is fetched
+  // via the exchange list, unique_tablets via the unique list after it) — so
+  // Atlas needs an explicit sort instead of just preserving array order.
+  const atlasOrder=["unique_tablets","tablets"];
+  const buckets=new Map(order.map(g=>[g,[]]));
   for(const cat of eco.cats){
     if(cat.hidden)continue;      // shown through the Keys lens instead
-    const g=group(cat.key);
-    if(g!==lastG){lastG=g;
-      const h=document.createElement("div");h.className="csgrp";h.textContent=g;c.appendChild(h);}
+    buckets.get(group(cat.key)).push(cat);}
+  buckets.get("Atlas").sort((a,b)=>atlasOrder.indexOf(a.key)-atlasOrder.indexOf(b.key));
+  for(const g of order){
+    const cats=buckets.get(g);
+    if(!cats.length)continue;
+    const h=document.createElement("div");h.className="csgrp";h.textContent=g;c.appendChild(h);
+    for(const cat of cats){
     const en=eco.cat_enabled[cat.key];
     const b=document.createElement("button");
     b.className="cside-btn"+(cat.key===ecoCat?" on":"");
     if(!en)b.style.opacity=".5";
     const n=cat.items?cat.items.length:0;
-    const lbl=cat.key.startsWith("unique_")?cat.label.replace(/^Unique /,""):cat.label;
+    // Strip the "Unique " prefix only under the Equipment header (it already
+    // reads "Equipment > Weapons") — Atlas has two distinct entries (Precursor
+    // Tablets, Unique Tablets) that need their full, different names, or they
+    // show up as two rows both just reading "Tablets".
+    const lbl=(g==="Equipment"&&cat.key.startsWith("unique_"))?cat.label.replace(/^Unique /,""):cat.label;
     b.innerHTML=`<span>${esc(lbl)}</span><span class="n">${en?n:"off"}</span>`;
     b.title=en?"Click to open · double-click to disable the whole category":"Category is OFF — double-click to enable";
     b.onclick=()=>{ecoCat=cat.key;renderChips();renderEco();};
     b.ondblclick=async()=>{const e2=!eco.cat_enabled[cat.key];eco.cat_enabled[cat.key]=e2;
       await api().set_category(cat.key,e2);renderChips();
       toast((e2?"Enabled ":"Disabled ")+cat.label);};
-    c.appendChild(b);}}
+    c.appendChild(b);}}}
 function ecoMatch(it,q){
   // every search term must match the START of a word in the name or base
   // ("ring" finds Gold Ring / Breach Ring, not Fracturing / Suffering)
@@ -2593,7 +2621,11 @@ function renderEco(){
   const body=$("ecoBody");body.innerHTML="";
   let rows=ecoRows();
   const movers=ecoCat==="_movers_"&&!q;
-  const isStatic=!q&&(ecoCat||"").startsWith("_ap_");
+  // "tablets" is a real priced category (not "_ap_") but still wants its rows
+  // grouped by tablet type with Normal/Magic/Rare kept together underneath —
+  // sorting by value would scatter a type's near-worthless Rare away from its
+  // priced Normal, so it shares the no-column-sort, fixed-section behavior.
+  const isStatic=!q&&((ecoCat||"").startsWith("_ap_")||ecoCat==="tablets");
   const isKeys=!q&&ecoCat==="_keys_";
   if(movers){
     // Top movers is a fixed leaderboard: biggest swings first, high → low,

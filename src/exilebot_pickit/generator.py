@@ -6,7 +6,8 @@ generates Exiled Bot 2 pickit rules:
 
 [Type] == "Name" # [StashItem] == "true" // X.XXXXXX exalted | original: Y.YYYY divine
 
-Endpoints verified against oubahell/PICKIT-Poe2 (https://github.com/oubahell/PICKIT-Poe2):
+Endpoints (verified directly against the live API, not a third-party reference —
+the community project this used to cite is old and abandoned by its author):
   - League list:     https://poe.ninja/poe2/api/data/index-state
   - Exchange data:   https://poe.ninja/poe2/api/economy/exchange/current/overview
   - Unique items:    https://poe.ninja/poe2/api/economy/stash/current/item/overview
@@ -484,25 +485,21 @@ def header_minor(title: str) -> str:
 # game_data.json; only the rule syntax is built here.
 
 def build_tablet_rules(disabled=None) -> list:
-    """Unique tablets by name, all regular tablets, and splinters.
+    """Splinters only, now — 2026-07-23.
 
-    ``disabled`` — item names the user switched off in the Economy tab
-    (tablet type, unique tablet name, or splinter name)."""
+    Regular and unique tablets used to be hardcoded here, force-picked at
+    every price because poe.ninja didn't price tablets at all. It now does
+    (categories "tablets" / "unique_tablets", stash-endpoint PrecursorTablets
+    / UniqueTablets), so they moved to the normal priced pipeline
+    (build_tablet_market_lines / build_unique_lines) and respect the value
+    floor like everything else instead of being force-picked regardless of
+    value. Kept this function's name and signature — only its body shrank —
+    so existing call sites (webui/api.py, generator.main) don't need to change.
+
+    ``disabled`` — splinter names the user switched off in the Economy tab.
+    """
     dis = set(disabled or ())
     out = []
-    uniq = [(t, n) for t, n in TABLET_UNIQUES if n not in dis]
-    if uniq:
-        out += header_major("Unique Tablets").splitlines() + [""]
-        for typ, name in uniq:
-            out.append(f'[Type] == "{typ}" && [Rarity] == "Unique" # [UniqueName] == "{name}" && [StashItem] == "true" && [IgnoreRitual] == "true"')
-        out.append("")
-    types = [t for t in TABLET_TYPES if t not in dis]
-    if types:
-        out += header_major("Regular Tablets (all rarities)").splitlines() + [""]
-        for typ in types:
-            for rar in ("Normal", "Magic", "Rare"):
-                out.append(f'[Type] == "{typ}" && [Rarity] == "{rar}" # [StashItem] == "true"')
-        out.append("")
     spl = [s for s in SPLINTERS if s not in dis]
     if spl:
         out += header_major("Splinters").splitlines() + [""]
@@ -994,6 +991,63 @@ def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: f
     return output
 
 
+def build_tablet_market_lines(payload: dict, _divine_rate_exalts: float, min_exalt: float | None = None,
+                              disabled_names: set | None = None, force_names: set | None = None) -> list:
+    """poe.ninja's PrecursorTablets category (added 2026-07-23) prices each of
+    the 7 regular tablet types PER RARITY variant (Normal/Magic/Rare) as its
+    own row — 21 rows total. The payload is stash-shaped (a bare `lines` list,
+    no `items` table) but each line's `name` is just the tablet type — the
+    SAME for all three of its rarity rows — so it is not safe to key on `name`
+    alone the way build_unique_lines does. Every row's identity for
+    toggling/display is "{base_type} ({variant})", matching this app's
+    existing "Uncut Skill Gem (Level N)" convention for the same
+    same-name-different-variant shape.
+
+    Replaces the old hardcoded, never-priced TABLET_TYPES all-rarities block:
+    these are now priced and respect the normal value floor like any other
+    market item, instead of being force-picked regardless of value.
+    """
+    threshold = min_exalt if min_exalt is not None else MIN_EXALT
+    dis = set(disabled_names or ())
+    force = set(force_names or ())
+    rate = exalted_rate(payload)
+    rows = []
+    for line in payload.get("lines", []):
+        base_type = line.get("baseType") or line.get("name")
+        variant = line.get("variant")
+        if not base_type or not variant:
+            continue
+        display = f"{base_type} ({variant})"
+        if display in dis:
+            continue
+        exalt_value = float(line.get("primaryValue") or 0.0) * (rate or 1.0)
+        rule = (f'[Type] == "{_quote_ipd(base_type)}" && [Rarity] == "{variant}" '
+                f'# [StashItem] == "true" // ExValue = {exalt_value:.2f}')
+        keep = exalt_value >= threshold or display in force
+        rows.append((exalt_value, rule if keep else f"//{rule}"))
+    rows.sort(key=lambda r: r[0], reverse=True)
+    return [rule for _, rule in rows]
+
+
+def collect_tablet_market_report_rows(label: str, payload: dict, min_exalt: float | None = None) -> list:
+    """CSV-report counterpart to build_tablet_market_lines — mirrors
+    collect_unique_report_rows for the same per-rarity-variant shape."""
+    threshold = min_exalt if min_exalt is not None else MIN_EXALT
+    rate = exalted_rate(payload)
+    rows = []
+    for line in payload.get("lines", []):
+        base_type = line.get("baseType") or line.get("name")
+        variant = line.get("variant")
+        if not base_type or not variant:
+            continue
+        pv = float(line.get("primaryValue") or 0.0)
+        exalt_value = pv * rate if rate else pv
+        included = exalt_value >= threshold
+        rows.append(make_report_row(label, f"{base_type} ({variant})", base_type,
+                                    pv, exalt_value, threshold, included))
+    return rows
+
+
 ANVIL_ONLY_PREFIXES = ("Runeforged ", "Runemastered ")
 
 
@@ -1075,9 +1129,15 @@ def always_pick_force_names() -> set:
     fragments, Simulacrum, Call of the Shadows and the boss invitations) join
     the list 2026-07-21 by owner decision — a key you're collecting shouldn't be
     skipped for dropping under the floor. They have no static builder of their
-    own, so this just keeps their priced fragments-category rule uncommented."""
+    own, so this just keeps their priced fragments-category rule uncommented.
+
+    TABLET_TYPES left this set 2026-07-23: regular tablets are now priced live
+    by poe.ninja (the "tablets" category, build_tablet_market_lines) and
+    respect the normal value floor like any other market item, instead of
+    being force-picked regardless of value the way they had to be back when
+    poe.ninja didn't price tablets at all."""
     return (set(SPECIAL_ITEMS) | set(SPLINTERS) | set(WOMBGIFTS)
-            | set(TABLET_TYPES) | set(KEY_ITEM_SECTIONS))
+            | set(KEY_ITEM_SECTIONS))
 
 
 # Economy-tab row names for the three waystone pickup rules.
@@ -1322,7 +1382,10 @@ def main():
             continue
 
         try:
-            if is_unique:
+            if key == "tablets":
+                lines = build_tablet_market_lines(payload, divine_rate_exalts, min_exalt=min_exalt)
+                report_rows.extend(collect_tablet_market_report_rows(label, payload, min_exalt=min_exalt))
+            elif is_unique:
                 lines = build_unique_lines(payload, divine_rate_exalts, min_exalt=min_exalt)
                 report_rows.extend(collect_unique_report_rows(label, payload, divine_rate_exalts, min_exalt=min_exalt))
             elif key == "uncut_gems":

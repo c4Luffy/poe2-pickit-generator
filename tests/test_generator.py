@@ -738,6 +738,54 @@ def test_every_exchange_category_has_a_unique_key_and_type():
         assert k == k.lower(), f"category key should be lowercase: {k}"
 
 
+# ── Tablets: priced live via poe.ninja (added 2026-07-23) ────────────────────
+
+def test_build_tablet_market_lines_sorted_high_to_low_and_gates_on_rarity():
+    """poe.ninja's PrecursorTablets category prices each tablet type PER
+    RARITY variant — the emitted rule must gate on [Rarity], never
+    [UniqueName], and rows sort most-valuable first like every other builder."""
+    payload = {
+        "core": {"rates": {"exalted": 10.0}},
+        "lines": [
+            {"name": "Abyss Tablet", "baseType": "Abyss Tablet",
+             "variant": "Magic", "primaryValue": 1.0},
+            {"name": "Abyss Tablet", "baseType": "Abyss Tablet",
+             "variant": "Normal", "primaryValue": 5.0},
+        ],
+    }
+    out = gen.build_tablet_market_lines(payload, 1.0, min_exalt=0.0)
+    assert out[0] == ('[Type] == "Abyss Tablet" && [Rarity] == "Normal" '
+                      '# [StashItem] == "true" // ExValue = 50.00')
+    assert out[1] == ('[Type] == "Abyss Tablet" && [Rarity] == "Magic" '
+                      '# [StashItem] == "true" // ExValue = 10.00')
+    assert '[UniqueName]' not in "\n".join(out)
+
+
+def test_build_tablet_market_lines_below_floor_is_commented_not_dropped():
+    payload = {"core": {"rates": {"exalted": 1.0}},
+               "lines": [{"name": "Temple Tablet", "baseType": "Temple Tablet",
+                          "variant": "Rare", "primaryValue": 1.0}]}
+    out = gen.build_tablet_market_lines(payload, 1.0, min_exalt=50.0)
+    assert out and out[0].startswith("//")
+    assert '[Type] == "Temple Tablet" && [Rarity] == "Rare"' in out[0]
+
+
+def test_build_tablet_market_lines_skips_rows_missing_base_or_variant():
+    payload = {"core": {"rates": {"exalted": 1.0}},
+               "lines": [{"name": "", "baseType": "", "variant": "Normal", "primaryValue": 5.0},
+                         {"name": "Breach Tablet", "baseType": "Breach Tablet",
+                          "variant": None, "primaryValue": 5.0}]}
+    assert gen.build_tablet_market_lines(payload, 1.0, min_exalt=0.0) == []
+
+
+def test_tablets_are_no_longer_force_picked_regardless_of_price():
+    """Regular tablets used to be force-picked (poe.ninja never priced them),
+    so TABLET_TYPES lived in always_pick_force_names(). Now that poe.ninja
+    prices them live, they must respect the normal value floor like any other
+    market item instead of overriding it."""
+    assert not (set(gen.TABLET_TYPES) & gen.always_pick_force_names())
+
+
 def test_build_unique_lines_honours_force_names():
     """build_unique_lines had no force_names parameter at all, so the
     "always kept regardless of floor" guarantee every other builder gives

@@ -50,13 +50,18 @@ Always run `ui-edit-check` after EVERY edit here too.
 
 8. **Only use CSS variables** (`--bg`, `--bg2`, `--bg3`, `--border`, `--text`,
    `--dim`, `--gold`, `--gold-dim`, `--gold-br`, `--ok`, `--err`, `--warn`,
-   `--steel`) — never hardcode a hex. Three themes: `:root` = the default
-   Workbench brass (identical to `html[data-theme=relic]`), plus
-   `html[data-theme=ocean]` (Frost) and `html[data-theme=nebula]` (Blood).
-   Legacy names gold/ember map to relic in setTheme. To shift the palette,
-   change `:root` AND relic together; every theme block must define the full
-   13-token set (a static audit script exists — parse each block and compare).
-   Note the nav is a LEFT RAIL (not a top bar) since v4.4.0.
+   `--steel`) — never hardcode a hex. Nine themes today: `:root` = the default
+   Workbench brass (identical to `html[data-theme=relic]`), plus `venom`,
+   `void`, `ossuary`, `delirium`, `umbral`, `abyss`, `twilight`, `blight` — each
+   its own `html[data-theme="..."]` block in app.html's `<style>`. Legacy names
+   (`gold`, `ember`, `ocean`, `nebula`, `forge`, `sanguine`, `vellum` —
+   `LEGACY_THEMES` in the JS) map back to relic in `setTheme()`, and the JS
+   `THEMES` array (name + accent swatch + one-line description) must list the
+   same 9 keys as the CSS blocks, in the same order the theme picker shows
+   them. To shift the palette, change `:root` AND relic together; every theme
+   block must define the full 13-token set (a static audit script exists —
+   parse each block and compare). Note the nav is a LEFT RAIL (not a top bar)
+   since v4.4.0.
 9. **Reuse the shared component classes** for consistency: `.craft-side` +
    `.cside-btn` (+ `.n` count span) for any left sidebar; `.eco-toolbar` for a
    rounded toolbar panel; `.eco-header` + `.eco-rate` for a slim page header.
