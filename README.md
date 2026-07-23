@@ -295,4 +295,4 @@ python -m exilebot_pickit
 
 ---
 
-MIT licensed. Community project; not affiliated with Grinding Gear Games, Path of Exile 2, Exiled Bot 2, or poe.ninja.
+Community project; not affiliated with Grinding Gear Games, Path of Exile 2, Exiled Bot 2, or poe.ninja.
