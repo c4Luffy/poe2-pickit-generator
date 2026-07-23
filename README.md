@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.19/ExileBot2PickitGenerator.exe"><img alt="Download v4.41.19 for Windows" src="https://img.shields.io/badge/Download-v4.41.19-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.20/ExileBot2PickitGenerator.exe"><img alt="Download v4.41.20 for Windows" src="https://img.shields.io/badge/Download-v4.41.20-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&label=Downloads&labelColor=171411&color=829d78"></a>
 </p>
 
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://c4luffy.github.io/poe2-pickit-generator/">Website</a> ·
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.19">Release notes</a> ·
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.20">Release notes</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://discord.gg/T7DU3Afve6">Discord</a> ·
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
@@ -31,7 +31,7 @@
 <p align="center"><sub>Real running-app capture · Generate · captured on v4.38.2</sub></p>
 
 > [!IMPORTANT]
-> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.41.19](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.19/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
+> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.41.20](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.20/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
 
 ## Start here
 
@@ -116,7 +116,7 @@ Rare gear stays honest. If no recipe covers the base or its slot is disabled, th
 - Unusual item-name characters are excluded and reported instead of disappearing silently.
 - The app never asks for your Path of Exile account.
 
-Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.19/SHA256SUMS.txt).
+Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.20/SHA256SUMS.txt).
 
 ### Three important usage notes
 
@@ -124,9 +124,19 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.41.19
+## Current release: v4.41.20
 
-### Tablets are priced live now, not hardcoded
+### Economy tab overhaul: hover cards, value bars, collapsible groups
+
+- **Hover cards on Economy rows.** Hover any item and a card shows its art, live price, 7-day trend, keep/skip status, and the exact pickit rule that catches it — so it's obvious at a glance what any row does. Unpinned, the card is a pass-through tooltip that never covers the row's own buttons; **click a row to pin it** into a stable panel with a Copy button and its own keep/skip toggle, closed by ✕, Esc, or a click away. It flips near the screen edges so it never spills off-screen.
+- **Right-click a row to copy its pickit rule** instantly, without opening the card.
+- **Value bars behind each price, log-scaled.** A faint fill reads as relative worth at a glance. Prices span huge magnitudes — a one-ex common versus a multi-thousand-ex chase item — so a linear fill flattened everything but the top few into identical slivers; the log scale spreads the low and mid range so every bar means something.
+- **Collapsible Economy sidebar groups.** General, Equipment, Atlas and Always pick each fold with a click on their header, so the whole category list fits without scrolling. Headers are bigger and bold, with a caret and count.
+- **No more accidental toggles.** Clicking a row no longer flips its keep/skip — only the keep/skip button does, so a stray click while reading the table can't silently drop a rule.
+- **The Economy tab is faster.** The pickit-rule lookup behind hovers, right-click copy and the row Copy button is cached per item, so repeat interactions are instant instead of calling into the engine every time.
+- **Generate is never silent.** A toast fires the moment a run starts and again when it finishes, with the rule count and time — whether you press Generate on the tab or via Ctrl+G.
+
+### v4.41.19 — Tablets are priced live now, not hardcoded
 
 - **Regular and unique tablets are no longer a hardcoded always-pick list.** poe.ninja added real pricing for both — Precursor Tablets (Overseer, Abyss, Breach, Ritual, Irradiated, Temple, Delirium; priced separately per rarity, Normal/Magic/Rare) and Unique Tablets (all nine) — so generated pickits now respect the normal value floor for tablets like every other market item, instead of force-picking every rarity regardless of what it's actually worth. Some are genuinely valuable — a Normal Ritual Tablet has been worth close to a Divine.
 - **Both show up as their own Economy categories under Atlas**, matching how poe.ninja itself groups them, with live prices, 7-day trend arrows and per-item switches. Precursor Tablets are further grouped by tablet type, with each type's Normal/Magic/Rare rows kept together — the same idea as Exotic Bases grouping by gear slot.
@@ -253,7 +263,7 @@ Every tab was audited that cycle. The headline items are behaviour fixes — thi
 
 </details>
 
-[Read the complete v4.41.19 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.19) · [full changelog](CHANGELOG.md)
+[Read the complete v4.41.20 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.20) · [full changelog](CHANGELOG.md)
 
 <details>
 <summary><strong>Everything included</strong></summary>

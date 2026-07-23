@@ -266,6 +266,17 @@
   .tpick-row .n{flex:1;font-size:12.5px;font-weight:600}
   .tpick-row .d{font-size:10.5px;color:var(--dim);font-weight:400;display:block;margin-top:1px}
   .tpick-row .tick{color:var(--gold);font-size:11px}
+  /* mini theme preview: a dark panel with the theme's accent as a dot + two
+     bars, so each theme reads by look, not just by name. --ac is the swatch. */
+  .tpick-thumb{width:44px;height:31px;flex:none;border-radius:6px;position:relative;overflow:hidden;
+    padding:6px;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;
+    background:radial-gradient(56px 24px at 78% 6%,color-mix(in srgb,var(--ac) 24%,transparent),transparent),#0c0d10;
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 14%,transparent)}
+  .tpick-thumb .tt-dot{position:absolute;top:6px;left:6px;width:9px;height:9px;border-radius:3px;background:var(--ac);
+    box-shadow:0 0 8px color-mix(in srgb,var(--ac) 55%,transparent)}
+  .tpick-thumb .tt-b1{height:3px;width:68%;border-radius:2px;background:color-mix(in srgb,var(--ac) 55%,transparent)}
+  .tpick-thumb .tt-b2{height:3px;width:44%;border-radius:2px;background:color-mix(in srgb,var(--ac) 26%,transparent)}
+  .tpick-row.on .tpick-thumb{box-shadow:inset 0 0 0 1px var(--ac),0 0 0 1px var(--ac)}
   .seg{display:flex;flex-wrap:wrap;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:3px;gap:3px}
   .seg button{flex:1 0 18%;border:0;background:transparent;color:var(--dim);padding:5px 0;border-radius:6px;
     cursor:pointer;font-size:14px;line-height:1}
@@ -392,6 +403,7 @@
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   h1{font-size:19px;margin-bottom:4px}
   .sub{color:var(--dim);font-size:13px;margin-bottom:20px}
+  .sub .sub-tip{color:var(--gold-br);font-weight:700}
   .card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;
         padding:20px 22px;margin-bottom:14px}
   .card h2{font-size:12.5px;text-transform:uppercase;letter-spacing:1.1px;color:var(--gold);margin-bottom:10px}
@@ -545,6 +557,25 @@
   .cside-btn.on{background:color-mix(in srgb,var(--gold) 15%,transparent);color:var(--gold);font-weight:600}
   .cside-btn .n{margin-left:auto;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
   .cside-btn.on .n{color:var(--gold)}
+  /* Economy has ~two dozen categories — pack the rail tighter so the whole list
+     fits without scrolling (scoped to #ecoChips; the Craft/Exceptional rails that
+     share .cside-btn keep their roomier spacing). */
+  #ecoChips{gap:1.5px}
+  #ecoChips .cside-btn{padding:3.5px 10px;font-size:12.5px;border-radius:6px}
+  #ecoChips .cside-btn .n{font-size:11.5px}
+  /* group headers (GENERAL / EQUIPMENT / ATLAS / ALWAYS PICK) — bigger & bold so
+     the rail's structure reads at a glance, and CLICKABLE to collapse the group. */
+  #ecoChips .csgrp{margin:8px 2px 2px;font-size:11.5px;font-weight:800;
+    letter-spacing:.7px;color:color-mix(in srgb,var(--gold-br) 78%,var(--text))}
+  #ecoChips .csgrp:first-child{margin-top:2px}
+  #ecoChips .csgrp-tog{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;
+    padding:3px 8px;border-radius:6px;transition:background .12s}
+  #ecoChips .csgrp-tog:hover{background:var(--bg3)}
+  #ecoChips .csgrp-car{font-size:9px;line-height:1;transition:transform .14s;color:var(--gold-br)}
+  #ecoChips .csgrp-tog.collapsed .csgrp-car{transform:rotate(-90deg)}
+  #ecoChips .csgrp-n{margin-left:auto;font-size:10px;font-weight:700;color:var(--dim);
+    letter-spacing:0;opacity:.7}
+  #ecoChips .csgrp-body{display:flex;flex-direction:column;gap:1.5px}
   @media (max-width:1060px){ /* rail eats 238px — collapse sooner than the old top-nav layout */
     .craft-layout{flex-direction:column}
     .craft-side{position:static;flex:0 0 auto;flex-direction:row;flex-wrap:wrap;
@@ -704,6 +735,60 @@
   #ecoBody tr.item td:first-child{font-weight:600}
   td.val{font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums;font-weight:600}
   td.val .u{font-size:10.5px;font-weight:700;color:var(--gold);margin-left:3px}
+  /* value bars: a faint fill behind each price shows worth-at-a-glance vs the
+     top item in view. The number still reads normally on top. */
+  .valbar{position:relative;display:inline-flex;align-items:center;justify-content:flex-end;
+    width:150px;max-width:100%;height:23px;padding:0 9px;border-radius:6px;
+    background:color-mix(in srgb,var(--bg3) 70%,transparent);overflow:hidden}
+  .valbar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;
+    background:linear-gradient(90deg,color-mix(in srgb,var(--gold) 16%,transparent),color-mix(in srgb,var(--gold) 34%,transparent));
+    border-right:1.5px solid color-mix(in srgb,var(--gold) 75%,transparent)}
+  .valbar .vnum{position:relative;z-index:1}
+  tr.item.dis .valbar{opacity:.45}
+  /* Economy hover card: rich detail without leaving the table — art, price,
+     7-day trend, keep/skip, and the real pickit rule (fetched lazily). */
+  .eco-hover{position:fixed;z-index:120;width:280px;pointer-events:none;opacity:0;transform:translateY(6px);
+    transition:opacity .12s ease,transform .12s ease;
+    background:var(--bg2);border:1px solid var(--gold-dim);border-radius:13px;
+    box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.35);overflow:hidden}
+  .eco-hover.on{opacity:1;transform:translateY(0)}
+  /* Unpinned = pure info tooltip: pointer-events stay off (base rule) so the
+     mouse passes through to the row's buttons. Pinning (clicking a row) turns it
+     into an interactive panel. */
+  .eco-hover.pinned{border-color:var(--gold);pointer-events:auto;
+    box-shadow:0 20px 54px rgba(0,0,0,.62),0 0 0 1px var(--gold)}
+  .eco-hover .hc-close{position:absolute;top:8px;right:9px;z-index:2;width:22px;height:22px;padding:0;
+    display:none;align-items:center;justify-content:center;font-size:12px;line-height:1;cursor:pointer;
+    border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--dim)}
+  .eco-hover.pinned .hc-close{display:flex}
+  .eco-hover .hc-close:hover{color:var(--text);border-color:var(--gold-dim)}
+  .eco-hover .hc-hint{font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
+    text-align:center;padding:2px 0 0;opacity:.7}
+  .eco-hover.pinned .hc-hint{display:none}
+  .eco-hover .hc-top{display:flex;gap:12px;padding:13px 14px;
+    background:radial-gradient(340px 120px at 18% -30%,color-mix(in srgb,var(--gold) 9%,transparent),transparent)}
+  .eco-hover .hc-art{width:50px;height:50px;flex:0 0 auto;border-radius:9px;display:grid;place-items:center;overflow:hidden;
+    background:radial-gradient(circle at 35% 28%,color-mix(in srgb,var(--gold) 24%,#000),var(--bg));border:1px solid var(--gold-dim)}
+  .eco-hover .hc-art img{width:100%;height:100%;object-fit:contain}
+  .eco-hover .hc-art .hc-emj{font-size:26px;line-height:1}
+  .eco-hover .hc-name{font-weight:800;font-size:14px;line-height:1.25}
+  .eco-hover .hc-sub{font-size:11px;color:var(--dim);margin-top:3px}
+  .eco-hover .hc-price{margin-top:6px;font-size:15px;font-weight:800;color:var(--gold-br);font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .eco-hover .hc-price .u{font-size:10.5px;color:var(--dim);margin-left:3px}
+  .eco-hover .hc-nokeep{color:var(--gold-br);font-size:12px;font-weight:700}
+  .eco-hover .hc-body{padding:11px 14px 13px;border-top:1px solid var(--border);display:grid;gap:8px}
+  .eco-hover .hc-row{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+  .eco-hover .hc-row .l{color:var(--dim)}
+  .eco-hover .hc-catch{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-top:2px;
+    display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .eco-hover .hc-copy{flex:none;font-size:9px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;
+    color:var(--gold-br);background:var(--bg3);border:1px solid var(--gold-dim);border-radius:6px;
+    padding:3px 9px;cursor:pointer;transition:background .1s}
+  .eco-hover .hc-copy:hover{background:color-mix(in srgb,var(--gold) 22%,var(--bg3))}
+  .eco-hover .hc-copy:active{transform:translateY(1px)}
+  .eco-hover .hc-rule{font-family:Consolas,ui-monospace,monospace;font-size:10.5px;color:var(--gold-br);
+    background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 9px;word-break:break-word;line-height:1.5}
+  .eco-hover .pill.on{color:var(--gold-br)}
   #histRows td:nth-child(3),#histRows td:nth-child(4),#histRows td:nth-child(6){
     font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums}
   .chg{font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums}
@@ -714,6 +799,11 @@
     font-family:"Segoe UI Variable Text","Segoe UI",sans-serif}
   .pill.on{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 35%,transparent);
     background:color-mix(in srgb,var(--ok) 10%,transparent)}
+  /* the IN PICKIT pill is the ONLY toggle now — clicking it (not the whole row)
+     includes/excludes the rule, so a stray row click can't turn it off. */
+  button.pilltog{cursor:pointer;transition:transform .06s ease,filter .1s ease}
+  button.pilltog:hover{filter:brightness(1.3)}
+  button.pilltog:active{transform:scale(.93)}
   /* category/base tags inside the Economy name column read as type → steel */
   #ecoBody td:first-child .pill{color:var(--steel);border-color:color-mix(in srgb,var(--steel) 30%,transparent);
     background:color-mix(in srgb,var(--steel) 8%,transparent)}
@@ -926,6 +1016,7 @@
 </nav>
 <main>
 
+
 <!-- ══ GENERATE ══ -->
 <div class="page on" id="p-gen">
   <div class="ubar" id="uBar">
@@ -1102,7 +1193,7 @@
 <!-- ══ ECONOMY ══ -->
 <div class="page" id="p-eco">
   <div class="eco-header">
-    <div><h1>Economy</h1><div class="sub">Pick a category on the left; click a row to include/exclude. Double-click a category to toggle the whole group.</div></div>
+    <div><h1>Economy</h1><div class="sub">Pick a category on the left; click the <b class="sub-tip">keep/skip</b> button on a row to turn that rule on or off. Double-click a category to toggle the whole group. <b class="sub-tip">Right-click a row to copy its rule</b> · hover for details, click a row to pin the card.</div></div>
     <div class="eco-rate" id="ecoRate" style="display:none"><span class="dot"></span><span class="k">1 Divine</span><span class="v" id="ecoRateV">–</span></div>
   </div>
   <div class="banner warn" id="ecoStale"></div>
@@ -1119,13 +1210,13 @@
     <span class="hint" style="margin:0" id="ecoInfo"></span>
   </div>
   <div style="display:flex;gap:12px;align-items:flex-start">
-    <div id="ecoChips" class="craft-side" style="width:195px;flex:0 0 195px;position:static;max-height:calc(90.9vh - 200px);overflow-y:auto"></div>
+    <div id="ecoChips" class="craft-side" style="width:195px;flex:0 0 195px;position:sticky;top:6px;max-height:calc(90.9vh - 24px);overflow-y:auto"></div>
     <div class="card" style="padding:8px 6px;flex:1;min-width:0">
       <table><thead><tr>
         <th data-s="name" style="width:34%">Item<span class="s-ind"></span></th>
         <th data-s="ex" style="text-align:right">Value<span class="s-ind"></span></th>
         <th data-s="chg" style="text-align:right;width:116px" title="7-day trend and total change (poe.ninja)">7d Δ<span class="s-ind"></span></th>
-        <th style="text-align:center;width:84px">In pickit</th>
+        <th style="text-align:center;width:96px" title="Click the keep/skip button in a row to include or exclude that rule">In pickit<div style="font-size:8px;font-weight:400;letter-spacing:.06em;text-transform:none;color:var(--dim);opacity:.8;margin-top:1px">click to toggle</div></th>
         <th style="width:54px"></th>
       </tr></thead><tbody id="ecoBody"></tbody></table>
     </div>
@@ -1724,6 +1815,8 @@ async function copyText(t){
   try{const r=await api().copy_text(t);if(r&&r.ok)return true;}catch(_){/* fall through */}
   try{await navigator.clipboard.writeText(t);return true;}catch(_){return false;}}
 let info={}, divRate=0, eco=null, ecoCat=null, ecoSort="ex", ecoDir=-1, running=false;
+let ecoGrpCollapsed={};        // sidebar group → collapsed? (click a header to fold it)
+const _ruleCache={};           // cache rule_for() results so hover/copy don't re-hit the bridge
 
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");
   clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),2200);}
@@ -1806,8 +1899,8 @@ function syncTheme(t){
     r.classList.toggle("on",on);
     const tk=r.querySelector(".tick");if(tk)tk.textContent=on?"✓":"";});}
 $("tpickMenu").innerHTML=THEMES.map(t=>
-  `<button type="button" class="tpick-row" data-t="${t.k}">`+
-  `<i class="tsw" style="background:${t.c}"></i>`+
+  `<button type="button" class="tpick-row" data-t="${t.k}" style="--ac:${t.c}">`+
+  `<span class="tpick-thumb"><i class="tt-dot"></i><i class="tt-b1"></i><i class="tt-b2"></i></span>`+
   `<span class="n">${t.n}<span class="d">${t.d}</span></span>`+
   `<span class="tick"></span></button>`).join("");
 $("tpickMenu").querySelectorAll(".tpick-row").forEach(r=>r.onclick=()=>setTheme(r.dataset.t));
@@ -2249,12 +2342,15 @@ async function poll(){
         cb.style.display="";cb.classList.add("on");}
       else{cb.style.display="none";cb.classList.remove("on");}}
     logLine(`Done in ${d.secs}s → ${d.path}`,"ok");uEx();gEx();
-  } else if(d.error){setSeal("err","Run failed",d.error);logLine("✗ "+d.error,"err");}}
+    toast(`✓ Pickit built — ${(d.active||0).toLocaleString()} rules · ${d.secs}s${d.copied?" · deployed to bot":""}`);
+  } else if(d.error){setSeal("err","Run failed",d.error);logLine("✗ "+d.error,"err");
+    toast("✗ Generate failed — "+d.error);}}
 async function doGenerate(){
   if(running)return;
   const league=$("league").value;
   if(!league){toast("Pick a league first — if the list is empty, check your connection and press ⟳");return;}
   running=true;$("go").disabled=true;$("bar").classList.add("on");
+  toast("⏳ Generating pickit…");   // clear feedback the moment a run starts
   setSeal("run","Building pickit…","Fetching prices, assembling and validating rules");
   await api().generate(league,gEx(),uEx());poll();}
 function setSeal(state,title,sub){
@@ -2551,7 +2647,16 @@ function renderChips(){
   for(const g of order){
     const cats=buckets.get(g);
     if(!cats.length)continue;
-    const h=document.createElement("div");h.className="csgrp";h.textContent=g;c.appendChild(h);
+    // Collapsible group header: click to fold the whole group away so the rail
+    // fits without scrolling. Caret + count show state; body is hidden when collapsed.
+    const collapsed=!!ecoGrpCollapsed[g];
+    const h=document.createElement("div");h.className="csgrp csgrp-tog"+(collapsed?" collapsed":"");
+    h.innerHTML=`<span class="csgrp-car">▾</span><span>${esc(g)}</span><span class="csgrp-n">${cats.length}</span>`;
+    h.title="Click to collapse / expand this group";
+    h.onclick=()=>{ecoGrpCollapsed[g]=!ecoGrpCollapsed[g];renderChips();};
+    c.appendChild(h);
+    const body=document.createElement("div");body.className="csgrp-body";
+    if(collapsed)body.style.display="none";
     for(const cat of cats){
     const en=eco.cat_enabled[cat.key];
     const b=document.createElement("button");
@@ -2569,7 +2674,8 @@ function renderChips(){
     b.ondblclick=async()=>{const e2=!eco.cat_enabled[cat.key];eco.cat_enabled[cat.key]=e2;
       await api().set_category(cat.key,e2);renderChips();
       toast((e2?"Enabled ":"Disabled ")+cat.label);};
-    c.appendChild(b);}}}
+    body.appendChild(b);}
+    c.appendChild(body);}}
 function ecoMatch(it,q){
   // every search term must match the START of a word in the name or base
   // ("ring" finds Gold Ring / Breach Ring, not Fracturing / Suffering)
@@ -2615,7 +2721,126 @@ function sparkSvg(pts,dir){
     +`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/>`
     +`<circle cx="${x(pts.length-1).toFixed(1)}" cy="${y(pts[pts.length-1]).toFixed(1)}" r="1.6" fill="${c}"/>`
     +`</svg>`;}
+// Economy hover card — one shared element on <body>, populated on row hover.
+// The pickit rule is fetched lazily and guarded by a token so a fast mouse
+// never leaves a stale rule showing.
+const ecoHover=document.createElement("div");
+ecoHover.className="eco-hover";ecoHover.setAttribute("role","tooltip");
+document.body.appendChild(ecoHover);
+let ecoHoverTok=0,ecoHoverTimer=0,ecoShowTimer=0,ecoOpen=false,ecoPinned=false,ecoHoverRule="",ecoHoverRow=null;
+// Cached rule lookup — the bridge call is the slow part of hovering, and the same
+// row is hit over and over. Key includes ex so a price refresh naturally misses.
+async function ruleFor(cat,it){
+  const k=cat.key+"|"+it.name+"|"+(it.base||"")+"|"+it.ex;
+  if(k in _ruleCache)return _ruleCache[k];
+  const r=await api().rule_for(cat.key,it.name,cat.unique,it.base||"",it.ex);
+  return (_ruleCache[k]=r||"");
+}
+// The card is interactive (it holds a Copy button), so it can't chase the cursor
+// or the user could never reach it: position ONCE on entry, then let the mouse
+// cross into it. Hide is deferred so moving row→card doesn't drop it mid-gap;
+// entering the card cancels that pending hide.
+// The card floats ON TOP of neighbouring rows, so a mouse drifting toward it
+// crosses other rows. An OPEN-DELAY absorbs those pass-throughs: a row only
+// takes over the card after the pointer settles on it — quick crossings on the
+// way to the card (or to the Copy button) never hijack it.
+function ecoHoverRequest(cat,it,e,tr){
+  if(ecoPinned)return;                         // pinned to one item — ignore hovers
+  clearTimeout(ecoHoverTimer);                 // cancel any pending hide
+  clearTimeout(ecoShowTimer);
+  const x=e.clientX,y=e.clientY;               // freeze the entry point for positioning
+  ecoShowTimer=setTimeout(()=>ecoHoverShow(cat,it,{clientX:x,clientY:y},tr),ecoOpen?150:70);
+}
+// The card lives inside <body zoom:1.1>, so its top/left and the mouse's
+// clientX/Y are in the ZOOMED coordinate space — but window.innerWidth/Height
+// are physical px. Divide the viewport by the zoom to compare in the same space,
+// or the bottom/right clamp is 10% too generous and the card spills off-screen.
+const ecoZoom=()=>parseFloat(getComputedStyle(document.body).zoom)||1;
+function ecoHoverMove(e){
+  const z=ecoZoom(),vw=window.innerWidth/z,vh=window.innerHeight/z;
+  const cw=ecoHover.offsetWidth||280,ch=ecoHover.offsetHeight||0,off=16,pad=10;
+  // Horizontal: sit to the RIGHT of the cursor; flip LEFT if it won't fit there.
+  let left=e.clientX+off;
+  if(left+cw>vw-pad)left=e.clientX-cw-off;
+  left=Math.max(pad,Math.min(left,vw-cw-pad));
+  // Vertical: sit BELOW the cursor; flip ABOVE if the bottom would overflow.
+  // Final clamp catches the case where the card is taller than the room above too.
+  let top=e.clientY+off;
+  if(top+ch>vh-pad)top=e.clientY-ch-off;
+  top=Math.max(pad,Math.min(top,vh-ch-pad));
+  ecoHover.style.left=left+"px";ecoHover.style.top=top+"px";
+}
+function ecoHoverHide(){clearTimeout(ecoShowTimer);ecoHover.classList.remove("on","pinned");ecoHoverTok++;ecoOpen=false;ecoPinned=false;}
+function ecoHoverHideSoon(){if(ecoPinned)return;clearTimeout(ecoHoverTimer);ecoHoverTimer=setTimeout(ecoHoverHide,220);}
+// Unpinned, the card is a pure INFO tooltip (pointer-events:none in CSS): the
+// mouse passes straight through to the row's keep/copy buttons, so it can never
+// block them or get "swapped" mid-reach. Left-clicking a row PINS it into an
+// interactive panel (Copy button, keep/skip toggle). ✕, Esc, or a click outside
+// closes it.
+function ecoUnpin(){ecoPinned=false;ecoHover.classList.remove("pinned");ecoHoverHide();}
+function ecoPin(cat,it,e,tr){
+  clearTimeout(ecoShowTimer);clearTimeout(ecoHoverTimer);
+  ecoPinned=false;                         // clear so the pinned-guarded show runs
+  ecoHoverShow(cat,it,e,tr);
+  ecoPinned=true;ecoHover.classList.add("pinned");
+}
+ecoHover.addEventListener("click",e=>{if(e.target.closest(".hc-close"))ecoUnpin();});
+document.addEventListener("mousedown",e=>{if(ecoPinned&&!ecoHover.contains(e.target))ecoUnpin();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&ecoPinned)ecoUnpin();});
+function ecoHoverShow(cat,it,e,tr){
+  clearTimeout(ecoHoverTimer);
+  ecoOpen=true;ecoHoverRow=tr||null;
+  const tok=++ecoHoverTok;
+  ecoHoverRule="";
+  const art=it.icon?`<img src="${esc(it.icon)}" onerror="this.style.display='none'">`
+    :`<span class="hc-emj">${it.emj||"◈"}</span>`;
+  const price=it.static?'<span class="hc-nokeep">No price · always kept</span>':fmtVal(it.ex);
+  const chg=it.chg==null?'<span class="chg flat">–</span>'
+    :(it.chg===0?'<span class="chg flat">– 0%</span>'
+    :`<span class="chg ${it.chg>0?"up":"dn"}">${it.chg>0?"▲":"▼"} ${Math.abs(it.chg)}%</span>`);
+  ecoHover.innerHTML=`
+    <button type="button" class="hc-close" title="Close (Esc)">✕</button>
+    <div class="hc-top"><span class="hc-art">${art}</span>
+      <div><div class="hc-name">${esc(it.name)}</div>
+        <div class="hc-sub">${esc(cat.label)}${it.base?" · "+esc(it.base):""}</div>
+        <div class="hc-price">${price}</div></div></div>
+    <div class="hc-body">
+      <div class="hc-row"><span class="l">7-day trend</span>${chg}</div>
+      <div class="hc-row"><span class="l">Status</span><button type="button" class="pilltog pill hc-status ${it.enabled?"on":""}" title="Click to include / exclude this rule">${it.enabled?"● keep":"skip"}</button></div>
+      <div class="hc-catch"><span>Caught by this pickit rule</span><button type="button" class="hc-copy">⧉ Copy</button></div>
+      <div class="hc-rule">…</div>
+      <div class="hc-hint">Click a row to pin · right-click to copy</div></div>`;
+  ecoHover.classList.add("on");
+  ecoHoverMove(e);
+  // Copy button — grabs the FULL rule (same as the row's copy), not just the
+  // single line shown. Disabled until the rule resolves so it can't copy "…".
+  const cbtn=ecoHover.querySelector(".hc-copy");
+  cbtn.disabled=true;cbtn.style.opacity=".5";
+  cbtn.onclick=async()=>{if(!ecoHoverRule){toast("No rule for this item");return;}
+    const ok=await copyText(ecoHoverRule);toast(ok?"Rule copied":"Clipboard blocked");};
+  // In-card keep/skip toggle — turn the rule on/off without hunting for the row
+  // button. Syncs the card pill AND the source row's pill/dim in place.
+  const sbtn=ecoHover.querySelector(".hc-status");
+  if(sbtn)sbtn.onclick=async ev=>{ev.stopPropagation();
+    it.enabled=!it.enabled;
+    await api().set_item(cat.key,it.name,it.enabled);
+    sbtn.classList.toggle("on",it.enabled);sbtn.textContent=it.enabled?"● keep":"skip";
+    if(ecoHoverRow){ecoHoverRow.classList.toggle("dis",!it.enabled);
+      const rp=ecoHoverRow.querySelector(".pilltog");
+      if(rp){rp.classList.toggle("on",it.enabled);rp.textContent=it.enabled?"● keep":"skip";}}};
+  ruleFor(cat,it).then(r=>{
+    if(tok!==ecoHoverTok)return;                 // moved on before it resolved
+    ecoHoverRule=r||"";
+    cbtn.disabled=false;cbtn.style.opacity="";
+    const box=ecoHover.querySelector(".hc-rule");
+    if(box)box.textContent=((r||"").split("\n").find(l=>l.trim()&&!l.trim().startsWith("//"))||r||"(no rule)").trim();
+    // The rule text just grew the card taller than when it was first placed near
+    // the bottom — re-clamp so the new bottom edge can't spill off-screen.
+    ecoHoverMove(e);
+  }).catch(()=>{});
+}
 function renderEco(){
+  ecoHoverHide();                // a re-render destroys the hovered row; drop any open card
   if(!eco)return;                // guard every entry: eco is null between league switches
   const q=($("ecoSearch").value||"").toLowerCase();
   const body=$("ecoBody");body.innerHTML="";
@@ -2643,8 +2868,18 @@ function renderEco(){
   // column click paints ▲/▼ on a header that visibly does nothing.
   const activeTh=(movers||isKeys||isStatic)?null:document.querySelector(`th[data-s="${ecoSort}"] .s-ind`);
   if(activeTh)activeTh.textContent=ecoDir===1?" ▲":" ▼";
+  const shown=rows.slice(0,400);
+  // Value bars use a LOG scale between the cheapest and dearest priced item in
+  // view. Prices span huge magnitudes (a 1-div common vs a 3700-div chase), so a
+  // linear fill crushes everything but the top few into identical slivers. Log
+  // spreads the low/mid range so the fill reads as relative worth everywhere.
+  const priced=shown.filter(([,it])=>!it.static&&it.ex>0).map(([,it])=>it.ex);
+  const lmax=Math.log(priced.length?Math.max(...priced):1),lmin=Math.log(priced.length?Math.min(...priced):1);
+  const lspan=(lmax-lmin)>0?(lmax-lmin):1;   // single value or empty → flat scale
+  // 8%..100%; a non-positive price (rare for a non-static row) gets no bar.
+  const barW=ex=>ex>0?Math.max(8,Math.min(100,8+Math.round(((Math.log(ex)-lmin)/lspan)*92))):0;
   let lastSec=null;
-  for(const [cat,it] of rows.slice(0,400)){
+  for(const [cat,it] of shown){
     // Sub-headings inside one always-pick category (base vs unique tablets, exotic
     // bases by gear slot). Only in the unsorted static view — a heading that a
     // column sort can scatter is worse than no heading, which is what sank the
@@ -2666,16 +2901,30 @@ function renderEco(){
       (it.chg===0?`<span class="chg flat">– 0%</span>`:
       `<span class="chg ${it.chg>0?"up":"dn"}">${it.chg>0?"▲":"▼"} ${Math.abs(it.chg)}%</span>`);
     const dir=it.chg==null?0:(it.chg>0?1:it.chg<0?-1:0);
-    tr.innerHTML=`<td title="${esc(it.name)}">${nm}</td><td class="val">${it.static?'<span class="pill" title="poe.ninja doesn\'t price this item — it is picked up regardless of value">No price · always kept</span>':fmtVal(it.ex)}</td>
+    const valCell=it.static
+      ?'<span class="pill" title="poe.ninja doesn\'t price this item — it is picked up regardless of value">No price · always kept</span>'
+      :`<span class="valbar"><span class="fill" style="width:${barW(it.ex)}%"></span><span class="vnum">${fmtVal(it.ex)}</span></span>`;
+    tr.innerHTML=`<td title="${esc(it.name)}">${nm}</td><td class="val">${valCell}</td>
       <td class="chgcell"${it.spark?' title="7-day price trend"':""}>${sparkSvg(it.spark,dir)}${chg}</td>
-      <td style="text-align:center"><span class="pill ${it.enabled?"on":""}">${it.enabled?"● keep":"skip"}</span></td>
+      <td style="text-align:center"><button type="button" class="pilltog pill ${it.enabled?"on":""}" title="Click to include / exclude this rule">${it.enabled?"● keep":"skip"}</button></td>
       <td><button class="rowbtn">copy</button></td>`;
     tr.querySelector(".rowbtn").onclick=async e=>{e.stopPropagation();
-      const rule=await api().rule_for(cat.key,it.name,cat.unique,it.base||"",it.ex);
+      const rule=await ruleFor(cat,it);
       const ok=await copyText(rule);
       toast(ok?"Rule copied":"Clipboard blocked");};
-    tr.onclick=async()=>{it.enabled=!it.enabled;
+    // Only the keep/skip pill toggles the rule — a click anywhere else on the row
+    // no longer turns it off by accident.
+    tr.querySelector(".pilltog").onclick=async e=>{e.stopPropagation();
+      it.enabled=!it.enabled;
       await api().set_item(cat.key,it.name,it.enabled);renderEco();};
+    tr.addEventListener("mouseenter",e=>ecoHoverRequest(cat,it,e,tr));
+    tr.addEventListener("mouseleave",()=>{clearTimeout(ecoShowTimer);ecoHoverHideSoon();});
+    // Left-click a row (not one of its buttons) pins the detail card; right-click
+    // copies the rule instantly without touching the card.
+    tr.addEventListener("click",e=>{if(e.target.closest("button"))return;ecoPin(cat,it,e,tr);});
+    tr.addEventListener("contextmenu",async e=>{e.preventDefault();
+      const rule=await ruleFor(cat,it);
+      const ok=await copyText(rule);toast(ok?"Rule copied":"Clipboard blocked");});
     body.appendChild(tr);}
   // A blank table looks identical to a failed load or a broken app — say which.
   if(!rows.length&&ecoCat!=="_movers_"){const tr=document.createElement("tr");

@@ -6,6 +6,37 @@ download lives.
 
 ---
 
+## [v4.41.20] — 2026-07-23 — Economy tab overhaul: hover cards, value bars, collapsible groups
+
+- **Hover cards on Economy rows.** Hover any item and a card shows its art, live
+  price, 7-day trend, keep/skip status, and the exact pickit rule that catches
+  it — so it's obvious at a glance what any row does. Unpinned, the card is a
+  pass-through tooltip (it never covers the row's own keep/copy buttons); click a
+  row to **pin** it into a stable panel with a Copy button and its own keep/skip
+  toggle, closed by ✕, Esc, or a click anywhere else. The card flips above/left
+  near the screen edges so it can never spill off-screen.
+- **Right-click a row to copy its pickit rule** instantly, without opening the card.
+- **Value bars behind each price.** A faint fill, scaled **logarithmically**,
+  reads as relative worth at a glance. Prices span huge magnitudes (a one-ex
+  common vs a multi-thousand-ex chase item), so a linear fill flattened
+  everything but the top few into identical slivers; the log scale spreads the
+  low and mid range so every row's bar means something.
+- **Collapsible Economy sidebar groups.** General, Equipment, Atlas and Always
+  pick each fold with a click on their header, so the whole category list fits
+  without scrolling. Group headers are bigger and bold, with a caret and count.
+- **No more accidental toggles.** Clicking a row no longer flips its keep/skip —
+  only the keep/skip button does. A stray click while reading the table can't
+  silently drop a rule anymore; the column header reads "click to toggle".
+- **Faster Economy tab.** The pickit-rule lookup behind hovers, right-click copy
+  and the row Copy button is cached per item, so repeat interactions are instant
+  instead of calling into the engine every time (the cache key includes the price,
+  so a Refresh still gets fresh rules).
+- **Generate is never silent.** A toast fires the moment a run starts and again
+  when it finishes (with the rule count and time), so the button gives feedback
+  whether you press it on the Generate tab or via Ctrl+G.
+- **Theme picker previews.** Each theme in the picker shows a mini preview (its
+  accent as a dot and two bars) instead of a bare swatch, so themes read by look.
+
 ## [v4.41.19] — 2026-07-23 — Tablets are priced live now, not hardcoded
 
 - **Regular and unique tablets are no longer a hardcoded always-pick list.**

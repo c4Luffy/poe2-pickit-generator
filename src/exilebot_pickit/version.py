@@ -1,11 +1,20 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.19"
+VERSION = "4.41.20"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• The Economy tab has hover cards now. Hover any item and a card shows its art, live price, 7-day trend, keep/skip status, and the exact pickit rule that catches it — so you can see at a glance what any row actually does. Click a row to PIN the card open; pinned, it gets a Copy button and its own keep/skip toggle, and stays put until you close it with ✕, Esc, or a click anywhere else. Unpinned it is a pass-through tooltip, so it never covers the row's own buttons.
+• Right-click any Economy row to copy its pickit rule instantly, without opening anything.
+• Value bars sit behind each price — a faint fill, scaled logarithmically, that shows worth at a glance. A one-ex common and a multi-thousand-ex chase item both read now, instead of everything but the top few flattening into identical slivers.
+• The Economy sidebar groups collapse. General, Equipment, Atlas and Always pick each fold with a click, so the whole category list fits without scrolling.
+• Clicking a row no longer turns its rule off by accident — only the keep/skip button toggles it now. A stray click while reading the table can't silently drop a rule.
+• The Economy tab is faster: rule lookups are cached, so repeat hovers and copies are instant instead of hitting the engine every time.
+• Generate shows a toast the moment a run starts and again when it finishes (with the rule count and time), so pressing it is never silent — including from the Ctrl+G shortcut.
+
+Also in 4.41.19:
 • Regular and unique tablets are priced live now, not hardcoded. poe.ninja added real pricing for both — Precursor Tablets (Overseer, Abyss, Breach, Ritual, Irradiated, Temple, Delirium; priced separately per rarity, Normal/Magic/Rare) and Unique Tablets (all nine) — so generated pickits now respect the normal value floor for tablets like every other market item, instead of force-picking every rarity regardless of what it's actually worth. Some are genuinely valuable (a Normal Ritual Tablet has been worth close to a Divine).
 • Both show up as their own Economy categories under Atlas, matching how poe.ninja itself groups them, with live prices, 7-day trend arrows and per-item switches. Precursor Tablets are further grouped by tablet type, with each type's Normal/Magic/Rare rows kept together — the same idea as Exotic Bases grouping by gear slot.
 • The Economy sidebar now matches poe.ninja's own layout exactly — section names, order, and item order within each section (General, Equipment, Atlas), checked directly against the live site. Waystones moved out of General into Always pick, since poe.ninja doesn't price it at all and every tier is always kept regardless of value.
