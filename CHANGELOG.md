@@ -6,6 +6,27 @@ download lives.
 
 ---
 
+## [v4.41.23] — 2026-07-24 — Two exceptional staff bases stop rendering blank
+
+- **Sanctified Staff and Paralysing Staff showed as empty cards on the
+  Exceptional tab** — an icon and a name, and nothing else. No item level, no
+  stats, no implicit, while every other one of the 121 bases showed at least a
+  level.
+- **Cause:** both were added to the staff slot in v4.39.1 (replacing
+  Permafrost/Reflecting Staff, which never drop) but were never given a
+  `BASE_STATS` row. The tab reads the level from that table with a `0` fallback,
+  and `0` renders as nothing — so the gap was invisible in code and obvious only
+  on screen. It shipped that way for 13 releases.
+- **Fix:** both now carry their real drop level — Sanctified Staff **56**,
+  Paralysing Staff **52** — read from the game's own base-item table
+  (`base_items.min.json`), the same authority the rest of the tab uses. Verified
+  the existing rows match that source exactly (Ravenous Staff 65, Wrath Sceptre
+  49) before adding, rather than guessing. Staves carry no armour/evasion/energy
+  shield, so the stats string stays empty like the other caster weapons.
+- Checked the whole tab while there: the game-data drift checker reports **0
+  critical, 0 advisory**, all 121 bases have artwork, and the column layout and
+  best-stat-first ordering behave correctly.
+
 ## [v4.41.22] — 2026-07-24 — Three UIs stop reporting skipped rules that were never skipped
 
 - **Preview claimed "9 skipped" for a pickit with nothing disabled.** Those nine

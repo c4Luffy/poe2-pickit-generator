@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.22/ExileBot2PickitGenerator.exe"><img alt="Download v4.41.22 for Windows" src="https://img.shields.io/badge/Download-v4.41.22-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.23/ExileBot2PickitGenerator.exe"><img alt="Download v4.41.23 for Windows" src="https://img.shields.io/badge/Download-v4.41.23-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&label=Downloads&labelColor=171411&color=829d78"></a>
 </p>
 
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://c4luffy.github.io/poe2-pickit-generator/">Website</a> ·
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.22">Release notes</a> ·
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.23">Release notes</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://discord.gg/T7DU3Afve6">Discord</a> ·
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
@@ -31,7 +31,7 @@
 <p align="center"><sub>Real running-app capture · Generate · captured on v4.38.2</sub></p>
 
 > [!IMPORTANT]
-> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.41.22](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.22/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
+> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.41.23](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.23/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
 
 ## Start here
 
@@ -116,7 +116,7 @@ Rare gear stays honest. If no recipe covers the base or its slot is disabled, th
 - Unusual item-name characters are excluded and reported instead of disappearing silently.
 - The app never asks for your Path of Exile account.
 
-Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.22/SHA256SUMS.txt).
+Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.23/SHA256SUMS.txt).
 
 ### Three important usage notes
 
@@ -124,9 +124,16 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.41.22
+## Current release: v4.41.23
 
-### Three UIs stop reporting skipped rules that were never skipped
+### Two exceptional staff bases stop rendering blank
+
+- **Sanctified Staff and Paralysing Staff showed as empty cards** on the Exceptional tab — an icon and a name and nothing else, while every other one of the 121 bases showed at least an item level.
+- **Cause:** both joined the staff slot back in v4.39.1 (replacing two that never drop) but were never given a stats row, so the level fell back to `0` — which renders as nothing. It shipped that way for 13 releases.
+- **Fix:** both now carry their real drop level (Sanctified **56**, Paralysing **52**), read from the game's own base-item table — the same authority the rest of the tab uses, and cross-checked against existing rows rather than guessed.
+- Also checked the whole tab: the game-data drift checker reports **0 critical, 0 advisory**, and all 121 bases have artwork.
+
+### v4.41.22 — Three UIs stop reporting skipped rules that were never skipped
 
 - **Preview claimed "9 skipped" for a pickit with nothing disabled.** Those nine were the `// Example:` lines of the syntax guide that v4.41.18 began writing into every generated `.ipd` — they contain `[StashItem]` and start with `//`, so a bare substring test counted each as a rule you had switched off. The **"Skipped" filter** listed them as your disabled rules, and the rule total was inflated by nine.
 - **The same miscount sat in three places.** It also fed the Generate tab's "skipped" tile and the `--cli` "Commented out:" total. All three now share one helper: a line counts as a rule only if it carries the `[StashItem]` action **and** the `#` identify split, and isn't a guide example.
@@ -277,7 +284,7 @@ Every tab was audited that cycle. The headline items are behaviour fixes — thi
 
 </details>
 
-[Read the complete v4.41.22 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.22) · [full changelog](CHANGELOG.md)
+[Read the complete v4.41.23 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.23) · [full changelog](CHANGELOG.md)
 
 <details>
 <summary><strong>Everything included</strong></summary>
