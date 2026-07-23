@@ -6,6 +6,20 @@ download lives.
 
 ---
 
+## [v4.41.25] — 2026-07-24 — The Exceptional tab explains its own exceptions
+
+- **Belts and quivers looked like they didn't belong.** That tab is explained
+  entirely in terms of the extra rune socket an exceptional base rolls — three
+  sockets for body armour and two-handers, two for gloves, boots, shields, foci
+  and one-handers. Belts and quivers take **no runes at all** (the bridge
+  reports `sockets: 0` for both), so seven bases sat in a list whose stated
+  premise did not apply to them, with nothing on the page saying why.
+- They are listed because they are still the **strongest base of their slot to
+  craft on**, which is the tab's actual subject — the card now says so directly,
+  instead of leaving the reader to assume a mistake.
+- Wording only: no base was added, removed, or re-gated, and no generated rule
+  changes.
+
 ## [v4.41.24] — 2026-07-24 — A gate you couldn't lower, and two more counts that lied
 
 Completing a pass over every tab. Three real findings:

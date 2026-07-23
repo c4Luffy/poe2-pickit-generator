@@ -1,11 +1,14 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.24"
+VERSION = "4.41.25"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• The Exceptional tab says why belts and quivers are on it. That tab is explained entirely by the extra rune socket an exceptional base rolls — three sockets for body armour and two-handers, two for gloves, boots and one-handers. Belts and quivers take no runes at all, so seven bases sat in a list whose stated reason did not apply to them, with nothing saying why. They are there because they are still the strongest base of their slot to craft on, and the card now says exactly that.
+
+Also in 4.41.24:
 • Create your filter stopped reporting disabled rules that were never disabled. A clean pickit — nothing switched off — came back as "11 disabled". All eleven were lines from the syntax guide the app writes into every .ipd: its worked examples and its Special Flags legend are comments that carry a real action, so the counter read them as rules you had turned off. This is the same guide that caused the phantom "9 skipped" fixed last version, showing up in a fourth place. The exclusion is deliberately narrow: a genuinely commented-out rule still counts, including one using [Salvage] or [StashUnid] instead of [StashItem], or written without the "#" split, the way hand-made and imported pickits often are.
 • The Craft tab could not lower the item level on three jewellery bases. Solar Amulet, Gold Amulet and Gold Ring had no data row, so their item-level stepper fell back to a hardcoded 75 — while the control itself promises to floor at "this base's own drop level". Those bases drop from 30, 35 and 40, so anything below 75 was simply unreachable. All three now carry their real drop level, read from the game's own base-item table.
 • History stopped under-reporting once you passed 30 runs. The app keeps the last 50 and the tab says so, but it only ever read back 30 — so "runs logged" stuck at 30, and "average" and "peak rules" were calculated over a window that quietly left out the oldest 20, which could hide a genuine peak. It now reads everything it keeps.
