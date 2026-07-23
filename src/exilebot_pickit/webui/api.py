@@ -1010,7 +1010,12 @@ class AppApi:
     # ── History / update check / debug ────────────────────────────────────────
 
     def history(self):
-        return list(reversed(self.cfg.get("history", [])))[:30]
+        """Newest run first. The cap MUST match what _generate keeps
+        (``del hist[:-50]``) and what the tab promises ("last 50 kept"): it was
+        30, so past 30 runs the History tiles under-reported — "runs logged"
+        stuck at 30, and "average"/"peak rules" were computed over a window that
+        silently excluded the oldest 20 kept runs, hiding a real peak."""
+        return list(reversed(self.cfg.get("history", [])))[:50]
 
     def _raregear_states(self) -> dict:
         """Per-slot on/off, stored like the Fracture tab's (item_states)."""

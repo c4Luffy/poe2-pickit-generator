@@ -6,6 +6,42 @@ download lives.
 
 ---
 
+## [v4.41.24] — 2026-07-24 — A gate you couldn't lower, and two more counts that lied
+
+Completing a pass over every tab. Three real findings:
+
+- **Create your filter reported "11 disabled rules" for a pickit with nothing
+  disabled.** All eleven were the embedded syntax guide's own documentation —
+  its worked `// Example:` lines and its Special Flags legend
+  (`// [StashItem] == "true"  - Put item in stash`). Those are comments that
+  carry a real action or type token, so the disabled-rule counter read them as
+  rules the user had switched off. This is the **fourth** place the guide added
+  in v4.41.18 produced a wrong number, after Preview, the Generate tile and the
+  `--cli` total fixed in v4.41.22. The v4.39.5 fix had already cut this from 202
+  to 11; the guide then reintroduced it from the other side.
+  The exclusion is deliberately narrow — it strips only the two shapes the guide
+  writes. A genuinely commented-out rule still counts, **including** one using
+  `[Salvage]` or `[StashUnid]` instead of `[StashItem]`, or written without the
+  `#` split, as hand-made and imported pickits often are. Verified both ways: the
+  real pickit now reports **0**, and three deliberately commented-out rules of
+  those shapes still report **3**.
+- **The Craft tab could not lower the item-level gate on three jewellery bases.**
+  Solar Amulet, Gold Amulet and Gold Ring had no `BASE_STATS` row, so the
+  stepper's minimum fell back to a hardcoded `75` — while the control's own code
+  promises to floor at "this base's own drop level". Those bases drop from
+  **30**, **35** and **40**, so every value below 75 was unreachable. All three
+  now carry their real drop level from the game's `base_items` table, the same
+  authority used for the v4.41.23 staff fix.
+- **History under-reported once you passed 30 runs.** `_generate` keeps the last
+  **50** (`del hist[:-50]`) and the tab states "last 50 kept", but the bridge
+  returned only `[:30]`. So "runs logged" stuck at 30, and **"average rules" and
+  "peak rules" were computed over a window that silently excluded the oldest 20
+  kept runs** — hiding a genuine peak. The cap now matches what is stored.
+- Also checked and found healthy: **Item Check** (every historically-buggy case —
+  Waystones, `Superior` quality bases, Uncut Gems — still answers correctly, and
+  junk is still rejected), **Fracture** (79 targets, 0 unverified stat ids),
+  **Settings** (33 controls, none dead) and **Setup guide**.
+
 ## [v4.41.23] — 2026-07-24 — Two exceptional staff bases stop rendering blank
 
 - **Sanctified Staff and Paralysing Staff showed as empty cards on the

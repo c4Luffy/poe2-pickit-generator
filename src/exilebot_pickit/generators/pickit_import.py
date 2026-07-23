@@ -85,6 +85,26 @@ _VALID_RARITIES = {"Normal", "Magic", "Rare", "Unique"}
 _UNEXPRESSIBLE = ('"', "#")
 
 
+# The embedded syntax guide's two documentation shapes: a worked "Example:" and
+# the Special Flags legend ('[StashItem] == "true"  - Put item in stash'). Both
+# are comments carrying a real action/type token, so the disabled-rule counter
+# mistook them for rules someone had switched off.
+_GUIDE_EXAMPLE_RE = re.compile(r'^\s*Example\s*:', re.I)
+_GUIDE_LEGEND_RE = re.compile(r'^\s*\[\w+\]\s*==\s*"[^"]*"\s+-\s+\S')
+
+
+def _is_guide_line(line: str) -> bool:
+    """True for a syntax-guide comment (documentation), not a disabled rule.
+
+    Deliberately narrow: it only strips the two shapes the guide actually
+    writes. A genuinely commented-out rule — including one using [Salvage] or
+    [StashUnid], or written without the '#' split, as hand-made and imported
+    pickits do — still counts as disabled.
+    """
+    body = line.lstrip("/").strip()
+    return bool(_GUIDE_EXAMPLE_RE.match(body) or _GUIDE_LEGEND_RE.match(body))
+
+
 def _pickup_half(line: str) -> str:
     """Everything before the first '#' OUTSIDE quotes — the pickup conditions.
     A naive split('#') used to cut inside quoted names and silently lose them."""
@@ -219,7 +239,15 @@ def convert_pickit_text(text: str, hide_rest: bool = False,
             # Only a commented-out RULE counts as disabled. Counting every "//"
             # line made the report claim 202 disabled rules for a file that had
             # none — those were all section headers and the banner.
-            if gen._LF_ACTION_RE.search(line) or gen._LF_TYPE_RE.search(line):
+            #
+            # The embedded syntax guide (written into every generated .ipd since
+            # v4.41.18) then reintroduced the same lie from the other side: its
+            # worked examples and its Special Flags legend are comments that DO
+            # carry an action/type, so a clean pickit reported "11 disabled"
+            # when nothing was switched off. Those are documentation, not rules.
+            if (not _is_guide_line(line)
+                    and (gen._LF_ACTION_RE.search(line)
+                         or gen._LF_TYPE_RE.search(line))):
                 disabled += 1
             continue
         rules += 1
