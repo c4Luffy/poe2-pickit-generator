@@ -514,6 +514,30 @@ def test_build_unique_lines_sorted_high_to_low():
     assert vals == sorted(vals, reverse=True), f"uniques not sorted high→low: {vals}"
 
 
+def test_build_unique_lines_escapes_quotes_in_name_and_base():
+    """A unique name or baseType from poe.ninja containing a literal double quote
+    used to be interpolated raw into the rule, breaking its quoting the same way
+    build_unique_lines' [Type]/[UniqueName] once did. Both external values must go
+    through _quote_ipd so the rule stays syntactically valid. No live item has a
+    quote today — this guards the latent case the audit flagged as still open."""
+    payload = {
+        "core": {"rates": {"exalted": 1.0}},
+        "lines": [
+            {"name": 'The "Best" Unique', "baseType": 'Weird "Base"', "primaryValue": 100.0},
+        ],
+    }
+    out = gen.build_unique_lines(payload, 1.0, min_exalt=0.0)
+    assert len(out) == 1
+    line = out[0]
+    # The quotes inside the values are escaped; the structural quotes are not.
+    assert r'[Type] == "Weird \"Base\""' in line
+    assert r'[UniqueName] == "The \"Best\" Unique"' in line
+    # Once the escaped quotes are removed, the remaining structural quotes must
+    # still pair up evenly — the guarantee escaping is there to preserve.
+    structural = line.replace(r'\"', "")
+    assert structural.count('"') % 2 == 0, f"unbalanced structural quotes: {line}"
+
+
 def test_anvil_only_bases_are_dropped_from_unique_rules():
     """Runeforged/Runemastered bases are made at the anvil from dropped items, so
     they never appear as ground loot and no pickup rule can fire on one. These

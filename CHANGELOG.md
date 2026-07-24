@@ -6,6 +6,27 @@ download lives.
 
 ---
 
+## [v4.41.28] — 2026-07-24 — Every rule builder now escapes quotes in item names
+
+Found by a full audit pass against the project's own checklist.
+
+- **A unique whose name or base type contained a literal `"` would have corrupted
+  its pickit rule.** `build_unique_lines` interpolated the poe.ninja `name` and
+  `baseType` straight into `[Type] == "…" && [Rarity] == "Unique" # [UniqueName]
+  == "…"` with no escaping. This is the one builder the v4.41.18 audit fixed for
+  `force_names` but left with raw quoting — and that release's own notes admitted
+  quote escaping was "still incomplete elsewhere in the current source." A quote
+  in either value would unbalance the rule's own quoting and Exiled Bot's
+  validator would reject the whole file.
+  Both values now go through `_quote_ipd`, matching every other builder.
+  `build_uncut_gem_lines` interpolates an external name too — regex-gated, so a
+  quote can't currently reach it — and is wrapped as well, so "every builder that
+  writes an external name escapes it" is now literally true rather than true by
+  luck. No live item has a quote today; this closes the latent case the audit
+  had flagged as still open.
+- **Regression test added**: a unique whose name *and* base both contain `"`
+  still produces a rule whose structural quotes stay balanced.
+
 ## [v4.41.27] — 2026-07-24 — Scheduled and piped runs stop crashing on a non-UTF-8 console
 
 - **A headless `--cli` / `--regenerate` run aborted before writing a single file
@@ -2231,6 +2252,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.41.28]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.28
 [v4.41.27]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.27
 [v4.41.19]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.19
 [v4.41.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.3

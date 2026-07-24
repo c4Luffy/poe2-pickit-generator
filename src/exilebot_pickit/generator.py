@@ -1009,7 +1009,7 @@ def build_uncut_gem_lines(payload: dict, divine_rate_exalts: float, min_exalt: f
         output.append(header_minor(f"Uncut {gem_type} Gems"))
         output.append("")
         for _, _level, name, ev, _ in group:
-            rule = f'[Type] == "{name}" # [StashItem] == "true" // ExValue = {ev:.2f}'
+            rule = f'[Type] == "{_quote_ipd(name)}" # [StashItem] == "true" // ExValue = {ev:.2f}'
             output.append(rule if ev >= threshold else f"//{rule}")
         output.append("")
 
@@ -1135,7 +1135,8 @@ def build_unique_lines(payload: dict, _divine_rate_exalts: float, min_exalt: flo
         primary_value = float(line.get("primaryValue") or 0.0)
         exalt_value = primary_value * rate if rate else primary_value
         rule = (
-            f'[Type] == "{base_type}" && [Rarity] == "Unique" # [UniqueName] == "{name}" '
+            f'[Type] == "{_quote_ipd(base_type)}" && [Rarity] == "Unique" '
+            f'# [UniqueName] == "{_quote_ipd(name)}" '
             f'&& [StashItem] == "true" // ExValue = {exalt_value:.2f}'
         )
         keep = (exalt_value >= threshold or name in force) and name not in dis

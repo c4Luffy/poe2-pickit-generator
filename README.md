@@ -124,9 +124,14 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.41.27
+## Current release: v4.41.28
 
-### Scheduled and piped runs stop crashing on a non-UTF-8 console
+### Every rule builder now escapes quotes in item names
+
+- **A unique whose name or base type contained a literal `"` would have corrupted its pickit rule.** `build_unique_lines` interpolated the poe.ninja `name` and `baseType` straight into the rule with no escaping — the one builder the v4.41.18 audit fixed for `force_names` but left with raw quoting, and that release admitted quote escaping was "still incomplete elsewhere." A quote in either value would unbalance the rule and Exiled Bot's validator would reject the whole file. Both now go through `_quote_ipd`, matching every other builder. The uncut-gem builder (external names, but regex-gated so a quote can't reach it) is wrapped too, so "every builder escapes external names" is now literally true. No live item has a quote today; this closes the latent case.
+- **Regression test added**: a unique whose name and base both contain `"` still produces a rule whose structural quotes stay balanced.
+
+### v4.41.27 — Scheduled and piped runs stop crashing on a non-UTF-8 console
 
 - **A headless `--cli` / `--regenerate` run aborted before writing a single file on a console that wasn't UTF-8.** Both modes print progress with `✓` and `·`, and on a Windows console that isn't UTF-8 — cp1252, which is exactly what Task Scheduler and a redirected pipe (`> log.txt`) hand you — the *first* ticked category raised `UnicodeEncodeError` and killed the run before any output was generated. `--regenerate` is documented for Task Scheduler, so its intended home was the one that broke it.
 - Both entry points now wrap `stdout`/`stderr` as UTF-8 with `errors="replace"` (the same wrapper `tools/check_game_data.py` already uses), so an exotic console degrades a glyph instead of aborting the run. Only a stream that isn't already UTF-8 is touched, so a normal terminal is unaffected.
