@@ -6,6 +6,47 @@ download lives.
 
 ---
 
+## [v4.41.26] — 2026-07-24 — Concurrent writes stop failing, plus a pass of visual polish
+
+Found by a full audit pass against the project's own checklist.
+
+- **Two runs writing the same output collided and the write failed.**
+  `write_text_atomic()` created its temp file as `<target>.tmp` — a name derived
+  from the destination, so two runs writing the same file used the *same* temp
+  name. That covers **every generated file**: the `.ipd`, the `.filter`, the CSV
+  item report, profile exports and the bot's own `pickit.ini`.
+  This is not theoretical: the app ships `--regenerate` for Task Scheduler, so
+  the GUI generating while the scheduled run fires is an ordinary overlap.
+  **Reproduced** with two threads writing one path — the old code raised
+  `PermissionError` (Windows refuses the second open/replace while the first
+  holds the file), i.e. the write simply failed. On POSIX the same clash can
+  interleave instead. `os.replace` being atomic never helped, because the
+  collision happens *before* the swap.
+  Each write now gets a uniquely named temp file (`mkstemp` + `fsync`, with
+  cleanup on failure) — the same protection `ui/config.py` adopted after this
+  exact bug repeatedly damaged `config.json`. The identical two-writer test now
+  completes with **no exceptions, a clean single-writer result and no leftover
+  temp files**.
+- **Visual polish, no layout changes.** The KPI tiles on Preview, History and
+  Debug gain a hairline accent, a subtle gradient and a lift on hover, so a row
+  of numbers reads as one designed panel rather than separate grey boxes.
+  Section headings inside cards gain a small accent bar (paired with the hairline
+  that already ran to their right), making long pages like Exceptional and
+  Settings faster to scan. All of it is driven by the theme's own `--gold`, so
+  every theme keeps its own voice.
+- **The sidebar fits again.** `.nav-btn` spent 9px of vertical padding per
+  button; across 14 buttons that pushed the theme picker and the Discord /
+  Exiled Bot links off the bottom of shorter windows. Trimmed to 6px —
+  **~104px reclaimed** — and the whole rail now fits without scrolling.
+  Horizontal padding is untouched on purpose: `.nav-btn.on` matches it with
+  `padding-left:12px` + a 2px border, and changing it makes every label jump
+  sideways on tab switch.
+- Considered and **rejected**: zebra striping on the Economy and History tables.
+  Both interleave rows the user never sees (History's hidden `.hdet` detail row,
+  Economy's `.secrow` section headers), so `nth-child` banding would have
+  striped the *hidden* rows and looked broken. The gold row-hover it was meant
+  to complement already ships.
+
 ## [v4.41.25] — 2026-07-24 — The Exceptional tab explains its own exceptions
 
 - **Belts and quivers looked like they didn't belong.** That tab is explained

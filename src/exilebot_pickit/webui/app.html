@@ -221,7 +221,11 @@
   nav{background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 5%,var(--bg2)),var(--bg2));
       border-right:1px solid var(--border);
       box-shadow:2px 0 18px rgba(0,0,0,.28);
-      display:flex;flex-direction:column;gap:16px;padding:18px 13px;flex-shrink:0;
+      /* gap was 16px between EVERY child — with 14 nav buttons that spent ~200px
+         on empty space and forced the rail to scroll on shorter windows. The
+         group headers (.nav-grp) already carry their own padding, so they keep
+         the sections apart without a global gap doing it. */
+      display:flex;flex-direction:column;gap:4px;padding:18px 13px;flex-shrink:0;
       width:238px;height:90.9vh;overflow-y:auto}
   .brand{display:flex;align-items:center;gap:11px;padding:2px 6px 10px;flex-shrink:0}
   .sigil{width:46px;height:46px;flex:none;object-fit:contain;display:block}
@@ -306,7 +310,11 @@
   .nav-grp:hover{color:var(--text)}
   .nav-grp.on{color:var(--gold)}
   .nav-links{display:flex;flex-direction:column;align-items:stretch;gap:4px}
-  .nav-btn{display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:9px 13px;border-radius:var(--nav-r);
+  /* Vertical padding only: 14 buttons at 9px top+bottom spent ~70px of rail on
+     air and pushed the theme picker off shorter windows. HORIZONTAL padding
+     stays 13px — .nav-btn.on below matches it with padding-left:12px + 2px
+     border, and changing it makes every label jump sideways on tab switch. */
+  .nav-btn{display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:6px 13px;border-radius:var(--nav-r);
     text-transform:var(--nav-tt);
            font-size:13px;letter-spacing:var(--nav-ls);font-weight:var(--nav-w);
            color:var(--dim);cursor:pointer;border:1px solid transparent;user-select:none;white-space:nowrap}
@@ -496,7 +504,17 @@
   .log .m{overflow-wrap:anywhere}
   .log .ok{color:var(--ok)}.log .err{color:var(--err)}
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}
-  .stat{background:var(--bg3);border-radius:10px;padding:11px;text-align:center}
+  /* KPI tiles (Preview, History, Debug): a hairline accent along the top, a
+     little depth and a lift on hover, so a row of numbers reads as a designed
+     panel instead of flat grey boxes. Colour comes from --gold, so every theme
+     gets its own accent for free. */
+  .stat{position:relative;overflow:hidden;border:1px solid var(--border);
+    background:linear-gradient(180deg,color-mix(in srgb,var(--text) 4%,var(--bg3)),var(--bg3));
+    border-radius:10px;padding:12px 11px;text-align:center;
+    transition:transform .12s ease,border-color .12s ease}
+  .stat::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;opacity:.75;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+  .stat:hover{transform:translateY(-2px);border-color:var(--gold-dim)}
   .stat b{display:block;font-size:19px;color:var(--gold)}
   .stat span{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.7px}
   .toprow{color:var(--dim);font-size:12.5px;margin-top:10px}
@@ -722,6 +740,11 @@
   .page:not(#p-gen) .card h2{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700;
     letter-spacing:0;text-transform:none;color:var(--text)}
   .page:not(#p-gen) .card h2::after{content:"";flex:1;height:1px;background:var(--border)}
+  /* …and a small accent bar leading it, so section headings anchor the eye on
+     long pages (Exceptional, Settings, Magic & Rare). Same scope as the ::after
+     hairline above, so the two always appear as a pair. */
+  .page:not(#p-gen) .card h2::before{content:"";flex:0 0 auto;width:3px;height:15px;border-radius:2px;
+    background:linear-gradient(180deg,var(--gold-br),var(--gold-dim))}
   .gsec{display:flex;align-items:center;gap:12px;color:var(--text);font-size:14px;font-weight:700;
     text-transform:none;letter-spacing:0;border-bottom:0;padding-bottom:0;margin:14px 2px 2px}
   .gsec::after{content:"";flex:1;height:1px;background:var(--border)}

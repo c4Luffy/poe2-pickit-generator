@@ -1,11 +1,15 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.25"
+VERSION = "4.41.26"
 
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• Generating while a scheduled regenerate is running can no longer fail the write. Every generated file — the .ipd, the .filter, the item report and the bot's own pickit.ini — was written through a temp file named after the target, so two runs writing the same output used the SAME temp name. This app ships --regenerate for Task Scheduler, so that overlap is a normal thing to hit: the GUI generating while the timer fires. Reproduced with two writers on one path, the old code raised a Windows PermissionError — the write simply failed. Each write now gets its own uniquely named temp file, the same protection config.json already had, and the identical test now passes with no errors and nothing left behind.
+• A pass of visual polish. The number tiles on Preview, History and Debug get a fine accent line, a little depth and a lift as you pass over them, so a row of figures reads as one panel instead of separate grey boxes. Section headings inside cards gain a small accent bar, which makes long pages like Exceptional and Settings much easier to scan. And the sidebar is tighter: it was spending roughly a hundred pixels on padding, enough to push the theme picker and the Discord buttons off shorter windows — the whole rail now fits without scrolling.
+
+Also in 4.41.25:
 • The Exceptional tab says why belts and quivers are on it. That tab is explained entirely by the extra rune socket an exceptional base rolls — three sockets for body armour and two-handers, two for gloves, boots and one-handers. Belts and quivers take no runes at all, so seven bases sat in a list whose stated reason did not apply to them, with nothing saying why. They are there because they are still the strongest base of their slot to craft on, and the card now says exactly that.
 
 Also in 4.41.24:

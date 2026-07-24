@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.25/ExileBot2PickitGenerator.exe"><img alt="Download v4.41.25 for Windows" src="https://img.shields.io/badge/Download-v4.41.25-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.26/ExileBot2PickitGenerator.exe"><img alt="Download v4.41.26 for Windows" src="https://img.shields.io/badge/Download-v4.41.26-c99a4a?style=for-the-badge&labelColor=171411&logo=windows11&logoColor=e8e0d3"></a>
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/c4Luffy/poe2-pickit-generator/total?style=for-the-badge&label=Downloads&labelColor=171411&color=829d78"></a>
 </p>
 
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://c4luffy.github.io/poe2-pickit-generator/">Website</a> ·
-  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.25">Release notes</a> ·
+  <a href="https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.26">Release notes</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://discord.gg/T7DU3Afve6">Discord</a> ·
   <a href="https://github.com/c4Luffy/poe2-pickit-generator/issues">Issues</a>
@@ -31,7 +31,7 @@
 <p align="center"><sub>Real running-app capture · Generate · captured on v4.38.2</sub></p>
 
 > [!IMPORTANT]
-> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.41.25](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.25/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
+> **Using v4.20.0 or v4.21.0? Update manually once.** Close the old app, [download v4.41.26](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.26/ExileBot2PickitGenerator.exe), and open it. Your settings, profiles, and Exiled Bot folder stay in place. Later in-app updates work normally.
 
 ## Start here
 
@@ -116,7 +116,7 @@ Rare gear stays honest. If no recipe covers the base or its slot is disabled, th
 - Unusual item-name characters are excluded and reported instead of disappearing silently.
 - The app never asks for your Path of Exile account.
 
-Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.25/SHA256SUMS.txt).
+Windows SmartScreen may ask for confirmation because this free community executable is not code-signed. You can verify the release with its [published SHA-256 checksum](https://github.com/c4Luffy/poe2-pickit-generator/releases/download/v4.41.26/SHA256SUMS.txt).
 
 ### Three important usage notes
 
@@ -124,9 +124,16 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.41.25
+## Current release: v4.41.26
 
-### The Exceptional tab explains its own exceptions
+### Concurrent writes stop failing, plus a pass of visual polish
+
+- **Two runs writing the same output collided and the write failed.** Every generated file — the `.ipd`, the `.filter`, the item report and the bot's own `pickit.ini` — used a temp file named after its target, so two runs writing the same output shared one temp name. That's an ordinary overlap here, because the app ships `--regenerate` for Task Scheduler: the GUI generating while the timer fires. **Reproduced** with two writers on one path — the old code raised a Windows `PermissionError`, so the write simply failed. Each write now gets its own uniquely named temp file (the protection `config.json` already had), and the same test passes with no errors and nothing left behind.
+- **Visual polish, no layout changes.** KPI tiles on Preview, History and Debug gain a hairline accent, a little depth and a lift on hover, so a row of numbers reads as one panel. Section headings inside cards gain a small accent bar, making long pages easier to scan. All driven by the theme's own accent colour, so every theme keeps its voice.
+- **The sidebar fits again.** Trimming 3px of padding per nav button reclaimed **~104px** — enough that the theme picker and the Discord / Exiled Bot links no longer fall off shorter windows.
+- Considered and **rejected**: zebra striping on the Economy and History tables — both interleave hidden rows, so the banding would have striped rows you never see.
+
+### v4.41.25 — The Exceptional tab explains its own exceptions
 
 - **Belts and quivers looked like they didn't belong.** That tab is explained entirely by the extra rune socket an exceptional base rolls — 3 sockets for body armour and two-handers, 2 for gloves, boots, shields, foci and one-handers. Belts and quivers take **no runes at all**, so seven bases sat in a list whose stated premise didn't apply to them, with nothing saying why.
 - They're listed because they're still the **strongest base of their slot to craft on** — the tab's actual subject. The card now says so directly instead of leaving you to assume a mistake.
@@ -297,7 +304,7 @@ Every tab was audited that cycle. The headline items are behaviour fixes — thi
 
 </details>
 
-[Read the complete v4.41.25 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.25) · [full changelog](CHANGELOG.md)
+[Read the complete v4.41.26 release notes](https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.26) · [full changelog](CHANGELOG.md)
 
 <details>
 <summary><strong>Everything included</strong></summary>

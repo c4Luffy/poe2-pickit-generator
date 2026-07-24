@@ -82,11 +82,36 @@ def write_text_atomic(path: str, content: str, encoding: str = "utf-8", newline:
     process dies mid-write (crash, forced shutdown, disk full). Writing to a
     sibling temp file first and swapping it in with ``os.replace`` (atomic on
     both Windows and POSIX) means readers only ever see the old complete file
-    or the new complete file, never a partial one."""
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding=encoding, newline=newline) as f:
-        f.write(content)
-    os.replace(tmp, path)
+    or the new complete file, never a partial one.
+
+    The temp file gets a UNIQUE name. It used to be a shared ``<path>.tmp``,
+    which is only safe for ONE writer at a time: two runs writing the same
+    output — the GUI generating while the ``--regenerate`` scheduled task
+    fires, which this app ships support for — both used that one name and
+    collided. Reproduced with two threads writing the same path: the old code
+    raised ``PermissionError`` (Windows refuses the second open/replace while
+    the first holds the file), i.e. the .ipd/.filter/pickit.ini write simply
+    FAILED; the same collision on POSIX can interleave instead. ``os.replace``
+    being atomic never helped, because the clash happens before the swap. A
+    unique mkstemp name makes concurrent writers independent — the same fix
+    ``ui/config.py`` already uses after this bug repeatedly hit config.json.
+    """
+    import tempfile
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(path)) or ".",
+                               prefix="." + os.path.basename(path) + "-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding=encoding, newline=newline) as f:
+            f.write(content)
+            f.flush()
+            os.fsync(f.fileno())      # don't swap in a file the OS hasn't written yet
+        os.replace(tmp, path)
+        tmp = None
+    finally:
+        if tmp and os.path.exists(tmp):
+            try:
+                os.remove(tmp)        # a failed write must not litter the output folder
+            except OSError:
+                pass
 
 # (ITEM_NAME_CORRECTIONS, ITEM_NAME_SKIP, ALWAYS_PICK_CURRENCY, ALWAYS_PICK_RUNES,
 #  WAYSTONE_FALLBACK_RULES and _BASE_TYPES_BY_CATEGORY
