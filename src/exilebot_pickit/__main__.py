@@ -53,8 +53,33 @@ def _tune_webview2() -> None:
         os.environ[key] = (existing + " " + flags).strip()
 
 
+def _console_utf8() -> None:
+    """Make the console-mode output UTF-8 safe.
+
+    Both headless modes print progress with '✓' and '·'. On Windows a console
+    that isn't UTF-8 (cp1252 — which is exactly what Task Scheduler and a
+    redirected pipe give you) raises UnicodeEncodeError on the FIRST ticked
+    category, aborting the run before a single file is written. ``--regenerate``
+    is documented for Task Scheduler, so its intended environment was the one
+    that broke it. Same wrapper tools/check_game_data.py already uses;
+    errors='replace' means an exotic console degrades a glyph instead of
+    killing the run."""
+    import io
+    for _name in ("stdout", "stderr"):
+        _s = getattr(_sys, _name, None)
+        if _s is None or not hasattr(_s, "buffer"):
+            continue                      # already wrapped, or no real stream
+        try:
+            if (getattr(_s, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                setattr(_sys, _name, io.TextIOWrapper(
+                    _s.buffer, encoding="utf-8", errors="replace", line_buffering=True))
+        except Exception:
+            pass                          # never let logging setup kill the app
+
+
 if "--regenerate" in _sys.argv:
     _sys.argv.remove("--regenerate")
+    _console_utf8()
     _league = None
     if "--league" in _sys.argv:
         _i = _sys.argv.index("--league")
@@ -64,6 +89,7 @@ if "--regenerate" in _sys.argv:
 
 if "--cli" in _sys.argv:
     _sys.argv.remove("--cli")
+    _console_utf8()
     from exilebot_pickit.generator import main
     _sys.exit(main())
 

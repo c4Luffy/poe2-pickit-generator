@@ -124,9 +124,14 @@ Windows SmartScreen may ask for confirmation because this free community executa
 2. **Reselect the optional game filter after every save or regeneration.** Choose it again under **Options → Game → Filters**. Exiled Bot reads the `.ipd`, not the `.filter`.
 3. **Turn Hide everything else off while botting.** Hidden ground labels can stall pickup.
 
-## Current release: v4.41.26
+## Current release: v4.41.27
 
-### Concurrent writes stop failing, plus a pass of visual polish
+### Scheduled and piped runs stop crashing on a non-UTF-8 console
+
+- **A headless `--cli` / `--regenerate` run aborted before writing a single file on a console that wasn't UTF-8.** Both modes print progress with `✓` and `·`, and on a Windows console that isn't UTF-8 — cp1252, which is exactly what Task Scheduler and a redirected pipe (`> log.txt`) hand you — the *first* ticked category raised `UnicodeEncodeError` and killed the run before any output was generated. `--regenerate` is documented for Task Scheduler, so its intended home was the one that broke it.
+- Both entry points now wrap `stdout`/`stderr` as UTF-8 with `errors="replace"` (the same wrapper `tools/check_game_data.py` already uses), so an exotic console degrades a glyph instead of aborting the run. Only a stream that isn't already UTF-8 is touched, so a normal terminal is unaffected.
+
+### v4.41.26 — Concurrent writes stop failing, plus a pass of visual polish
 
 - **Two runs writing the same output collided and the write failed.** Every generated file — the `.ipd`, the `.filter`, the item report and the bot's own `pickit.ini` — used a temp file named after its target, so two runs writing the same output shared one temp name. That's an ordinary overlap here, because the app ships `--regenerate` for Task Scheduler: the GUI generating while the timer fires. **Reproduced** with two writers on one path — the old code raised a Windows `PermissionError`, so the write simply failed. Each write now gets its own uniquely named temp file (the protection `config.json` already had), and the same test passes with no errors and nothing left behind.
 - **Visual polish, no layout changes.** KPI tiles on Preview, History and Debug gain a hairline accent, a little depth and a lift on hover, so a row of numbers reads as one panel. Section headings inside cards gain a small accent bar, making long pages easier to scan. All driven by the theme's own accent colour, so every theme keeps its voice.

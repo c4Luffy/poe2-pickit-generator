@@ -6,6 +6,20 @@ download lives.
 
 ---
 
+## [v4.41.27] — 2026-07-24 — Scheduled and piped runs stop crashing on a non-UTF-8 console
+
+- **A headless `--cli` / `--regenerate` run aborted before writing a single file
+  on a console that wasn't UTF-8.** Both modes print progress with `✓` and `·`.
+  On Windows a console that isn't UTF-8 — cp1252, which is exactly what Task
+  Scheduler and a redirected pipe (`> log.txt`) hand you — raised
+  `UnicodeEncodeError` on the *first* ticked category and killed the run before
+  any output was generated. `--regenerate` is documented for Task Scheduler, so
+  its intended environment was the one that broke it.
+  Both entry points now wrap `stdout`/`stderr` as UTF-8 with `errors="replace"`
+  — the same wrapper `tools/check_game_data.py` already uses — so an exotic
+  console degrades a glyph instead of aborting the run. Only a stream that isn't
+  already UTF-8 is touched, so a normal terminal is unaffected.
+
 ## [v4.41.26] — 2026-07-24 — Concurrent writes stop failing, plus a pass of visual polish
 
 Found by a full audit pass against the project's own checklist.
@@ -2217,6 +2231,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.41.27]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.27
 [v4.41.19]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.19
 [v4.41.3]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.3
 [v4.41.2]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.2
