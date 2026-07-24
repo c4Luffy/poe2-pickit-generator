@@ -108,9 +108,16 @@ def main() -> int:
         return 0
 
     # ── bump, commit, tag, push ─────────────────────────────────────────────────
-    VERSION_FILE.write_text(
-        '"""Single source of truth for the app version."""\n'
-        f'VERSION = "{a.version}"\n', encoding="utf-8", newline="\n")
+    # Rewrite ONLY the VERSION line and leave the rest of the file intact — version.py
+    # also holds HIGHLIGHTS (the in-app "What's new" text). A full-file rewrite silently
+    # dropped HIGHLIGHTS, which imports elsewhere, and the tag shipped with a version.py
+    # that failed to import in CI. Replace the line in place instead.
+    _src = VERSION_FILE.read_text(encoding="utf-8")
+    _new, _n = re.subn(
+        r'(?m)^VERSION\s*=\s*["\'].*["\']\s*$', f'VERSION = "{a.version}"', _src)
+    if _n != 1:
+        die(f"expected exactly one VERSION assignment in version.py, found {_n}")
+    VERSION_FILE.write_text(_new, encoding="utf-8", newline="\n")
 
     run(["git", "add", "-A"])
     if run(["git", "commit", "-q", "-m", f"{tag}: {a.message}"]).returncode != 0:
