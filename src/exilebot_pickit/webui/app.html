@@ -2798,10 +2798,20 @@ const ecoZoom=()=>parseFloat(getComputedStyle(document.body).zoom)||1;
 function ecoHoverMove(e){
   const z=ecoZoom(),vw=window.innerWidth/z,vh=window.innerHeight/z;
   const cw=ecoHover.offsetWidth||280,ch=ecoHover.offsetHeight||0,off=16,pad=10;
+  // Keep the card clear of the row's keep/skip + copy buttons on the right edge.
+  // It used to follow the cursor onto that action column and sit on top of the
+  // buttons, so a whole column of keep/copy couldn't be clicked (worse on a
+  // high-DPI / scaled display). Cap the card's right edge at the action column's
+  // left edge. getBoundingClientRect().left is already in the same space as
+  // clientX and the card's left (see the .dtrack/spark handlers), so no /z here —
+  // only innerWidth (physical px) needed dividing.
+  let rightEdge=vw-pad;
+  const actBtn=(ecoHoverRow||$("ecoBody")).querySelector(".pilltog");
+  if(actBtn){const bl=actBtn.getBoundingClientRect().left;if(bl>cw+off+pad)rightEdge=Math.min(rightEdge,bl-off);}
   // Horizontal: sit to the RIGHT of the cursor; flip LEFT if it won't fit there.
   let left=e.clientX+off;
-  if(left+cw>vw-pad)left=e.clientX-cw-off;
-  left=Math.max(pad,Math.min(left,vw-cw-pad));
+  if(left+cw>rightEdge)left=e.clientX-cw-off;
+  left=Math.max(pad,Math.min(left,rightEdge-cw));
   // Vertical: sit BELOW the cursor; flip ABOVE if the bottom would overflow.
   // Final clamp catches the case where the card is taller than the room above too.
   let top=e.clientY+off;

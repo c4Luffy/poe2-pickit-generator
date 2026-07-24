@@ -1,10 +1,13 @@
 """Single source of truth for the app version."""
-VERSION = "4.41.28"
+VERSION = "4.41.29"
 # Shown by the in-app "What's new" dialog. Lives HERE so it ships inside the
 # exe and works offline / while GitHub is unreachable — the dialog used to
 # show only "See the release page for details." whenever the release fetch
 # failed. Update together with VERSION on every release.
 HIGHLIGHTS = """\
+• The Economy hover card no longer covers a row's keep/copy buttons. The detail card followed the cursor toward the right edge of the table and could sit right on top of the keep/skip and copy buttons — worse on a scaled or high-DPI display, where a whole column of buttons went unclickable. The card now stops at the left edge of that action column, so the buttons stay clear while the card still shows everything it did before, hovered or pinned.
+
+Also in 4.41.28:
 • Every rule builder now escapes quotes in item names. A unique whose name or base type held a literal double quote would have corrupted its pickit rule — build_unique_lines interpolated the poe.ninja name and baseType raw, the last quote-escaping gap the v4.41.18 audit left open (its own changelog said escaping was "still incomplete elsewhere"). Both now go through the same escaping every other builder uses, so a stray quote can never unbalance a rule the bot would then reject. The uncut-gem builder — regex-gated, so a quote can't reach it today — is wrapped too, making "every builder escapes external names" literally true. No live item has one now; this closes the latent case for good.
 
 Also in 4.41.27:

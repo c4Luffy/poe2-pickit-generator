@@ -6,6 +6,19 @@ download lives.
 
 ---
 
+## [v4.41.29] — 2026-07-24 — The Economy hover card stops covering a row's keep/copy buttons
+
+- **The detail card that pops up when you hover an Economy row could sit on top of
+  the keep/skip and copy buttons, so you couldn't click them.** The card followed
+  the cursor toward the right edge of the table and overlapped the whole action
+  column — worse on a high-DPI or scaled display, where it covered several rows'
+  buttons at once and left nothing clickable. The card now caps its right edge at
+  the left edge of that action column, so it never overlaps the keep/copy buttons;
+  it still appears beside the cursor as before. Both the hover tooltip and the
+  pinned card respect the limit. (The coordinate math reuses the app's existing
+  `getBoundingClientRect`-vs-`clientX` convention, so the `zoom:1.1` body doesn't
+  throw the boundary off.)
+
 ## [v4.41.28] — 2026-07-24 — Every rule builder now escapes quotes in item names
 
 Found by a full audit pass against the project's own checklist.
@@ -2252,6 +2265,7 @@ element id was preserved — **no feature was removed**.
 
 ---
 
+[v4.41.29]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.29
 [v4.41.28]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.28
 [v4.41.27]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.27
 [v4.41.19]: https://github.com/c4Luffy/poe2-pickit-generator/releases/tag/v4.41.19
